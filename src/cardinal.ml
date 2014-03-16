@@ -15,12 +15,14 @@
  *)
 
 open Cardinal_plugin
+open Cardinal_query
 open Cardinal_sigs
 open Printf
 
-exception Prepare_failed of string
-exception Execute_failed of string
-exception Miscommunication of string
+exception Connect_failed of Uri.t * string
+exception Prepare_failed of Uri.t * prepared * string
+exception Execute_failed of Uri.t * query * string
+exception Miscommunication of Uri.t * query * string
 
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p

@@ -18,6 +18,17 @@ Library cardinal
   Modules: Cardinal, Cardinal_plugin, Cardinal_lwt, Cardinal_sigs, Cardinal_query
   BuildDepends: calendar, dynlink, findlib, lwt, uri
 
+Library cardinal_plugin_postgresql
+  Path: src
+  Modules: Cardinal_plugin_postgresql
+  FindlibParent: cardinal
+  FindlibName: plugin-postgresql
+  BuildDepends: calendar, postgresql, uri
+  ByteOpt: -thread
+  NativeOpt: -thread
+  Build$: flag(postgresql)
+  Install$: flag(postgresql)
+
 Document api
   Title: Monadic database abstraction
   Type: ocamlbuild (0.4)

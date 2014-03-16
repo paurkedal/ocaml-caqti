@@ -15,7 +15,8 @@ Flag postgresql
 
 Library cardinal
   Path: src
-  Modules: Cardinal_query
+  Modules: Cardinal_plugin, Cardinal_query
+  BuildDepends: dynlink, findlib
 
 Document api
   Title: Monadic database abstraction

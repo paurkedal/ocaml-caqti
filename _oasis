@@ -1,0 +1,27 @@
+OASISFormat: 0.4
+Name: ocaml-cardinal
+Version: 0.1
+Synopsis: Cooperative-threaded access to relational data
+Authors: Petter A. Urkedal
+License: LGPL-3 with OCaml linking exception
+Plugins: DevFiles (0.4), META (0.4)
+BuildTools: ocamlbuild
+AlphaFeatures: pure_interface
+BetaFeatures: section_object
+
+Flag postgresql
+  Description: build the postgresql backend
+  Default: true
+
+Library cardinal
+  Path: src
+  Modules: Cardinal_query
+
+Document api
+  Title: Monadic database abstraction
+  Type: ocamlbuild (0.4)
+  InstallDir: $htmldir/html
+  BuildTools+: ocamldoc
+  XOCamlbuildPath: src
+  XOCamlbuildLibraries: cardinal
+  DataFiles: COPYING ($docdir)

@@ -48,21 +48,28 @@ module Param = struct
 end
 
 module Tuple = struct
-  let is_null j (i, r) = r#getisnull i j
+
+  let raw j (i, r) =
+    try r#getvalue i j with Error msg ->
+    raise (Invalid_argument (string_of_error msg))
+
+  let is_null j (i, r) =
+    try r#getisnull i j with Error msg ->
+    raise (Invalid_argument (string_of_error msg))
   let option f j (i, r) =
-    if r#getisnull i j then None else Some (f j (i, r))
-  let bool j (i, r) =
-    match r#getvalue i j with
+    if is_null j (i, r) then None else Some (f j (i, r))
+
+  let bool j t =
+    match raw j t with
     | "t" -> true
     | "f" -> false
     | _ -> failwith "bool_of_pgbool: Expecting \"t\" or \"f\"."
-  let int j (i, r) = int_of_string (r#getvalue i j)
-  let int64 j (i, r) = Int64.of_string (r#getvalue i j)
-  let float j (i, r) = float_of_string (r#getvalue i j)
-  let string j (i, r) = r#getvalue i j
-  let date j (i, r) =
-    CalendarLib.Printer.Date.from_fstring "%F" (r#getvalue i j)
-  let utc j (i, r) = utc_of_timestamp (r#getvalue i j)
+  let int j t = int_of_string (raw j t)
+  let int64 j t = Int64.of_string (raw j t)
+  let float j t = float_of_string (raw j t)
+  let string j t = raw j t
+  let date j t = CalendarLib.Printer.Date.from_fstring "%F" (raw j t)
+  let utc j t = utc_of_timestamp (raw j t)
 end
 
 let escaped_connvalue s =
@@ -86,6 +93,9 @@ module Make (System : SYSTEM) = struct
   let miscommunication uri q fmt =
     ksprintf (fun s -> fail (Cardinal.Miscommunication (uri, q, s))) fmt
 
+  let prepare_failed uri q msg = fail (Cardinal.Prepare_failed (uri, q, msg))
+  let execute_failed uri q msg = fail (Cardinal.Execute_failed (uri, q, msg))
+
   class connection uri =
     (* Connection URIs were introduced in version 9.2, so deconstruct URIs of
      * the form postgresql:/?query-string to provide a way to pass a connection
@@ -101,6 +111,8 @@ module Make (System : SYSTEM) = struct
 
     val prepared_queries = Hashtbl.create 11
 
+    (* Private Methods for Fetching Results *)
+
     method private wait_for_result =
       let socket_fd = Unix.of_unix_file_descr (Obj.magic self#socket) in
       let rec hold () =
@@ -109,36 +121,45 @@ module Make (System : SYSTEM) = struct
 			else return () in
       hold ()
 
-    method fetch_result_io =
+    method private fetch_result_io q =
       self#wait_for_result >>= fun () ->
-      (try return self#get_result with xc -> fail xc) >>=
-      function None -> return None
-	     | Some _ as r_opt -> return r_opt
+      return self#get_result
 
     method private fetch_single_result_io q =
-      self#fetch_result_io >>= function
+      self#fetch_result_io q >>= function
       | None -> miscommunication uri q "Missing response from DB."
       | Some r ->
-	self#fetch_result_io >>=
+	self#fetch_result_io q >>=
 	begin function
 	| None -> return r
 	| Some r -> miscommunication uri q "Unexpected multi-response from DB."
 	end
 
+    (* Direct Execution *)
+
     method exec_io ?params ?binary_params qs =
       try
 	self#send_query ?params ?binary_params qs;
 	self#fetch_single_result_io (Oneshot qs)
-      with xc -> fail xc
+      with
+      | Postgresql.Error err ->
+	execute_failed uri (Oneshot qs) (Postgresql.string_of_error err)
+      | xc -> fail xc
+
+    (* Prepared Execution *)
 
     method maybe_prepare ({prepared_index; prepared_name; prepared_sql} as pq) =
       try return (Hashtbl.find prepared_queries prepared_index)
       with Not_found ->
 	let sql = prepared_sql query_language in
-	(try
+	begin try
 	  self#send_prepare prepared_name sql;
 	  self#fetch_single_result_io (Prepared pq)
-	 with xc -> fail xc) >>= fun r ->
+	with
+	| Postgresql.Error err ->
+	  prepare_failed uri pq (Postgresql.string_of_error err)
+	| xc -> fail xc
+	end >>= fun r ->
 	begin match r#status with
 	| Command_ok ->
 	  let binary_params =
@@ -151,18 +172,21 @@ module Make (System : SYSTEM) = struct
 	  Hashtbl.add prepared_queries prepared_index binary_params;
 	  return binary_params
 	| Bad_response | Nonfatal_error | Fatal_error ->
-	  fail (Cardinal.Prepare_failed (uri, pq, r#error))
+	  prepare_failed uri pq r#error
 	| _ ->
 	  miscommunication uri (Prepared pq)
 	    "Expected Command_ok or an error as response to prepare."
 	end
 
-    method exec_prepared_io ?params ({prepared_name} as q) =
-      self#maybe_prepare q >>= fun binary_params ->
+    method exec_prepared_io ?params ({prepared_name} as pq) =
+      self#maybe_prepare pq >>= fun binary_params ->
       try
 	self#send_query_prepared ?params ?binary_params prepared_name;
-	self#fetch_single_result_io (Prepared q)
-      with xc -> fail xc
+	self#fetch_single_result_io (Prepared pq)
+      with
+      | Postgresql.Error err ->
+	execute_failed uri (Prepared pq) (Postgresql.string_of_error err)
+      | xc -> fail xc
   end
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
@@ -191,7 +215,7 @@ module Make (System : SYSTEM) = struct
 	match r#status with
 	| Command_ok -> return ()
 	| Bad_response | Nonfatal_error | Fatal_error ->
-	  fail (Cardinal.Execute_failed (uri, q, r#error))
+	  execute_failed uri q r#error
 	| _ ->
 	  miscommunication uri q "Expected Command_ok or an error response."
 
@@ -199,7 +223,7 @@ module Make (System : SYSTEM) = struct
 	begin match r#status with
 	| Tuples_ok -> return ()
 	| Bad_response | Nonfatal_error | Fatal_error ->
-	  fail (Cardinal.Execute_failed (uri, q, r#error))
+	  execute_failed uri q r#error
 	| _ ->
 	  miscommunication uri q "Expected Tuples_ok or an error response."
 	end

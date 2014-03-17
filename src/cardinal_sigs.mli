@@ -44,6 +44,8 @@ module type CONNECTION = sig
   end
 
   module Tuple : sig
+    val length : tuple -> int
+    val raw : int -> tuple -> string
     val is_null : int -> tuple -> bool
     val option : (int -> tuple -> 'a) -> int -> tuple -> 'a option
     val bool : int -> tuple -> bool

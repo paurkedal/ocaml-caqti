@@ -40,7 +40,16 @@ let rec depth_process_package f pkg =
     f pkg
   end
 
+(* Skip libraries on which we already depend; some lacks installed shared
+ * objects, anyway.  However, the OCaml linker includes only modules needed by
+ * the main application, so add bring in some modules from linked libraries
+ * which may be needed by plugins. *)
 let () = depth_process_package (fun _ -> ()) "cardinal"
+module Link_also = struct
+  module M0 = Mutex
+  module M1 = Condition
+  module M2 = CalendarLib
+end
 
 let findlib_load =
   depth_process_package begin fun pkg ->

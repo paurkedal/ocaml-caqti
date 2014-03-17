@@ -17,6 +17,8 @@ Library cardinal
   Path: src
   Modules: Cardinal, Cardinal_plugin, Cardinal_lwt, Cardinal_sigs, Cardinal_query
   BuildDepends: calendar, dynlink, findlib, lwt, uri
+  ByteOpt: -thread
+  NativeOpt: -thread
 
 Library cardinal_plugin_postgresql
   Path: src
@@ -37,3 +39,11 @@ Document api
   XOCamlbuildPath: src
   XOCamlbuildLibraries: cardinal
   DataFiles: COPYING ($docdir)
+
+Executable "cardinal-query"
+  Path: bin
+  MainIs: query.ml
+  BuildDepends: lwt, lwt.unix, cardinal
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best

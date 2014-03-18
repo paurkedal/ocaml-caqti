@@ -1,0 +1,18 @@
+# This allows loading caqtuses from the build directory by setting OCAMLPATH
+# to the top source directory.
+
+description = "Caqti loaded from the build directory"
+directory = "_build/src"
+requires = "calendar dynlink findlib lwt uri"
+
+package "caqtus-postgresql" (
+  description = "Caqtus PostgreSQL loaded from the build directory"
+  archive(native, plugin) = "caqtus_postgresql.cmxs"
+  requires = "calendar postgresql uri"
+)
+
+package "caqtus-sqlite3" (
+  description = "Caqtus SQLite3 loaded from the build directory"
+  archive(native, plugin) = "caqtus_sqlite3.cmxs"
+  requires = "calendar sqlite3 uri"
+)

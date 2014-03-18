@@ -8,7 +8,7 @@ let () = dispatch begin function
 
   | After_rules as e ->
     flag ["doc"; "ocaml"; "extension:html"] &
-      S[A"-charset"; A"utf8"; A"-t"; A"OCaml Cardinal API"];
+      S[A"-charset"; A"utf8"; A"-t"; A"The Caqti API"];
     dispatch_default e
 
   | e ->

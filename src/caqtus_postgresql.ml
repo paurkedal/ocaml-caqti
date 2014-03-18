@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cardinal_plugin
-open Cardinal_query
-open Cardinal_sigs
+open Caqti_plugin
+open Caqti_query
+open Caqti_sigs
 open Postgresql
 open Printf
 
@@ -93,10 +93,10 @@ module Make (System : SYSTEM) = struct
     create_query_language ~name:"postgresql" ~tag:`PostgreSQL ()
 
   let miscommunication uri q fmt =
-    ksprintf (fun s -> fail (Cardinal.Miscommunication (uri, q, s))) fmt
+    ksprintf (fun s -> fail (Caqti.Miscommunication (uri, q, s))) fmt
 
-  let prepare_failed uri q msg = fail (Cardinal.Prepare_failed (uri, q, msg))
-  let execute_failed uri q msg = fail (Cardinal.Execute_failed (uri, q, msg))
+  let prepare_failed uri q msg = fail (Caqti.Prepare_failed (uri, q, msg))
+  let execute_failed uri q msg = fail (Caqti.Execute_failed (uri, q, msg))
 
   class connection uri =
     (* Connection URIs were introduced in version 9.2, so deconstruct URIs of
@@ -198,7 +198,7 @@ module Make (System : SYSTEM) = struct
       let connect () =
 	try return (new connection uri)
 	with Error e ->
-	  fail (Cardinal.Connect_failed (uri, Postgresql.string_of_error e)) in
+	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e)) in
       let validate c =
 	try c#try_reset; return true
 	with _ -> return false in (* TODO: Log here or in Pool *)
@@ -292,5 +292,5 @@ module Make (System : SYSTEM) = struct
 end (* Make *)
 end (* Connect_functor *)
 
-let register () = Cardinal.register_scheme "postgresql" (module Connect_functor)
+let register () = Caqti.register_scheme "postgresql" (module Connect_functor)
 let () = register ()

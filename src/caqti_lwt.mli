@@ -14,14 +14,4 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cardinal_query
-open Cardinal_sigs
-
-exception Connect_failed of Uri.t * string
-exception Prepare_failed of Uri.t * prepared * string
-exception Execute_failed of Uri.t * query * string
-exception Miscommunication of Uri.t * query * string
-
-val register_scheme : string -> (module CONNECT_FUNCTOR) -> unit
-
-include CONNECT_FUNCTOR
+include Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t

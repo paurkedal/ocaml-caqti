@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cardinal_query
+open Caqti_query
 
 module type CONNECTION = sig
 

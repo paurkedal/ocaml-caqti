@@ -17,8 +17,8 @@
 let field_separator = ref ";"
 
 let main uri qs =
-  let q = Cardinal_query.prepare_any qs in
-  lwt connection = Cardinal_lwt.connect uri in
+  let q = Caqti_query.prepare_any qs in
+  lwt connection = Caqti_lwt.connect uri in
   let module C = (val connection) in
   let print_tuple r =
     let n = C.Tuple.length r in

@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Cardinal.Make (struct
+include Caqti.Make (struct
 
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)

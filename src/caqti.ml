@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cardinal_plugin
-open Cardinal_query
-open Cardinal_sigs
+open Caqti_plugin
+open Caqti_query
+open Caqti_sigs
 open Printf
 
 exception Connect_failed of Uri.t * string
@@ -43,7 +43,7 @@ module Make (System : SYSTEM) = struct
       ensure_plugin
 	(fun () -> try Some (Hashtbl.find scheme_plugins scheme)
 		   with Not_found -> None)
-	["cardinal-plugin-" ^ scheme; "cardinal.plugin-" ^ scheme] in
+	["caqtus-" ^ scheme; "caqti.caqtus-" ^ scheme] in
     let module Plugin = (val plugin : CONNECT_FUNCTOR) in
     let module Connector = Plugin.Make (System) in
     let connector = (module Connector : CONNECTOR) in

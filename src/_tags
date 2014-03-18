@@ -1,1 +1,1 @@
-<cardinal_lwt*.ml*>: syntax(camlp4o), package(lwt.syntax)
+<caqti_lwt*.ml*>: syntax(camlp4o), package(lwt.syntax)

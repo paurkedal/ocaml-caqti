@@ -44,7 +44,7 @@ let rec depth_process_package f pkg =
  * objects, anyway.  However, the OCaml linker includes only modules needed by
  * the main application, so add bring in some modules from linked libraries
  * which may be needed by plugins. *)
-let () = depth_process_package (fun _ -> ()) "cardinal"
+let () = depth_process_package (fun _ -> ()) "caqti"
 module Link_also = struct
   module M0 = Mutex
   module M1 = Condition

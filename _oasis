@@ -1,5 +1,5 @@
 OASISFormat: 0.4
-Name: ocaml-cardinal
+Name: ocaml-caqti
 Version: 0.1
 Synopsis: Cooperative-threaded access to relational data
 Authors: Petter A. Urkedal
@@ -13,18 +13,18 @@ Flag postgresql
   Description: build the postgresql backend
   Default: true
 
-Library cardinal
+Library caqti
   Path: src
-  Modules: Cardinal, Cardinal_plugin, Cardinal_lwt, Cardinal_sigs, Cardinal_query
+  Modules: Caqti, Caqti_plugin, Caqti_lwt, Caqti_sigs, Caqti_query
   BuildDepends: calendar, dynlink, findlib, lwt, uri
   ByteOpt: -thread
   NativeOpt: -thread
 
-Library cardinal_plugin_postgresql
+Library caqtus_postgresql
   Path: src
-  Modules: Cardinal_plugin_postgresql
-  FindlibParent: cardinal
-  FindlibName: plugin-postgresql
+  Modules: Caqtus_postgresql
+  FindlibParent: caqti
+  FindlibName: caqtus-postgresql
   BuildDepends: calendar, postgresql, uri
   ByteOpt: -thread
   NativeOpt: -thread
@@ -37,13 +37,13 @@ Document api
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
   XOCamlbuildPath: src
-  XOCamlbuildLibraries: cardinal
+  XOCamlbuildLibraries: caqti
   DataFiles: COPYING ($docdir)
 
-Executable "cardinal-query"
+Executable "caqtiq"
   Path: bin
   MainIs: query.ml
-  BuildDepends: lwt, lwt.unix, cardinal
+  BuildDepends: lwt, lwt.unix, caqti
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: best

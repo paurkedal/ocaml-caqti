@@ -13,10 +13,14 @@ Flag postgresql
   Description: build the postgresql backend
   Default: true
 
+Flag sqlite3
+  Description: build the postgresql backend
+  Default: true
+
 Library caqti
   Path: src
-  Modules: Caqti, Caqti_plugin, Caqti_lwt, Caqti_sigs, Caqti_query
-  BuildDepends: calendar, dynlink, findlib, lwt, uri
+  Modules: Caqti, Caqti_lwt, Caqti_plugin, Caqti_prereq, Caqti_sigs, Caqti_query
+  BuildDepends: calendar, dynlink, findlib, lwt, lwt.preemptive, uri
   ByteOpt: -thread
   NativeOpt: -thread
 
@@ -30,6 +34,17 @@ Library caqtus_postgresql
   NativeOpt: -thread
   Build$: flag(postgresql)
   Install$: flag(postgresql)
+
+Library caqtus_sqlite3
+  Path: src
+  Modules: Caqtus_sqlite3
+  FindlibParent: caqti
+  FindlibName: caqtus-sqlite3
+  BuildDepends: calendar, sqlite3, uri
+  ByteOpt: -thread
+  NativeOpt: -thread
+  Build$: flag(sqlite3)
+  Install$: flag(sqlite3)
 
 Document api
   Title: Monadic database abstraction

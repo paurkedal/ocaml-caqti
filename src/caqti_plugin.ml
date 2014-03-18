@@ -49,6 +49,7 @@ module Link_also = struct
   module M0 = Mutex
   module M1 = Condition
   module M2 = CalendarLib
+  module M3 = Caqti_prereq
 end
 
 let findlib_load =

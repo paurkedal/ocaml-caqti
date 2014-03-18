@@ -92,6 +92,12 @@ module type SYSTEM = sig
     val info_f : query -> ('a, unit, string, unit io) format4 -> 'a
     val debug_f : query -> ('a, unit, string, unit io) format4 -> 'a
   end
+
+  module Preemptive : sig
+    val detach : ('a -> 'b) -> 'a -> 'b io
+    val run_in_main : (unit -> 'a io) -> 'a
+  end
+
 end
 
 module type CONNECT_FUNCTOR = sig

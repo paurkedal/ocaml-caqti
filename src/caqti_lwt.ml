@@ -43,4 +43,6 @@ include Caqti.Make (struct
     let drain pool = assert false (* FIXME *)
   end
 
+  module Preemptive = Lwt_preemptive
+
 end)

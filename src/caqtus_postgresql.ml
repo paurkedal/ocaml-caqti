@@ -240,11 +240,11 @@ module Make (System : SYSTEM) = struct
       let exec q params =
 	exec_prepared params q >>= check_command_ok q
 
-      let find q params =
+      let find q f params =
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
 	if r#ntuples = 0 then return None else
-	if r#ntuples = 1 then return (Some (0, r)) else
+	if r#ntuples = 1 then return (Some (f (0, r))) else
 	miscommunication uri q
 			 "Received %d tuples, expected at most one." r#ntuples
 

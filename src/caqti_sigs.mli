@@ -25,7 +25,7 @@ module type CONNECTION = sig
   val drain : unit -> unit io
 
   val exec : query -> param array -> unit io
-  val find : query -> param array -> tuple option io
+  val find : query -> (tuple -> 'a) -> param array -> 'a option io
   val fold : query -> (tuple -> 'a -> 'a) -> param array -> 'a -> 'a io
   val fold_s : query -> (tuple -> 'a -> 'a io) -> param array -> 'a -> 'a io
   val iter_p : query -> (tuple -> unit io) -> param array -> unit io

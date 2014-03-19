@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_types
 open Caqti_query
 
 module type CONNECTION = sig
@@ -23,6 +24,8 @@ module type CONNECTION = sig
   type tuple
 
   val drain : unit -> unit io
+
+  val describe : prepared -> querydesc io
 
   val exec : query -> param array -> unit io
   val find : query -> (tuple -> 'a) -> param array -> 'a option io

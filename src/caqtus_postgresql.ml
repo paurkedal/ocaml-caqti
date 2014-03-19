@@ -17,8 +17,18 @@
 open Caqti_plugin
 open Caqti_query
 open Caqti_sigs
+open Caqti_types
 open Postgresql
 open Printf
+
+let typedesc_of_ftime = function
+  | BOOL -> `Bool
+  | INT2 | INT4 | INT8 -> `Int
+  | FLOAT4 | FLOAT8 | NUMERIC -> `Float
+  | CHAR | VARCHAR | TEXT | BYTEA -> `String
+  | DATE -> `Date
+  | TIMESTAMP | TIMESTAMPTZ | ABSTIME -> `UTC
+  | ft -> `Other (string_of_ftype ft)
 
 let utc_of_timestamp s =
   let n = String.length s in
@@ -228,6 +238,15 @@ module Make (System : SYSTEM) = struct
 	  execute_failed uri q r#error
 	| _ ->
 	  miscommunication uri q "Expected Tuples_ok or an error response."
+	end
+
+      let describe q =
+	use begin fun c ->
+	  let r = c#describe_prepared q.prepared_name in
+	  let describe_param i = typedesc_of_ftime (r#paramtype i) in
+	  let describe_field i = r#fname i, typedesc_of_ftime (r#ftype i) in
+	  return { querydesc_params = Array.init r#nparams describe_param;
+		   querydesc_fields = Array.init r#nfields describe_field }
 	end
 
       let exec_prepared params q =

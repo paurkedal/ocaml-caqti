@@ -17,8 +17,20 @@
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
+open Caqti_types
 open Printf
 open Sqlite3
+
+let typedesc_of_decltype = function
+  | None -> `Unknown
+  | Some s ->
+    (* CHECKME: Can NOT NULL and other types or specifiers occur here? *)
+    begin match s with
+    | "INTEGER" -> `Int
+    | "FLOAT" -> `Float
+    | "TEXT" | "BLOB" -> `String
+    | _ -> `Other s
+    end
 
 module Param = struct
   open Sqlite3.Data
@@ -148,6 +160,17 @@ module Make (System : SYSTEM) = struct
       module Tuple = Tuple
 
       let drain () = return ()
+
+      let describe pq =
+	let extract stmt =
+	  let desc_field i =
+	    Sqlite3.column_name stmt i,
+	    typedesc_of_decltype (Sqlite3.column_decltype stmt i) in
+	  let n_params = Sqlite3.bind_parameter_count stmt in
+	  let n_fields = Sqlite3.column_count stmt in
+	  { querydesc_params = Array.make n_params `Unknown;
+	    querydesc_fields = Array.init n_fields desc_field } in
+	prim_exec extract (Prepared pq) [||]
 
       let exec q params =
 	let extract stmt =

@@ -187,7 +187,8 @@ module Make (System : SYSTEM) = struct
 	    match Sqlite3.step stmt with
 	    | Sqlite3.Rc.DONE -> acc
 	    | Sqlite3.Rc.ROW ->
-	      loop (Preemptive.run_in_main (fun () -> f stmt acc))
+	      let m = f stmt acc in
+	      loop (Preemptive.run_in_main (fun () -> m))
 	    | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
 	    | rc -> raise_rc q rc in
 	  loop acc in
@@ -199,7 +200,8 @@ module Make (System : SYSTEM) = struct
 	    match Sqlite3.step stmt with
 	    | Sqlite3.Rc.DONE -> ()
 	    | Sqlite3.Rc.ROW ->
-	      Preemptive.run_in_main (fun () -> f stmt); loop ()
+	      let m = f stmt in
+	      Preemptive.run_in_main (fun () -> m); loop ()
 	    | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop ()
 	    | rc -> raise_rc q rc in
 	  loop () in

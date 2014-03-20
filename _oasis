@@ -47,6 +47,15 @@ Library caqtus_sqlite3
   Build$: flag(sqlite3)
   Install$: flag(sqlite3)
 
+Executable test_lwt_sql
+  Path: tests
+  MainIs: test_lwt_sql.ml
+  BuildDepends: caqti
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best
+  Install: false
+
 Document api
   Title: Monadic database abstraction
   Type: ocamlbuild (0.4)

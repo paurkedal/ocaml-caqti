@@ -3,6 +3,7 @@
 *.native
 /Makefile
 /_build
+/_test.db
 /configure
 /setup.data
 /setup.log

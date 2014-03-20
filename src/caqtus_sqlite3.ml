@@ -141,7 +141,7 @@ module Make (System : SYSTEM) = struct
 	finally (fun () -> ignore (Sqlite3.finalize stmt))
 	  begin fun () ->
 	    for i = 0 to Array.length params - 1 do
-	      match Sqlite3.bind stmt i params.(i) with
+	      match Sqlite3.bind stmt (i + 1) params.(i) with
 	      | Sqlite3.Rc.OK -> ()
 	      | rc -> prepare_failed (Sqlite3.Rc.to_string rc)
 	    done;
@@ -187,6 +187,9 @@ module Make (System : SYSTEM) = struct
 	    let r = f stmt in
 	    begin match Sqlite3.step stmt with
 	    | Sqlite3.Rc.DONE -> Some r
+	    | Sqlite3.Rc.ROW ->
+	      raise (Caqti.Miscommunication
+		      (uri, q, "Expected at most one tuple response."))
 	    | rc -> raise_rc q rc
 	    end
 	  | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); extract stmt

@@ -121,6 +121,8 @@ module Make (System : SYSTEM) = struct
   object (self)
     inherit Postgresql.connection ~conninfo ()
 
+    initializer self#set_nonblocking true
+
     val prepared_queries = Hashtbl.create 11
 
     (* Private Methods for Fetching Results *)

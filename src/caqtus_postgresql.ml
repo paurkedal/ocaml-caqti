@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_plugin
 open Caqti_query
 open Caqti_sigs
 open Caqti_types
@@ -313,5 +312,4 @@ module Make (System : SYSTEM) = struct
 end (* Make *)
 end (* Connect_functor *)
 
-let register () = Caqti.register_scheme "postgresql" (module Connect_functor)
-let () = register ()
+let () = Caqti.register_scheme "postgresql" (module Connect_functor)

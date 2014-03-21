@@ -129,6 +129,9 @@ let test (module Db : Caqti_lwt.CONNECTION) =
   done
 
 let () =
+  (* Needed for bytecode as plugins link against C libraries. *)
+  Dynlink.allow_unsafe_modules true;
+
   let uri_r = ref None in
   Arg.parse
     [ "-u", Arg.String (fun s -> uri_r := Some (Uri.of_string s)),

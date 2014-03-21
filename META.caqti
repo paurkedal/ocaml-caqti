@@ -7,12 +7,14 @@ requires = "calendar dynlink findlib lwt uri"
 
 package "caqtus-postgresql" (
   description = "Caqtus PostgreSQL loaded from the build directory"
+  archive(byte) = "caqtus_postgresql.cma"
   archive(native, plugin) = "caqtus_postgresql.cmxs"
   requires = "calendar postgresql uri"
 )
 
 package "caqtus-sqlite3" (
   description = "Caqtus SQLite3 loaded from the build directory"
+  archive(byte) = "caqtus_sqlite3.cma"
   archive(native, plugin) = "caqtus_sqlite3.cmxs"
   requires = "calendar sqlite3 uri"
 )

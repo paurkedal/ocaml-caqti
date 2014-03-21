@@ -20,6 +20,7 @@ include Caqti.Make (struct
   let (>>=) = Lwt.(>>=)
   let return = Lwt.return
   let fail = Lwt.fail
+  let join = Lwt.join
 
   module Log = struct
     let error_f q fmt = Lwt_log.error_f fmt

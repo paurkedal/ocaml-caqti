@@ -74,6 +74,7 @@ module type SYSTEM = sig
   val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
   val return : 'a -> 'a io
   val fail : exn -> 'a io
+  val join : unit io list -> unit io
 
   module Unix : sig
     type file_descr

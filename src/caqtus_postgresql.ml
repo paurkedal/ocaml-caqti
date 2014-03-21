@@ -299,11 +299,10 @@ module Make (System : SYSTEM) = struct
       let iter_p q f params =
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
-	let n = r#ntuples in
-	let rec loop i =
-	  if i = n then return () else
-	  f (i, r) >>= fun () -> loop (i + 1) in (* FIXME: <&> *)
-	loop 0
+	let rec loop i acc =
+	  if i = 0 then acc else
+	  loop (i - 1) (f (i, r) :: acc) in
+	join (loop r#ntuples [])
 
       module Param = Param
       module Tuple = Tuple

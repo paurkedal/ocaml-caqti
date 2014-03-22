@@ -93,7 +93,7 @@ module Make (System : SYSTEM) = struct
   type 'a io = 'a System.io
 
   let query_language =
-    create_query_language ~name:"sqlite3" ~tag:`SQLite ()
+    create_query_language ~name:"sqlite3" ~tag:`Sqlite ()
 
   let connect ?(max_pool_size = 1) uri =
 
@@ -126,10 +126,15 @@ module Make (System : SYSTEM) = struct
       raise (Caqti.Execute_failed (uri, q, Sqlite3.Rc.to_string rc)) in
 
     let prim_exec extract q params =
-      let qs =
-	match q with
-	| Prepared {prepared_sql} -> prepared_sql query_language
-	| Oneshot qs -> qs in
+      begin match q with
+      | Prepared ({prepared_query_sql} as pq) ->
+	begin try return (prepared_query_sql query_language)
+	with Missing_query_string ->
+	  fail (Caqti.Prepare_failed (uri, pq,
+				      "Missing query string for SQLite."))
+	end
+      | Oneshot qs -> return qs
+      end >>= fun qs ->
       let prepare_failed msg =
 	match q with
 	| Prepared pq -> raise (Caqti.Prepare_failed (uri, pq, msg))

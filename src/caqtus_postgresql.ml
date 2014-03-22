@@ -99,7 +99,7 @@ module Make (System : SYSTEM) = struct
   type 'a io = 'a System.io
 
   let query_language =
-    create_query_language ~name:"postgresql" ~tag:`PostgreSQL ()
+    create_query_language ~name:"postgresql" ~tag:`Pgsql ()
 
   let miscommunication uri q fmt =
     ksprintf (fun s -> fail (Caqti.Miscommunication (uri, q, s))) fmt
@@ -161,14 +161,17 @@ module Make (System : SYSTEM) = struct
 
     (* Prepared Execution *)
 
-    method maybe_prepare ({prepared_index; prepared_name; prepared_sql} as pq) =
-      try return (Hashtbl.find prepared_queries prepared_index)
+    method maybe_prepare ({prepared_query_index; prepared_query_name;
+			   prepared_query_sql} as pq) =
+      try return (Hashtbl.find prepared_queries prepared_query_index)
       with Not_found ->
-	let sql = prepared_sql query_language in
 	begin try
-	  self#send_prepare prepared_name sql;
+	  let sql = prepared_query_sql query_language in
+	  self#send_prepare prepared_query_name sql;
 	  self#fetch_single_result_io (Prepared pq)
 	with
+	| Missing_query_string ->
+	  prepare_failed uri pq "PostgreSQL query strings are missing."
 	| Postgresql.Error err ->
 	  prepare_failed uri pq (Postgresql.string_of_error err)
 	| xc -> fail xc
@@ -182,7 +185,7 @@ module Make (System : SYSTEM) = struct
 	      i < n && (is_binary i || has_binary (i + 1)) in
 	    if has_binary 0 then Some (Array.init r#ntuples is_binary)
 			    else None in
-	  Hashtbl.add prepared_queries prepared_index binary_params;
+	  Hashtbl.add prepared_queries prepared_query_index binary_params;
 	  return binary_params
 	| Bad_response | Nonfatal_error | Fatal_error ->
 	  prepare_failed uri pq r#error
@@ -191,10 +194,10 @@ module Make (System : SYSTEM) = struct
 	    "Expected Command_ok or an error as response to prepare."
 	end
 
-    method exec_prepared_io ?params ({prepared_name} as pq) =
+    method exec_prepared_io ?params ({prepared_query_name} as pq) =
       self#maybe_prepare pq >>= fun binary_params ->
       try
-	self#send_query_prepared ?params ?binary_params prepared_name;
+	self#send_query_prepared ?params ?binary_params prepared_query_name;
 	self#fetch_single_result_io (Prepared pq)
       with
       | Postgresql.Error err ->
@@ -243,7 +246,7 @@ module Make (System : SYSTEM) = struct
 
       let describe q =
 	use begin fun c ->
-	  let r = c#describe_prepared q.prepared_name in
+	  let r = c#describe_prepared q.prepared_query_name in
 	  let describe_param i = typedesc_of_ftime (r#paramtype i) in
 	  let describe_field i = r#fname i, typedesc_of_ftime (r#ftype i) in
 	  return { querydesc_params = Array.init r#nparams describe_param;

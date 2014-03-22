@@ -15,7 +15,7 @@
  *)
 
 type query_language_tag = private
-  [> `MySQL | `PostgreSQL | `SQLite]
+  [> `Mysql | `Pgsql | `Sqlite]
 
 type query_language = private {
   query_language_index : int;
@@ -23,21 +23,21 @@ type query_language = private {
   query_language_tag : query_language_tag;
 }
 
+exception Missing_query_string
+
 val create_query_language : name: string -> ?tag: query_language_tag ->
 			    unit -> query_language
 
-exception Unsupported
-
-type prepared = {
-  prepared_index : int;
-  prepared_name : string;
-  prepared_sql : query_language -> string;
+type prepared_query = {
+  prepared_query_index : int;
+  prepared_query_name : string;
+  prepared_query_sql : query_language -> string;
 }
 
 type query =
-  | Prepared of prepared
+  | Prepared of prepared_query
   | Oneshot of string
 
 val prepare_full : ?name: string -> (query_language -> string) -> query
-val prepare_by_tag : ?name: string -> (query_language_tag -> string) -> query
+val prepare_fun : ?name: string -> (query_language_tag -> string) -> query
 val prepare_any : ?name: string -> string -> query

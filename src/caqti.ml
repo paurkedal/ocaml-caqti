@@ -20,7 +20,7 @@ open Caqti_sigs
 open Printf
 
 exception Connect_failed of Uri.t * string
-exception Prepare_failed of Uri.t * prepared * string
+exception Prepare_failed of Uri.t * prepared_query * string
 exception Execute_failed of Uri.t * query * string
 exception Miscommunication of Uri.t * query * string
 

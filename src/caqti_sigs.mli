@@ -25,7 +25,7 @@ module type CONNECTION = sig
 
   val drain : unit -> unit io
 
-  val describe : prepared -> querydesc io
+  val describe : prepared_query -> querydesc io
 
   val exec : query -> param array -> unit io
   val find : query -> (tuple -> 'a) -> param array -> 'a option io

@@ -22,25 +22,25 @@ let (>|=) = Lwt.(>|=)
 
 module Q = struct
 
-  let _q sql = prepare_by_tag @@ function
-    | `PostgreSQL ->
+  let _q sql = prepare_fun @@ function
+    | `Pgsql ->
       let i = ref 1 and buf = Buffer.create (String.length sql + 8) in
       String.iter
 	(function '?' -> bprintf buf "$%d" !i; i := succ !i
 		| c -> Buffer.add_char buf c)
 	sql;
       Buffer.contents buf
-    | `SQLite -> sql
+    | `Sqlite -> sql
     | _ -> failwith "Unimplemented."
 
   let select_and = _q "SELECT ? AND ?"
-  let select_plus_int = prepare_by_tag @@ function
-    | `PostgreSQL -> "SELECT $1::integer + $2::integer"
-    | `SQLite -> "SELECT ? + ?"
+  let select_plus_int = prepare_fun @@ function
+    | `Pgsql -> "SELECT $1::integer + $2::integer"
+    | `Sqlite -> "SELECT ? + ?"
     | _ -> failwith "Unimplemented."
-  let select_plus_float = prepare_by_tag @@ function
-    | `PostgreSQL -> "SELECT $1::float + $2::float"
-    | `SQLite -> "SELECT ? + ?"
+  let select_plus_float = prepare_fun @@ function
+    | `Pgsql -> "SELECT $1::float + $2::float"
+    | `Sqlite -> "SELECT ? + ?"
     | _ -> failwith "Unimplemented."
   let select_cat = _q "SELECT ? || ?"
 

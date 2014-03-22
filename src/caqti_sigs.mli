@@ -14,14 +14,24 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Signatures. *)
+
 open Caqti_types
 open Caqti_query
 
+(** The main API as provided after connecting to a resource. *)
 module type CONNECTION = sig
 
   type 'a io
+  (** The IO monad for which the module is specialized. *)
+
   type param
+  (** An abstract type for a query parameter.  Only the backend knows the
+      actual type. *)
+
   type tuple
+  (** An abstract type for a tuple passed by a backend to callbacks during
+      query execution. *)
 
   val drain : unit -> unit io
 
@@ -34,6 +44,7 @@ module type CONNECTION = sig
   val iter_p : query -> (tuple -> unit io) -> param array -> unit io
   val iter_s : query -> (tuple -> unit io) -> param array -> unit io
 
+  (** Parameter encoding functions. *)
   module Param : sig
     val null : param
     val option : ('a -> param) -> 'a option -> param
@@ -46,6 +57,11 @@ module type CONNECTION = sig
     val utc : CalendarLib.Calendar.t -> param
   end
 
+  (** Tuple decoding functions.
+
+      {b Note!}  Calls to these functions are only valid during a callback
+      from one of the query execution functions.  Returning a partial call or
+      embedding the call in a returned monad leads to undefined behaviour. *)
   module Tuple : sig
     val length : tuple -> int
     val raw : int -> tuple -> string
@@ -62,12 +78,15 @@ module type CONNECTION = sig
 
 end
 
+(** The connect function along with its first-class module signature. *)
 module type CONNECT = sig
   type 'a io
   module type CONNECTION = CONNECTION with type 'a io = 'a io
   val connect : ?max_pool_size: int -> Uri.t -> (module CONNECTION) io
 end
 
+(** The IO monad and system utilities used by backends.  Note that this
+    signature will likely be extended due requirements of new backends. *)
 module type SYSTEM = sig
 
   type 'a io
@@ -104,6 +123,7 @@ module type SYSTEM = sig
 
 end
 
+(** Abstraction of the connect function over the concurrency monad. *)
 module type CONNECT_FUNCTOR = sig
   module Make (System : SYSTEM) : CONNECT with type 'a io = 'a System.io
 end

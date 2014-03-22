@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Helper for loading plugins. *)
+
 exception Plugin_missing of string list
 exception Plugin_invalid of string * string
 

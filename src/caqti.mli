@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Exceptions and connect functor. *)
+
 open Caqti_query
 open Caqti_sigs
 

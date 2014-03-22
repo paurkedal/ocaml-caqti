@@ -7,6 +7,7 @@ let () = dispatch begin function
     Options.use_ocamlfind := true
 
   | After_rules as e ->
+    flag ["doc"; "ocaml"] & A"-thread";
     flag ["doc"; "ocaml"; "extension:html"] &
       S[A"-charset"; A"utf8"; A"-t"; A"The Caqti API"];
     dispatch_default e

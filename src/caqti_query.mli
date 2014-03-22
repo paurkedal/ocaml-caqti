@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Oneshot and prepared queries. *)
+
 type query_language_tag = private
   [> `Mysql | `Pgsql | `Sqlite]
 

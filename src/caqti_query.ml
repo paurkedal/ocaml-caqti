@@ -17,12 +17,17 @@
 type query_language_tag = [`MySQL | `PostgreSQL | `SQLite | `Other]
 
 type query_language = {
+  query_language_index : int;
   query_language_name : string;
   query_language_tag : query_language_tag;
 }
 
+let next_query_language_index = ref 0
+
 let create_query_language ~name ?(tag = `Other) () =
-  { query_language_name = name; query_language_tag = tag }
+  let query_language_index = !next_query_language_index in
+  next_query_language_index := succ !next_query_language_index;
+  {query_language_index; query_language_name = name; query_language_tag = tag}
 
 exception Unsupported
 

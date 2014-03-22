@@ -18,6 +18,7 @@ type query_language_tag = private
   [> `MySQL | `PostgreSQL | `SQLite]
 
 type query_language = private {
+  query_language_index : int;
   query_language_name : string;
   query_language_tag : query_language_tag;
 }

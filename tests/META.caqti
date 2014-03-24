@@ -2,7 +2,7 @@
 # to the top source directory.
 
 description = "Caqti loaded from the build directory"
-directory = "_build/src"
+directory = "../_build/src"
 requires = "calendar dynlink findlib lwt uri"
 
 package "caqtus-postgresql" (

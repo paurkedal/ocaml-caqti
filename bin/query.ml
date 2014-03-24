@@ -40,7 +40,7 @@ let () =
     "-q", Arg.String (fun q -> arg_q := Some q),
       " QUERY The query string.";
   ] in
-  let usage_msg = "-u URI -q QUERY" in
+  let usage_msg = Sys.argv.(0) ^ " -u URI -q QUERY" in
   Arg.parse arg_specs
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     usage_msg;

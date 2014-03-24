@@ -137,7 +137,7 @@ let () =
     [ "-u", Arg.String (fun s -> uri_r := Some (Uri.of_string s)),
 	"URI Test against URI."; ]
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
-    "";
+    Sys.argv.(0);
   let uri =
     match !uri_r with
     | None -> Uri.of_string "sqlite3:_test.db"

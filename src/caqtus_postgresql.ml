@@ -161,42 +161,54 @@ module Make (System : SYSTEM) = struct
 
     (* Prepared Execution *)
 
-    method maybe_prepare ({prepared_query_index; prepared_query_name;
-			   prepared_query_sql} as pq) =
+    method prepare_io q name sql =
+      begin try
+	self#send_prepare name sql;
+	self#fetch_single_result_io q
+      with
+      | Missing_query_string ->
+	prepare_failed uri q "PostgreSQL query strings are missing."
+      | Postgresql.Error err ->
+	prepare_failed uri q (Postgresql.string_of_error err)
+      | xc -> fail xc
+      end >>= fun r ->
+      match r#status with
+      | Command_ok -> return ()
+      | Bad_response | Nonfatal_error | Fatal_error ->
+	prepare_failed uri q r#error
+      | _ ->
+	miscommunication uri q
+	  "Expected Command_ok or an error as response to prepare."
+
+    method describe_io name =
+      (* FIXME: Need send_describe_prepared. *)
+      let r = self#describe_prepared name in
+      let describe_param i = typedesc_of_ftime (r#paramtype i) in
+      let describe_field i = r#fname i, typedesc_of_ftime (r#ftype i) in
+      let binary_params =
+	let n = r#ntuples in
+	let is_binary i = r#paramtype i = BYTEA in
+	let rec has_binary i =
+	  i < n && (is_binary i || has_binary (i + 1)) in
+	if has_binary 0 then Some (Array.init r#ntuples is_binary)
+			else None in
+      let querydesc =
+	{ querydesc_params = Array.init r#nparams describe_param;
+	  querydesc_fields = Array.init r#nfields describe_field } in
+      return (binary_params, querydesc)
+
+    method cached_prepare_io ({prepared_query_index; prepared_query_name;
+			       prepared_query_sql} as pq) =
       try return (Hashtbl.find prepared_queries prepared_query_index)
       with Not_found ->
-	begin try
-	  let sql = prepared_query_sql query_language in
-	  self#send_prepare prepared_query_name sql;
-	  self#fetch_single_result_io (Prepared pq)
-	with
-	| Missing_query_string ->
-	  prepare_failed uri (Prepared pq)
-			 "PostgreSQL query strings are missing."
-	| Postgresql.Error err ->
-	  prepare_failed uri (Prepared pq) (Postgresql.string_of_error err)
-	| xc -> fail xc
-	end >>= fun r ->
-	begin match r#status with
-	| Command_ok ->
-	  let binary_params =
-	    let n = r#ntuples in
-	    let is_binary i = r#paramtype i = BYTEA in
-	    let rec has_binary i =
-	      i < n && (is_binary i || has_binary (i + 1)) in
-	    if has_binary 0 then Some (Array.init r#ntuples is_binary)
-			    else None in
-	  Hashtbl.add prepared_queries prepared_query_index binary_params;
-	  return binary_params
-	| Bad_response | Nonfatal_error | Fatal_error ->
-	  prepare_failed uri (Prepared pq) r#error
-	| _ ->
-	  miscommunication uri (Prepared pq)
-	    "Expected Command_ok or an error as response to prepare."
-	end
+	self#prepare_io (Prepared pq) prepared_query_name
+			(prepared_query_sql query_language) >>= fun () ->
+	self#describe_io prepared_query_name >>= fun pqinfo ->
+	Hashtbl.add prepared_queries prepared_query_index pqinfo;
+	return pqinfo
 
     method exec_prepared_io ?params ({prepared_query_name} as pq) =
-      self#maybe_prepare pq >>= fun binary_params ->
+      self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
 	self#send_query_prepared ?params ?binary_params prepared_query_name;
 	self#fetch_single_result_io (Prepared pq)
@@ -239,21 +251,22 @@ module Make (System : SYSTEM) = struct
 	  miscommunication uri q "Expected Command_ok or an error response."
 
       let check_tuples_ok q r =
-	begin match r#status with
+	match r#status with
 	| Tuples_ok -> return ()
 	| Bad_response | Nonfatal_error | Fatal_error ->
 	  execute_failed uri q r#error
 	| _ ->
 	  miscommunication uri q "Expected Tuples_ok or an error response."
-	end
 
       let describe q =
 	use begin fun c ->
-	  let r = c#describe_prepared q.prepared_query_name in
-	  let describe_param i = typedesc_of_ftime (r#paramtype i) in
-	  let describe_field i = r#fname i, typedesc_of_ftime (r#ftype i) in
-	  return { querydesc_params = Array.init r#nparams describe_param;
-		   querydesc_fields = Array.init r#nfields describe_field }
+	  match q with
+	  | Prepared pq ->
+	    c#cached_prepare_io pq >>= fun (_, r) -> return r
+	  | Oneshot qs ->
+	    c#prepare_io q "_desc_tmp" qs >>= fun () ->
+	    c#describe_io "_desc_tmp" >>= fun (_, r) ->
+	    c#exec_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
 	end
 
       let exec_prepared params q =

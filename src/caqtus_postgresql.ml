@@ -171,9 +171,10 @@ module Make (System : SYSTEM) = struct
 	  self#fetch_single_result_io (Prepared pq)
 	with
 	| Missing_query_string ->
-	  prepare_failed uri pq "PostgreSQL query strings are missing."
+	  prepare_failed uri (Prepared pq)
+			 "PostgreSQL query strings are missing."
 	| Postgresql.Error err ->
-	  prepare_failed uri pq (Postgresql.string_of_error err)
+	  prepare_failed uri (Prepared pq) (Postgresql.string_of_error err)
 	| xc -> fail xc
 	end >>= fun r ->
 	begin match r#status with
@@ -188,7 +189,7 @@ module Make (System : SYSTEM) = struct
 	  Hashtbl.add prepared_queries prepared_query_index binary_params;
 	  return binary_params
 	| Bad_response | Nonfatal_error | Fatal_error ->
-	  prepare_failed uri pq r#error
+	  prepare_failed uri (Prepared pq) r#error
 	| _ ->
 	  miscommunication uri (Prepared pq)
 	    "Expected Command_ok or an error as response to prepare."

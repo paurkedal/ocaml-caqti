@@ -127,28 +127,25 @@ module Make (System : SYSTEM) = struct
 
     let prim_exec extract q params =
       begin match q with
-      | Prepared ({prepared_query_sql} as pq) ->
+      | Prepared {prepared_query_sql} ->
 	begin try return (prepared_query_sql query_language)
 	with Missing_query_string ->
-	  fail (Caqti.Prepare_failed (uri, pq,
+	  fail (Caqti.Prepare_failed (uri, q,
 				      "Missing query string for SQLite."))
 	end
       | Oneshot qs -> return qs
       end >>= fun qs ->
-      let prepare_failed msg =
-	match q with
-	| Prepared pq -> raise (Caqti.Prepare_failed (uri, pq, msg))
-	| Oneshot _ ->   raise (Caqti.Execute_failed (uri, q, msg)) in
       with_db begin fun db ->
 	let stmt =
-	  try Sqlite3.prepare db qs
-	  with Sqlite3.Error msg -> prepare_failed msg in
+	  try Sqlite3.prepare db qs with
+	  | Sqlite3.Error msg -> raise (Caqti.Prepare_failed (uri, q, msg)) in
 	finally (fun () -> ignore (Sqlite3.finalize stmt))
 	  begin fun () ->
 	    for i = 0 to Array.length params - 1 do
 	      match Sqlite3.bind stmt (i + 1) params.(i) with
 	      | Sqlite3.Rc.OK -> ()
-	      | rc -> prepare_failed (Sqlite3.Rc.to_string rc)
+	      | rc ->
+		raise (Caqti.Prepare_failed (uri, q, Sqlite3.Rc.to_string rc))
 	    done;
 	    extract stmt
 	  end

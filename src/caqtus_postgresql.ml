@@ -223,6 +223,8 @@ module Make (System : SYSTEM) = struct
       type param = string
       type tuple = int * Postgresql.result
 
+      let uri = uri
+
       let drain () = Pool.drain pool
 
       let use f = Pool.use f pool

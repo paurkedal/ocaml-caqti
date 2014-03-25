@@ -164,6 +164,8 @@ module Make (System : SYSTEM) = struct
       module Param = Param
       module Tuple = Tuple
 
+      let uri = uri
+
       let drain () = return ()
 
       let describe pq =

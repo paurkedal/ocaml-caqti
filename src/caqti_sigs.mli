@@ -33,6 +33,8 @@ module type CONNECTION = sig
   (** An abstract type for a tuple passed by a backend to callbacks during
       query execution. *)
 
+  val uri : Uri.t
+
   val drain : unit -> unit io
 
   val describe : prepared_query -> querydesc io

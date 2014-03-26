@@ -23,10 +23,11 @@ let main uri qs =
   let print_tuple r =
     let n = C.Tuple.length r in
     assert (n > 0);
-    Lwt_io.print (C.Tuple.raw 0 r) >>
+    (* FIXME: Misuse of Tuple.other. *)
+    Lwt_io.print (C.Tuple.other 0 r) >>
     for_lwt i = 1 to n - 1 do
       Lwt_io.print !field_separator >>
-      Lwt_io.print (C.Tuple.raw i r)
+      Lwt_io.print (C.Tuple.other i r)
     done >>
     Lwt_io.print "\n" in
   C.iter_s q print_tuple [||]

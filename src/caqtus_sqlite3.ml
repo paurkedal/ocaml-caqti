@@ -43,6 +43,7 @@ module Param = struct
   let string x = TEXT x (* FIXME: Don't know if it's binary. *)
   let date x = assert false (* TODO *)
   let utc x = assert false (* TODO *)
+  let other x = failwith "Param.other is invalid for sqlite3"
 end
 
 let invalid_decode typename i stmt =
@@ -52,7 +53,6 @@ let invalid_decode typename i stmt =
 module Tuple = struct
   open Sqlite3.Data
   let length stmt = Sqlite3.column_count stmt
-  let raw i stmt = to_string (Sqlite3.column stmt i)
   let is_null i stmt =
     match Sqlite3.column stmt i with NONE | NULL -> true | _ -> false
   let option f i stmt =
@@ -80,6 +80,7 @@ module Tuple = struct
     | _ -> invalid_decode "string" i stmt
   let date i stmt = assert false (* TODO *)
   let utc i stmt = assert false (* TODO *)
+  let other i stmt = to_string (Sqlite3.column stmt i)
 end
 
 let yield = Thread.yield

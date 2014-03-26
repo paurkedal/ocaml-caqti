@@ -57,6 +57,7 @@ module type CONNECTION = sig
     val string : string -> param
     val date : CalendarLib.Date.t -> param
     val utc : CalendarLib.Calendar.t -> param
+    val other : string -> param
   end
 
   (** Tuple decoding functions.
@@ -66,7 +67,6 @@ module type CONNECTION = sig
       embedding the call in a returned monad leads to undefined behaviour. *)
   module Tuple : sig
     val length : tuple -> int
-    val raw : int -> tuple -> string
     val is_null : int -> tuple -> bool
     val option : (int -> tuple -> 'a) -> int -> tuple -> 'a option
     val bool : int -> tuple -> bool
@@ -76,6 +76,7 @@ module type CONNECTION = sig
     val string : int -> tuple -> string
     val date : int -> tuple -> CalendarLib.Date.t
     val utc : int -> tuple -> CalendarLib.Calendar.t
+    val other : int -> tuple -> string
   end
 
 end

@@ -54,6 +54,7 @@ module Param = struct
   let string s = s
   let date t = CalendarLib.Printer.Date.sprint "%F" t
   let utc t = CalendarLib.Printer.Calendar.sprint "%F %T%z" t
+  let other s = s
 end
 
 module Tuple = struct
@@ -81,6 +82,7 @@ module Tuple = struct
   let string j t = raw j t
   let date j t = CalendarLib.Printer.Date.from_fstring "%F" (raw j t)
   let utc j t = utc_of_timestamp (raw j t)
+  let other = raw
 end
 
 let escaped_connvalue s =

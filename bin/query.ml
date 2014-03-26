@@ -14,32 +14,68 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let field_separator = ref ";"
+open Caqti_describe
+open Caqti_lwt
+module Cal = CalendarLib
 
-let main uri qs =
+let field_separator = ref ","
+
+let csv_quoted s =
+  let buf = Buffer.create (String.length s + 2) in
+  Buffer.add_char buf '"';
+  String.iter
+    (function '"' -> Buffer.add_string buf "\"\"" | c -> Buffer.add_char buf c)
+    s;
+  Buffer.add_char buf '"';
+  Buffer.contents buf;
+
+module Connection_utils (C : CONNECTION) = struct
+  let show_field qd i r =
+    match snd qd.querydesc_fields.(i) with
+    | `Bool -> if C.Tuple.bool i r then "true" else "false"
+    | `Int -> string_of_int (C.Tuple.int i r)
+    | `Float -> string_of_float (C.Tuple.float i r)
+    | `String -> csv_quoted (C.Tuple.string i r)
+    | `Date -> Cal.Printer.Date.to_string (C.Tuple.date i r)
+    | `UTC -> Cal.Printer.Calendar.to_string (C.Tuple.utc i r)
+    | `Other _ -> C.Tuple.other i r
+    | `Unknown -> failwith "Cannot determine field type."
+end
+
+let main describe uri qs =
   let q = Caqti_query.prepare_any qs in
   lwt connection = Caqti_lwt.connect uri in
   let module C = (val connection) in
+  let module U = Connection_utils (C) in
+  lwt qd = C.describe q in
+  let n = Array.length qd.querydesc_fields in
   let print_tuple r =
-    let n = C.Tuple.length r in
     assert (n > 0);
-    (* FIXME: Misuse of Tuple.other. *)
-    Lwt_io.print (C.Tuple.other 0 r) >>
+    Lwt_io.print (U.show_field qd 0 r) >>
     for_lwt i = 1 to n - 1 do
       Lwt_io.print !field_separator >>
-      Lwt_io.print (C.Tuple.other i r)
+      Lwt_io.print (U.show_field qd i r)
     done >>
     Lwt_io.print "\n" in
-  C.iter_s q print_tuple [||]
+  if describe then
+    for_lwt i = 0 to n - 1 do
+      let name, tdesc = qd.querydesc_fields.(i) in
+      Lwt_io.printf "%s : %s\n" name (string_of_typedesc tdesc)
+    done
+  else
+    C.iter_s q print_tuple [||]
 
 let () =
+  let arg_desc = ref false in
   let arg_u = ref None in
   let arg_q = ref None in
   let arg_specs = Arg.align [
+    "-d", Arg.Unit (fun () -> arg_desc := true),
+      " Print the type of the tuples returned by the query.";
     "-u", Arg.String (fun u -> arg_u := Some (Uri.of_string u)),
-      " URI Connection URI.";
+      "URI Connection URI.";
     "-q", Arg.String (fun q -> arg_q := Some q),
-      " QUERY The query string.";
+      "QUERY The query string.";
   ] in
   let usage_msg = Sys.argv.(0) ^ " -u URI -q QUERY" in
   Arg.parse arg_specs
@@ -51,4 +87,4 @@ let () =
     | Some x -> x in
   let uri = required arg_u in
   let qs = required arg_q in
-  Lwt_main.run (main uri qs)
+  Lwt_main.run (main !arg_desc uri qs)

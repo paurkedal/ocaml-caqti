@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Type definitions. *)
+(** Types and utility functions for query descriptions. *)
 
 type typedesc =
   [ `Bool

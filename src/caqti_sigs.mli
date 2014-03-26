@@ -16,7 +16,7 @@
 
 (** Signatures. *)
 
-open Caqti_types
+open Caqti_describe
 open Caqti_query
 
 (** The main API as provided after connecting to a resource. *)

@@ -17,7 +17,7 @@
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
-open Caqti_types
+open Caqti_describe
 open Printf
 open Sqlite3
 

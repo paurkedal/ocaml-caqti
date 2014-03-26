@@ -16,7 +16,7 @@
 
 open Caqti_query
 open Caqti_sigs
-open Caqti_types
+open Caqti_describe
 open Postgresql
 open Printf
 

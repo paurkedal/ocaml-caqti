@@ -20,7 +20,7 @@ Flag sqlite3
 Library caqti
   Path: src
   InternalModules: Caqti_prereq
-  Modules: Caqti, Caqti_lwt, Caqti_plugin, Caqti_sigs, Caqti_types, Caqti_query
+  Modules: Caqti, Caqti_describe, Caqti_lwt, Caqti_plugin, Caqti_sigs, Caqti_query
   BuildDepends: calendar, dynlink, findlib, lwt, lwt.preemptive, uri
   ByteOpt: -thread
   NativeOpt: -thread

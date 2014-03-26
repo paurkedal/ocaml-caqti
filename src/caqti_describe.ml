@@ -14,8 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Type definitions. *)
-
 type typedesc =
   [ `Bool
   | `Int
@@ -31,4 +29,12 @@ type querydesc = {
   querydesc_fields : (string * typedesc) array;
 }
 
-val string_of_typedesc : typedesc -> string
+let string_of_typedesc = function
+  | `Bool -> "bool"
+  | `Int -> "int"
+  | `Float -> "float"
+  | `String -> "string"
+  | `Date -> "date"
+  | `UTC -> "utc"
+  | `Other s -> s
+  | `Unknown -> "unknown"

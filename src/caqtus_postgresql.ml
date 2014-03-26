@@ -20,7 +20,7 @@ open Caqti_types
 open Postgresql
 open Printf
 
-let typedesc_of_ftime = function
+let typedesc_of_ftype = function
   | BOOL -> `Bool
   | INT2 | INT4 | INT8 -> `Int
   | FLOAT4 | FLOAT8 | NUMERIC -> `Float
@@ -185,8 +185,13 @@ module Make (System : SYSTEM) = struct
     method describe_io name =
       (* FIXME: Need send_describe_prepared. *)
       let r = self#describe_prepared name in
-      let describe_param i = typedesc_of_ftime (r#paramtype i) in
-      let describe_field i = r#fname i, typedesc_of_ftime (r#ftype i) in
+      let describe_param i =
+	try typedesc_of_ftype (r#paramtype i)
+	with Oid oid -> `Other ("oid" ^ string_of_int oid) in
+      let describe_field i =
+	let t = try typedesc_of_ftype (r#ftype i)
+		with Oid oid -> `Other ("oid" ^ string_of_int oid) in
+	r#fname i, t in
       let binary_params =
 	let n = r#ntuples in
 	let is_binary i = r#paramtype i = BYTEA in

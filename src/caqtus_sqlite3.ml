@@ -52,7 +52,6 @@ let invalid_decode typename i stmt =
 
 module Tuple = struct
   open Sqlite3.Data
-  let length stmt = Sqlite3.column_count stmt
   let is_null i stmt =
     match Sqlite3.column stmt i with NONE | NULL -> true | _ -> false
   let option f i stmt =

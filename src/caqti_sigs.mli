@@ -66,7 +66,6 @@ module type CONNECTION = sig
       from one of the query execution functions.  Returning a partial call or
       embedding the call in a returned monad leads to undefined behaviour. *)
   module Tuple : sig
-    val length : tuple -> int
     val is_null : int -> tuple -> bool
     val option : (int -> tuple -> 'a) -> int -> tuple -> 'a option
     val bool : int -> tuple -> bool

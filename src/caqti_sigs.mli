@@ -34,10 +34,20 @@ module type CONNECTION = sig
       query execution. *)
 
   val uri : Uri.t
+  (** The connected URI. *)
 
   val drain : unit -> unit io
+  (** Close all open connections.  For pooled connections, the pool is
+      drained.  For single connections, the connection is closed.  For
+      backends which reconnects on each query, this does nothing.
+
+      {b Note!} Not implemented yet for pools connections. *)
 
   val describe : query -> querydesc io
+  (** Returns a description of parameters and returned tuples.  What is
+      returned may be limited by what the underlying library supports.  The
+      number of paratemers and tuple components should be correct, but the
+      types may be [`Unknown]. *)
 
   val exec : query -> param array -> unit io
   val find : query -> (tuple -> 'a) -> param array -> 'a option io

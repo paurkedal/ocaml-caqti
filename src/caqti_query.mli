@@ -18,28 +18,48 @@
 
 type query_language_tag = private
   [> `Mysql | `Pgsql | `Sqlite]
+(** A tag used for easy dispatching between query languages. *)
 
 type query_language = private {
   query_language_index : int;
+  (** A small integer unique for each backend, made available to backends for
+      efficient caching of language dependent data. *)
   query_language_name : string;
   query_language_tag : query_language_tag;
 }
+(** Information about a query language. *)
 
 exception Missing_query_string
+(** The exception to raise in a prepare callback when a query language is not
+    supported. *)
 
 val create_query_language : name: string -> ?tag: query_language_tag ->
 			    unit -> query_language
+(** For use by backends to create a descriptor for their query languages. *)
 
 type prepared_query = {
   prepared_query_index : int;
+  (** A relatively small integer unique to each query, made available to
+      backends for efficient caching of language dependent data. *)
   prepared_query_name : string;
+  (** A name to use for the prepared query. *)
   prepared_query_sql : query_language -> string;
+  (** The SQL for each query language.
+      @raise Missing_query_string if the language is not supported. *)
 }
+(** The type of prepared queries. *)
 
 type query =
-  | Prepared of prepared_query
-  | Oneshot of string
+  | Prepared of prepared_query	(** A prepared query; don't apply directly. *)
+  | Oneshot of string		(** A one-shot query. *)
+(** The type of queries accepted by the CONNECTION API. *)
 
 val prepare_full : ?name: string -> (query_language -> string) -> query
+(** Create a prepared statement dispatching on the full query language
+    descriptor.  *)
+
 val prepare_fun : ?name: string -> (query_language_tag -> string) -> query
+(** Create a prepared statement dispatching on the language tag. *)
+
 val prepare_any : ?name: string -> string -> query
+(** Create a prepared statement to use for any query language. *)

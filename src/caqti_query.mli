@@ -24,8 +24,12 @@ type query_language = private {
   query_language_index : int;
   (** A small integer unique for each backend, made available to backends for
       efficient caching of language dependent data. *)
+
   query_language_name : string;
+
   query_language_tag : query_language_tag;
+  (** The language tag used for easy dispatching between known query
+      languages. *)
 }
 (** Information about a query language. *)
 
@@ -37,12 +41,14 @@ val create_query_language : name: string -> ?tag: query_language_tag ->
 			    unit -> query_language
 (** For use by backends to create a descriptor for their query languages. *)
 
-type prepared_query = {
+type prepared_query = private {
   prepared_query_index : int;
   (** A relatively small integer unique to each query, made available to
       backends for efficient caching of language dependent data. *)
+
   prepared_query_name : string;
   (** A name to use for the prepared query. *)
+
   prepared_query_sql : query_language -> string;
   (** The SQL for each query language.
       @raise Missing_query_string if the language is not supported. *)
@@ -50,9 +56,12 @@ type prepared_query = {
 (** The type of prepared queries. *)
 
 type query =
-  | Prepared of prepared_query	(** A prepared query; don't apply directly. *)
   | Oneshot of string		(** A one-shot query. *)
+  | Prepared of prepared_query	(** A prepared query. *)
 (** The type of queries accepted by the CONNECTION API. *)
+
+val oneshot : string -> query
+(** Create a one-shot query. *)
 
 val prepare_full : ?name: string -> (query_language -> string) -> query
 (** Create a prepared statement dispatching on the full query language

@@ -38,8 +38,10 @@ type prepared_query = {
 }
 
 type query =
-  | Prepared of prepared_query
   | Oneshot of string
+  | Prepared of prepared_query
+
+let oneshot s = Oneshot s
 
 let next_prepared_index = ref 0
 

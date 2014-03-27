@@ -24,11 +24,13 @@ open Sqlite3
 let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
-    (* CHECKME: Can NOT NULL and other types or specifiers occur here? *)
+    (* CHECKME: Can NOT NULL or other specifiers occur here? *)
     begin match s with
-    | "INTEGER" -> `Int
-    | "FLOAT" -> `Float
-    | "TEXT" | "BLOB" -> `String
+    | "integer" -> `Int
+    | "float" -> `Float
+    | "text" | "blob" -> `String
+    | "date" -> `Date
+    | "timestamp" -> `UTC
     | _ -> `Other s
     end
 
@@ -41,8 +43,8 @@ module Param = struct
   let int64 x = INT x
   let float x = FLOAT x
   let string x = TEXT x (* FIXME: Don't know if it's binary. *)
-  let date x = assert false (* TODO *)
-  let utc x = assert false (* TODO *)
+  let date x = TEXT (CalendarLib.Printer.Date.sprint "%F" x)
+  let utc x = TEXT (CalendarLib.Printer.Calendar.sprint "%F %T" x)
   let other x = failwith "Param.other is invalid for sqlite3"
 end
 
@@ -77,8 +79,14 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | TEXT x -> x
     | _ -> invalid_decode "string" i stmt
-  let date i stmt = assert false (* TODO *)
-  let utc i stmt = assert false (* TODO *)
+  let date i stmt =
+    match Sqlite3.column stmt i with
+    | TEXT x -> CalendarLib.Printer.Date.from_fstring "%F" x
+    | _ -> invalid_decode "date" i stmt
+  let utc i stmt =
+    match Sqlite3.column stmt i with
+    | TEXT x -> CalendarLib.Printer.Calendar.from_fstring "%F %T" x
+    | _ -> invalid_decode "timestamp" i stmt
   let other i stmt = to_string (Sqlite3.column stmt i)
 end
 

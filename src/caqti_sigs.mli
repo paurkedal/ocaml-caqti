@@ -64,7 +64,8 @@ module type CONNECTION = sig
     val int : int -> param
     val int64 : int64 -> param
     val float : float -> param
-    val string : string -> param
+    val text : string -> param
+    val octets : string -> param
     val date : CalendarLib.Date.t -> param
     val utc : CalendarLib.Calendar.t -> param
     val other : string -> param
@@ -82,7 +83,8 @@ module type CONNECTION = sig
     val int : int -> tuple -> int
     val int64 : int -> tuple -> int64
     val float : int -> tuple -> float
-    val string : int -> tuple -> string
+    val text : int -> tuple -> string
+    val octets : int -> tuple -> string
     val date : int -> tuple -> CalendarLib.Date.t
     val utc : int -> tuple -> CalendarLib.Calendar.t
     val other : int -> tuple -> string

@@ -20,9 +20,10 @@ type typedesc =
   [ `Bool
   | `Int
   | `Float
-  | `String
+  | `Text
+  | `Octets
   | `Date
-  | `UTC
+  | `Utc
   | `Other of string
   | `Unknown ]
 

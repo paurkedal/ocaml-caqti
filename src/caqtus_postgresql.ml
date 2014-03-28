@@ -24,9 +24,10 @@ let typedesc_of_ftype = function
   | BOOL -> `Bool
   | INT2 | INT4 | INT8 -> `Int
   | FLOAT4 | FLOAT8 | NUMERIC -> `Float
-  | CHAR | VARCHAR | TEXT | BYTEA -> `String
+  | CHAR | VARCHAR | TEXT -> `Text
+  | BYTEA -> `Octets
   | DATE -> `Date
-  | TIMESTAMP | TIMESTAMPTZ | ABSTIME -> `UTC
+  | TIMESTAMP | TIMESTAMPTZ | ABSTIME -> `Utc
   | ft -> `Other (string_of_ftype ft)
 
 let utc_of_timestamp s =
@@ -51,7 +52,8 @@ module Param = struct
   let int x = string_of_int x
   let int64 x = Int64.to_string x
   let float x = string_of_float x
-  let string s = s
+  let text s = s
+  let octets s = s
   let date t = CalendarLib.Printer.Date.sprint "%F" t
   let utc t = CalendarLib.Printer.Calendar.sprint "%F %T%z" t
   let other s = s
@@ -77,7 +79,8 @@ module Tuple = struct
   let int j t = int_of_string (raw j t)
   let int64 j t = Int64.of_string (raw j t)
   let float j t = float_of_string (raw j t)
-  let string j t = raw j t
+  let text j t = raw j t
+  let octets j t = raw j t
   let date j t = CalendarLib.Printer.Date.from_fstring "%F" (raw j t)
   let utc j t = utc_of_timestamp (raw j t)
   let other = raw

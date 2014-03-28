@@ -52,7 +52,7 @@ let test (module Db : Caqti_lwt.CONNECTION) =
   for_lwt i = 0 to 199 do
     let qs = sprintf "SELECT %d, '%s'" i (string_of_int i) in
     match_lwt
-      Db.find (Oneshot qs) Db.Tuple.(fun u -> int 0 u, string 1 u) [||]
+      Db.find (Oneshot qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||]
     with
     | None -> assert false
     | Some (j, s) ->
@@ -118,7 +118,7 @@ let test (module Db : Caqti_lwt.CONNECTION) =
   let ck_string x y =
     match_lwt
       Db.find Q.select_cat
-	      Db.Tuple.(fun u -> string 0 u) Db.Param.([|string x; string y|])
+	      Db.Tuple.(fun u -> text 0 u) Db.Param.([|text x; text y|])
     with
     | None -> assert false
     | Some s -> assert (s = x ^ y); Lwt.return_unit in

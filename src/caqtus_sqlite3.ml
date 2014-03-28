@@ -28,9 +28,10 @@ let typedesc_of_decltype = function
     begin match s with
     | "integer" -> `Int
     | "float" -> `Float
-    | "text" | "blob" -> `String
+    | "text" -> `Text
+    | "blob" -> `Octets
     | "date" -> `Date
-    | "timestamp" -> `UTC
+    | "timestamp" -> `Utc
     | _ -> `Other s
     end
 
@@ -42,7 +43,8 @@ module Param = struct
   let int x = INT (Int64.of_int x)
   let int64 x = INT x
   let float x = FLOAT x
-  let string x = TEXT x (* FIXME: Don't know if it's binary. *)
+  let text x = TEXT x
+  let octets x = BLOB x
   let date x = TEXT (CalendarLib.Printer.Date.sprint "%F" x)
   let utc x = TEXT (CalendarLib.Printer.Calendar.sprint "%F %T" x)
   let other x = failwith "Param.other is invalid for sqlite3"
@@ -75,10 +77,14 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | FLOAT x -> x
     | _ -> invalid_decode "float" i stmt
-  let string i stmt =
+  let text i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> x
-    | _ -> invalid_decode "string" i stmt
+    | _ -> invalid_decode "text" i stmt
+  let octets i stmt =
+    match Sqlite3.column stmt i with
+    | BLOB x -> x
+    | _ -> invalid_decode "octets" i stmt
   let date i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> CalendarLib.Printer.Date.from_fstring "%F" x

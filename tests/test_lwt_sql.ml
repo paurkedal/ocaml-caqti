@@ -140,6 +140,6 @@ let () =
     Sys.argv.(0);
   let uri =
     match !uri_r with
-    | None -> Uri.of_string "sqlite3:_test.db"
+    | None -> Uri.of_string "sqlite3:"
     | Some uri -> uri in
   Lwt_main.run (Caqti_lwt.connect uri >>= test)

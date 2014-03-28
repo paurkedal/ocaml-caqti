@@ -56,6 +56,10 @@ Executable test_lwt_sql
   CompiledObject: best
   Install: false
 
+Test "test_lwt_sql"
+  Type: Custom (0.3)
+  Command: OCAMLPATH=tests $test_lwt_sql
+
 Document api
   Title: Monadic database abstraction
   Type: ocamlbuild (0.4)

@@ -41,7 +41,7 @@ module type CONNECTION = sig
       drained.  For single connections, the connection is closed.  For
       backends which reconnects on each query, this does nothing.
 
-      {b Note!} Not implemented yet for pools connections. *)
+      {b Note!} Not implemented yet for pooled connections. *)
 
   val describe : query -> querydesc io
   (** Returns a description of parameters and returned tuples.  What is
@@ -59,19 +59,51 @@ module type CONNECTION = sig
   (** Parameter encoding functions. *)
   module Param : sig
     val null : param
+    (** For SQL, [null] is [NULL]. *)
+
     val option : ('a -> param) -> 'a option -> param
+    (** [option f None] is [null] and [option f (Some x)] is [f x]. *)
+
     val bool : bool -> param
+    (** Constructs a boolean parameter. *)
+
     val int : int -> param
+    (** Constructs an integer parameter. The remote end may have a different
+	range. For SQL, works with all integer types. *)
+
     val int64 : int64 -> param
+    (** Constructs an integer parameter. The remote end may have a different
+	range. For SQL, works with all integer types. *)
+
     val float : float -> param
+    (** Constructs a floating point parameter. The precision of the storage
+	may be different from that of the OCaml [float]. *)
+
     val text : string -> param
+    (** Given an UTF-8 encoded text, constructs a textual parameter with
+	backend-specific encoding. *)
+
     val octets : string -> param
+    (** Constructs a parameter from an arbitrary [string].  For SQL, the
+	parameter is compatible with the [BINARY] type. *)
+
     val date : CalendarLib.Date.t -> param
+    (** Construct a parameter representing a date. *)
+
     val utc : CalendarLib.Calendar.t -> param
+    (** Construct a parameter representing an UTC time value.  Selecting a
+	time zone suitable for an end-user is left to the application. *)
+
     val other : string -> param
+    (** A backend-specific value. *)
   end
 
   (** Tuple decoding functions.
+
+      These functions extracts and decodes components from a returned tuple.
+      The first argument is the index, starting from 0.  The conversion
+      performed are the inverse of the same named function of {!Param}, so the
+      documentation is not repeated here.
 
       {b Note!}  Calls to these functions are only valid during a callback
       from one of the query execution functions.  Returning a partial call or

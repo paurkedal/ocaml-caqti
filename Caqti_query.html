@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Caqti_sigs.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Caqti" rel="Chapter" href="Caqti.html">
+<link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
+<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
+<link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_query</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Caqti_sigs.html" title="Caqti_sigs">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Caqti_query.html">Caqti_query</a></h1>
+
+<pre><span class="keyword">module</span> Caqti_query: <code class="code">sig</code> <a href="Caqti_query.html">..</a> <code class="code">end</code></pre><div class="info module top">
+Oneshot and prepared queries.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEquery_language_tag"><span class="keyword">type</span> <code class="type"></code>query_language_tag</span> = private <code class="type">[> `Mysql | `Pgsql | `Sqlite ]</code> </pre>
+<div class="info ">
+A tag used for easy dispatching between query languages.<br>
+</div>
+
+
+<pre><code><span id="TYPEquery_language"><span class="keyword">type</span> <code class="type"></code>query_language</span> = private {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTquery_language.query_language_index">query_language_index</span>&nbsp;: <code class="type">int</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A small integer unique for each backend, made available to backends for
+      efficient caching of language dependent data.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTquery_language.query_language_name">query_language_name</span>&nbsp;: <code class="type">string</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTquery_language.query_language_tag">query_language_tag</span>&nbsp;: <code class="type"><a href="Caqti_query.html#TYPEquery_language_tag">query_language_tag</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The language tag used for easy dispatching between known query
+      languages.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info ">
+Information about a query language.<br>
+</div>
+
+
+<pre><span id="EXCEPTIONMissing_query_string"><span class="keyword">exception</span> Missing_query_string</span></pre>
+<div class="info ">
+The exception to raise in a prepare callback when a query language is not
+    supported.<br>
+</div>
+
+<pre><span id="VALcreate_query_language"><span class="keyword">val</span> create_query_language</span> : <code class="type">name:string -><br>       ?tag:<a href="Caqti_query.html#TYPEquery_language_tag">query_language_tag</a> -> unit -> <a href="Caqti_query.html#TYPEquery_language">query_language</a></code></pre><div class="info ">
+For use by backends to create a descriptor for their query languages.<br>
+</div>
+
+<pre><code><span id="TYPEprepared_query"><span class="keyword">type</span> <code class="type"></code>prepared_query</span> = private {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTprepared_query.prepared_query_index">prepared_query_index</span>&nbsp;: <code class="type">int</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A relatively small integer unique to each query, made available to
+      backends for efficient caching of language dependent data.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTprepared_query.prepared_query_name">prepared_query_name</span>&nbsp;: <code class="type">string</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A name to use for the prepared query.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTprepared_query.prepared_query_sql">prepared_query_sql</span>&nbsp;: <code class="type"><a href="Caqti_query.html#TYPEquery_language">query_language</a> -> string</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The SQL for each query language.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info ">
+The type of prepared queries.<br>
+</div>
+
+
+<pre><code><span id="TYPEquery"><span class="keyword">type</span> <code class="type"></code>query</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTquery.Oneshot"><span class="constructor">Oneshot</span></span> <span class="keyword">of</span> <code class="type">string</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A one-shot query.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTquery.Prepared"><span class="constructor">Prepared</span></span> <span class="keyword">of</span> <code class="type"><a href="Caqti_query.html#TYPEprepared_query">prepared_query</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A prepared query.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+<div class="info ">
+The type of queries accepted by the CONNECTION API.<br>
+</div>
+
+
+<pre><span id="VALoneshot"><span class="keyword">val</span> oneshot</span> : <code class="type">string -> <a href="Caqti_query.html#TYPEquery">query</a></code></pre><div class="info ">
+Create a one-shot query.<br>
+</div>
+
+<pre><span id="VALprepare_full"><span class="keyword">val</span> prepare_full</span> : <code class="type">?name:string -> (<a href="Caqti_query.html#TYPEquery_language">query_language</a> -> string) -> <a href="Caqti_query.html#TYPEquery">query</a></code></pre><div class="info ">
+Create a prepared statement dispatching on the full query language
+    descriptor.<br>
+</div>
+
+<pre><span id="VALprepare_fun"><span class="keyword">val</span> prepare_fun</span> : <code class="type">?name:string -><br>       (<a href="Caqti_query.html#TYPEquery_language_tag">query_language_tag</a> -> string) -> <a href="Caqti_query.html#TYPEquery">query</a></code></pre><div class="info ">
+Create a prepared statement dispatching on the language tag.<br>
+</div>
+
+<pre><span id="VALprepare_any"><span class="keyword">val</span> prepare_any</span> : <code class="type">?name:string -> string -> <a href="Caqti_query.html#TYPEquery">query</a></code></pre><div class="info ">
+Create a prepared statement to use for any query language.<br>
+</div>
+</body></html>

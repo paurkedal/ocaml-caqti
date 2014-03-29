@@ -17,6 +17,20 @@
 (** Helper for loading plugins. *)
 
 exception Plugin_missing of string list
+(** [Plugin_missing pkgs] if {!ensure_plugin} fails to find any of the findlib
+    packages [pkgs]. *)
+
 exception Plugin_invalid of string * string
+(** [Plugin_invalid (pkg, reason)] is called by {!ensure_plugin} if something
+    detailed in [reason] went wrong when loading the findlib package {!pkg}. *)
 
 val ensure_plugin : (unit -> 'a option) -> string list -> 'a
+(** [ensure_plugin f pkgs] returns [x] if [f ()] is [Some x].  Otherwise, it
+    loads the first existing findlib package out of [pkgs] and calls [f ()]
+    again to verify that the expected functionality has been provided,
+    returning the result which is now expected to be non-[None].
+
+    {b Note!} This function is meant for internal use.
+
+    @raise Plugin_missing if a second call to [f ()] returns [None].
+    @raise Plugin_invalid if something goes wrong while loading a package. *)

@@ -16,6 +16,10 @@
 
 (** Types and utility functions for query descriptions. *)
 
+(** Identification of a remote type.  These correspond to the types described
+    in {!Caqti_sigs.CONNECTION.Param}.  [`Other s] represents an
+    backend-specific type [s].  The additional [`Unknown] tag is used by
+    backends which are unable to determine parameter types. *)
 type typedesc =
   [ `Bool
   | `Int
@@ -29,7 +33,15 @@ type typedesc =
 
 type querydesc = {
   querydesc_params : typedesc array;
+  (** The types of the expected parameters for a query.  The number of
+      parameters should always correspond to the length of the array, but the
+      parameters may be [`Unknown] in case the backend is unable to determine
+      them. *)
+
   querydesc_fields : (string * typedesc) array;
+  (** The names and types of components of tuples returned by the query. *)
 }
+(** The result of {!Caqti_sigs.CONNECTION.describe}. *)
 
 val string_of_typedesc : typedesc -> string
+(** A informative textual representation of a type. *)

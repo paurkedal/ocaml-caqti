@@ -17,13 +17,31 @@
 (** Exceptions and connect functor. *)
 
 open Caqti_query
-open Caqti_sigs
 
 exception Connect_failed of Uri.t * string
+(** The exception raised when a backend fails to connect to a resource.  Due
+    to pooled connections, this may be raised by describe and query functions
+    as well as the connect function. *)
+
 exception Prepare_failed of Uri.t * query * string
+(** The exception raised when query preparation fails. *)
+
 exception Execute_failed of Uri.t * query * string
+(** The exception raised when query execution failes. *)
+
 exception Miscommunication of Uri.t * query * string
+(** This exception may be raised by a backend when something unexpected
+    happen during the communication process.  It signifies a programming error
+    or at least an incompatibility somewhere:
+    - A query returns a different number of tuples than expected.
+    - A query returns tuples of a different type then expected.
+    - A query returns a different kind of result than expected.
+    - A networked backend does not understand the result from the server,
+      e.g. due to a different protocol version. *)
 
-val register_scheme : string -> (module CONNECT_FUNCTOR) -> unit
+val register_scheme : string -> (module Caqti_sigs.CONNECT_FUNCTOR) -> unit
+(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
+    [scheme].  This call must be done by a backend installed with findlib name
+    caqtus-{i scheme} as part of its initialization. *)
 
-include CONNECT_FUNCTOR
+include Caqti_sigs.CONNECT_FUNCTOR

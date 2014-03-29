@@ -49,12 +49,36 @@ module type CONNECTION = sig
       number of paratemers and tuple components should be correct, but the
       types may be [`Unknown]. *)
 
+  (** {3 Querying } *)
+
   val exec : query -> param array -> unit io
+  (** [exec q params] executes a query [q(params)] which is not expected to
+      return anything. *)
+
   val find : query -> (tuple -> 'a) -> param array -> 'a option io
+  (** [find q params] executes a query [q(params)] which is expected to return
+      at most one tuple. *)
+
   val fold : query -> (tuple -> 'a -> 'a) -> param array -> 'a -> 'a io
+  (** [fold q f params acc] executes [q(params)], composes [f] over the
+      resulting tuples in order, and applies the composition to [acc]. *)
+
   val fold_s : query -> (tuple -> 'a -> 'a io) -> param array -> 'a -> 'a io
+  (** [fold_s q f params acc] executes [q(params)], forms a threaded
+      composition of [f] over the resulting tuples, and applies the
+      composition to [acc]. *)
+
   val iter_p : query -> (tuple -> unit io) -> param array -> unit io
+  (** [fold_p q f params] executes [q(params)] and calls [f t] in the thread
+      monad in parallel for each resulting tuple [t].  A certain backend may
+      not implement parallel execution, in which case this is the same as
+      {!iter_s}. *)
+
   val iter_s : query -> (tuple -> unit io) -> param array -> unit io
+  (** [fold_s q f params] executes [q(params)] and calls [f t] sequentially in
+      the thread monad for each resulting tuple [t] in order. *)
+
+  (** {3 Parameter and Tuple Coding} *)
 
   (** Parameter encoding functions. *)
   module Param : sig

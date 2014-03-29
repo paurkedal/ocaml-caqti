@@ -32,7 +32,27 @@ Helper for loading plugins.<br>
 <hr width="100%">
 
 <pre><span id="EXCEPTIONPlugin_missing"><span class="keyword">exception</span> Plugin_missing</span> <span class="keyword">of</span> <code class="type">string list</code></pre>
+<div class="info ">
+<code class="code">Plugin_missing pkgs</code> if <a href="Caqti_plugin.html#VALensure_plugin"><code class="code">Caqti_plugin.ensure_plugin</code></a> fails to find any of the findlib
+    packages <code class="code">pkgs</code>.<br>
+</div>
 
 <pre><span id="EXCEPTIONPlugin_invalid"><span class="keyword">exception</span> Plugin_invalid</span> <span class="keyword">of</span> <code class="type">string * string</code></pre>
+<div class="info ">
+<code class="code">Plugin_invalid (pkg, reason)</code> is called by <a href="Caqti_plugin.html#VALensure_plugin"><code class="code">Caqti_plugin.ensure_plugin</code></a> if something
+    detailed in <code class="code">reason</code> went wrong when loading the findlib package <code class="code">pkg</code>.<br>
+</div>
 
-<pre><span id="VALensure_plugin"><span class="keyword">val</span> ensure_plugin</span> : <code class="type">(unit -> 'a option) -> string list -> 'a</code></pre></body></html>
+<pre><span id="VALensure_plugin"><span class="keyword">val</span> ensure_plugin</span> : <code class="type">(unit -> 'a option) -> string list -> 'a</code></pre><div class="info ">
+<code class="code">ensure_plugin f pkgs</code> returns <code class="code">x</code> if <code class="code">f ()</code> is <code class="code">Some x</code>.  Otherwise, it
+    loads the first existing findlib package out of <code class="code">pkgs</code> and calls <code class="code">f ()</code>
+    again to verify that the expected functionality has been provided,
+    returning the result which is now expected to be non-<code class="code">None</code>.
+<p>
+
+    <b>Note!</b> This function is meant for internal use.<br>
+<b>Raises</b><ul><li><code>Plugin_missing</code> if a second call to <code class="code">f ()</code> returns <code class="code">None</code>.</li>
+<li><code>Plugin_invalid</code> if something goes wrong while loading a package.</li>
+</ul>
+</div>
+</body></html>

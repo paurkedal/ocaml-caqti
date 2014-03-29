@@ -22,13 +22,23 @@
 <table>
 <tr><td align="left"><br>C</td></tr>
 <tr><td><a href="Caqti.html#EXCEPTIONConnect_failed">Connect_failed</a> [<a href="Caqti.html">Caqti</a>]</td>
-<td></td></tr>
+<td><div class="info">
+The exception raised when a backend fails to connect to a resource.
+</div>
+</td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Caqti.html#EXCEPTIONExecute_failed">Execute_failed</a> [<a href="Caqti.html">Caqti</a>]</td>
-<td></td></tr>
+<td><div class="info">
+The exception raised when query execution failes.
+</div>
+</td></tr>
 <tr><td align="left"><br>M</td></tr>
 <tr><td><a href="Caqti.html#EXCEPTIONMiscommunication">Miscommunication</a> [<a href="Caqti.html">Caqti</a>]</td>
-<td></td></tr>
+<td><div class="info">
+This exception may be raised by a backend when something unexpected
+    happen during the communication process.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_query.html#EXCEPTIONMissing_query_string">Missing_query_string</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
 <td><div class="info">
 The exception to raise in a prepare callback when a query language is not
@@ -37,11 +47,22 @@ The exception to raise in a prepare callback when a query language is not
 </td></tr>
 <tr><td align="left"><br>P</td></tr>
 <tr><td><a href="Caqti_plugin.html#EXCEPTIONPlugin_invalid">Plugin_invalid</a> [<a href="Caqti_plugin.html">Caqti_plugin</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">Plugin_invalid (pkg, reason)</code> is called by <a href="Caqti_plugin.html#VALensure_plugin"><code class="code">Caqti_plugin.ensure_plugin</code></a> if something
+    detailed in <code class="code">reason</code> went wrong when loading the findlib package <code class="code">pkg</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_plugin.html#EXCEPTIONPlugin_missing">Plugin_missing</a> [<a href="Caqti_plugin.html">Caqti_plugin</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">Plugin_missing pkgs</code> if <a href="Caqti_plugin.html#VALensure_plugin"><code class="code">Caqti_plugin.ensure_plugin</code></a> fails to find any of the findlib
+    packages <code class="code">pkgs</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti.html#EXCEPTIONPrepare_failed">Prepare_failed</a> [<a href="Caqti.html">Caqti</a>]</td>
-<td></td></tr>
+<td><div class="info">
+The exception raised when query preparation fails.
+</div>
+</td></tr>
 </table>
 </body>
 </html>

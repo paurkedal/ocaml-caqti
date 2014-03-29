@@ -16,7 +16,9 @@
 <link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
-<link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_sigs.CONNECTION</title>
+<link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><link title="Querying " rel="Section" href="#3_Querying">
+<link title="Parameter and Tuple Coding" rel="Section" href="#3_ParameterandTupleCoding">
+<title>The Caqti API : Caqti_sigs.CONNECTION</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="Caqti_sigs.html" title="Caqti_sigs">Up</a>
@@ -68,13 +70,44 @@ Returns a description of parameters and returned tuples.  What is
       number of paratemers and tuple components should be correct, but the
       types may be <code class="code">`Unknown</code>.<br>
 </div>
+<br>
+<h3 id="3_Querying">Querying </h3><br>
 
-<pre><span id="VALexec"><span class="keyword">val</span> exec</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
-<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a option <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
-<pre><span id="VALfold"><span class="keyword">val</span> fold</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a -> 'a) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
-<pre><span id="VALfold_s"><span class="keyword">val</span> fold_s</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
-<pre><span id="VALiter_p"><span class="keyword">val</span> iter_p</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
-<pre><span id="VALiter_s"><span class="keyword">val</span> iter_s</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre>
+<pre><span id="VALexec"><span class="keyword">val</span> exec</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">exec q params</code> executes a query <code class="code">q(params)</code> which is not expected to
+      return anything.<br>
+</div>
+
+<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a option <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">find q params</code> executes a query <code class="code">q(params)</code> which is expected to return
+      at most one tuple.<br>
+</div>
+
+<pre><span id="VALfold"><span class="keyword">val</span> fold</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a -> 'a) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">fold q f params acc</code> executes <code class="code">q(params)</code>, composes <code class="code">f</code> over the
+      resulting tuples in order, and applies the composition to <code class="code">acc</code>.<br>
+</div>
+
+<pre><span id="VALfold_s"><span class="keyword">val</span> fold_s</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> 'a -> 'a <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">fold_s q f params acc</code> executes <code class="code">q(params)</code>, forms a threaded
+      composition of <code class="code">f</code> over the resulting tuples, and applies the
+      composition to <code class="code">acc</code>.<br>
+</div>
+
+<pre><span id="VALiter_p"><span class="keyword">val</span> iter_p</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">fold_p q f params</code> executes <code class="code">q(params)</code> and calls <code class="code">f t</code> in the thread
+      monad in parallel for each resulting tuple <code class="code">t</code>.  A certain backend may
+      not implement parallel execution, in which case this is the same as
+      <a href="Caqti_sigs.CONNECTION.html#VALiter_s"><code class="code">Caqti_sigs.CONNECTION.iter_s</code></a>.<br>
+</div>
+
+<pre><span id="VALiter_s"><span class="keyword">val</span> iter_s</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       (<a href="Caqti_sigs.CONNECTION.html#TYPEtuple">tuple</a> -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a>) -><br>       <a href="Caqti_sigs.CONNECTION.html#TYPEparam">param</a> array -> unit <a href="Caqti_sigs.CONNECTION.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">fold_s q f params</code> executes <code class="code">q(params)</code> and calls <code class="code">f t</code> sequentially in
+      the thread monad for each resulting tuple <code class="code">t</code> in order.<br>
+</div>
+<br>
+<h3 id="3_ParameterandTupleCoding">Parameter and Tuple Coding</h3><br>
+
 <pre><span class="keyword">module</span> <a href="Caqti_sigs.CONNECTION.Param.html">Param</a>: <code class="code">sig</code> <a href="Caqti_sigs.CONNECTION.Param.html">..</a> <code class="code">end</code></pre><div class="info">
 Parameter encoding functions.
 </div>

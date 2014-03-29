@@ -67,16 +67,27 @@ Close all open connections.
 </td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Caqti_plugin.html#VALensure_plugin">ensure_plugin</a> [<a href="Caqti_plugin.html">Caqti_plugin</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">ensure_plugin f pkgs</code> returns <code class="code">x</code> if <code class="code">f ()</code> is <code class="code">Some x</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Log.html#VALerror_f">error_f</a> [<a href="Caqti_sigs.SYSTEM.Log.html">Caqti_sigs.SYSTEM.Log</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALexec">exec</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">exec q params</code> executes a query <code class="code">q(params)</code> which is not expected to
+      return anything.
+</div>
+</td></tr>
 <tr><td align="left"><br>F</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VALfail">fail</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALfind">find</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">find q params</code> executes a query <code class="code">q(params)</code> which is expected to return
+      at most one tuple.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALfloat">float</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Param.html#VALfloat">float</a> [<a href="Caqti_sigs.CONNECTION.Param.html">Caqti_sigs.CONNECTION.Param</a>]</td>
@@ -85,9 +96,18 @@ Constructs a floating point parameter.
 </div>
 </td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALfold">fold</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">fold q f params acc</code> executes <code class="code">q(params)</code>, composes <code class="code">f</code> over the
+      resulting tuples in order, and applies the composition to <code class="code">acc</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALfold_s">fold_s</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">fold_s q f params acc</code> executes <code class="code">q(params)</code>, forms a threaded
+      composition of <code class="code">f</code> over the resulting tuples, and applies the
+      composition to <code class="code">acc</code>.
+</div>
+</td></tr>
 <tr><td align="left"><br>I</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Log.html#VALinfo_f">info_f</a> [<a href="Caqti_sigs.SYSTEM.Log.html">Caqti_sigs.SYSTEM.Log</a>]</td>
 <td></td></tr>
@@ -108,9 +128,17 @@ Constructs an integer parameter.
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALis_null">is_null</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALiter_p">iter_p</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">fold_p q f params</code> executes <code class="code">q(params)</code> and calls <code class="code">f t</code> in the thread
+      monad in parallel for each resulting tuple <code class="code">t</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALiter_s">iter_s</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">fold_s q f params</code> executes <code class="code">q(params)</code> and calls <code class="code">f t</code> sequentially in
+      the thread monad for each resulting tuple <code class="code">t</code> in order.
+</div>
+</td></tr>
 <tr><td align="left"><br>J</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VALjoin">join</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
@@ -168,14 +196,21 @@ Create a prepared statement dispatching on the language tag.
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
 <tr><td><a href="Caqti.html#VALregister_scheme">register_scheme</a> [<a href="Caqti.html">Caqti</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">register_scheme scheme m</code> installs <code class="code">m</code> as a handler for the URI scheme
+    <code class="code">scheme</code>.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VALreturn">return</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Preemptive.html#VALrun_in_main">run_in_main</a> [<a href="Caqti_sigs.SYSTEM.Preemptive.html">Caqti_sigs.SYSTEM.Preemptive</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>S</td></tr>
 <tr><td><a href="Caqti_describe.html#VALstring_of_typedesc">string_of_typedesc</a> [<a href="Caqti_describe.html">Caqti_describe</a>]</td>
-<td></td></tr>
+<td><div class="info">
+A informative textual representation of a type.
+</div>
+</td></tr>
 <tr><td align="left"><br>T</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALtext">text</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
 <td></td></tr>

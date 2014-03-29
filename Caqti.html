@@ -30,13 +30,41 @@ Exceptions and connect functor.<br>
 <hr width="100%">
 
 <pre><span id="EXCEPTIONConnect_failed"><span class="keyword">exception</span> Connect_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * string</code></pre>
+<div class="info ">
+The exception raised when a backend fails to connect to a resource.  Due
+    to pooled connections, this may be raised by describe and query functions
+    as well as the connect function.<br>
+</div>
 
 <pre><span id="EXCEPTIONPrepare_failed"><span class="keyword">exception</span> Prepare_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<div class="info ">
+The exception raised when query preparation fails.<br>
+</div>
 
 <pre><span id="EXCEPTIONExecute_failed"><span class="keyword">exception</span> Execute_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<div class="info ">
+The exception raised when query execution failes.<br>
+</div>
 
 <pre><span id="EXCEPTIONMiscommunication"><span class="keyword">exception</span> Miscommunication</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<div class="info ">
+This exception may be raised by a backend when something unexpected
+    happen during the communication process.  It signifies a programming error
+    or at least an incompatibility somewhere:<ul>
+<li>A query returns a different number of tuples than expected.</li>
+<li>A query returns tuples of a different type then expected.</li>
+<li>A query returns a different kind of result than expected.</li>
+<li>A networked backend does not understand the result from the server,
+      e.g. due to a different protocol version.</li>
+</ul>
+<br>
+</div>
 
-<pre><span id="VALregister_scheme"><span class="keyword">val</span> register_scheme</span> : <code class="type">string -> (module Caqti_sigs.CONNECT_FUNCTOR) -> unit</code></pre>
-<pre><span class="keyword">include</span> CONNECT_FUNCTOR</pre>
+<pre><span id="VALregister_scheme"><span class="keyword">val</span> register_scheme</span> : <code class="type">string -> (module Caqti_sigs.CONNECT_FUNCTOR) -> unit</code></pre><div class="info ">
+<code class="code">register_scheme scheme m</code> installs <code class="code">m</code> as a handler for the URI scheme
+    <code class="code">scheme</code>.  This call must be done by a backend installed with findlib name
+    caqtus-<i>scheme</i> as part of its initialization.<br>
+</div>
+
+<pre><span class="keyword">include</span> <a href="Caqti_sigs.CONNECT_FUNCTOR.html">Caqti_sigs.CONNECT_FUNCTOR</a></pre>
 </body></html>

@@ -20,6 +20,8 @@ type query_language_tag = private
   [> `Mysql | `Pgsql | `Sqlite]
 (** A tag used for easy dispatching between query languages. *)
 
+type sql_tag = private [> `Mysql | `Pgsql | `Sqlite]
+
 type query_language = private {
   query_language_index : int;
   (** A small integer unique for each backend, made available to backends for
@@ -71,4 +73,9 @@ val prepare_fun : ?name: string -> (query_language_tag -> string) -> query
 (** Create a prepared statement dispatching on the language tag. *)
 
 val prepare_any : ?name: string -> string -> query
-(** Create a prepared statement to use for any query language. *)
+(** Create a prepared statement accepted by any backend.  This only makes
+    sense if backend are known to be restricted to a set sharing a common
+    query string.  Consider using {!prepare_sql} or {!oneshot} instead. *)
+
+val prepare_sql : ?name: string -> string -> query
+(** Create a prepared statement expected to work with any SQL dialect. *)

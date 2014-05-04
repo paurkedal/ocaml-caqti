@@ -15,6 +15,7 @@
  *)
 
 type query_language_tag = [`Mysql | `Pgsql | `Sqlite | `Other]
+type sql_tag = [`Mysql | `Pgsql | `Sqlite]
 
 type query_language = {
   query_language_index : int;
@@ -57,4 +58,7 @@ let prepare_full ?name prepared_query_sql =
 let prepare_fun ?name f =
   prepare_full ?name (fun {query_language_tag} -> f query_language_tag)
 
-let prepare_any ?name sql = prepare_full (fun _ -> sql)
+let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
+
+let prepare_sql ?name sql =
+  prepare_fun ?name (function #sql_tag | _ -> raise Missing_query_string)

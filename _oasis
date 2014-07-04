@@ -67,7 +67,7 @@ Document api
   BuildTools+: ocamldoc
   XOCamlbuildPath: src
   XOCamlbuildLibraries: caqti
-  DataFiles: COPYING ($docdir)
+  DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
 Executable "caqtiq"
   Path: bin

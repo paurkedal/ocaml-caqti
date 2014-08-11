@@ -193,7 +193,7 @@ module Make (System : SYSTEM) = struct
       let exec q params =
 	let extract stmt =
 	  match Sqlite3.step stmt with
-	  | Sqlite3.Rc.OK -> ()
+	  | Sqlite3.Rc.DONE -> ()
 	  | rc -> raise_rc q rc in
 	prim_exec extract q params
 

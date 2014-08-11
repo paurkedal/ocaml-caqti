@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_describe
 open Caqti_query
 open Printf
 
@@ -44,9 +45,23 @@ module Q = struct
     | _ -> failwith "Unimplemented."
   let select_cat = _q "SELECT ? || ?"
 
+  let create_tmp = prepare_fun @@ function
+    | `Pgsql -> "CREATE TEMPORARY TABLE caqti_test \
+		 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
+    | `Sqlite -> "CREATE TABLE caqti_test \
+		  (id INTEGER PRIMARY KEY, i INTEGRE NOT NULL, s TEXT NOT NULL)"
+    | _ -> failwith "Unimplemented."
+  let insert_into_tmp = prepare_fun @@ function
+    | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
+    | `Sqlite -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
+    | _ -> failwith "Unimplemented."
+  let select_from_tmp = prepare_fun @@ function
+    | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
+    | _ -> failwith "Unimplemented."
+
 end
 
-let test (module Db : Caqti_lwt.CONNECTION) =
+let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
   (* Non-prepared. *)
   for_lwt i = 0 to 199 do
@@ -127,6 +142,25 @@ let test (module Db : Caqti_lwt.CONNECTION) =
     let y = sprintf "%x" (Random.int (1 lsl 29)) in
     ck_string x y
   done
+
+let test_table (module Db : Caqti_lwt.CONNECTION) =
+
+  (* Create, insert, select *)
+  Db.exec Q.create_tmp [||] >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 2; text "two"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 3; text "three"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 5; text "five"|]) >>
+  lwt (i_acc, s_acc) = Db.fold Q.select_from_tmp
+    Db.Tuple.(fun t (i_acc, s_acc) -> (i_acc + int 0 t, s_acc ^ "+" ^ text 1 t))
+    [||] (0, "zero") in
+  assert (i_acc = 10);
+  assert (s_acc = "zero+two+three+five");
+  Lwt.return_unit
+
+let test (module Db : Caqti_lwt.CONNECTION) =
+  test_expr (module Db) >>
+  test_table (module Db) >>
+  Db.drain ()
 
 let () =
   (* Needed for bytecode as plugins link against C libraries. *)

@@ -120,21 +120,21 @@ module Make (System : SYSTEM) = struct
 				   components.")
     end >>= fun () ->
 
-    (* Helpers *)
+    (* Database Handle *)
 
-    let mutex = Mutex.create () in
+    let db_mutex = Mutex.create () in
+    let db = Sqlite3.db_open (Uri.path uri) in
 
     let with_db f =
       Preemptive.detach begin fun () ->
-	Mutex.lock mutex;
-	finally (fun () -> Mutex.unlock mutex)
-	  begin fun () ->
-	    let db = Sqlite3.db_open (Uri.path uri) in
-	    finally
-	      (fun () -> while not (Sqlite3.db_close db) do yield () done)
-	      (fun () -> f db)
-	  end
+	Mutex.lock db_mutex;
+	finally (fun () -> Mutex.unlock db_mutex) (fun () -> f db)
       end () in
+
+    let close_db () = with_db @@ fun db ->
+      while not (Sqlite3.db_close db) do yield () done in
+
+    (* Helpers *)
 
     let raise_rc q rc =
       raise (Caqti.Execute_failed (uri, q, Sqlite3.Rc.to_string rc)) in
@@ -177,7 +177,7 @@ module Make (System : SYSTEM) = struct
 
       let uri = uri
 
-      let drain () = return ()
+      let drain () = close_db ()
 
       let describe q =
 	let extract stmt =

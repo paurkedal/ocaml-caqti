@@ -41,7 +41,7 @@ include Caqti.Make (struct
     let create ?(max_size = 1) ?max_priority ?validate f =
       Lwt_pool.create max_size ?validate f
     let use ?priority f p = Lwt_pool.use p f
-    let drain pool = assert false (* FIXME *)
+    let drain pool = return () (* FIXME *)
   end
 
   module Preemptive = Lwt_preemptive

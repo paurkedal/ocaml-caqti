@@ -145,6 +145,8 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
 let test_table (module Db : Caqti_lwt.CONNECTION) =
 
+  let is_typed = Uri.scheme Db.uri <> Some "sqlite3" in
+
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 2; text "two"|]) >>
@@ -155,7 +157,14 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
     [||] (0, "zero") in
   assert (i_acc = 10);
   assert (s_acc = "zero+two+three+five");
-  Lwt.return_unit
+
+  (* Describe *)
+  if is_typed then begin
+    lwt qd = Db.describe Q.select_from_tmp in
+    assert (qd.querydesc_params = [||]);
+    assert (qd.querydesc_fields = [|"i", `Int; "s", `Text|]);
+    Lwt.return_unit
+  end else Lwt.return_unit
 
 let test (module Db : Caqti_lwt.CONNECTION) =
   test_expr (module Db) >>

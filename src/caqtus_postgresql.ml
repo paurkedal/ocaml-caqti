@@ -184,8 +184,8 @@ module Make (System : SYSTEM) = struct
 	  "Expected Command_ok or an error as response to prepare."
 
     method describe_io name =
-      (* FIXME: Need send_describe_prepared. *)
-      let r = self#describe_prepared name in
+      self#send_describe_prepared name;
+      self#fetch_single_result_io (Oneshot ("X_DESCRIBE " ^ name)) >>= fun r ->
       let describe_param i =
 	try typedesc_of_ftype (r#paramtype i)
 	with Oid oid -> `Other ("oid" ^ string_of_int oid) in

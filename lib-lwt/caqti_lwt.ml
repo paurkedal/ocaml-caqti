@@ -14,13 +14,21 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti.Make (struct
+module System = struct
 
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)
   let return = Lwt.return
   let fail = Lwt.fail
   let join = Lwt.join
+  let catch = Lwt.catch
+
+  module Mvar = struct
+    type 'a t = 'a Lwt_mvar.t
+    let create = Lwt_mvar.create_empty
+    let store x v = Lwt.async (fun () -> Lwt_mvar.put v x)
+    let fetch = Lwt_mvar.take
+  end
 
   module Log = struct
     let error_f q fmt = Lwt_log.error_f fmt
@@ -46,4 +54,6 @@ include Caqti.Make (struct
 
   module Preemptive = Lwt_preemptive
 
-end)
+end
+
+include Caqti.Make (System)

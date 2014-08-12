@@ -163,20 +163,20 @@ module type SYSTEM = sig
   val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
   val return : 'a -> 'a io
   val fail : exn -> 'a io
+  val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
   val join : unit io list -> unit io
+
+  module Mvar : sig
+    type 'a t
+    val create : unit -> 'a t
+    val store : 'a -> 'a t -> unit
+    val fetch : 'a t -> 'a io
+  end
 
   module Unix : sig
     type file_descr
     val of_unix_file_descr : Unix.file_descr -> file_descr
     val wait_read : file_descr -> unit io
-  end
-
-  module Pool : sig
-    type 'a t
-    val create : ?max_size: int -> ?max_priority: int ->
-		 ?validate: ('a -> bool io) -> (unit -> 'a io) -> 'a t
-    val use : ?priority: int -> ('a -> 'b io) -> 'a t -> 'b io
-    val drain : 'a t -> unit io
   end
 
   module Log : sig

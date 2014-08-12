@@ -14,9 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.  This module contains the signature and connect
-    function specialized for use with Lwt. *)
+(** A min-heap implementation.  Not optimal, but a very simple implementation,
+    which should suffice for {!Caqti_pool}. *)
 
-module System : Caqti_sigs.SYSTEM with type 'a io = 'a Lwt.t
+module type S = sig
+  type t
+  type elt
 
-include Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t
+  val empty : t
+  val is_empty : t -> bool
+  val card : t -> int
+  val push : elt -> t -> t
+  val merge : t -> t -> t
+  val pop_e : t -> elt * t
+end
+
+module Make (Elt : Set.OrderedType) : S with type elt = Elt.t

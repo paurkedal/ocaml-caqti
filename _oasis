@@ -23,7 +23,7 @@ Flag sqlite3
 
 Library caqti
   Path: lib
-  InternalModules: Caqti_prereq
+  InternalModules: Caqti_heap, Caqti_pool, Caqti_prereq
   Modules: Caqti, Caqti_describe, Caqti_plugin, Caqti_sigs, Caqti_query
   BuildDepends: calendar, dynlink, findlib, uri
 
@@ -60,6 +60,30 @@ Library caqtus_sqlite3
   Build$: flag(sqlite3)
   Install$: flag(sqlite3)
 
+Executable test_heap
+  Path: tests
+  MainIs: test_heap.ml
+  BuildDepends: caqti
+  CompiledObject: best
+  Install: false
+Test test_heap
+  Type: Custom (0.3)
+  Command: $test_heap
+
+Executable test_pool_lwt
+  Path: tests
+  MainIs: test_pool_lwt.ml
+  BuildDepends: caqti, caqti.lwt
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best
+  Build$: flag(lwt)
+  Install: false
+Test test_pool_lwt
+  Type: Custom (0.3)
+  Command: OCAMLPATH=tests $test_pool_lwt
+  Run$: flag(lwt)
+
 Executable test_lwt_sql
   Path: tests
   MainIs: test_lwt_sql.ml
@@ -69,8 +93,7 @@ Executable test_lwt_sql
   CompiledObject: best
   Build$: flag(lwt)
   Install: false
-
-Test "test_lwt_sql"
+Test test_lwt_sql
   Type: Custom (0.3)
   Command: OCAMLPATH=tests $test_lwt_sql
   Run$: flag(lwt)

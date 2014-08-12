@@ -46,10 +46,9 @@ let rec depth_process_package f pkg =
  * which may be needed by plugins. *)
 let () = depth_process_package (fun _ -> ()) "caqti"
 module Link_also = struct
-  module M0 = Mutex
-  module M1 = Condition
   module M2 = CalendarLib
   module M3 = Caqti_prereq
+  module M4 = Caqti_pool
 end
 
 let findlib_load =

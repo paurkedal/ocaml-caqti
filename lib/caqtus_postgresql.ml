@@ -97,6 +97,7 @@ let escaped_connvalue s =
 module Connect_functor = struct
 module Make (System : SYSTEM) = struct
 
+  module Pool = Caqti_pool.Make (System)
   open System
 
   type 'a io = 'a System.io
@@ -234,10 +235,11 @@ module Make (System : SYSTEM) = struct
 	try return (new connection uri)
 	with Error e ->
 	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e)) in
+      let disconnect c = c#finish; return () in
       let validate c =
 	try c#try_reset; return true
 	with _ -> return false in (* TODO: Log here or in Pool *)
-      Pool.create ~validate ~max_size:max_pool_size connect in
+      Pool.create ~validate ~max_size:max_pool_size connect disconnect in
 
     return (module struct
       type 'a io = 'a System.io

@@ -14,9 +14,16 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.  This module contains the signature and connect
-    function specialized for use with Lwt. *)
+module H = Caqti_heap.Make (struct type t = int let compare = compare end)
 
-module System : Caqti_sigs.SYSTEM with type 'a io = 'a Lwt.t
+let test n =
+  let a = Array.init n (fun _ -> Random.int n) in
+  let h = Array.fold_right H.push a H.empty in
+  Array.sort (fun i j -> compare j i) a;
+  let check_pop x h =
+    let x', h' = H.pop_e h in
+    assert (x = x'); h' in
+  let h' = Array.fold_right check_pop a h in
+  assert (H.is_empty h')
 
-include Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t
+let () = for i = 0 to 599 do test i done

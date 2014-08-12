@@ -14,9 +14,21 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.  This module contains the signature and connect
-    function specialized for use with Lwt. *)
+module Make (System : Caqti_sigs.SYSTEM) : sig
+  open System
 
-module System : Caqti_sigs.SYSTEM with type 'a io = 'a Lwt.t
+  type 'a t
 
-include Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t
+  val create :
+	?max_size: int ->
+	?check: ('a -> (bool -> unit) -> unit) ->
+	?validate: ('a -> bool io) ->
+	(unit -> 'a io) -> ('a -> unit io) -> 'a t
+
+  val size : 'a t -> int
+
+  val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
+
+  val drain : 'a t -> unit io
+
+end

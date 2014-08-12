@@ -2,8 +2,15 @@
 # to the top source directory.
 
 description = "Caqti loaded from the build directory"
-directory = "../_build/src"
-requires = "calendar dynlink findlib lwt uri"
+directory = "../_build/lib"
+requires = "calendar dynlink findlib uri"
+
+package "lwt" (
+  directory = "../_build/lib-lwt"
+  archive(byte) = "caqti_lwt.cma"
+  archive(native, plugin) = "caqti_lwt.cmxs"
+  requires = "caqti lwt lwt.preemptive"
+)
 
 package "caqtus-postgresql" (
   description = "Caqtus PostgreSQL loaded from the build directory"

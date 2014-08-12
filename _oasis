@@ -9,6 +9,10 @@ BuildTools: ocamlbuild
 AlphaFeatures: pure_interface
 BetaFeatures: section_object
 
+Flag lwt
+  Description: build lwt concurrency support
+  Default: true
+
 Flag postgresql
   Description: build the postgresql backend
   Default: true
@@ -18,15 +22,24 @@ Flag sqlite3
   Default: true
 
 Library caqti
-  Path: src
+  Path: lib
   InternalModules: Caqti_prereq
-  Modules: Caqti, Caqti_describe, Caqti_lwt, Caqti_plugin, Caqti_sigs, Caqti_query
-  BuildDepends: calendar, dynlink, findlib, lwt, lwt.preemptive, uri
+  Modules: Caqti, Caqti_describe, Caqti_plugin, Caqti_sigs, Caqti_query
+  BuildDepends: calendar, dynlink, findlib, uri
+
+Library caqti_lwt
+  Path: lib-lwt
+  Modules: Caqti_lwt
+  FindlibParent: caqti
+  FindlibName: lwt
+  BuildDepends: caqti, lwt, lwt.preemptive
   ByteOpt: -thread
   NativeOpt: -thread
+  Build$: flag(lwt)
+  Install$: flag(lwt)
 
 Library caqtus_postgresql
-  Path: src
+  Path: lib
   Modules: Caqtus_postgresql
   FindlibParent: caqti
   FindlibName: caqtus-postgresql
@@ -37,7 +50,7 @@ Library caqtus_postgresql
   Install$: flag(postgresql)
 
 Library caqtus_sqlite3
-  Path: src
+  Path: lib
   Modules: Caqtus_sqlite3
   FindlibParent: caqti
   FindlibName: caqtus-sqlite3
@@ -50,29 +63,33 @@ Library caqtus_sqlite3
 Executable test_lwt_sql
   Path: tests
   MainIs: test_lwt_sql.ml
-  BuildDepends: caqti
+  BuildDepends: caqti.lwt
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: best
+  Build$: flag(lwt)
   Install: false
 
 Test "test_lwt_sql"
   Type: Custom (0.3)
   Command: OCAMLPATH=tests $test_lwt_sql
+  Run$: flag(lwt)
 
 Document api
   Title: Monadic database abstraction
   Type: ocamlbuild (0.4)
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
-  XOCamlbuildPath: src
-  XOCamlbuildLibraries: caqti
+  XOCamlbuildPath: lib
+  XOCamlbuildLibraries: caqti, caqti.lwt
   DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
 Executable "caqtiq"
   Path: bin
   MainIs: query.ml
-  BuildDepends: lwt, lwt.unix, caqti
+  BuildDepends: lwt, lwt.unix, caqti.lwt
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: best
+  Build$: flag(lwt)
+  Install$: flag(lwt)

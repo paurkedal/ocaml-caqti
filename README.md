@@ -23,3 +23,17 @@ Backends are implemented for
     - Implemented in terms of sqlite3-ocaml.
     - Uses preemtive threading to provide full non-blocking operation.
     - No connection pooling, reconnects on each execute.
+
+Feedback is welcome.
+
+## Documentation
+
+The main documentation is the
+[API Reference](http://paurkedal.github.io/ocaml-caqti/).
+For the main entry point, you would normally use either of
+
+    Caqti_lwt : Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t
+    Caqti_async : Caqti_sigs.CONNECT with type 'a io = 'a Deferred.Or_error.t
+
+which is provided by `caqti.lwt` or `caqti.async`, respectively.  The former
+is the most well-tested.

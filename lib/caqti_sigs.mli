@@ -148,7 +148,16 @@ module type CONNECTION = sig
 
 end
 
-(** The connect function along with its first-class module signature. *)
+(** The connect function along with its first-class module signature.  Modules
+    implementing this interface provide the entry point to this library.
+
+    This interface is implemented by
+    - [Caqti_lwt] which is provided in the [caqti.lwt] package
+      if caqti was built with [--enable-lwt].
+    - [Caqti_async] which is provided in the [caqti.async] package
+      if caqti was built with [--enable-async].
+
+    There is no separate documentation for these modules. *)
 module type CONNECT = sig
   type 'a io
   module type CONNECTION = CONNECTION with type 'a io = 'a io

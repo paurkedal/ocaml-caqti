@@ -133,7 +133,7 @@ Document api
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
   XOCamlbuildPath: lib
-  XOCamlbuildLibraries: caqti, caqti.lwt
+  XOCamlbuildLibraries: caqti
   DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
 Executable "caqtiq"

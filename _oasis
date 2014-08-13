@@ -9,6 +9,10 @@ BuildTools: ocamlbuild
 AlphaFeatures: pure_interface
 BetaFeatures: section_object
 
+Flag async
+  Description: build async concurrency support
+  Default: true
+
 Flag lwt
   Description: build lwt concurrency support
   Default: true
@@ -26,6 +30,17 @@ Library caqti
   InternalModules: Caqti_heap, Caqti_pool, Caqti_prereq
   Modules: Caqti, Caqti_describe, Caqti_plugin, Caqti_sigs, Caqti_query
   BuildDepends: calendar, dynlink, findlib, uri
+
+Library caqti_async
+  Path: lib-async
+  Modules: Caqti_async
+  FindlibParent: caqti
+  FindlibName: async
+  BuildDepends: caqti, core, async
+  ByteOpt: -thread
+  NativeOpt: -thread
+  Build$: flag(async)
+  Install$: flag(async)
 
 Library caqti_lwt
   Path: lib-lwt

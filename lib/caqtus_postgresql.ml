@@ -131,12 +131,15 @@ module Make (System : SYSTEM) = struct
     (* Private Methods for Fetching Results *)
 
     method private wait_for_result =
-      let socket_fd = Unix.of_unix_file_descr (Obj.magic self#socket) in
-      let rec hold () =
-	self#consume_input;
-	if self#is_busy then Unix.wait_read socket_fd >>= hold
-			else return () in
-      hold ()
+      Unix.wrap_fd
+	begin fun socket_fd ->
+	  let rec hold () =
+	    self#consume_input;
+	    if self#is_busy then Unix.wait_read socket_fd >>= hold
+			    else return () in
+	  hold ()
+	end
+	(Obj.magic self#socket)
 
     method private fetch_result_io q =
       self#wait_for_result >>= fun () ->

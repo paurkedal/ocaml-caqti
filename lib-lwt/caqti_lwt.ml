@@ -39,7 +39,7 @@ module System = struct
 
   module Unix = struct
     type file_descr = Lwt_unix.file_descr
-    let of_unix_file_descr fd = Lwt_unix.of_unix_file_descr fd
+    let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
     let wait_read = Lwt_unix.wait_read
   end
 

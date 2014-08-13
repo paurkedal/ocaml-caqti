@@ -99,19 +99,33 @@ Test test_pool_lwt
   Command: OCAMLPATH=tests $test_pool_lwt
   Run$: flag(lwt)
 
-Executable test_lwt_sql
+Executable test_sql_lwt
   Path: tests
-  MainIs: test_lwt_sql.ml
+  MainIs: test_sql_lwt.ml
   BuildDepends: caqti.lwt
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: best
   Build$: flag(lwt)
   Install: false
-Test test_lwt_sql
+Test test_sql_lwt
   Type: Custom (0.3)
-  Command: OCAMLPATH=tests $test_lwt_sql
+  Command: OCAMLPATH=tests $test_sql_lwt
   Run$: flag(lwt)
+
+Executable test_sql_async
+  Path: tests
+  MainIs: test_sql_async.ml
+  BuildDepends: caqti.async
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best
+  Build$: flag(async)
+  Install: false
+Test test_sql_async
+  Type: Custom (0.3)
+  Command: OCAMLPATH=tests $test_sql_async
+  Run$: flag(async)
 
 Document api
   Title: Monadic database abstraction

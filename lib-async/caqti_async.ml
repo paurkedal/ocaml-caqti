@@ -44,8 +44,16 @@ module System = struct
 
   module Unix = struct
     type file_descr = Async_unix.Fd.t
+
     let fdinfo = Info.of_string "Caqti_async file descriptor"
-    let of_unix_file_descr fd = Fd.create (Fd.Kind.Socket `Active) fd fdinfo
+
+    let wrap_fd f ufd =
+      let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
+      let open Deferred in
+      f fd >>= fun r ->
+      Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
+      return r
+
     let wait_read fd =
       Deferred.bind
 	(Async_unix.Fd.ready_to fd `Read)

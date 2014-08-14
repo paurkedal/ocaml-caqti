@@ -155,6 +155,31 @@ module Make (System : SYSTEM) = struct
 	| Some r -> miscommunication uri q "Unexpected multi-response from DB."
 	end
 
+    (* Connection *)
+
+    method private poll_loop_io step =
+      let on_fd fd =
+	let rec next = function
+	  | Polling_reading -> Unix.wait_read fd  >>= fun () -> next (step ())
+	  | Polling_writing -> Unix.wait_write fd >>= fun () -> next (step ())
+	  | Polling_failed | Polling_ok -> return () in
+	next Polling_writing in
+      Unix.wrap_fd on_fd (Obj.magic self#socket)
+
+    method finish_connecting_io =
+      self#poll_loop_io (fun () -> self#connect_poll)
+
+    method reset_io =
+      if self#reset_start then begin
+	Hashtbl.clear prepared_queries;
+	self#poll_loop_io (fun () -> self#reset_poll) >>= fun () ->
+	return (self#status = Ok)
+      end else
+	return false
+
+    method try_reset_io =
+      if self#status = Ok then return true else self#reset_io
+
     (* Direct Execution *)
 
     method exec_io ?params ?binary_params qs =
@@ -232,34 +257,17 @@ module Make (System : SYSTEM) = struct
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
-  let rec establish_connection fd connect_poll = function
-    | Polling_reading -> Unix.(wrap_fd wait_read) fd >>= fun () ->
-			 establish_connection fd connect_poll (connect_poll ())
-    | Polling_writing -> Unix.(wrap_fd wait_write) fd >>= fun () ->
-			 establish_connection fd connect_poll (connect_poll ())
-    | Polling_failed | Polling_ok -> return ()
-
   let connect ?(max_pool_size = 1) uri =
     let pool =
       let connect () =
 	try
 	  let c = new connection uri in
-	  establish_connection (Obj.magic c#socket) (fun () -> c#connect_poll)
-			       Polling_writing >>= fun () ->
+	  c#finish_connecting_io >>= fun () ->
 	  return c
 	with Error e ->
 	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e)) in
       let disconnect c = c#finish; return () in
-      let validate c =
-	if c#status = Ok then return true else
-	try
-	  if c#reset_start then
-	    establish_connection (Obj.magic c#socket) (fun () -> c#reset_poll)
-				 Polling_writing >>= fun () ->
-	    return (c#status = Ok)
-	  else
-	    return false
-	with _ -> return false in (* TODO: Log here or in Pool *)
+      let validate c = c#try_reset_io in
       let check c f = f (c#status = Ok) in
       Pool.create ~check ~validate ~max_size:max_pool_size connect disconnect in
 

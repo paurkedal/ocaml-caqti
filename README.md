@@ -17,7 +17,6 @@ Backends are implemented for
 
   - PostgreSQL (`postgresql:/`)
     - Implemented in terms of postgresql-ocaml.
-    - Connect is blocking, execute is non-blocking.
     - Supports real prepared statements and connection pooling.
   - SQLite3 (`sqlite3:/`)
     - Implemented in terms of sqlite3-ocaml.

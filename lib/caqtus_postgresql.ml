@@ -232,17 +232,36 @@ module Make (System : SYSTEM) = struct
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
+  let rec establish_connection fd connect_poll = function
+    | Polling_reading -> Unix.(wrap_fd wait_read) fd >>= fun () ->
+			 establish_connection fd connect_poll (connect_poll ())
+    | Polling_writing -> Unix.(wrap_fd wait_write) fd >>= fun () ->
+			 establish_connection fd connect_poll (connect_poll ())
+    | Polling_failed | Polling_ok -> return ()
+
   let connect ?(max_pool_size = 1) uri =
     let pool =
       let connect () =
-	try return (new connection uri)
+	try
+	  let c = new connection uri in
+	  establish_connection (Obj.magic c#socket) (fun () -> c#connect_poll)
+			       Polling_writing >>= fun () ->
+	  return c
 	with Error e ->
 	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e)) in
       let disconnect c = c#finish; return () in
       let validate c =
-	try c#try_reset; return true
+	if c#status = Ok then return true else
+	try
+	  if c#reset_start then
+	    establish_connection (Obj.magic c#socket) (fun () -> c#reset_poll)
+				 Polling_writing >>= fun () ->
+	    return (c#status = Ok)
+	  else
+	    return false
 	with _ -> return false in (* TODO: Log here or in Pool *)
-      Pool.create ~validate ~max_size:max_pool_size connect disconnect in
+      let check c f = f (c#status = Ok) in
+      Pool.create ~check ~validate ~max_size:max_pool_size connect disconnect in
 
     return (module struct
       type 'a io = 'a System.io

@@ -186,6 +186,7 @@ module type SYSTEM = sig
     type file_descr
     val wrap_fd : (file_descr -> unit io) -> Unix.file_descr -> unit io
     val wait_read : file_descr -> unit io
+    val wait_write : file_descr -> unit io
   end
 
   module Log : sig

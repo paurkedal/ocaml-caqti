@@ -54,13 +54,15 @@ module System = struct
       Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
       return r
 
-    let wait_read fd =
+    let wait_for op fd =
       Deferred.bind
-	(Async_unix.Fd.ready_to fd `Read)
+	(Async_unix.Fd.ready_to fd op)
 	begin function
 	| `Bad_fd | `Closed -> assert false
 	| `Ready -> Deferred.Or_error.return ()
 	end
+    let wait_read = wait_for `Read
+    let wait_write = wait_for `Write
   end
 
   module Log = struct

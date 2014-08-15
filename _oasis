@@ -127,6 +127,20 @@ Test test_sql_async
   Command: OCAMLPATH=tests $test_sql_async
   Run$: flag(async)
 
+Executable bikereg
+  Path: examples
+  MainIs: bikereg.ml
+  BuildDepends: caqti.lwt, lwt, lwt.syntax
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best
+  Build$: flag(lwt)
+  Install: false
+Test bikereg
+  Type: Custom (0.4)
+  Command: OCAMLPATH=tests $bikereg
+  Run$: flag(lwt)
+
 Document api
   Title: Monadic database abstraction
   Type: ocamlbuild (0.4)

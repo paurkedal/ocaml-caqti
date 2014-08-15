@@ -32,6 +32,8 @@ let create_query_language ~name ?(tag = `Other) () =
   next_query_language_index := succ !next_query_language_index;
   {query_language_index; query_language_name = name; query_language_tag = tag}
 
+type oneshot_query = query_language -> string
+
 type prepared_query = {
   prepared_query_index : int;
   prepared_query_name : string;
@@ -39,10 +41,14 @@ type prepared_query = {
 }
 
 type query =
-  | Oneshot of string
+  | Oneshot of oneshot_query
   | Prepared of prepared_query
 
-let oneshot s = Oneshot s
+let oneshot_full f = Oneshot f
+let oneshot_fun f = Oneshot (fun {query_language_tag} -> f query_language_tag)
+let oneshot_any s = Oneshot (fun _ -> s)
+let oneshot_sql s = oneshot_fun (function #sql_tag -> s
+					| _ -> raise Missing_query_string)
 
 let next_prepared_index = ref 0
 

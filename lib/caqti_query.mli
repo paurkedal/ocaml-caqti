@@ -43,6 +43,9 @@ val create_query_language : name: string -> ?tag: query_language_tag ->
 			    unit -> query_language
 (** For use by backends to create a descriptor for their query languages. *)
 
+type oneshot_query = query_language -> string
+(** The type of one-shot queries. *)
+
 type prepared_query = private {
   prepared_query_index : int;
   (** A relatively small integer unique to each query, made available to
@@ -58,12 +61,22 @@ type prepared_query = private {
 (** The type of prepared queries. *)
 
 type query =
-  | Oneshot of string		(** A one-shot query. *)
+  | Oneshot of oneshot_query	(** A one-shot query. *)
   | Prepared of prepared_query	(** A prepared query. *)
 (** The type of queries accepted by the CONNECTION API. *)
 
-val oneshot : string -> query
-(** Create a one-shot query. *)
+val oneshot_full : (query_language -> string) -> query
+(** Create a one-shot family of query strings over full query language
+    descriptors. *)
+
+val oneshot_fun : (query_language_tag -> string) -> query
+(** Create a one-shot family of query strings over language tags. *)
+
+val oneshot_any : string -> query
+(** Create a one-shot query string. *)
+
+val oneshot_sql : string -> query
+(** Create a one-shot query string expected to work with any SQL dialect. *)
 
 val prepare_full : ?name: string -> (query_language -> string) -> query
 (** Create a prepared statement dispatching on the full query language

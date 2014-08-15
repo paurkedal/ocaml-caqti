@@ -67,7 +67,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   for_lwt i = 0 to 199 do
     let qs = sprintf "SELECT %d, '%s'" i (string_of_int i) in
     match_lwt
-      Db.find (Oneshot qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||]
+      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||]
     with
     | None -> assert false
     | Some (j, s) ->

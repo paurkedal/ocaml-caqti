@@ -105,11 +105,18 @@ module Make (System : SYSTEM) = struct
   let query_language =
     create_query_language ~name:"postgresql" ~tag:`Pgsql ()
 
-  let miscommunication uri q fmt =
-    ksprintf (fun s -> fail (Caqti.Miscommunication (uri, q, s))) fmt
+  let query_info = function
+    | Oneshot qsf ->
+      `Oneshot (qsf query_language)
+    | Prepared {prepared_query_name; prepared_query_sql} ->
+      `Prepared (prepared_query_name, prepared_query_sql query_language)
 
-  let prepare_failed uri q msg = fail (Caqti.Prepare_failed (uri, q, msg))
-  let execute_failed uri q msg = fail (Caqti.Execute_failed (uri, q, msg))
+  let prepare_failed uri q msg =
+    fail (Caqti.Prepare_failed (uri, query_info q, msg))
+  let execute_failed uri q msg =
+    fail (Caqti.Execute_failed (uri, query_info q, msg))
+  let miscommunication uri q fmt =
+    ksprintf (fun s -> fail (Caqti.Miscommunication (uri, query_info q, s))) fmt
 
   class connection uri =
     (* Connection URIs were introduced in version 9.2, so deconstruct URIs of
@@ -141,18 +148,19 @@ module Make (System : SYSTEM) = struct
 	end
 	(Obj.magic self#socket)
 
-    method private fetch_result_io q =
+    method private fetch_result_io =
       self#wait_for_result >>= fun () ->
       return self#get_result
 
-    method private fetch_single_result_io q =
-      self#fetch_result_io q >>= function
-      | None -> miscommunication uri q "Missing response from DB."
+    method private fetch_single_result_io qi =
+      self#fetch_result_io >>= function
+      | None -> fail (Caqti.Miscommunication (uri, qi, "Missing response."))
       | Some r ->
-	self#fetch_result_io q >>=
+	self#fetch_result_io >>=
 	begin function
 	| None -> return r
-	| Some r -> miscommunication uri q "Unexpected multi-response from DB."
+	| Some r -> fail (Caqti.Miscommunication
+			    (uri, qi, "Unexpected multirow response."))
 	end
 
     (* Connection *)
@@ -182,13 +190,14 @@ module Make (System : SYSTEM) = struct
 
     (* Direct Execution *)
 
-    method exec_io ?params ?binary_params qs =
+    method exec_oneshot_io ?params ?binary_params qs =
       try
 	self#send_query ?params ?binary_params qs;
-	self#fetch_single_result_io (Oneshot qs)
+	self#fetch_single_result_io (`Oneshot qs)
       with
       | Postgresql.Error err ->
-	execute_failed uri (Oneshot qs) (Postgresql.string_of_error err)
+	let msg = Postgresql.string_of_error err in
+	fail (Caqti.Execute_failed (uri, `Oneshot qs, msg))
       | xc -> fail xc
 
     (* Prepared Execution *)
@@ -196,7 +205,7 @@ module Make (System : SYSTEM) = struct
     method prepare_io q name sql =
       begin try
 	self#send_prepare name sql;
-	self#fetch_single_result_io q
+	self#fetch_single_result_io (query_info q)
       with
       | Missing_query_string ->
 	prepare_failed uri q "PostgreSQL query strings are missing."
@@ -214,7 +223,8 @@ module Make (System : SYSTEM) = struct
 
     method describe_io name =
       self#send_describe_prepared name;
-      self#fetch_single_result_io (Oneshot ("X_DESCRIBE " ^ name)) >>= fun r ->
+      self#fetch_single_result_io (`Oneshot ("X_DESCRIBE " ^ name))
+	>>= fun r ->
       let describe_param i =
 	try typedesc_of_ftype (r#paramtype i)
 	with Oid oid -> `Other ("oid" ^ string_of_int oid) in
@@ -248,7 +258,7 @@ module Make (System : SYSTEM) = struct
       self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
 	self#send_query_prepared ?params ?binary_params prepared_query_name;
-	self#fetch_single_result_io (Prepared pq)
+	self#fetch_single_result_io (query_info (Prepared pq))
       with
       | Postgresql.Error err ->
 	execute_failed uri (Prepared pq) (Postgresql.string_of_error err)
@@ -304,15 +314,15 @@ module Make (System : SYSTEM) = struct
 	  | Prepared pq ->
 	    c#cached_prepare_io pq >>= fun (_, r) -> return r
 	  | Oneshot qs ->
-	    c#prepare_io q "_desc_tmp" qs >>= fun () ->
+	    c#prepare_io q "_desc_tmp" (qs query_language) >>= fun () ->
 	    c#describe_io "_desc_tmp" >>= fun (_, r) ->
-	    c#exec_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
+	    c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
 	end
 
       let exec_prepared params q =
 	use begin fun c ->
 	  match q with
-	  | Oneshot sql -> c#exec_io ~params sql
+	  | Oneshot qsf -> c#exec_oneshot_io ~params (qsf query_language)
 	  | Prepared pp -> c#exec_prepared_io ~params pp
 	end
 

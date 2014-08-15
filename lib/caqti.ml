@@ -19,10 +19,14 @@ open Caqti_query
 open Caqti_sigs
 open Printf
 
+type query_info =
+  [ `Oneshot of string
+  | `Prepared of string * string ]
+
 exception Connect_failed of Uri.t * string
-exception Prepare_failed of Uri.t * query * string
-exception Execute_failed of Uri.t * query * string
-exception Miscommunication of Uri.t * query * string
+exception Prepare_failed of Uri.t * query_info * string
+exception Execute_failed of Uri.t * query_info * string
+exception Miscommunication of Uri.t * query_info * string
 
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p

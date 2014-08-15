@@ -18,18 +18,22 @@
 
 open Caqti_query
 
+type query_info =
+  [ `Oneshot of string
+  | `Prepared of string * string ]
+
 exception Connect_failed of Uri.t * string
 (** The exception raised when a backend fails to connect to a resource.  Due
     to pooled connections, this may be raised by describe and query functions
     as well as the connect function. *)
 
-exception Prepare_failed of Uri.t * query * string
+exception Prepare_failed of Uri.t * query_info * string
 (** The exception raised when query preparation fails. *)
 
-exception Execute_failed of Uri.t * query * string
+exception Execute_failed of Uri.t * query_info * string
 (** The exception raised when query execution failes. *)
 
-exception Miscommunication of Uri.t * query * string
+exception Miscommunication of Uri.t * query_info * string
 (** This exception may be raised by a backend when something unexpected
     happen during the communication process.  It signifies a programming error
     or at least an incompatibility somewhere:

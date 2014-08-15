@@ -109,6 +109,11 @@ module Make (System : SYSTEM) = struct
   let query_language =
     create_query_language ~name:"sqlite3" ~tag:`Sqlite ()
 
+  let query_info = function
+    | Oneshot qsf -> `Oneshot (qsf query_language)
+    | Prepared pq ->
+      `Prepared (pq.prepared_query_name, pq.prepared_query_sql query_language)
+
   let connect ?(max_pool_size = 1) uri =
 
     (* Check URI *)
@@ -137,29 +142,32 @@ module Make (System : SYSTEM) = struct
     (* Helpers *)
 
     let raise_rc q rc =
-      raise (Caqti.Execute_failed (uri, q, Sqlite3.Rc.to_string rc)) in
+      raise (Caqti.Execute_failed
+		(uri, query_info q, Sqlite3.Rc.to_string rc)) in
 
     let prim_exec extract q params =
       begin match q with
       | Prepared {prepared_query_sql} ->
 	begin try return (prepared_query_sql query_language)
 	with Missing_query_string ->
-	  fail (Caqti.Prepare_failed (uri, q,
+	  fail (Caqti.Prepare_failed (uri, query_info q,
 				      "Missing query string for SQLite."))
 	end
-      | Oneshot qs -> return qs
+      | Oneshot qsf -> return (qsf query_language)
       end >>= fun qs ->
       with_db begin fun db ->
 	let stmt =
 	  try Sqlite3.prepare db qs with
-	  | Sqlite3.Error msg -> raise (Caqti.Prepare_failed (uri, q, msg)) in
+	  | Sqlite3.Error msg ->
+	    raise (Caqti.Prepare_failed (uri, query_info q, msg)) in
 	finally (fun () -> ignore (Sqlite3.finalize stmt))
 	  begin fun () ->
 	    for i = 0 to Array.length params - 1 do
 	      match Sqlite3.bind stmt (i + 1) params.(i) with
 	      | Sqlite3.Rc.OK -> ()
 	      | rc ->
-		raise (Caqti.Prepare_failed (uri, q, Sqlite3.Rc.to_string rc))
+		raise (Caqti.Prepare_failed (uri, query_info q,
+					     Sqlite3.Rc.to_string rc))
 	    done;
 	    extract stmt
 	  end
@@ -207,7 +215,8 @@ module Make (System : SYSTEM) = struct
 	    | Sqlite3.Rc.DONE -> Some r
 	    | Sqlite3.Rc.ROW ->
 	      raise (Caqti.Miscommunication
-		      (uri, q, "Expected at most one tuple response."))
+		      (uri, query_info q,
+		       "Expected at most one tuple response."))
 	    | rc -> raise_rc q rc
 	    end
 	  | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); extract stmt

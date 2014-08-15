@@ -39,7 +39,7 @@ functionality for the database.
 
 The best place to start may be with a [documented example][bikereg].  The
 main documentation is the [API Reference][apiref].  Apart from the above
-connectors, the most important module to know are:
+connectors, the most important modules to know are:
 
   - `Caqti_query` is used for constructing query strings.
   - `Caqti_sigs.CONNECTION` is the interface to a connected database.

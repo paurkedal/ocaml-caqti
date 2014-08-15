@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(* This serves as an example of how to use caqti directly in application code.
+(* This is an example of how to use Caqti directly in application code.
  * This way of defining typed wrappers around queries should also work for
  * code-generators. *)
 
@@ -24,12 +24,12 @@ let (>>=) = Lwt.(>>=)
 (* Query Strings
  * =============
  *
- * Queries are normally registered in advance.  This allows caqti to emit
- * preperad queries which are reused thoughout the lifetime of the connection.
- * The two most useful functions to do this are
+ * Queries are normally registered in advance.  This allows Caqti to emit
+ * prepared queries which are reused throughout the lifetime of the
+ * connection.  The two most useful functions to do this are
  *
  *   - [prepare_sql] creates a query string which should work with all SQL
- *     databases of interrest.
+ *     databases of interest.
  *
  *   - [prepare_fun] creates a per-database query string.
  *

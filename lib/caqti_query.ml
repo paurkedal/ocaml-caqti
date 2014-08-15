@@ -61,4 +61,4 @@ let prepare_fun ?name f =
 let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 
 let prepare_sql ?name sql =
-  prepare_fun ?name (function #sql_tag | _ -> raise Missing_query_string)
+  prepare_fun ?name (function #sql_tag -> sql | _ -> raise Missing_query_string)

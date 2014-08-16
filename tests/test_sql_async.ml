@@ -59,10 +59,15 @@ let test (module Db : Caqti_async.CONNECTION) =
     return ()
   end else return ()
 
+let test_pool = Caqti_async.Pool.use test
+
 let main uri () =
-  let th =
-    Deferred.Or_error.(Caqti_async.connect uri >>= test) >>| Or_error.ok_exn in
-  Shutdown.don't_finish_before th;
+  Shutdown.don't_finish_before begin
+    Deferred.Or_error.(
+      Caqti_async.connect uri >>= test >>= fun () ->
+      test_pool (Caqti_async.connect_pool uri)
+    ) >>| Or_error.ok_exn
+  end;
   Shutdown.shutdown 0
 
 let () =

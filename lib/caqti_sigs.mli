@@ -36,12 +36,18 @@ module type CONNECTION = sig
   val uri : Uri.t
   (** The connected URI. *)
 
-  val drain : unit -> unit io
-  (** Close all open connections.  For pooled connections, the pool is
-      drained.  For single connections, the connection is closed.  For
-      backends which reconnects on each query, this does nothing.
+  val disconnect : unit -> unit io
+  (** Calling [disconnect ()] closes the connection to the database and frees
+      up related resources. *)
 
-      {b Note!} Not implemented yet for pooled connections. *)
+  val validate : unit -> bool io
+  (** For internal use by {!Caqti_pool}.  Tries to ensure the validity of the
+      connection and must return [false] if unsuccessful. *)
+
+  val check : (bool -> unit) -> unit
+  (** For internal use by {!Caqti_pool}.  Called after a connection has been
+      used.  [check f] must call [f ()] exactly once with an argument
+      indicating whether to keep the connection in the pool or discard it. *)
 
   val describe : query -> querydesc io
   (** Returns a description of parameters and returned tuples.  What is
@@ -148,6 +154,23 @@ module type CONNECTION = sig
 
 end
 
+(** The signature of pools of reusable resources.  We use it to keep pools of
+    open database connections.  A generic implementation is found in
+    {!Caqti_pool}, and instantiations are available for each cooperative
+    thread monad. *)
+module type POOL = sig
+  type 'a io
+  type 'a t
+  val create :
+	?max_size: int ->
+	?check: ('a -> (bool -> unit) -> unit) ->
+	?validate: ('a -> bool io) ->
+	(unit -> 'a io) -> ('a -> unit io) -> 'a t
+  val size : 'a t -> int
+  val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
+  val drain : 'a t -> unit io
+end
+
 (** The connect function along with its first-class module signature.  Modules
     implementing this interface provide the entry point to this library.
 
@@ -161,7 +184,13 @@ end
 module type CONNECT = sig
   type 'a io
   module type CONNECTION = CONNECTION with type 'a io = 'a io
-  val connect : ?max_pool_size: int -> Uri.t -> (module CONNECTION) io
+  val connect : Uri.t -> (module CONNECTION) io
+end
+
+module type API = sig
+  include CONNECT
+  module Pool : POOL with type 'a io := 'a io
+  val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
 end
 
 (** The IO monad and system utilities used by backends.  Note that this

@@ -14,21 +14,5 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module Make (System : Caqti_sigs.SYSTEM) : sig
-  open System
-
-  type 'a t
-
-  val create :
-	?max_size: int ->
-	?check: ('a -> (bool -> unit) -> unit) ->
-	?validate: ('a -> bool io) ->
-	(unit -> 'a io) -> ('a -> unit io) -> 'a t
-
-  val size : 'a t -> int
-
-  val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
-
-  val drain : 'a t -> unit io
-
-end
+open Caqti_sigs
+module Make (System : SYSTEM) : POOL with type 'a io := 'a System.io

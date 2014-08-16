@@ -20,4 +20,4 @@ open Async.Std
 
 module System : Caqti_sigs.SYSTEM with type 'a io = 'a Deferred.Or_error.t
 
-include Caqti_sigs.CONNECT with type 'a io = 'a Deferred.Or_error.t
+include Caqti_sigs.API with type 'a io = 'a Deferred.Or_error.t

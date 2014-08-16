@@ -97,7 +97,6 @@ let escaped_connvalue s =
 module Connect_functor = struct
 module Make (System : SYSTEM) = struct
 
-  module Pool = Caqti_pool.Make (System)
   open System
 
   type 'a io = 'a System.io
@@ -267,19 +266,31 @@ module Make (System : SYSTEM) = struct
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
-  let connect ?(max_pool_size = 1) uri =
-    let pool =
-      let connect () =
+  let connect uri =
+
+    (* Establish a single connection. *)
+    catch
+      (fun () ->
 	try
-	  let c = new connection uri in
-	  c#finish_connecting_io >>= fun () ->
-	  return c
+	  let conn = new connection uri in
+	  conn#finish_connecting_io >>= fun () ->
+	  return conn
 	with Error e ->
-	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e)) in
-      let disconnect c = c#finish; return () in
-      let validate c = c#try_reset_io in
-      let check c f = f (c#status = Ok) in
-      Pool.create ~check ~validate ~max_size:max_pool_size connect disconnect in
+	  fail (Error e))
+      (function
+	| Error e ->
+	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e))
+	| xc -> fail xc) >>=
+    fun conn ->
+
+    (* Basic check that the client doesn't use the same unpooled connection
+     * from parallel cooperative threads. *)
+    let in_use = ref false in
+    let use f =
+      assert (not !in_use);
+      f conn >>= fun r ->
+      in_use := false;
+      return r in
 
     return (module struct
       type 'a io = 'a System.io
@@ -288,9 +299,9 @@ module Make (System : SYSTEM) = struct
 
       let uri = uri
 
-      let drain () = Pool.drain pool
-
-      let use f = Pool.use f pool
+      let disconnect () = use @@ fun c -> c#finish; return ()
+      let validate () = conn#try_reset_io
+      let check f = f (conn#status = Ok)
 
       let check_command_ok q r =
 	match r#status with

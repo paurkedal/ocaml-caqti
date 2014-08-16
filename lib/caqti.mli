@@ -17,6 +17,7 @@
 (** Exceptions and connect functor. *)
 
 open Caqti_query
+open Caqti_sigs
 
 type query_info =
   [ `Oneshot of string
@@ -43,9 +44,9 @@ exception Miscommunication of Uri.t * query_info * string
     - A networked backend does not understand the result from the server,
       e.g. due to a different protocol version. *)
 
-val register_scheme : string -> (module Caqti_sigs.CONNECT_FUNCTOR) -> unit
+val register_scheme : string -> (module CONNECT_FUNCTOR) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqtus-{i scheme} as part of its initialization. *)
 
-include Caqti_sigs.CONNECT_FUNCTOR
+module Make (System : SYSTEM) : API with type 'a io = 'a System.io

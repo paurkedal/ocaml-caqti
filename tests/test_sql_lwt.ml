@@ -169,7 +169,16 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
 let test (module Db : Caqti_lwt.CONNECTION) =
   test_expr (module Db) >>
   test_table (module Db) >>
-  Db.drain ()
+  Db.disconnect ()
+
+let test_pool pool =
+  Caqti_lwt.Pool.use
+    begin fun (module Db : Caqti_lwt.CONNECTION) ->
+      test_expr (module Db) >>
+      test_table (module Db)
+    end
+    pool >>
+  Caqti_lwt.Pool.drain pool
 
 let () =
   (* Needed for bytecode as plugins link against C libraries. *)
@@ -185,4 +194,7 @@ let () =
     match !uri_r with
     | None -> Uri.of_string "sqlite3:"
     | Some uri -> uri in
-  Lwt_main.run (Caqti_lwt.connect uri >>= test)
+  Lwt_main.run begin
+    Caqti_lwt.connect uri >>= test >>
+    test_pool (Caqti_lwt.connect_pool uri)
+  end

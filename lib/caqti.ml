@@ -53,7 +53,7 @@ module Make (System : SYSTEM) = struct
     let connector = (module Connector : CONNECTOR) in
     Hashtbl.add connectors scheme connector; connector
 
-  let connect ?max_pool_size uri : (module CONNECTION) System.io =
+  let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
     | None ->
       fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
@@ -62,8 +62,17 @@ module Make (System : SYSTEM) = struct
       try
 	let connector = load_connector scheme in
 	let module Connector = (val connector) in
-	Connector.connect ?max_pool_size uri >>= fun client ->
+	Connector.connect uri >>= fun client ->
 	let module Client = (val client) in
 	return (module Client : CONNECTION)
       with xc -> fail xc
+
+  module Pool = Caqti_pool.Make (System)
+
+  let connect_pool ?max_size uri : (module CONNECTION) Pool.t =
+    let connect () = connect uri in
+    let disconnect (module Conn : CONNECTION) = Conn.disconnect () in
+    let validate (module Conn : CONNECTION) = Conn.validate () in
+    let check (module Conn : CONNECTION) = Conn.check in
+    Pool.create ?max_size ~validate ~check connect disconnect
 end

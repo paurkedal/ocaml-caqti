@@ -114,7 +114,7 @@ module Make (System : SYSTEM) = struct
     | Prepared pq ->
       `Prepared (pq.prepared_query_name, pq.prepared_query_sql query_language)
 
-  let connect ?(max_pool_size = 1) uri =
+  let connect uri =
 
     (* Check URI *)
 
@@ -185,7 +185,9 @@ module Make (System : SYSTEM) = struct
 
       let uri = uri
 
-      let drain () = close_db ()
+      let disconnect () = close_db ()
+      let validate () = return true
+      let check f = f true
 
       let describe q =
 	let extract stmt =

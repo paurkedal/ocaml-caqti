@@ -27,8 +27,9 @@ Flag sqlite3
 
 Library caqti
   Path: lib
-  InternalModules: Caqti_heap, Caqti_pool, Caqti_prereq
-  Modules: Caqti, Caqti_describe, Caqti_plugin, Caqti_sigs, Caqti_query
+  InternalModules: Caqti_heap, Caqti_prereq
+  Modules: Caqti, Caqti_describe, Caqti_plugin, Caqti_pool,
+    Caqti_sigs, Caqti_query
   BuildDepends: calendar, dynlink, findlib, uri
 
 Library caqti_async

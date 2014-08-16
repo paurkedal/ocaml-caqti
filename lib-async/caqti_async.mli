@@ -17,7 +17,8 @@
 (** Connector for Async. *)
 
 open Async.Std
+open Caqti_sigs
 
-module System : Caqti_sigs.SYSTEM with type 'a io = 'a Deferred.Or_error.t
+module System : SYSTEM with type 'a io = 'a Deferred.Or_error.t
 
-include Caqti_sigs.API with type 'a io = 'a Deferred.Or_error.t
+include CONNECT with type 'a io = 'a Deferred.Or_error.t

@@ -37,7 +37,7 @@ module Make (System : SYSTEM) = struct
   type 'a io = 'a System.io
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
-  module type CONNECTOR = CONNECT with type 'a io = 'a System.io
+  module type CONNECTOR = CONNECT_BASE with type 'a io = 'a System.io
 
   let connectors : (string, (module CONNECTOR)) Hashtbl.t = Hashtbl.create 11
 

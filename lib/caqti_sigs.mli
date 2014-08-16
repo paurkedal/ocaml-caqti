@@ -171,28 +171,6 @@ module type POOL = sig
   val drain : 'a t -> unit io
 end
 
-(** The connect function along with its first-class module signature.  Modules
-    implementing this interface provide the entry point to this library.
-
-    This interface is implemented by
-    - [Caqti_lwt] which is provided in the [caqti.lwt] package
-      if caqti was built with [--enable-lwt].
-    - [Caqti_async] which is provided in the [caqti.async] package
-      if caqti was built with [--enable-async].
-
-    There is no separate documentation for these modules. *)
-module type CONNECT = sig
-  type 'a io
-  module type CONNECTION = CONNECTION with type 'a io = 'a io
-  val connect : Uri.t -> (module CONNECTION) io
-end
-
-module type API = sig
-  include CONNECT
-  module Pool : POOL with type 'a io := 'a io
-  val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
-end
-
 (** The IO monad and system utilities used by backends.  Note that this
     signature will likely be extended due requirements of new backends. *)
 module type SYSTEM = sig
@@ -232,7 +210,36 @@ module type SYSTEM = sig
 
 end
 
+(** The part of {!CONNECT} which is implemented by backends. *)
+module type CONNECT_BASE = sig
+  type 'a io
+
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
+
+  val connect : Uri.t -> (module CONNECTION) io
+  (** Establish a single connection to a database.  This must only be used by
+      one thread at a time, cooperative or not. *)
+end
+
+(** The connect functions as exposed to application code through the
+    concurrency implementations:
+
+    - [Caqti_lwt] which is provided in the [caqti.lwt] package
+      if caqti was built with [--enable-lwt].
+    - [Caqti_async] which is provided in the [caqti.async] package
+      if caqti was built with [--enable-async]. *)
+module type CONNECT = sig
+  include CONNECT_BASE
+
+  module Pool : POOL with type 'a io := 'a io
+  (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
+
+  val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
+  (** Create a pool of connections which can be shared among multiple
+      cooperative threads run from the main system thread. *)
+end
+
 (** Abstraction of the connect function over the concurrency monad. *)
 module type CONNECT_FUNCTOR = sig
-  module Make (System : SYSTEM) : CONNECT with type 'a io = 'a System.io
+  module Make (System : SYSTEM) : CONNECT_BASE with type 'a io = 'a System.io
 end

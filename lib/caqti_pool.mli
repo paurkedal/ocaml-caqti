@@ -14,5 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Pool of open resources. *)
+
 open Caqti_sigs
 module Make (System : SYSTEM) : POOL with type 'a io := 'a System.io

@@ -49,4 +49,4 @@ val register_scheme : string -> (module CONNECT_FUNCTOR) -> unit
     [scheme].  This call must be done by a backend installed with findlib name
     caqtus-{i scheme} as part of its initialization. *)
 
-module Make (System : SYSTEM) : API with type 'a io = 'a System.io
+module Make (System : SYSTEM) : CONNECT with type 'a io = 'a System.io

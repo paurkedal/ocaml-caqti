@@ -17,6 +17,8 @@
 (** Connecting with Lwt.  This module contains the signature and connect
     function specialized for use with Lwt. *)
 
-module System : Caqti_sigs.SYSTEM with type 'a io = 'a Lwt.t
+open Caqti_sigs
 
-include Caqti_sigs.API with type 'a io = 'a Lwt.t
+module System : SYSTEM with type 'a io = 'a Lwt.t
+
+include CONNECT with type 'a io = 'a Lwt.t

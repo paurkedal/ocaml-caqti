@@ -47,7 +47,9 @@ type backend_info = private {
   bi_describe_has_typed_parameters : bool;
   bi_describe_has_typed_fields : bool;
 }
-(** Information about database, backend, and query language. *)
+(** Information about database, backend, and query language.  For the meaning
+    of the fields, see the corresponding parameters to
+    {!create_backend_info}. *)
 
 val create_backend_info :
       uri_scheme: string ->
@@ -57,4 +59,15 @@ val create_backend_info :
       describe_has_typed_parameters: bool ->
       describe_has_typed_fields: bool ->
       unit -> backend_info
-(** For use by backends to create a descriptor for their query languages. *)
+(** For use by backends to create a descriptor for their query languages.
+    @param uri_scheme The URI scheme this backend binds to.
+    @param dialect_tag The {!dialect_tag} describing the SQL dialect or other
+	   query language.  Omit it if non of the cases apply.
+    @param parameter_style How to represent parameters in query strings.
+    @param default_max_pool_size The suggested pool size for this backend.
+	   Unless the backend is special like preferring a single connection,
+	   leave this out.
+    @param describe_has_typed_parameters True iff the describe function is
+	   capable of supplying information about parameter types.
+    @param describe_has_typed_parameters True iff the describe function is
+	   capable of supplying information about field types. *)

@@ -21,9 +21,9 @@ exception Missing_query_string
 type oneshot_query = backend_info -> string
 
 type prepared_query = {
-  prepared_query_index : int;
-  prepared_query_name : string;
-  prepared_query_sql : backend_info -> string;
+  pq_index : int;
+  pq_name : string;
+  pq_encode : backend_info -> string;
 }
 
 type query =
@@ -38,14 +38,14 @@ let oneshot_sql s =
 
 let next_prepared_index = ref 0
 
-let prepare_full ?name prepared_query_sql =
-  let prepared_query_index = !next_prepared_index in
+let prepare_full ?name pq_encode =
+  let pq_index = !next_prepared_index in
   next_prepared_index := succ !next_prepared_index;
-  let prepared_query_name =
+  let pq_name =
     match name with
-    | None -> "_s" ^ (string_of_int prepared_query_index)
+    | None -> "_s" ^ (string_of_int pq_index)
     | Some name -> name in
-  Prepared {prepared_query_index; prepared_query_name; prepared_query_sql}
+  Prepared {pq_index; pq_name; pq_encode}
 
 let prepare_fun ?name f =
   prepare_full ?name (fun {bi_dialect_tag} -> f bi_dialect_tag)

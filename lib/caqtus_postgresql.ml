@@ -112,8 +112,8 @@ module Make (System : SYSTEM) = struct
   let query_info = function
     | Oneshot qsf ->
       `Oneshot (qsf backend_info)
-    | Prepared {prepared_query_name; prepared_query_sql} ->
-      `Prepared (prepared_query_name, prepared_query_sql backend_info)
+    | Prepared {pq_name; pq_encode} ->
+      `Prepared (pq_name, pq_encode backend_info)
 
   let prepare_failed uri q msg =
     fail (Caqti.Prepare_failed (uri, query_info q, msg))
@@ -248,20 +248,19 @@ module Make (System : SYSTEM) = struct
 	  querydesc_fields = Array.init r#nfields describe_field } in
       return (binary_params, querydesc)
 
-    method cached_prepare_io ({prepared_query_index; prepared_query_name;
-			       prepared_query_sql} as pq) =
-      try return (Hashtbl.find prepared_queries prepared_query_index)
+    method cached_prepare_io ({pq_index; pq_name; pq_encode} as pq) =
+      try return (Hashtbl.find prepared_queries pq_index)
       with Not_found ->
-	self#prepare_io (Prepared pq) prepared_query_name
-			(prepared_query_sql backend_info) >>= fun () ->
-	self#describe_io prepared_query_name >>= fun pqinfo ->
-	Hashtbl.add prepared_queries prepared_query_index pqinfo;
+	self#prepare_io (Prepared pq) pq_name
+			(pq_encode backend_info) >>= fun () ->
+	self#describe_io pq_name >>= fun pqinfo ->
+	Hashtbl.add prepared_queries pq_index pqinfo;
 	return pqinfo
 
-    method exec_prepared_io ?params ({prepared_query_name} as pq) =
+    method exec_prepared_io ?params ({pq_name} as pq) =
       self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
-	self#send_query_prepared ?params ?binary_params prepared_query_name;
+	self#send_query_prepared ?params ?binary_params pq_name;
 	self#fetch_single_result_io (query_info (Prepared pq))
       with
       | Postgresql.Error err ->

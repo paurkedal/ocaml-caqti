@@ -26,14 +26,14 @@ type oneshot_query = backend_info -> string
 (** The type of one-shot queries. *)
 
 type prepared_query = private {
-  prepared_query_index : int;
+  pq_index : int;
   (** A relatively small integer unique to each query, made available to
       backends for efficient caching of language dependent data. *)
 
-  prepared_query_name : string;
+  pq_name : string;
   (** A name to use for the prepared query. *)
 
-  prepared_query_sql : backend_info -> string;
+  pq_encode : backend_info -> string;
   (** The SQL for each query language.
       @raise Missing_query_string if the language is not supported. *)
 }

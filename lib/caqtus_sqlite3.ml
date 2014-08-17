@@ -118,8 +118,7 @@ module Make (System : SYSTEM) = struct
 
   let query_info = function
     | Oneshot qsf -> `Oneshot (qsf backend_info)
-    | Prepared pq ->
-      `Prepared (pq.prepared_query_name, pq.prepared_query_sql backend_info)
+    | Prepared pq -> `Prepared (pq.pq_name, pq.pq_encode backend_info)
 
   let connect uri =
 
@@ -154,8 +153,8 @@ module Make (System : SYSTEM) = struct
 
     let prim_exec extract q params =
       begin match q with
-      | Prepared {prepared_query_sql} ->
-	begin try return (prepared_query_sql backend_info)
+      | Prepared {pq_encode} ->
+	begin try return (pq_encode backend_info)
 	with Missing_query_string ->
 	  fail (Caqti.Prepare_failed (uri, query_info q,
 				      "Missing query string for SQLite."))

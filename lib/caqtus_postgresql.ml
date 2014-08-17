@@ -14,9 +14,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_describe
+open Caqti_metadata
 open Caqti_query
 open Caqti_sigs
-open Caqti_describe
 open Postgresql
 open Printf
 
@@ -101,14 +102,18 @@ module Make (System : SYSTEM) = struct
 
   type 'a io = 'a System.io
 
-  let query_language =
-    create_query_language ~name:"postgresql" ~tag:`Pgsql ()
+  let backend_info =
+    create_backend_info
+      ~uri_scheme:"postgresql" ~dialect_tag:`Pgsql
+      ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (pred i)))
+      ~describe_has_typed_parameters:true
+      ~describe_has_typed_fields:true ()
 
   let query_info = function
     | Oneshot qsf ->
-      `Oneshot (qsf query_language)
+      `Oneshot (qsf backend_info)
     | Prepared {prepared_query_name; prepared_query_sql} ->
-      `Prepared (prepared_query_name, prepared_query_sql query_language)
+      `Prepared (prepared_query_name, prepared_query_sql backend_info)
 
   let prepare_failed uri q msg =
     fail (Caqti.Prepare_failed (uri, query_info q, msg))
@@ -248,7 +253,7 @@ module Make (System : SYSTEM) = struct
       try return (Hashtbl.find prepared_queries prepared_query_index)
       with Not_found ->
 	self#prepare_io (Prepared pq) prepared_query_name
-			(prepared_query_sql query_language) >>= fun () ->
+			(prepared_query_sql backend_info) >>= fun () ->
 	self#describe_io prepared_query_name >>= fun pqinfo ->
 	Hashtbl.add prepared_queries prepared_query_index pqinfo;
 	return pqinfo
@@ -298,6 +303,7 @@ module Make (System : SYSTEM) = struct
       type tuple = int * Postgresql.result
 
       let uri = uri
+      let backend_info = backend_info
 
       let disconnect () = use @@ fun c -> c#finish; return ()
       let validate () = conn#try_reset_io
@@ -325,7 +331,7 @@ module Make (System : SYSTEM) = struct
 	  | Prepared pq ->
 	    c#cached_prepare_io pq >>= fun (_, r) -> return r
 	  | Oneshot qs ->
-	    c#prepare_io q "_desc_tmp" (qs query_language) >>= fun () ->
+	    c#prepare_io q "_desc_tmp" (qs backend_info) >>= fun () ->
 	    c#describe_io "_desc_tmp" >>= fun (_, r) ->
 	    c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
 	end
@@ -333,7 +339,7 @@ module Make (System : SYSTEM) = struct
       let exec_prepared params q =
 	use begin fun c ->
 	  match q with
-	  | Oneshot qsf -> c#exec_oneshot_io ~params (qsf query_language)
+	  | Oneshot qsf -> c#exec_oneshot_io ~params (qsf backend_info)
 	  | Prepared pp -> c#exec_prepared_io ~params pp
 	end
 

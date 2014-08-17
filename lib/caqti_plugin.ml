@@ -49,6 +49,7 @@ module Link_also = struct
   module M2 = CalendarLib
   module M3 = Caqti_prereq
   module M4 = Caqti_pool
+  module M5 = Caqti_metadata
 end
 
 let findlib_load =

@@ -14,10 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_describe
+open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
-open Caqti_describe
 open Printf
 open Sqlite3
 
@@ -106,13 +107,19 @@ module Make (System : SYSTEM) = struct
 
   type 'a io = 'a System.io
 
-  let query_language =
-    create_query_language ~name:"sqlite3" ~tag:`Sqlite ()
+  let backend_info =
+    create_backend_info
+      ~uri_scheme:"sqlite3"
+      ~dialect_tag:`Sqlite
+      ~parameter_style:(`Linear "?")
+      ~default_max_pool_size:1
+      ~describe_has_typed_parameters:false
+      ~describe_has_typed_fields:true ()
 
   let query_info = function
-    | Oneshot qsf -> `Oneshot (qsf query_language)
+    | Oneshot qsf -> `Oneshot (qsf backend_info)
     | Prepared pq ->
-      `Prepared (pq.prepared_query_name, pq.prepared_query_sql query_language)
+      `Prepared (pq.prepared_query_name, pq.prepared_query_sql backend_info)
 
   let connect uri =
 
@@ -148,12 +155,12 @@ module Make (System : SYSTEM) = struct
     let prim_exec extract q params =
       begin match q with
       | Prepared {prepared_query_sql} ->
-	begin try return (prepared_query_sql query_language)
+	begin try return (prepared_query_sql backend_info)
 	with Missing_query_string ->
 	  fail (Caqti.Prepare_failed (uri, query_info q,
 				      "Missing query string for SQLite."))
 	end
-      | Oneshot qsf -> return (qsf query_language)
+      | Oneshot qsf -> return (qsf backend_info)
       end >>= fun qs ->
       with_db begin fun db ->
 	let stmt =
@@ -184,6 +191,7 @@ module Make (System : SYSTEM) = struct
       module Tuple = Tuple
 
       let uri = uri
+      let backend_info = backend_info
 
       let disconnect () = close_db ()
       let validate () = return true

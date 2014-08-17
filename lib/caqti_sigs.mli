@@ -17,6 +17,7 @@
 (** Signatures. *)
 
 open Caqti_describe
+open Caqti_metadata
 open Caqti_query
 
 (** The main API as provided after connecting to a resource. *)
@@ -35,6 +36,9 @@ module type CONNECTION = sig
 
   val uri : Uri.t
   (** The connected URI. *)
+
+  val backend_info : backend_info
+  (** Various metadata about the backend which provides the connection. *)
 
   val disconnect : unit -> unit io
   (** Calling [disconnect ()] closes the connection to the database and frees

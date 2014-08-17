@@ -16,34 +16,13 @@
 
 (** Oneshot and prepared queries. *)
 
-type query_language_tag = private
-  [> `Mysql | `Pgsql | `Sqlite]
-(** A tag used for easy dispatching between query languages. *)
-
-type sql_tag = private [> `Mysql | `Pgsql | `Sqlite]
-
-type query_language = private {
-  query_language_index : int;
-  (** A small integer unique for each backend, made available to backends for
-      efficient caching of language dependent data. *)
-
-  query_language_name : string;
-
-  query_language_tag : query_language_tag;
-  (** The language tag used for easy dispatching between known query
-      languages. *)
-}
-(** Information about a query language. *)
+open Caqti_metadata
 
 exception Missing_query_string
 (** The exception to raise in a prepare callback when a query language is not
     supported. *)
 
-val create_query_language : name: string -> ?tag: query_language_tag ->
-			    unit -> query_language
-(** For use by backends to create a descriptor for their query languages. *)
-
-type oneshot_query = query_language -> string
+type oneshot_query = backend_info -> string
 (** The type of one-shot queries. *)
 
 type prepared_query = private {
@@ -54,7 +33,7 @@ type prepared_query = private {
   prepared_query_name : string;
   (** A name to use for the prepared query. *)
 
-  prepared_query_sql : query_language -> string;
+  prepared_query_sql : backend_info -> string;
   (** The SQL for each query language.
       @raise Missing_query_string if the language is not supported. *)
 }
@@ -65,11 +44,11 @@ type query =
   | Prepared of prepared_query	(** A prepared query. *)
 (** The type of queries accepted by the CONNECTION API. *)
 
-val oneshot_full : (query_language -> string) -> query
+val oneshot_full : (backend_info -> string) -> query
 (** Create a one-shot family of query strings over full query language
     descriptors. *)
 
-val oneshot_fun : (query_language_tag -> string) -> query
+val oneshot_fun : (dialect_tag -> string) -> query
 (** Create a one-shot family of query strings over language tags. *)
 
 val oneshot_any : string -> query
@@ -78,11 +57,11 @@ val oneshot_any : string -> query
 val oneshot_sql : string -> query
 (** Create a one-shot query string expected to work with any SQL dialect. *)
 
-val prepare_full : ?name: string -> (query_language -> string) -> query
+val prepare_full : ?name: string -> (backend_info -> string) -> query
 (** Create a prepared statement dispatching on the full query language
     descriptor.  *)
 
-val prepare_fun : ?name: string -> (query_language_tag -> string) -> query
+val prepare_fun : ?name: string -> (dialect_tag -> string) -> query
 (** Create a prepared statement dispatching on the language tag. *)
 
 val prepare_any : ?name: string -> string -> query

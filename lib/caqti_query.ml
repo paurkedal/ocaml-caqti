@@ -14,30 +14,16 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type query_language_tag = [`Mysql | `Pgsql | `Sqlite | `Other]
-type sql_tag = [`Mysql | `Pgsql | `Sqlite]
-
-type query_language = {
-  query_language_index : int;
-  query_language_name : string;
-  query_language_tag : query_language_tag;
-}
+open Caqti_metadata
 
 exception Missing_query_string
 
-let next_query_language_index = ref 0
-
-let create_query_language ~name ?(tag = `Other) () =
-  let query_language_index = !next_query_language_index in
-  next_query_language_index := succ !next_query_language_index;
-  {query_language_index; query_language_name = name; query_language_tag = tag}
-
-type oneshot_query = query_language -> string
+type oneshot_query = backend_info -> string
 
 type prepared_query = {
   prepared_query_index : int;
   prepared_query_name : string;
-  prepared_query_sql : query_language -> string;
+  prepared_query_sql : backend_info -> string;
 }
 
 type query =
@@ -45,10 +31,10 @@ type query =
   | Prepared of prepared_query
 
 let oneshot_full f = Oneshot f
-let oneshot_fun f = Oneshot (fun {query_language_tag} -> f query_language_tag)
+let oneshot_fun f = Oneshot (fun {bi_dialect_tag} -> f bi_dialect_tag)
 let oneshot_any s = Oneshot (fun _ -> s)
-let oneshot_sql s = oneshot_fun (function #sql_tag -> s
-					| _ -> raise Missing_query_string)
+let oneshot_sql s =
+  oneshot_fun (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
 
 let next_prepared_index = ref 0
 
@@ -62,9 +48,10 @@ let prepare_full ?name prepared_query_sql =
   Prepared {prepared_query_index; prepared_query_name; prepared_query_sql}
 
 let prepare_fun ?name f =
-  prepare_full ?name (fun {query_language_tag} -> f query_language_tag)
+  prepare_full ?name (fun {bi_dialect_tag} -> f bi_dialect_tag)
 
 let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 
-let prepare_sql ?name sql =
-  prepare_fun ?name (function #sql_tag -> sql | _ -> raise Missing_query_string)
+let prepare_sql ?name s =
+  prepare_fun ?name
+    (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)

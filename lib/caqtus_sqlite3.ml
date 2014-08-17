@@ -26,7 +26,7 @@ let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
     (* CHECKME: Can NOT NULL or other specifiers occur here? *)
-    begin match s with
+    begin match String.lowercase s with
     | "integer" -> `Int
     | "float" -> `Float
     | "text" -> `Text

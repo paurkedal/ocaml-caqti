@@ -15,6 +15,7 @@
  *)
 
 open Caqti_describe
+open Caqti_metadata
 open Caqti_query
 open Printf
 
@@ -49,7 +50,7 @@ module Q = struct
     | `Pgsql -> "CREATE TEMPORARY TABLE caqti_test \
 		 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | `Sqlite -> "CREATE TABLE caqti_test \
-		  (id INTEGER PRIMARY KEY, i INTEGRE NOT NULL, s TEXT NOT NULL)"
+		  (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | _ -> failwith "Unimplemented."
   let insert_into_tmp = prepare_fun @@ function
     | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
@@ -57,6 +58,10 @@ module Q = struct
     | _ -> failwith "Unimplemented."
   let select_from_tmp = prepare_fun @@ function
     | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
+    | _ -> failwith "Unimplemented."
+  let select_from_tmp_where_i_lt = prepare_fun @@ function
+    | `Pgsql -> "SELECT i, s FROM caqti_test WHERE i < $1"
+    | `Sqlite -> "SELECT i, s FROM caqti_test WHERE i < ?"
     | _ -> failwith "Unimplemented."
 
 end
@@ -143,9 +148,15 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     ck_string x y
   done
 
-let test_table (module Db : Caqti_lwt.CONNECTION) =
+let dump_querydesc qn qd =
+  let pns = Array.map string_of_typedesc qd.querydesc_params in
+  let fns = Array.map (fun (pn, pt) -> pn ^ " : " ^ string_of_typedesc pt)
+		      qd.querydesc_fields in
+  Lwt_io.printf "%s : %s -> {%s}\n" qn
+    (String.concat " * " (Array.to_list pns))
+    (String.concat "; " (Array.to_list fns))
 
-  let is_typed = Uri.scheme Db.uri <> Some "sqlite3" in
+let test_table (module Db : Caqti_lwt.CONNECTION) =
 
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>
@@ -159,12 +170,13 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   assert (s_acc = "zero+two+three+five");
 
   (* Describe *)
-  if is_typed then begin
-    lwt qd = Db.describe Q.select_from_tmp in
-    assert (qd.querydesc_params = [||]);
+  lwt qd = Db.describe Q.select_from_tmp_where_i_lt in
+  dump_querydesc "select_from_tmp_where_i_lt" qd >>= fun () ->
+  if Db.backend_info.bi_describe_has_typed_parameters then
+    assert (qd.querydesc_params = [|`Int|]);
+  if Db.backend_info.bi_describe_has_typed_fields then
     assert (qd.querydesc_fields = [|"i", `Int; "s", `Text|]);
-    Lwt.return_unit
-  end else Lwt.return_unit
+  Lwt.return_unit
 
 let test (module Db : Caqti_lwt.CONNECTION) =
   test_expr (module Db) >>

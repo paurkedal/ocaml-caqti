@@ -105,7 +105,7 @@ module Make (System : SYSTEM) = struct
   let backend_info =
     create_backend_info
       ~uri_scheme:"postgresql" ~dialect_tag:`Pgsql
-      ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (pred i)))
+      ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
       ~describe_has_typed_parameters:true
       ~describe_has_typed_fields:true ()
 

@@ -137,5 +137,6 @@ let test db =
 		    (CalendarLib.Printer.Calendar.to_string stolen) owner)
 
 let () =
-  let uri = Uri.of_string "postgresql://" in
+  let uri =
+    Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
   Lwt_main.run (Caqti_lwt.connect uri >>= test)

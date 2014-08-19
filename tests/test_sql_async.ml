@@ -80,6 +80,7 @@ let () =
     Sys.argv.(0);
   let uri =
     match !uri_r with
-    | None -> Uri.of_string "sqlite3:"
+    | None ->
+      Uri.of_string (Option.value ~default:"sqlite3:" (Sys.getenv "CAQTI_URI"))
     | Some uri -> uri in
   never_returns (Scheduler.go_main (main uri) ())

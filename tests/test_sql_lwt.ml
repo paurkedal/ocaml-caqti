@@ -204,7 +204,8 @@ let () =
     Sys.argv.(0);
   let uri =
     match !uri_r with
-    | None -> Uri.of_string "sqlite3:"
+    | None ->
+      Uri.of_string (try Unix.getenv "CAQTI_URI" with Not_found -> "sqlite3:")
     | Some uri -> uri in
   Lwt_main.run begin
     Caqti_lwt.connect uri >>= test >>

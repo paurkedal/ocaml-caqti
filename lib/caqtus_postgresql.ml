@@ -109,11 +109,7 @@ module Make (System : SYSTEM) = struct
       ~describe_has_typed_parameters:true
       ~describe_has_typed_fields:true ()
 
-  let query_info = function
-    | Oneshot qsf ->
-      `Oneshot (qsf backend_info)
-    | Prepared {pq_name; pq_encode} ->
-      `Prepared (pq_name, pq_encode backend_info)
+  let query_info = Caqti.make_query_info backend_info
 
   let prepare_failed uri q msg =
     fail (Caqti.Prepare_failed (uri, query_info q, msg))
@@ -225,10 +221,9 @@ module Make (System : SYSTEM) = struct
 	miscommunication uri q
 	  "Expected Command_ok or an error as response to prepare."
 
-    method describe_io name =
+    method describe_io qi name =
       self#send_describe_prepared name;
-      self#fetch_single_result_io (`Oneshot ("X_DESCRIBE " ^ name))
-	>>= fun r ->
+      self#fetch_single_result_io qi >>= fun r ->
       let describe_param i =
 	try typedesc_of_ftype (r#paramtype i)
 	with Oid oid -> `Other ("oid" ^ string_of_int oid) in
@@ -251,9 +246,9 @@ module Make (System : SYSTEM) = struct
     method cached_prepare_io ({pq_index; pq_name; pq_encode} as pq) =
       try return (Hashtbl.find prepared_queries pq_index)
       with Not_found ->
-	self#prepare_io (Prepared pq) pq_name
-			(pq_encode backend_info) >>= fun () ->
-	self#describe_io pq_name >>= fun pqinfo ->
+	let qs = pq_encode backend_info in
+	self#prepare_io (Prepared pq) pq_name qs >>= fun () ->
+	self#describe_io (`Prepared (pq_name, qs)) pq_name >>= fun pqinfo ->
 	Hashtbl.add prepared_queries pq_index pqinfo;
 	return pqinfo
 
@@ -329,9 +324,10 @@ module Make (System : SYSTEM) = struct
 	  match q with
 	  | Prepared pq ->
 	    c#cached_prepare_io pq >>= fun (_, r) -> return r
-	  | Oneshot qs ->
-	    c#prepare_io q "_desc_tmp" (qs backend_info) >>= fun () ->
-	    c#describe_io "_desc_tmp" >>= fun (_, r) ->
+	  | Oneshot qsf ->
+	    let qs = qsf backend_info in
+	    c#prepare_io q "_desc_tmp" qs >>= fun () ->
+	    c#describe_io (`Oneshot qs) "_desc_tmp" >>= fun (_, r) ->
 	    c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
 	end
 

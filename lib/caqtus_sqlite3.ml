@@ -116,9 +116,7 @@ module Make (System : SYSTEM) = struct
       ~describe_has_typed_parameters:false
       ~describe_has_typed_fields:true ()
 
-  let query_info = function
-    | Oneshot qsf -> `Oneshot (qsf backend_info)
-    | Prepared pq -> `Prepared (pq.pq_name, pq.pq_encode backend_info)
+  let query_info = Caqti.make_query_info backend_info
 
   let connect uri =
 

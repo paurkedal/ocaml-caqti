@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_metadata
 open Caqti_plugin
 open Caqti_query
 open Caqti_sigs
@@ -22,6 +23,10 @@ open Printf
 type query_info =
   [ `Oneshot of string
   | `Prepared of string * string ]
+
+let make_query_info backend_info = function
+  | Oneshot qsf -> `Oneshot (qsf backend_info)
+  | Prepared {pq_name; pq_encode} -> `Prepared (pq_name, pq_encode backend_info)
 
 exception Connect_failed of Uri.t * string
 exception Prepare_failed of Uri.t * query_info * string

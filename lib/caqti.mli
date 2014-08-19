@@ -16,12 +16,15 @@
 
 (** Exceptions and connect functor. *)
 
+open Caqti_metadata
 open Caqti_query
 open Caqti_sigs
 
 type query_info =
   [ `Oneshot of string
   | `Prepared of string * string ]
+
+val make_query_info : backend_info -> query -> query_info
 
 exception Connect_failed of Uri.t * string
 (** The exception raised when a backend fails to connect to a resource.  Due

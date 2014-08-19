@@ -10,8 +10,9 @@
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Caqti" rel="Chapter" href="Caqti.html">
 <link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
-<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Index of values</title>
 </head>
@@ -24,6 +25,11 @@
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VAL(>>=)">(&gt;&gt;=)</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>B</td></tr>
+<tr><td><a href="Caqti_sigs.CONNECTION.html#VALbackend_info">backend_info</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
+<td><div class="info">
+Various metadata about the backend which provides the connection.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALbool">bool</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Param.html#VALbool">bool</a> [<a href="Caqti_sigs.CONNECTION.Param.html">Caqti_sigs.CONNECTION.Param</a>]</td>
@@ -32,11 +38,29 @@ Constructs a boolean parameter.
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
-<tr><td><a href="Caqti_sigs.CONNECT.html#VALconnect">connect</a> [<a href="Caqti_sigs.CONNECT.html">Caqti_sigs.CONNECT</a>]</td>
+<tr><td><a href="Caqti_sigs.SYSTEM.html#VALcatch">catch</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
-<tr><td><a href="Caqti_sigs.SYSTEM.Pool.html#VALcreate">create</a> [<a href="Caqti_sigs.SYSTEM.Pool.html">Caqti_sigs.SYSTEM.Pool</a>]</td>
+<tr><td><a href="Caqti_sigs.CONNECTION.html#VALcheck">check</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
+<td><div class="info">
+For internal use by <a href="Caqti_pool.html"><code class="code">Caqti_pool</code></a>.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_sigs.CONNECT_BASE.html#VALconnect">connect</a> [<a href="Caqti_sigs.CONNECT_BASE.html">Caqti_sigs.CONNECT_BASE</a>]</td>
+<td><div class="info">
+Establish a single connection to a database.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_sigs.CONNECT.html#VALconnect_pool">connect_pool</a> [<a href="Caqti_sigs.CONNECT.html">Caqti_sigs.CONNECT</a>]</td>
+<td><div class="info">
+Create a pool of connections which can be shared among multiple
+      cooperative threads run from the main system thread.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Mvar.html#VALcreate">create</a> [<a href="Caqti_sigs.SYSTEM.Mvar.html">Caqti_sigs.SYSTEM.Mvar</a>]</td>
 <td></td></tr>
-<tr><td><a href="Caqti_query.html#VALcreate_query_language">create_query_language</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<tr><td><a href="Caqti_sigs.POOL.html#VALcreate">create</a> [<a href="Caqti_sigs.POOL.html">Caqti_sigs.POOL</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti_metadata.html#VALcreate_backend_info">create_backend_info</a> [<a href="Caqti_metadata.html">Caqti_metadata</a>]</td>
 <td><div class="info">
 For use by backends to create a descriptor for their query languages.
 </div>
@@ -58,13 +82,14 @@ Returns a description of parameters and returned tuples.
 </td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Preemptive.html#VALdetach">detach</a> [<a href="Caqti_sigs.SYSTEM.Preemptive.html">Caqti_sigs.SYSTEM.Preemptive</a>]</td>
 <td></td></tr>
-<tr><td><a href="Caqti_sigs.SYSTEM.Pool.html#VALdrain">drain</a> [<a href="Caqti_sigs.SYSTEM.Pool.html">Caqti_sigs.SYSTEM.Pool</a>]</td>
-<td></td></tr>
-<tr><td><a href="Caqti_sigs.CONNECTION.html#VALdrain">drain</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
+<tr><td><a href="Caqti_sigs.CONNECTION.html#VALdisconnect">disconnect</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
 <td><div class="info">
-Close all open connections.
+Calling <code class="code">disconnect ()</code> closes the connection to the database and frees
+      up related resources.
 </div>
 </td></tr>
+<tr><td><a href="Caqti_sigs.POOL.html#VALdrain">drain</a> [<a href="Caqti_sigs.POOL.html">Caqti_sigs.POOL</a>]</td>
+<td></td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Caqti_plugin.html#VALensure_plugin">ensure_plugin</a> [<a href="Caqti_plugin.html">Caqti_plugin</a>]</td>
 <td><div class="info">
@@ -81,6 +106,8 @@ Close all open connections.
 </td></tr>
 <tr><td align="left"><br>F</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VALfail">fail</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Mvar.html#VALfetch">fetch</a> [<a href="Caqti_sigs.SYSTEM.Mvar.html">Caqti_sigs.SYSTEM.Mvar</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html#VALfind">find</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
 <td><div class="info">
@@ -142,6 +169,9 @@ Constructs an integer parameter.
 <tr><td align="left"><br>J</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.html#VALjoin">join</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
+<tr><td align="left"><br>M</td></tr>
+<tr><td><a href="Caqti.html#VALmake_query_info">make_query_info</a> [<a href="Caqti.html">Caqti</a>]</td>
+<td></td></tr>
 <tr><td align="left"><br>N</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Param.html#VALnull">null</a> [<a href="Caqti_sigs.CONNECTION.Param.html">Caqti_sigs.CONNECTION.Param</a>]</td>
 <td><div class="info">
@@ -156,11 +186,25 @@ For SQL, <code class="code">null</code> is <code class="code">NULL</code>.
 Constructs a parameter from an arbitrary <code class="code">string</code>.
 </div>
 </td></tr>
-<tr><td><a href="Caqti_sigs.SYSTEM.Unix.html#VALof_unix_file_descr">of_unix_file_descr</a> [<a href="Caqti_sigs.SYSTEM.Unix.html">Caqti_sigs.SYSTEM.Unix</a>]</td>
-<td></td></tr>
-<tr><td><a href="Caqti_query.html#VALoneshot">oneshot</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<tr><td><a href="Caqti_query.html#VALoneshot_any">oneshot_any</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
 <td><div class="info">
-Create a one-shot query.
+Create a one-shot query string.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_query.html#VALoneshot_full">oneshot_full</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<td><div class="info">
+Create a one-shot family of query strings over full query language
+    descriptors.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_query.html#VALoneshot_fun">oneshot_fun</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<td><div class="info">
+Create a one-shot family of query strings over language tags.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_query.html#VALoneshot_sql">oneshot_sql</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<td><div class="info">
+Create a one-shot query string expected to work with any SQL dialect.
 </div>
 </td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALoption">option</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
@@ -180,7 +224,7 @@ A backend-specific value.
 <tr><td align="left"><br>P</td></tr>
 <tr><td><a href="Caqti_query.html#VALprepare_any">prepare_any</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
 <td><div class="info">
-Create a prepared statement to use for any query language.
+Create a prepared statement accepted by any backend.
 </div>
 </td></tr>
 <tr><td><a href="Caqti_query.html#VALprepare_full">prepare_full</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
@@ -192,6 +236,11 @@ Create a prepared statement dispatching on the full query language
 <tr><td><a href="Caqti_query.html#VALprepare_fun">prepare_fun</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
 <td><div class="info">
 Create a prepared statement dispatching on the language tag.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_query.html#VALprepare_sql">prepare_sql</a> [<a href="Caqti_query.html">Caqti_query</a>]</td>
+<td><div class="info">
+Create a prepared statement expected to work with any SQL dialect.
 </div>
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
@@ -206,6 +255,10 @@ Create a prepared statement dispatching on the language tag.
 <tr><td><a href="Caqti_sigs.SYSTEM.Preemptive.html#VALrun_in_main">run_in_main</a> [<a href="Caqti_sigs.SYSTEM.Preemptive.html">Caqti_sigs.SYSTEM.Preemptive</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>S</td></tr>
+<tr><td><a href="Caqti_sigs.POOL.html#VALsize">size</a> [<a href="Caqti_sigs.POOL.html">Caqti_sigs.POOL</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Mvar.html#VALstore">store</a> [<a href="Caqti_sigs.SYSTEM.Mvar.html">Caqti_sigs.SYSTEM.Mvar</a>]</td>
+<td></td></tr>
 <tr><td><a href="Caqti_describe.html#VALstring_of_typedesc">string_of_typedesc</a> [<a href="Caqti_describe.html">Caqti_describe</a>]</td>
 <td><div class="info">
 A informative textual representation of a type.
@@ -226,7 +279,7 @@ Given an UTF-8 encoded text, constructs a textual parameter with
 The connected URI.
 </div>
 </td></tr>
-<tr><td><a href="Caqti_sigs.SYSTEM.Pool.html#VALuse">use</a> [<a href="Caqti_sigs.SYSTEM.Pool.html">Caqti_sigs.SYSTEM.Pool</a>]</td>
+<tr><td><a href="Caqti_sigs.POOL.html#VALuse">use</a> [<a href="Caqti_sigs.POOL.html">Caqti_sigs.POOL</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Tuple.html#VALutc">utc</a> [<a href="Caqti_sigs.CONNECTION.Tuple.html">Caqti_sigs.CONNECTION.Tuple</a>]</td>
 <td></td></tr>
@@ -235,10 +288,20 @@ The connected URI.
 Construct a parameter representing an UTC time value.
 </div>
 </td></tr>
+<tr><td align="left"><br>V</td></tr>
+<tr><td><a href="Caqti_sigs.CONNECTION.html#VALvalidate">validate</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
+<td><div class="info">
+For internal use by <a href="Caqti_pool.html"><code class="code">Caqti_pool</code></a>.
+</div>
+</td></tr>
 <tr><td align="left"><br>W</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Unix.html#VALwait_read">wait_read</a> [<a href="Caqti_sigs.SYSTEM.Unix.html">Caqti_sigs.SYSTEM.Unix</a>]</td>
 <td></td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Unix.html#VALwait_write">wait_write</a> [<a href="Caqti_sigs.SYSTEM.Unix.html">Caqti_sigs.SYSTEM.Unix</a>]</td>
+<td></td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Log.html#VALwarning_f">warning_f</a> [<a href="Caqti_sigs.SYSTEM.Log.html">Caqti_sigs.SYSTEM.Log</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Unix.html#VALwrap_fd">wrap_fd</a> [<a href="Caqti_sigs.SYSTEM.Unix.html">Caqti_sigs.SYSTEM.Unix</a>]</td>
 <td></td></tr>
 </table>
 </body>

@@ -10,8 +10,9 @@
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Caqti" rel="Chapter" href="Caqti.html">
 <link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
-<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Index of modules</title>
 </head>
@@ -31,14 +32,19 @@ Exceptions and connect functor.
 Types and utility functions for query descriptions.
 </div>
 </td></tr>
-<tr><td><a href="Caqti_lwt.html">Caqti_lwt</a> </td>
+<tr><td><a href="Caqti_metadata.html">Caqti_metadata</a> </td>
 <td><div class="info">
-Connecting with Lwt.
+Information about a database, its backend, and its query language.
 </div>
 </td></tr>
 <tr><td><a href="Caqti_plugin.html">Caqti_plugin</a> </td>
 <td><div class="info">
 Helper for loading plugins.
+</div>
+</td></tr>
+<tr><td><a href="Caqti_pool.html">Caqti_pool</a> </td>
+<td><div class="info">
+Pool of open resources.
 </div>
 </td></tr>
 <tr><td><a href="Caqti_query.html">Caqti_query</a> </td>
@@ -57,14 +63,23 @@ Signatures.
 <tr><td align="left"><br>M</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECT_FUNCTOR.Make.html">Make</a> [<a href="Caqti_sigs.CONNECT_FUNCTOR.html">Caqti_sigs.CONNECT_FUNCTOR</a>]</td>
 <td></td></tr>
+<tr><td><a href="Caqti_pool.Make.html">Make</a> [<a href="Caqti_pool.html">Caqti_pool</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti.Make.html">Make</a> [<a href="Caqti.html">Caqti</a>]</td>
+<td></td></tr>
+<tr><td><a href="Caqti_sigs.SYSTEM.Mvar.html">Mvar</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
+<td></td></tr>
 <tr><td align="left"><br>P</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.Param.html">Param</a> [<a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a>]</td>
 <td><div class="info">
 Parameter encoding functions.
 </div>
 </td></tr>
-<tr><td><a href="Caqti_sigs.SYSTEM.Pool.html">Pool</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
-<td></td></tr>
+<tr><td><a href="Caqti_sigs.CONNECT.Pool.html">Pool</a> [<a href="Caqti_sigs.CONNECT.html">Caqti_sigs.CONNECT</a>]</td>
+<td><div class="info">
+This is an instantiation of <a href="Caqti_pool.html"><code class="code">Caqti_pool</code></a> for the chosen thread monad.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.SYSTEM.Preemptive.html">Preemptive</a> [<a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>T</td></tr>

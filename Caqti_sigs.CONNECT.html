@@ -4,8 +4,8 @@
 <link rel="stylesheet" href="style.css" type="text/css">
 <meta content="text/html; charset=utf8" http-equiv="Content-Type">
 <link rel="Start" href="index.html">
-<link rel="previous" href="Caqti_sigs.CONNECTION.html">
-<link rel="next" href="Caqti_sigs.SYSTEM.html">
+<link rel="previous" href="Caqti_sigs.CONNECT_BASE.html">
+<link rel="next" href="Caqti_sigs.CONNECT_FUNCTOR.html">
 <link rel="Up" href="Caqti_sigs.html">
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
@@ -14,25 +14,41 @@
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Caqti" rel="Chapter" href="Caqti.html">
 <link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
-<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_sigs.CONNECT</title>
 </head>
 <body>
-<div class="navbar"><a class="pre" href="Caqti_sigs.CONNECTION.html" title="Caqti_sigs.CONNECTION">Previous</a>
+<div class="navbar"><a class="pre" href="Caqti_sigs.CONNECT_BASE.html" title="Caqti_sigs.CONNECT_BASE">Previous</a>
 &nbsp;<a class="up" href="Caqti_sigs.html" title="Caqti_sigs">Up</a>
-&nbsp;<a class="post" href="Caqti_sigs.SYSTEM.html" title="Caqti_sigs.SYSTEM">Next</a>
+&nbsp;<a class="post" href="Caqti_sigs.CONNECT_FUNCTOR.html" title="Caqti_sigs.CONNECT_FUNCTOR">Next</a>
 </div>
 <h1>Module type <a href="type_Caqti_sigs.CONNECT.html">Caqti_sigs.CONNECT</a></h1>
 
 <pre><span class="keyword">module type</span> CONNECT = <code class="code">sig</code> <a href="Caqti_sigs.CONNECT.html">..</a> <code class="code">end</code></pre><div class="info modtype top">
-The connect function along with its first-class module signature.<br>
+The connect functions as exposed to application code through the
+    concurrency implementations:
+<p>
+<ul>
+<li><code class="code">Caqti_lwt</code> which is provided in the <code class="code">caqti.lwt</code> package
+      if caqti was built with <code class="code">--enable-lwt</code>.</li>
+<li><code class="code">Caqti_async</code> which is provided in the <code class="code">caqti.async</code> package
+      if caqti was built with <code class="code">--enable-async</code>.</li>
+</ul>
+<br>
 </div>
 <hr width="100%">
 
-<pre><span id="TYPEio"><span class="keyword">type</span> <code class="type">'a</code> io</span> </pre>
+<pre><span class="keyword">include</span> <a href="Caqti_sigs.CONNECT_BASE.html">Caqti_sigs.CONNECT_BASE</a></pre>
 
+<pre><span class="keyword">module</span> <a href="Caqti_sigs.CONNECT.Pool.html">Pool</a>: <code class="type"><a href="Caqti_sigs.POOL.html">Caqti_sigs.POOL</a></code><code class="type">  with type 'a io := 'a io</code></pre><div class="info">
+This is an instantiation of <a href="Caqti_pool.html"><code class="code">Caqti_pool</code></a> for the chosen thread monad.
+</div>
 
-<pre><span class="keyword">module type</span> <a href="Caqti_sigs.CONNECT.CONNECTION.html">CONNECTION</a> = <code class="type"><a href="Caqti_sigs.CONNECTION.html">Caqti_sigs.CONNECTION</a></code><code class="type">  with type 'a io = 'a io</code></pre>
-<pre><span id="VALconnect"><span class="keyword">val</span> connect</span> : <code class="type">?max_pool_size:int -><br>       Uri.t -> (module Caqti_sigs.CONNECT.CONNECTION) <a href="Caqti_sigs.CONNECT.html#TYPEio">io</a></code></pre></body></html>
+<pre><span id="VALconnect_pool"><span class="keyword">val</span> connect_pool</span> : <code class="type">?max_size:int -><br>       Uri.t -> (module Caqti_sigs.CONNECTION) Pool.t</code></pre><div class="info ">
+Create a pool of connections which can be shared among multiple
+      cooperative threads run from the main system thread.<br>
+</div>
+</body></html>

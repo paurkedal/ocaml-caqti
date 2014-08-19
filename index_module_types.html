@@ -10,8 +10,9 @@
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Caqti" rel="Chapter" href="Caqti.html">
 <link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
-<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Index of module types</title>
 </head>
@@ -23,19 +24,31 @@
 <tr><td align="left"><br>C</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECT.html">CONNECT</a> [<a href="Caqti_sigs.html">Caqti_sigs</a>]</td>
 <td><div class="info">
-The connect function along with its first-class module signature.
+The connect functions as exposed to application code through the
+    concurrency implementations:
 </div>
 </td></tr>
-<tr><td><a href="Caqti_sigs.CONNECT.CONNECTION.html">CONNECTION</a> [<a href="Caqti_sigs.CONNECT.html">Caqti_sigs.CONNECT</a>]</td>
+<tr><td><a href="Caqti_sigs.CONNECT_BASE.CONNECTION.html">CONNECTION</a> [<a href="Caqti_sigs.CONNECT_BASE.html">Caqti_sigs.CONNECT_BASE</a>]</td>
 <td></td></tr>
 <tr><td><a href="Caqti_sigs.CONNECTION.html">CONNECTION</a> [<a href="Caqti_sigs.html">Caqti_sigs</a>]</td>
 <td><div class="info">
 The main API as provided after connecting to a resource.
 </div>
 </td></tr>
+<tr><td><a href="Caqti_sigs.CONNECT_BASE.html">CONNECT_BASE</a> [<a href="Caqti_sigs.html">Caqti_sigs</a>]</td>
+<td><div class="info">
+The part of <a href="Caqti_sigs.CONNECT.html"><code class="code">Caqti_sigs.CONNECT</code></a> which is implemented by backends.
+</div>
+</td></tr>
 <tr><td><a href="Caqti_sigs.CONNECT_FUNCTOR.html">CONNECT_FUNCTOR</a> [<a href="Caqti_sigs.html">Caqti_sigs</a>]</td>
 <td><div class="info">
 Abstraction of the connect function over the concurrency monad.
+</div>
+</td></tr>
+<tr><td align="left"><br>P</td></tr>
+<tr><td><a href="Caqti_sigs.POOL.html">POOL</a> [<a href="Caqti_sigs.html">Caqti_sigs</a>]</td>
+<td><div class="info">
+The signature of pools of reusable resources.
 </div>
 </td></tr>
 <tr><td align="left"><br>S</td></tr>

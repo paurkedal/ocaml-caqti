@@ -13,8 +13,9 @@
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Caqti" rel="Chapter" href="Caqti.html">
 <link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
-<link title="Caqti_lwt" rel="Chapter" href="Caqti_lwt.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti</title>
 </head>
@@ -29,6 +30,10 @@ Exceptions and connect functor.<br>
 </div>
 <hr width="100%">
 
+<pre><span id="TYPEquery_info"><span class="keyword">type</span> <code class="type"></code>query_info</span> = <code class="type">[ `Oneshot of string | `Prepared of string * string ]</code> </pre>
+
+
+<pre><span id="VALmake_query_info"><span class="keyword">val</span> make_query_info</span> : <code class="type"><a href="Caqti_metadata.html#TYPEbackend_info">Caqti_metadata.backend_info</a> -> <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -> <a href="Caqti.html#TYPEquery_info">query_info</a></code></pre>
 <pre><span id="EXCEPTIONConnect_failed"><span class="keyword">exception</span> Connect_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * string</code></pre>
 <div class="info ">
 The exception raised when a backend fails to connect to a resource.  Due
@@ -36,17 +41,17 @@ The exception raised when a backend fails to connect to a resource.  Due
     as well as the connect function.<br>
 </div>
 
-<pre><span id="EXCEPTIONPrepare_failed"><span class="keyword">exception</span> Prepare_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<pre><span id="EXCEPTIONPrepare_failed"><span class="keyword">exception</span> Prepare_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti.html#TYPEquery_info">query_info</a> * string</code></pre>
 <div class="info ">
 The exception raised when query preparation fails.<br>
 </div>
 
-<pre><span id="EXCEPTIONExecute_failed"><span class="keyword">exception</span> Execute_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<pre><span id="EXCEPTIONExecute_failed"><span class="keyword">exception</span> Execute_failed</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti.html#TYPEquery_info">query_info</a> * string</code></pre>
 <div class="info ">
 The exception raised when query execution failes.<br>
 </div>
 
-<pre><span id="EXCEPTIONMiscommunication"><span class="keyword">exception</span> Miscommunication</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> * string</code></pre>
+<pre><span id="EXCEPTIONMiscommunication"><span class="keyword">exception</span> Miscommunication</span> <span class="keyword">of</span> <code class="type">Uri.t * <a href="Caqti.html#TYPEquery_info">query_info</a> * string</code></pre>
 <div class="info ">
 This exception may be raised by a backend when something unexpected
     happen during the communication process.  It signifies a programming error
@@ -66,5 +71,4 @@ This exception may be raised by a backend when something unexpected
     caqtus-<i>scheme</i> as part of its initialization.<br>
 </div>
 
-<pre><span class="keyword">include</span> <a href="Caqti_sigs.CONNECT_FUNCTOR.html">Caqti_sigs.CONNECT_FUNCTOR</a></pre>
-</body></html>
+<pre><span class="keyword">module</span> <a href="Caqti.Make.html">Make</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">System</code><code class="code"> : </code><code class="type"><a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a></code><code class="code">) -&gt; </code><code class="type">CONNECT</code><code class="type">  with type 'a io = 'a System.io</code></div></pre></body></html>

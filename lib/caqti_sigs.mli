@@ -105,6 +105,10 @@ module type CONNECTION = sig
     (** Constructs an integer parameter. The remote end may have a different
 	range. For SQL, works with all integer types. *)
 
+    val int32 : int32 -> param
+    (** Constructs an integer parameter. The remote end may have a different
+	range. For SQL, works with all integer types. *)
+
     val int64 : int64 -> param
     (** Constructs an integer parameter. The remote end may have a different
 	range. For SQL, works with all integer types. *)
@@ -147,6 +151,7 @@ module type CONNECTION = sig
     val option : (int -> tuple -> 'a) -> int -> tuple -> 'a option
     val bool : int -> tuple -> bool
     val int : int -> tuple -> int
+    val int32 : int -> tuple -> int32
     val int64 : int -> tuple -> int64
     val float : int -> tuple -> float
     val text : int -> tuple -> string

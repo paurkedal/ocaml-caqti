@@ -51,6 +51,7 @@ module Param = struct
   let option f = function None -> null | Some x -> f x
   let bool x = string_of_bool x
   let int x = string_of_int x
+  let int32 x = Int32.to_string x
   let int64 x = Int64.to_string x
   let float x = string_of_float x
   let text s = s
@@ -78,6 +79,7 @@ module Tuple = struct
     | "f" -> false
     | _ -> failwith "bool_of_pgbool: Expecting \"t\" or \"f\"."
   let int j t = int_of_string (raw j t)
+  let int32 j t = Int32.of_string (raw j t)
   let int64 j t = Int64.of_string (raw j t)
   let float j t = float_of_string (raw j t)
   let text j t = raw j t

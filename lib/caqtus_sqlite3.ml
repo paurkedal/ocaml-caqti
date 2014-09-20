@@ -42,6 +42,7 @@ module Param = struct
   let option f = function None -> NULL | Some x -> f x
   let bool = function false -> INT Int64.zero | true -> INT Int64.one
   let int x = INT (Int64.of_int x)
+  let int32 x = INT (Int64.of_int32 x)
   let int64 x = INT x
   let float x = FLOAT x
   let text x = TEXT x
@@ -69,6 +70,10 @@ module Tuple = struct
   let int i stmt =
     match Sqlite3.column stmt i with
     | INT x -> Int64.to_int x
+    | _ -> invalid_decode "int" i stmt
+  let int32 i stmt =
+    match Sqlite3.column stmt i with
+    | INT x -> Int64.to_int32 x
     | _ -> invalid_decode "int" i stmt
   let int64 i stmt =
     match Sqlite3.column stmt i with

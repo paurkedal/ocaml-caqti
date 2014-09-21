@@ -19,6 +19,4 @@
 
 open Caqti_sigs
 
-module System : SYSTEM with type 'a io = 'a Lwt.t
-
-include CONNECT with type 'a io = 'a Lwt.t
+include CAQTI with type 'a System.io = 'a Lwt.t

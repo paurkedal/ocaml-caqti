@@ -47,9 +47,9 @@ exception Miscommunication of Uri.t * query_info * string
     - A networked backend does not understand the result from the server,
       e.g. due to a different protocol version. *)
 
-val register_scheme : string -> (module CONNECT_FUNCTOR) -> unit
+val register_scheme : string -> (module CAQTUS_FUNCTOR) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqtus-{i scheme} as part of its initialization. *)
 
-module Make (System : SYSTEM) : CONNECT with type 'a io = 'a System.io
+module Make (System : SYSTEM) : CAQTI with module System = System

@@ -91,7 +91,8 @@ let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
  * converted components as arguments to [f].  First-class modules are
  * brilliant, though they sometimes requires us to elaborate type
  * dependencies.  *)
-let wrap (type tuple) (module Db : Caqti_lwt.CONNECTION with type tuple = tuple)
+let wrap (type tuple)
+	 (module Db : Caqti_lwt.CONNECTION with type Tuple.t = tuple)
 	 f (t : tuple) =
   let open Db.Tuple in
   (* You might prefer to pass the result as a tuple or record depending on the

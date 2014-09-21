@@ -92,6 +92,12 @@ module Tuple = struct
   let other = raw
 end
 
+module Report = struct
+  type t = Postgresql.result
+  let returned_count = Some (fun (r : t) -> r#ntuples)
+  let affected_count = Some (fun (r : t) -> int_of_string r#cmd_tuples)
+end
+
 let escaped_connvalue s =
   let buf = Buffer.create (String.length s) in
   String.iter
@@ -100,12 +106,11 @@ let escaped_connvalue s =
     s;
   Buffer.contents buf
 
-module Connect_functor = struct
+module Caqtus_functor = struct
 module Make (System : SYSTEM) = struct
+module Wrap (Wrapper : WRAPPER) = struct
 
   open System
-
-  type 'a io = 'a System.io
 
   let backend_info =
     create_backend_info
@@ -268,7 +273,16 @@ module Make (System : SYSTEM) = struct
       | xc -> fail xc
   end
 
-  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
+  module type CONNECTION = sig
+    module Param : PARAM
+    module Tuple : TUPLE
+    module Report : REPORT
+    include CONNECTION_BASE
+       with type 'a io = 'a System.io
+	and type param = Param.t
+	and type tuple = Tuple.t
+	and type 'a callback = 'a Wrapper.Make (Tuple) (Report).callback
+  end
 
   let connect uri =
 
@@ -300,6 +314,11 @@ module Make (System : SYSTEM) = struct
       type 'a io = 'a System.io
       type param = string
       type tuple = int * Postgresql.result
+      module Param = Param
+      module Tuple = Tuple
+      module Report = Report
+      module W = Wrapper.Make (Tuple) (Report)
+      type 'a callback = 'a W.callback
 
       let uri = uri
       let backend_info = backend_info
@@ -347,54 +366,66 @@ module Make (System : SYSTEM) = struct
 	exec_prepared params q >>= check_command_ok q
 
       let find q f params =
+	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
 	if r#ntuples = 0 then return None else
-	if r#ntuples = 1 then return (Some (f (0, r))) else
+	if r#ntuples = 1 then return (Some (W.on_tuple f r' (0, r))) else
 	miscommunication uri q
 			 "Received %d tuples, expected at most one." r#ntuples
 
       let fold q f params acc =
+	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
+	let f' = W.on_tuple f r' in
 	let n = r#ntuples in
 	let rec loop i acc =
 	  if i = n then acc else
-	  loop (i + 1) (f (i, r) acc) in
+	  loop (i + 1) (f' (i, r) acc) in
 	return (loop 0 acc)
 
       let fold_s q f params acc =
+	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
+	let f' = W.on_tuple f r' in
 	let n = r#ntuples in
 	let rec loop i acc =
 	  if i = n then return acc else
-	  f (i, r) acc >>= loop (i + 1) in
+	  f' (i, r) acc >>= loop (i + 1) in
 	loop 0 acc
 
       let iter_s q f params =
+	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
+	let f' = W.on_tuple f r' in
 	let a = r#get_all in
 	let n = Array.length a in
 	let rec loop i =
 	  if i = n then return () else
-	  f (i, r) >>= fun () -> loop (i + 1) in
+	  f' (i, r) >>= fun () -> loop (i + 1) in
 	loop 0
 
       let iter_p q f params =
+	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
+	let f' = W.on_tuple f r' in
 	let rec loop i acc =
 	  if i = 0 then acc else
-	  loop (i - 1) (f (i, r) :: acc) in
+	  loop (i - 1) (f' (i, r) :: acc) in
 	join (loop r#ntuples [])
-
-      module Param = Param
-      module Tuple = Tuple
     end : CONNECTION)
 
 end (* Make *)
-end (* Connect_functor *)
+end (* Wrap *)
+end (* Caqtus_functor *)
 
-let () = Caqti.register_scheme "postgresql" (module Connect_functor)
+let () = Caqti.register_scheme "postgresql" (module Caqtus_functor)

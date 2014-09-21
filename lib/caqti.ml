@@ -36,27 +36,48 @@ exception Miscommunication of Uri.t * query_info * string
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p
 
+module Default_wrapper = struct
+  module Make (Tuple : TUPLE) (Report : REPORT) = struct
+    type 'a callback = Tuple.t -> 'a
+    type queried = unit
+    type reported = unit
+    let on_query _ = ()
+    let on_report _ _ = ()
+    let on_tuple f _ = f
+  end
+end
+
 module Make (System : SYSTEM) = struct
   open System
 
-  type 'a io = 'a System.io
+  module System = System
 
-  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
-  module type CONNECTOR = CONNECT_BASE with type 'a io = 'a System.io
+  module type CONNECTION = sig
+    module Param : PARAM
+    module Tuple : TUPLE
+    module Report : REPORT
+    include CONNECTION_BASE
+       with type 'a io = 'a System.io
+	and type param = Param.t
+	and type tuple = Tuple.t
+	and type 'a callback = Tuple.t -> 'a
+  end
 
-  let connectors : (string, (module CONNECTOR)) Hashtbl.t = Hashtbl.create 11
+  module type CAQTUS = CAQTUS with type 'a io := 'a System.io
 
-  let load_connector scheme =
-    try Hashtbl.find connectors scheme with Not_found ->
-    let plugin =
+  let caqtuses : (string, (module CAQTUS)) Hashtbl.t = Hashtbl.create 11
+
+  let load_caqtus scheme =
+    try Hashtbl.find caqtuses scheme with Not_found ->
+    let caqtus_functor =
       ensure_plugin
 	(fun () -> try Some (Hashtbl.find scheme_plugins scheme)
 		   with Not_found -> None)
 	["caqtus-" ^ scheme; "caqti.caqtus-" ^ scheme] in
-    let module Plugin = (val plugin : CONNECT_FUNCTOR) in
-    let module Connector = Plugin.Make (System) in
-    let connector = (module Connector : CONNECTOR) in
-    Hashtbl.add connectors scheme connector; connector
+    let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
+    let module Caqtus = Caqtus_functor.Make (System) in
+    let caqtus = (module Caqtus : CAQTUS) in
+    Hashtbl.add caqtuses scheme caqtus; caqtus
 
   let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
@@ -65,9 +86,10 @@ module Make (System : SYSTEM) = struct
 			     (Uri.to_string uri)))
     | Some scheme ->
       try
-	let connector = load_connector scheme in
-	let module Connector = (val connector) in
-	Connector.connect uri >>= fun client ->
+	let caqtus = load_caqtus scheme in
+	let module Caqtus = (val caqtus) in
+	let module Conn = Caqtus.Wrap (Default_wrapper) in
+	Conn.connect uri >>= fun client ->
 	let module Client = (val client) in
 	return (module Client : CONNECTION)
       with xc -> fail xc
@@ -80,4 +102,32 @@ module Make (System : SYSTEM) = struct
     let validate (module Conn : CONNECTION) = Conn.validate () in
     let check (module Conn : CONNECTION) = Conn.check in
     Pool.create ?max_size ~validate ~check connect disconnect
+
+  module Wrap (Wrapper : WRAPPER) = struct
+
+    module type CONNECTION = sig
+      module Param : PARAM
+      module Tuple : TUPLE
+      module Report : REPORT
+      include CONNECTION_BASE
+	 with type 'a io = 'a System.io
+	  and type tuple = Tuple.t
+	  and type 'a callback = 'a Wrapper.Make(Tuple)(Report).callback
+    end
+
+    let connect uri : (module CONNECTION) System.io =
+      match Uri.scheme uri with
+      | None ->
+	fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
+			       (Uri.to_string uri)))
+      | Some scheme ->
+	try
+	  let caqtus = load_caqtus scheme in
+	  let module Caqtus = (val caqtus) in
+	  let module Conn = Caqtus.Wrap (Wrapper) in
+	  Conn.connect uri >>= fun client ->
+	  let module Client = (val client) in
+	  return (module Client : CONNECTION)
+	with xc -> fail xc
+  end
 end

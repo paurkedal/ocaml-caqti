@@ -19,6 +19,4 @@
 open Async.Std
 open Caqti_sigs
 
-module System : SYSTEM with type 'a io = 'a Deferred.Or_error.t
-
-include CONNECT with type 'a io = 'a Deferred.Or_error.t
+include CAQTI with type 'a System.io = 'a Deferred.Or_error.t

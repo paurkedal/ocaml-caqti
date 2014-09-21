@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module System = struct
+include Caqti.Make (struct
 
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)
@@ -55,6 +55,4 @@ module System = struct
 
   module Preemptive = Lwt_preemptive
 
-end
-
-include Caqti.Make (System)
+end)

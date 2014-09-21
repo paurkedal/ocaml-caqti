@@ -19,7 +19,7 @@
 open Core.Std
 open Async.Std
 
-module System = struct
+include Caqti.Make (struct
   type 'a io = 'a Deferred.Or_error.t
   let (>>=) = Deferred.Or_error.bind
   let return = Deferred.Or_error.return
@@ -80,6 +80,4 @@ module System = struct
     let detach f x = In_thread.run (fun () -> Or_error.try_with (fun () -> f x))
     let run_in_main f = Or_error.ok_exn (Thread_safe.block_on_async_exn f)
   end
-end
-
-include Caqti.Make (System)
+end)

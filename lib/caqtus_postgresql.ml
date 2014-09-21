@@ -106,8 +106,7 @@ let escaped_connvalue s =
     s;
   Buffer.contents buf
 
-module Caqtus_functor = struct
-module Make (System : SYSTEM) = struct
+module Caqtus_functor (System : SYSTEM) = struct
 module Wrap (Wrapper : WRAPPER) = struct
 
   open System
@@ -281,7 +280,7 @@ module Wrap (Wrapper : WRAPPER) = struct
        with type 'a io = 'a System.io
 	and type param = Param.t
 	and type tuple = Tuple.t
-	and type 'a callback = 'a Wrapper.Make (Tuple) (Report).callback
+	and type 'a callback = 'a Wrapper (Tuple) (Report).callback
   end
 
   let connect uri =
@@ -317,7 +316,7 @@ module Wrap (Wrapper : WRAPPER) = struct
       module Param = Param
       module Tuple = Tuple
       module Report = Report
-      module W = Wrapper.Make (Tuple) (Report)
+      module W = Wrapper (Tuple) (Report)
       type 'a callback = 'a W.callback
 
       let uri = uri
@@ -424,7 +423,6 @@ module Wrap (Wrapper : WRAPPER) = struct
 	join (loop r#ntuples [])
     end : CONNECTION)
 
-end (* Make *)
 end (* Wrap *)
 end (* Caqtus_functor *)
 

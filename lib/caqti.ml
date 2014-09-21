@@ -36,15 +36,13 @@ exception Miscommunication of Uri.t * query_info * string
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p
 
-module Default_wrapper = struct
-  module Make (Tuple : TUPLE) (Report : REPORT) = struct
-    type 'a callback = Tuple.t -> 'a
-    type queried = unit
-    type reported = unit
-    let on_query _ = ()
-    let on_report _ _ = ()
-    let on_tuple f _ = f
-  end
+module Default_wrapper (Tuple : TUPLE) (Report : REPORT) = struct
+  type 'a callback = Tuple.t -> 'a
+  type queried = unit
+  type reported = unit
+  let on_query _ = ()
+  let on_report _ _ = ()
+  let on_tuple f _ = f
 end
 
 module Make (System : SYSTEM) = struct
@@ -75,7 +73,7 @@ module Make (System : SYSTEM) = struct
 		   with Not_found -> None)
 	["caqtus-" ^ scheme; "caqti.caqtus-" ^ scheme] in
     let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
-    let module Caqtus = Caqtus_functor.Make (System) in
+    let module Caqtus = Caqtus_functor (System) in
     let caqtus = (module Caqtus : CAQTUS) in
     Hashtbl.add caqtuses scheme caqtus; caqtus
 
@@ -112,7 +110,7 @@ module Make (System : SYSTEM) = struct
       include CONNECTION_BASE
 	 with type 'a io = 'a System.io
 	  and type tuple = Tuple.t
-	  and type 'a callback = 'a Wrapper.Make(Tuple)(Report).callback
+	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
 
     let connect uri : (module CONNECTION) System.io =

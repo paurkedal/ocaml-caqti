@@ -100,15 +100,14 @@ module type REPORT = sig
   val affected_count : (t -> int) option
 end
 
-module type WRAPPER = sig
-  module Make (Tuple : TUPLE) (Report : REPORT) : sig
-    type 'a callback
-    type queried
-    type reported
-    val on_query : query -> queried
-    val on_report : queried -> Report.t -> reported
-    val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
-  end
+module type WRAPPER = functor (Tuple : TUPLE) -> functor (Report : REPORT) ->
+sig
+  type 'a callback
+  type queried
+  type reported
+  val on_query : query -> queried
+  val on_report : queried -> Report.t -> reported
+  val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
 end
 
 (** The main API as provided after connecting to a resource.  In addition to
@@ -259,16 +258,15 @@ module type CAQTUS = sig
 	 with type 'a io = 'a io
 	  and type param = Param.t
 	  and type tuple = Tuple.t
-	  and type 'a callback = 'a Wrapper.Make (Tuple) (Report).callback
+	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
     val connect : Uri.t -> (module CONNECTION) io
   end
 end
 
 (** Abstraction of the connect function over the concurrency monad. *)
-module type CAQTUS_FUNCTOR = sig
-  module Make (System : SYSTEM) : CAQTUS with type 'a io := 'a System.io
-end
+module type CAQTUS_FUNCTOR =
+  functor (System : SYSTEM) -> CAQTUS with type 'a io := 'a System.io
 
 (** The connect functions as exposed to application code through the
     concurrency implementations:
@@ -310,7 +308,7 @@ module type CAQTI = sig
       include CONNECTION_BASE
 	 with type 'a io = 'a System.io
 	  and type tuple = Tuple.t
-	  and type 'a callback = 'a Wrapper.Make(Tuple)(Report).callback
+	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
     val connect : Uri.t -> (module CONNECTION) System.io
   end

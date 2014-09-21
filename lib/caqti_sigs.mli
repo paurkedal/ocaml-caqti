@@ -20,6 +20,98 @@ open Caqti_describe
 open Caqti_metadata
 open Caqti_query
 
+(** Parameter encoding functions. *)
+module type PARAM = sig
+  type t
+
+  val null : t
+  (** For SQL, [null] is [NULL]. *)
+
+  val option : ('a -> t) -> 'a option -> t
+  (** [option f None] is [null] and [option f (Some x)] is [f x]. *)
+
+  val bool : bool -> t
+  (** Constructs a boolean parameter. *)
+
+  val int : int -> t
+  (** Constructs an integer parameter. The remote end may have a different
+      range. For SQL, works with all integer types. *)
+
+  val int32 : int32 -> t
+  (** Constructs an integer parameter. The remote end may have a different
+      range. For SQL, works with all integer types. *)
+
+  val int64 : int64 -> t
+  (** Constructs an integer parameter. The remote end may have a different
+      range. For SQL, works with all integer types. *)
+
+  val float : float -> t
+  (** Constructs a floating point parameter. The precision of the storage
+      may be different from that of the OCaml [float]. *)
+
+  val text : string -> t
+  (** Given an UTF-8 encoded text, constructs a textual parameter with
+      backend-specific encoding. *)
+
+  val octets : string -> t
+  (** Constructs a parameter from an arbitrary [string].  For SQL, the
+      parameter is compatible with the [BINARY] type. *)
+
+  val date : CalendarLib.Date.t -> t
+  (** Construct a parameter representing a date. *)
+
+  val utc : CalendarLib.Calendar.t -> t
+  (** Construct a parameter representing an UTC time value.  Selecting a
+      time zone suitable for an end-user is left to the application. *)
+
+  val other : string -> t
+  (** A backend-specific value. *)
+end
+
+(** Tuple decoding functions.
+
+    These functions extracts and decodes components from a returned tuple.
+    The first argument is the index, starting from 0.  The conversion
+    performed are the inverse of the same named functions of {!PARAM}, so the
+    documentation is not repeated here.
+
+    {b Note!}  Calls to these functions are only valid during a callback
+    from one of the query execution functions.  Returning a partial call or
+    embedding the call in a returned monad leads to undefined behaviour. *)
+module type TUPLE = sig
+  type t
+  val is_null : int -> t -> bool
+  val option : (int -> t -> 'a) -> int -> t -> 'a option
+  val bool : int -> t -> bool
+  val int : int -> t -> int
+  val int32 : int -> t -> int32
+  val int64 : int -> t -> int64
+  val float : int -> t -> float
+  val text : int -> t -> string
+  val octets : int -> t -> string
+  val date : int -> t -> CalendarLib.Date.t
+  val utc : int -> t -> CalendarLib.Calendar.t
+  val other : int -> t -> string
+end
+
+module type REPORT = sig
+  type t
+  val returned_count : (t -> int) option
+  val affected_count : (t -> int) option
+end
+
+module type WRAPPER = sig
+  module Make (Tuple : TUPLE) (Report : REPORT) : sig
+    type 'a callback
+
+    type queried
+    type reported
+    val on_query : query -> queried
+    val on_report : queried -> Report.t -> reported
+    val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
+  end
+end
+
 (** The main API as provided after connecting to a resource. *)
 module type CONNECTION = sig
 
@@ -90,76 +182,8 @@ module type CONNECTION = sig
 
   (** {3 Parameter and Tuple Coding} *)
 
-  (** Parameter encoding functions. *)
-  module Param : sig
-    val null : param
-    (** For SQL, [null] is [NULL]. *)
-
-    val option : ('a -> param) -> 'a option -> param
-    (** [option f None] is [null] and [option f (Some x)] is [f x]. *)
-
-    val bool : bool -> param
-    (** Constructs a boolean parameter. *)
-
-    val int : int -> param
-    (** Constructs an integer parameter. The remote end may have a different
-	range. For SQL, works with all integer types. *)
-
-    val int32 : int32 -> param
-    (** Constructs an integer parameter. The remote end may have a different
-	range. For SQL, works with all integer types. *)
-
-    val int64 : int64 -> param
-    (** Constructs an integer parameter. The remote end may have a different
-	range. For SQL, works with all integer types. *)
-
-    val float : float -> param
-    (** Constructs a floating point parameter. The precision of the storage
-	may be different from that of the OCaml [float]. *)
-
-    val text : string -> param
-    (** Given an UTF-8 encoded text, constructs a textual parameter with
-	backend-specific encoding. *)
-
-    val octets : string -> param
-    (** Constructs a parameter from an arbitrary [string].  For SQL, the
-	parameter is compatible with the [BINARY] type. *)
-
-    val date : CalendarLib.Date.t -> param
-    (** Construct a parameter representing a date. *)
-
-    val utc : CalendarLib.Calendar.t -> param
-    (** Construct a parameter representing an UTC time value.  Selecting a
-	time zone suitable for an end-user is left to the application. *)
-
-    val other : string -> param
-    (** A backend-specific value. *)
-  end
-
-  (** Tuple decoding functions.
-
-      These functions extracts and decodes components from a returned tuple.
-      The first argument is the index, starting from 0.  The conversion
-      performed are the inverse of the same named function of {!Param}, so the
-      documentation is not repeated here.
-
-      {b Note!}  Calls to these functions are only valid during a callback
-      from one of the query execution functions.  Returning a partial call or
-      embedding the call in a returned monad leads to undefined behaviour. *)
-  module Tuple : sig
-    val is_null : int -> tuple -> bool
-    val option : (int -> tuple -> 'a) -> int -> tuple -> 'a option
-    val bool : int -> tuple -> bool
-    val int : int -> tuple -> int
-    val int32 : int -> tuple -> int32
-    val int64 : int -> tuple -> int64
-    val float : int -> tuple -> float
-    val text : int -> tuple -> string
-    val octets : int -> tuple -> string
-    val date : int -> tuple -> CalendarLib.Date.t
-    val utc : int -> tuple -> CalendarLib.Calendar.t
-    val other : int -> tuple -> string
-  end
+  module Param : PARAM with type t = param
+  module Tuple : TUPLE with type t = tuple
 
 end
 

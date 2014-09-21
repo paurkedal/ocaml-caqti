@@ -38,6 +38,7 @@ let typedesc_of_decltype = function
 
 module Param = struct
   open Sqlite3.Data
+  type t = Data.t
   let null = NULL
   let option f = function None -> NULL | Some x -> f x
   let bool = function false -> INT Int64.zero | true -> INT Int64.one
@@ -58,6 +59,7 @@ let invalid_decode typename i stmt =
 
 module Tuple = struct
   open Sqlite3.Data
+  type t = stmt
   let is_null i stmt =
     match Sqlite3.column stmt i with NONE | NULL -> true | _ -> false
   let option f i stmt =

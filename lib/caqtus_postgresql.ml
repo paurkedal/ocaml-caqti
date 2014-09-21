@@ -47,6 +47,7 @@ let utc_of_timestamp s =
   CalendarLib.Printer.Calendar.from_fstring fmt s
 
 module Param = struct
+  type t = string
   let null = null
   let option f = function None -> null | Some x -> f x
   let bool x = string_of_bool x
@@ -62,6 +63,8 @@ module Param = struct
 end
 
 module Tuple = struct
+
+  type t = int * Postgresql.result
 
   let raw j (i, r) =
     try r#getvalue i j with Error msg ->

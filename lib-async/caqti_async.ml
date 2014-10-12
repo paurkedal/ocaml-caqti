@@ -84,7 +84,10 @@ include Caqti.Make (struct
       | `Oneshot qs -> log_f `Debug "Sent query: %s" qs
       | `Prepared (qn, qs) -> log_f `Debug "Sent query %s: %s" qn qs
       end >>= fun () ->
-      log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
+      if params = [] then
+	return ()
+      else
+	log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
 
     let debug_tuple tuple =
       log_f `Debug "Received tuple: %s" (String.concat ~sep:", " tuple)

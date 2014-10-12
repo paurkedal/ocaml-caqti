@@ -58,8 +58,11 @@ include Caqti.Make (struct
       | `Prepared (qn, qs) ->
 	Lwt_log.debug_f ~section:query_section "Sent query %s: %s" qn qs
       end >>= fun () ->
-      Lwt_log.debug_f ~section:query_section "with parameters: %s"
-		      (String.concat ", " params)
+      if params = [] then
+	Lwt.return_unit
+      else
+	Lwt_log.debug_f ~section:query_section "with parameters: %s"
+			(String.concat ", " params)
 
     let debug_tuple tuple =
       Lwt_log.debug_f ~section:tuple_section "Received tuple: %s"

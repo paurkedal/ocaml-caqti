@@ -55,3 +55,9 @@ let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 let prepare_sql ?name s =
   prepare_fun ?name
     (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
+
+type query_info = [ `Oneshot of string | `Prepared of string * string ]
+
+let make_query_info backend_info = function
+  | Oneshot qsf -> `Oneshot (qsf backend_info)
+  | Prepared {pq_name; pq_encode} -> `Prepared (pq_name, pq_encode backend_info)

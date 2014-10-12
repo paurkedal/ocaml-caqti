@@ -118,7 +118,7 @@ module Wrap (Wrapper : WRAPPER) = struct
       ~describe_has_typed_parameters:true
       ~describe_has_typed_fields:true ()
 
-  let query_info = Caqti.make_query_info backend_info
+  let query_info = make_query_info backend_info
 
   let prepare_failed uri q msg =
     fail (Caqti.Prepare_failed (uri, query_info q, msg))

@@ -71,3 +71,7 @@ val prepare_any : ?name: string -> string -> query
 
 val prepare_sql : ?name: string -> string -> query
 (** Create a prepared statement expected to work with any SQL dialect. *)
+
+type query_info = [`Oneshot of string | `Prepared of string * string]
+
+val make_query_info : backend_info -> query -> query_info

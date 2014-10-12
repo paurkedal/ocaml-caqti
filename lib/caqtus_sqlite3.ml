@@ -105,9 +105,9 @@ module Tuple = struct
 end
 
 module Report = struct
-  type t = unit
+  type t = Sqlite3.db
   let returned_count = None
-  let affected_count = None
+  let affected_count = Some (fun db -> Sqlite3.changes db)
 end
 
 let yield = Thread.yield
@@ -240,7 +240,7 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       let find q f params =
 	let q' = W.on_query q in
-	let r' = Lazy.from_fun (W.on_report q') in
+	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
 	let rec extract stmt =
 	  match Sqlite3.step stmt with
 	  | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); None
@@ -260,7 +260,7 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       let fold q f params acc =
 	let q' = W.on_query q in
-	let r' = Lazy.from_fun (W.on_report q') in
+	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
 	let rec extract stmt =
 	  let rec loop acc =
 	    match Sqlite3.step stmt with
@@ -273,7 +273,7 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       let fold_s q f params acc =
 	let q' = W.on_query q in
-	let r' = Lazy.from_fun (W.on_report q') in
+	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
 	let rec extract stmt =
 	  let rec loop acc =
 	    match Sqlite3.step stmt with
@@ -288,7 +288,7 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       let iter_s q f params =
 	let q' = W.on_query q in
-	let r' = Lazy.from_fun (W.on_report q') in
+	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
 	let rec extract stmt =
 	  let rec loop () =
 	    match Sqlite3.step stmt with

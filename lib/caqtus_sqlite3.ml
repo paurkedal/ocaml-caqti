@@ -22,6 +22,8 @@ open Caqti_sigs
 open Printf
 open Sqlite3
 
+(* TODO: Implement tuple-debugging. *)
+
 let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
@@ -52,6 +54,8 @@ module Param = struct
   let utc x = TEXT (CalendarLib.Printer.Calendar.sprint "%F %T" x)
   let other x = failwith "Param.other is invalid for sqlite3"
 end
+
+let params_info ps = Array.to_list (Array.map Data.to_string_debug ps)
 
 let invalid_decode typename i stmt =
   let msg = sprintf "Expected %s in column %d of Sqlite result." typename i in
@@ -172,6 +176,9 @@ module Wrap (Wrapper : WRAPPER) = struct
 		(uri, query_info q, Sqlite3.Rc.to_string rc)) in
 
     let prim_exec extract q params =
+      (if Log.debug_query_enabled ()
+       then Log.debug_query (query_info q) (params_info params)
+       else return ()) >>= fun () ->
       begin match q with
       | Prepared {pq_encode} ->
 	begin try return (pq_encode backend_info)

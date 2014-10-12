@@ -66,14 +66,28 @@ include Caqti.Make (struct
   end
 
   module Log = struct
-    let log_f level q fmt =
+    let log_f level fmt =
       ksprintf
 	(fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
 	fmt
-    let error_f   q fmt = log_f `Error q fmt
-    let warning_f q fmt = log_f `Info  q fmt
-    let info_f    q fmt = log_f `Info  q fmt
-    let debug_f   q fmt = log_f `Debug q fmt
+    let error_f   q fmt = log_f `Error fmt
+    let warning_f q fmt = log_f `Info  fmt
+    let info_f    q fmt = log_f `Info  fmt
+    let debug_f   q fmt = log_f `Debug fmt
+
+    (* TODO: Check how log filtering works in async. *)
+    let debug_query_enabled () = false
+    let debug_tuple_enabled () = false
+
+    let debug_query qi params =
+      begin match qi with
+      | `Oneshot qs -> log_f `Debug "Sent query: %s" qs
+      | `Prepared (qn, qs) -> log_f `Debug "Sent query %s: %s" qn qs
+      end >>= fun () ->
+      log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
+
+    let debug_tuple tuple =
+      log_f `Debug "Received tuple: %s" (String.concat ~sep:", " tuple)
   end
 
   module Preemptive = struct

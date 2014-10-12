@@ -31,10 +31,39 @@ include Caqti.Make (struct
   end
 
   module Log = struct
+    open Lwt_log
+
+    let section = Lwt_log.Section.make "caqti"
+    let query_section = Lwt_log.Section.make "caqti.show-query"
+    let tuple_section = Lwt_log.Section.make "caqti.show-tuple"
+
     let error_f q fmt = Lwt_log.error_f fmt
     let warning_f q fmt = Lwt_log.warning_f fmt
     let info_f q fmt = Lwt_log.info_f fmt
+
     let debug_f q fmt = Lwt_log.debug_f fmt
+
+    let debug_enabled_for scn =
+      match Lwt_log.Section.level scn with
+      | Debug -> true
+      | Info | Notice | Warning | Error | Fatal -> false
+
+    let debug_query_enabled () = debug_enabled_for query_section
+    let debug_tuple_enabled () = debug_enabled_for tuple_section
+
+    let debug_query qi params =
+      begin match qi with
+      | `Oneshot qs ->
+	Lwt_log.debug_f ~section:query_section "Sent query: %s" qs
+      | `Prepared (qn, qs) ->
+	Lwt_log.debug_f ~section:query_section "Sent query %s: %s" qn qs
+      end >>= fun () ->
+      Lwt_log.debug_f ~section:query_section "with parameters: %s"
+		      (String.concat ", " params)
+
+    let debug_tuple tuple =
+      Lwt_log.debug_f ~section:tuple_section "Received tuple: %s"
+		      (String.concat ", " tuple)
   end
 
   module Unix = struct

@@ -106,6 +106,16 @@ let escaped_connvalue s =
     s;
   Buffer.contents buf
 
+let debug_quote s =
+  "\"" ^ String.escaped s ^ "\""
+
+let param_info p = Array.to_list (Array.map debug_quote p)
+
+let tuple_info (i, r) =
+  let rec loop j acc = if j < 0 then acc else
+		       loop (j - 1) (debug_quote (r#getvalue i j) :: acc) in
+  loop (r#nfields - 1) []
+
 module Caqtus_functor (System : SYSTEM) = struct
 module Wrap (Wrapper : WRAPPER) = struct
 
@@ -355,6 +365,9 @@ module Wrap (Wrapper : WRAPPER) = struct
 	end
 
       let exec_prepared params q =
+	(if Log.debug_query_enabled ()
+	 then Log.debug_query (query_info q) (param_info params)
+	 else return ()) >>= fun () ->
 	use begin fun c ->
 	  match q with
 	  | Oneshot qsf -> c#exec_oneshot_io ~params (qsf backend_info)
@@ -370,7 +383,12 @@ module Wrap (Wrapper : WRAPPER) = struct
 	check_tuples_ok q r >>= fun () ->
 	let r' = W.on_report q' r in
 	if r#ntuples = 0 then return None else
-	if r#ntuples = 1 then return (Some (W.on_tuple f r' (0, r))) else
+	if r#ntuples = 1 then begin
+	  (if Log.debug_tuple_enabled ()
+	   then Log.debug_tuple (tuple_info (0, r))
+	   else return ()) >>=
+	  fun () -> return (Some (W.on_tuple f r' (0, r)))
+	end else
 	miscommunication uri q
 			 "Received %d tuples, expected at most one." r#ntuples
 
@@ -381,10 +399,17 @@ module Wrap (Wrapper : WRAPPER) = struct
 	let r' = W.on_report q' r in
 	let f' = W.on_tuple f r' in
 	let n = r#ntuples in
-	let rec loop i acc =
-	  if i = n then acc else
-	  loop (i + 1) (f' (i, r) acc) in
-	return (loop 0 acc)
+	if Log.debug_tuple_enabled () then
+	  let rec loop i acc =
+	    if i = n then return acc else
+	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+	    loop (i + 1) (f' (i, r) acc) in
+	  loop 0 acc
+	else
+	  let rec loop i acc =
+	    if i = n then acc else
+	    loop (i + 1) (f' (i, r) acc) in
+	  return (loop 0 acc)
 
       let fold_s q f params acc =
 	let q' = W.on_query q in
@@ -393,10 +418,17 @@ module Wrap (Wrapper : WRAPPER) = struct
 	let r' = W.on_report q' r in
 	let f' = W.on_tuple f r' in
 	let n = r#ntuples in
-	let rec loop i acc =
-	  if i = n then return acc else
-	  f' (i, r) acc >>= loop (i + 1) in
-	loop 0 acc
+	if Log.debug_tuple_enabled () then
+	  let rec loop i acc =
+	    if i = n then return acc else
+	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+	    f' (i, r) acc >>= loop (i + 1) in
+	  loop 0 acc
+	else
+	  let rec loop i acc =
+	    if i = n then return acc else
+	    f' (i, r) acc >>= loop (i + 1) in
+	  loop 0 acc
 
       let iter_s q f params =
 	let q' = W.on_query q in
@@ -406,12 +438,20 @@ module Wrap (Wrapper : WRAPPER) = struct
 	let f' = W.on_tuple f r' in
 	let a = r#get_all in
 	let n = Array.length a in
-	let rec loop i =
-	  if i = n then return () else
-	  f' (i, r) >>= fun () -> loop (i + 1) in
-	loop 0
+	if Log.debug_tuple_enabled () then
+	  let rec loop i =
+	    if i = n then return () else
+	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+	    f' (i, r) >>= fun () -> loop (i + 1) in
+	  loop 0
+	else
+	  let rec loop i =
+	    if i = n then return () else
+	    f' (i, r) >>= fun () -> loop (i + 1) in
+	  loop 0
 
       let iter_p q f params =
+	if Log.debug_tuple_enabled () then iter_s q f params else
 	let q' = W.on_query q in
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->

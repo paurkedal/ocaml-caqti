@@ -71,35 +71,28 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   (* Non-prepared. *)
   for_lwt i = 0 to 199 do
     let qs = sprintf "SELECT %d, '%s'" i (string_of_int i) in
-    match_lwt
-      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||]
-    with
-    | None -> assert false
-    | Some (j, s) ->
-      assert (i = j);
-      assert (i = int_of_string s);
-      Lwt.return_unit
+    lwt j, s =
+      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||] in
+    assert (i = j);
+    assert (i = int_of_string s);
+    Lwt.return_unit
   done >>
 
   (* Prepared: bool *)
   let ck_and a b =
-    match_lwt
+    lwt c =
       Db.find Q.select_and
-	      Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|])
-    with
-    | None -> assert false
-    | Some c -> assert (c = (a && b)); Lwt.return_unit in
+	      Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|]) in
+    assert (c = (a && b)); Lwt.return_unit in
   ck_and false false >> ck_and false true >>
   ck_and true  false >> ck_and true  true >>
 
   (* Prepared: int *)
   let ck_plus_int i j =
-    match_lwt
+    lwt k =
       Db.find Q.select_plus_int
-	      Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|])
-    with
-    | None -> assert false
-    | Some k -> assert (k = (i + j)); Lwt.return_unit in
+	      Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|]) in
+    assert (k = (i + j)); Lwt.return_unit in
   for_lwt m = 0 to 199 do
     let i, j = Random.int (1 lsl 29), Random.int (1 lsl 29) in
     ck_plus_int i j
@@ -107,12 +100,10 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
   (* Prepared: int64 *)
   let ck_plus_int64 i j =
-    match_lwt
+    lwt k =
       Db.find Q.select_plus_int
-	      Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|])
-    with
-    | None -> assert false
-    | Some k -> assert (k = Int64.add i j); Lwt.return_unit in
+	      Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|]) in
+    assert (k = Int64.add i j); Lwt.return_unit in
   for_lwt m = 0 to 199 do
     let i = Random.int64 Int64.(shift_left one 29) in
     let j = Random.int64 Int64.(shift_left one 29) in
@@ -121,14 +112,11 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
   (* Prepared: float *)
   let ck_plus_float x y =
-    match_lwt
+    lwt z =
       Db.find Q.select_plus_float
-	      Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|])
-    with
-    | None -> assert false
-    | Some z ->
-      assert (abs_float (z -. (x +. y)) < 1e-8 *. (x +. y));
-      Lwt.return_unit in
+	      Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|]) in
+    assert (abs_float (z -. (x +. y)) < 1e-8 *. (x +. y));
+    Lwt.return_unit in
   for_lwt m = 0 to 199 do
     let i, j = Random.float 1e8, Random.float 1e8 in
     ck_plus_float i j
@@ -136,12 +124,10 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
   (* Prepared: string *)
   let ck_string x y =
-    match_lwt
+    lwt s =
       Db.find Q.select_cat
-	      Db.Tuple.(fun u -> text 0 u) Db.Param.([|text x; text y|])
-    with
-    | None -> assert false
-    | Some s -> assert (s = x ^ y); Lwt.return_unit in
+	      Db.Tuple.(fun u -> text 0 u) Db.Param.([|text x; text y|]) in
+    assert (s = x ^ y); Lwt.return_unit in
   for_lwt m = 0 to 199 do
     let x = sprintf "%x" (Random.int (1 lsl 29)) in
     let y = sprintf "%x" (Random.int (1 lsl 29)) in

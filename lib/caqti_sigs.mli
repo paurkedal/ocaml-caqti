@@ -165,7 +165,11 @@ module type CONNECTION_BASE = sig
   (** [exec q params] executes a query [q(params)] which is not expected to
       return anything. *)
 
-  val find : query -> 'a callback -> param array -> 'a option io
+  val find : query -> 'a callback -> param array -> 'a io
+  (** [find_e q params] executes [q(params)] which is expected to return
+      exactly one tuple. *)
+
+  val find_opt : query -> 'a callback -> param array -> 'a option io
   (** [find q params] executes a query [q(params)] which is expected to return
       at most one tuple. *)
 

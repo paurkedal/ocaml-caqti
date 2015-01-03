@@ -85,7 +85,7 @@ let report_stolen (module Db : Caqti_lwt.CONNECTION) frameno =
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
 let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
-  Db.find Q.select_frameno Db.Tuple.(text 1) Db.Param.([|text frameno|])
+  Db.find_opt Q.select_frameno Db.Tuple.(text 1) Db.Param.([|text frameno|])
 
 (* As a helper for iterators, [wrap db f] accepts a raw tuple and passes its
  * converted components as arguments to [f].  First-class modules are

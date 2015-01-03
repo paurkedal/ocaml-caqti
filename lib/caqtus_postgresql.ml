@@ -382,6 +382,19 @@ module Wrap (Wrapper : WRAPPER) = struct
 	exec_prepared params q >>= fun r ->
 	check_tuples_ok q r >>= fun () ->
 	let r' = W.on_report q' r in
+	if r#ntuples = 1 then begin
+	  (if Log.debug_tuple_enabled ()
+	   then Log.debug_tuple (tuple_info (0, r))
+	   else return ()) >>=
+	  fun () -> return (W.on_tuple f r' (0, r))
+	end else
+	miscommunication uri q "Received %d tuples, expected one." r#ntuples
+
+      let find_opt q f params =
+	let q' = W.on_query q in
+	exec_prepared params q >>= fun r ->
+	check_tuples_ok q r >>= fun () ->
+	let r' = W.on_report q' r in
 	if r#ntuples = 0 then return None else
 	if r#ntuples = 1 then begin
 	  (if Log.debug_tuple_enabled ()

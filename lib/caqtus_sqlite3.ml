@@ -250,6 +250,26 @@ module Wrap (Wrapper : WRAPPER) = struct
 	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
 	let rec extract stmt =
 	  match Sqlite3.step stmt with
+	  | Sqlite3.Rc.DONE ->
+	    let msg = "Received no tuples, expected one." in
+	    raise (Caqti.Miscommunication (uri, query_info q, msg))
+	  | Sqlite3.Rc.ROW ->
+	    let r = W.on_tuple f (Lazy.force r') stmt in
+	    begin match Sqlite3.step stmt with
+	    | Sqlite3.Rc.DONE -> r
+	    | Sqlite3.Rc.ROW ->
+	      let msg = "Received multiple tuples, expected one." in
+	      raise (Caqti.Miscommunication (uri, query_info q, msg))
+	    | rc -> raise_rc q rc
+	    end
+	  | rc -> raise_rc q rc in
+	prim_exec extract q params
+
+      let find_opt q f params =
+	let q' = W.on_query q in
+	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+	let rec extract stmt =
+	  match Sqlite3.step stmt with
 	  | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); None
 	  | Sqlite3.Rc.ROW ->
 	    let r = W.on_tuple f (Lazy.force r') stmt in

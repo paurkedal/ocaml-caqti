@@ -211,13 +211,18 @@ module type POOL = sig
   val drain : 'a t -> unit io
 end
 
+module type MONAD = sig
+  type 'a t
+  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val return : 'a -> 'a t
+end
+
 (** The IO monad and system utilities used by backends.  Note that this
     signature will likely be extended due requirements of new backends. *)
 module type SYSTEM = sig
 
   type 'a io
-  val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
-  val return : 'a -> 'a io
+  include MONAD with type 'a t := 'a io
   val fail : exn -> 'a io
   val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
   val join : unit io list -> unit io

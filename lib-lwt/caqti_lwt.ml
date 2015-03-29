@@ -88,3 +88,8 @@ include Caqti.Make (struct
   module Preemptive = Lwt_preemptive
 
 end)
+
+include Caqti_sql_utils.Make (struct
+  include System
+  type 'a t = 'a io
+end)

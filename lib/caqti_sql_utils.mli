@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,11 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.  This module contains the signature and connect
-    function specialized for use with Lwt. *)
-
 open Caqti_sigs
 
-include CAQTI with type 'a System.io = 'a Lwt.t
-
-val read_sql_statement : ('a -> char option Lwt.t) -> 'a -> string option Lwt.t
+module Make (Io : MONAD) : sig
+  val read_sql_statement : ('a -> char option Io.t) -> 'a -> string option Io.t
+end

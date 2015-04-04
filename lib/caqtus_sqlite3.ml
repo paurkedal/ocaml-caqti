@@ -22,6 +22,9 @@ open Caqti_sigs
 open Printf
 open Sqlite3
 
+module CL = CalendarLib
+let with_utc f = CL.Time_Zone.(on f UTC ())
+
 (* TODO: Implement tuple-debugging. *)
 
 let typedesc_of_decltype = function
@@ -50,8 +53,8 @@ module Param = struct
   let float x = FLOAT x
   let text x = TEXT x
   let octets x = BLOB x
-  let date x = TEXT (CalendarLib.Printer.Date.sprint "%F" x)
-  let utc x = TEXT (CalendarLib.Printer.Calendar.sprint "%F %T" x)
+  let date x = TEXT (CL.Printer.Date.sprint "%F" x)
+  let utc x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
   let other x = failwith "Param.other is invalid for sqlite3"
 end
 
@@ -99,11 +102,11 @@ module Tuple = struct
     | _ -> invalid_decode "octets" i stmt
   let date i stmt =
     match Sqlite3.column stmt i with
-    | TEXT x -> CalendarLib.Printer.Date.from_fstring "%F" x
+    | TEXT x -> CL.Printer.Date.from_fstring "%F" x
     | _ -> invalid_decode "date" i stmt
   let utc i stmt =
     match Sqlite3.column stmt i with
-    | TEXT x -> CalendarLib.Printer.Calendar.from_fstring "%F %T" x
+    | TEXT x -> with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x)
     | _ -> invalid_decode "timestamp" i stmt
   let other i stmt = to_string (Sqlite3.column stmt i)
 end

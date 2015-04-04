@@ -21,6 +21,9 @@ open Caqti_sigs
 open Postgresql
 open Printf
 
+module CL = CalendarLib
+let with_utc f = CL.Time_Zone.(on f UTC ())
+
 let typedesc_of_ftype = function
   | BOOL -> `Bool
   | INT2 | INT4 | INT8 -> `Int
@@ -44,7 +47,7 @@ let utc_of_timestamp s =
     if s.[n - 3] = '+' || s.[n - 3] = '-' then
       ("%F %T%:::z", s0 ^ String.sub s (n - 3) 3) else
     ("%F %T%:::z", s0 ^ "+00") in
-  CalendarLib.Printer.Calendar.from_fstring fmt s
+  with_utc (fun () -> CL.Printer.Calendar.from_fstring fmt s)
 
 module Param = struct
   type t = string
@@ -57,8 +60,8 @@ module Param = struct
   let float x = string_of_float x
   let text s = s
   let octets s = s
-  let date t = CalendarLib.Printer.Date.sprint "%F" t
-  let utc t = CalendarLib.Printer.Calendar.sprint "%F %T%z" t
+  let date t = CL.Printer.Date.sprint "%F" t
+  let utc t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
   let other s = s
 end
 
@@ -87,7 +90,7 @@ module Tuple = struct
   let float j t = float_of_string (raw j t)
   let text j t = raw j t
   let octets j t = raw j t
-  let date j t = CalendarLib.Printer.Date.from_fstring "%F" (raw j t)
+  let date j t = CL.Printer.Date.from_fstring "%F" (raw j t)
   let utc j t = utc_of_timestamp (raw j t)
   let other = raw
 end

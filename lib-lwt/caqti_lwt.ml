@@ -76,15 +76,6 @@ include Caqti.Make (struct
     let wait_write = Lwt_unix.wait_write
   end
 
-  (* TODO: priority, idle shutdown *)
-  module Pool = struct
-    type 'a t = 'a Lwt_pool.t
-    let create ?(max_size = 1) ?max_priority ?validate f =
-      Lwt_pool.create max_size ?validate f
-    let use ?priority f p = Lwt_pool.use p f
-    let drain pool = return () (* FIXME *)
-  end
-
   module Preemptive = Lwt_preemptive
 
 end)

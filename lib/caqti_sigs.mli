@@ -242,10 +242,10 @@ module type SYSTEM = sig
   end
 
   module Log : sig
-    val error_f : query -> ('a, unit, string, unit io) format4 -> 'a
-    val warning_f : query -> ('a, unit, string, unit io) format4 -> 'a
-    val info_f : query -> ('a, unit, string, unit io) format4 -> 'a
-    val debug_f : query -> ('a, unit, string, unit io) format4 -> 'a
+    val error_f : ('a, unit, string, unit io) format4 -> 'a
+    val warning_f : ('a, unit, string, unit io) format4 -> 'a
+    val info_f : ('a, unit, string, unit io) format4 -> 'a
+    val debug_f : ('a, unit, string, unit io) format4 -> 'a
     val debug_query_enabled : unit -> bool
     val debug_query : query_info -> string list -> unit io
     val debug_tuple_enabled : unit -> bool

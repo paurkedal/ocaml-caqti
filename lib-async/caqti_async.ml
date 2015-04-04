@@ -70,10 +70,10 @@ include Caqti.Make (struct
       ksprintf
 	(fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
 	fmt
-    let error_f   q fmt = log_f `Error fmt
-    let warning_f q fmt = log_f `Info  fmt
-    let info_f    q fmt = log_f `Info  fmt
-    let debug_f   q fmt = log_f `Debug fmt
+    let error_f   fmt = log_f `Error fmt
+    let warning_f fmt = log_f `Info  fmt
+    let info_f    fmt = log_f `Info  fmt
+    let debug_f   fmt = log_f `Debug fmt
 
     (* TODO: Check how log filtering works in async. *)
     let debug_query_enabled () = false

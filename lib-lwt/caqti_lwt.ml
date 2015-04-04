@@ -36,10 +36,10 @@ include Caqti.Make (struct
     let section = Lwt_log.Section.make "caqti"
     let qnr_section = Lwt_log.Section.make "caqti.qnr"
 
-    let error_f q fmt = Lwt_log.error_f ~section fmt
-    let warning_f q fmt = Lwt_log.warning_f ~section fmt
-    let info_f q fmt = Lwt_log.info_f ~section fmt
-    let debug_f q fmt = Lwt_log.debug_f ~section fmt
+    let error_f   fmt = Lwt_log.error_f ~section fmt
+    let warning_f fmt = Lwt_log.warning_f ~section fmt
+    let info_f    fmt = Lwt_log.info_f ~section fmt
+    let debug_f   fmt = Lwt_log.debug_f ~section fmt
 
     let debug_query_enabled () =
       match Lwt_log.Section.level qnr_section with

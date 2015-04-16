@@ -24,6 +24,10 @@ open Printf
 module CL = CalendarLib
 let with_utc f = CL.Time_Zone.(on f UTC ())
 
+let float_prec =
+  try int_of_string (Sys.getenv "CAQTUS_POSTGRESQL_FLOAT_PRECISION")
+  with Not_found -> 17
+
 let typedesc_of_ftype = function
   | BOOL -> `Bool
   | INT2 | INT4 | INT8 -> `Int
@@ -57,7 +61,7 @@ module Param = struct
   let int x = string_of_int x
   let int32 x = Int32.to_string x
   let int64 x = Int64.to_string x
-  let float x = string_of_float x
+  let float x = sprintf "%.*g" float_prec x
   let text s = s
   let octets s = s
   let date t = CL.Printer.Date.sprint "%F" t

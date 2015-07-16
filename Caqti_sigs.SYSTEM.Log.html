@@ -18,6 +18,7 @@
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
 <link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
+<link title="Caqti_sql_utils" rel="Chapter" href="Caqti_sql_utils.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_sigs.SYSTEM.Log</title>
 </head>
 <body>
@@ -29,7 +30,11 @@
 
 <pre><span class="keyword">module</span> Log: <code class="code">sig</code> <a href="Caqti_sigs.SYSTEM.Log.html">..</a> <code class="code">end</code></pre><hr width="100%">
 
-<pre><span id="VALerror_f"><span class="keyword">val</span> error_f</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       ('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
-<pre><span id="VALwarning_f"><span class="keyword">val</span> warning_f</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       ('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
-<pre><span id="VALinfo_f"><span class="keyword">val</span> info_f</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       ('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
-<pre><span id="VALdebug_f"><span class="keyword">val</span> debug_f</span> : <code class="type"><a href="Caqti_query.html#TYPEquery">Caqti_query.query</a> -><br>       ('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre></body></html>
+<pre><span id="VALerror_f"><span class="keyword">val</span> error_f</span> : <code class="type">('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALwarning_f"><span class="keyword">val</span> warning_f</span> : <code class="type">('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALinfo_f"><span class="keyword">val</span> info_f</span> : <code class="type">('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALdebug_f"><span class="keyword">val</span> debug_f</span> : <code class="type">('a, unit, string, unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a>) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALdebug_query_enabled"><span class="keyword">val</span> debug_query_enabled</span> : <code class="type">unit -> bool</code></pre>
+<pre><span id="VALdebug_query"><span class="keyword">val</span> debug_query</span> : <code class="type"><a href="Caqti_query.html#TYPEquery_info">Caqti_query.query_info</a> -> string list -> unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a></code></pre>
+<pre><span id="VALdebug_tuple_enabled"><span class="keyword">val</span> debug_tuple_enabled</span> : <code class="type">unit -> bool</code></pre>
+<pre><span id="VALdebug_tuple"><span class="keyword">val</span> debug_tuple</span> : <code class="type">string list -> unit <a href="Caqti_sigs.SYSTEM.html#TYPEio">Caqti_sigs.SYSTEM.io</a></code></pre></body></html>

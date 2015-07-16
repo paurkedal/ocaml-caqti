@@ -16,6 +16,7 @@
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
 <link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
+<link title="Caqti_sql_utils" rel="Chapter" href="Caqti_sql_utils.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti.Make</title>
 </head>
 <body>
@@ -23,7 +24,7 @@
 &nbsp;</div>
 <h1>Functor <a href="type_Caqti.Make.html">Caqti.Make</a></h1>
 
-<pre><span class="keyword">module</span> Make: <div class="sig_block"><code class="code">functor (</code><code class="code">System</code><code class="code"> : </code><code class="type"><a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a></code><code class="code">) -&gt; </code><code class="type">CONNECT</code><code class="type">  with type 'a io = 'a System.io</code></div></pre><table border="0" cellpadding="3" width="100%">
+<pre><span class="keyword">module</span> Make: <div class="sig_block"><code class="code">functor (</code><code class="code">System</code><code class="code"> : </code><code class="type"><a href="Caqti_sigs.SYSTEM.html">Caqti_sigs.SYSTEM</a></code><code class="code">) -&gt; </code><code class="type">CAQTI</code><code class="type">  with module System = System</code></div></pre><table border="0" cellpadding="3" width="100%">
 <tr>
 <td align="left" valign="top" width="1%%"><b>Parameters: </b></td>
 <td>

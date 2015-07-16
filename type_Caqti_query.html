@@ -13,6 +13,7 @@
 <link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
 <link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
 <link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
+<link title="Caqti_sql_utils" rel="Chapter" href="Caqti_sql_utils.html">
 <link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_query</title>
 </head>
 <body>
@@ -41,4 +42,8 @@
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Caqti_metadata</span>.dialect_tag&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Caqti_query</span>.query<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;prepare_any&nbsp;:&nbsp;?name:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Caqti_query</span>.query<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;prepare_sql&nbsp;:&nbsp;?name:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Caqti_query</span>.query<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;query_info&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Oneshot</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Prepared</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;string&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;make_query_info&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Caqti_metadata</span>.backend_info&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Caqti_query</span>.query&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Caqti_query</span>.query_info<br>
 <span class="keyword">end</span></code></body></html>

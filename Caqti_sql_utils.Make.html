@@ -1,0 +1,43 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="Up" href="Caqti_sql_utils.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Caqti" rel="Chapter" href="Caqti.html">
+<link title="Caqti_describe" rel="Chapter" href="Caqti_describe.html">
+<link title="Caqti_metadata" rel="Chapter" href="Caqti_metadata.html">
+<link title="Caqti_plugin" rel="Chapter" href="Caqti_plugin.html">
+<link title="Caqti_pool" rel="Chapter" href="Caqti_pool.html">
+<link title="Caqti_sigs" rel="Chapter" href="Caqti_sigs.html">
+<link title="Caqti_sql_utils" rel="Chapter" href="Caqti_sql_utils.html">
+<link title="Caqti_query" rel="Chapter" href="Caqti_query.html"><title>The Caqti API : Caqti_sql_utils.Make</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="Caqti_sql_utils.html" title="Caqti_sql_utils">Up</a>
+&nbsp;</div>
+<h1>Functor <a href="type_Caqti_sql_utils.Make.html">Caqti_sql_utils.Make</a></h1>
+
+<pre><span class="keyword">module</span> Make: <div class="sig_block"><code class="code">functor (</code><code class="code">Io</code><code class="code"> : </code><code class="type"><a href="Caqti_sigs.MONAD.html">Caqti_sigs.MONAD</a></code><code class="code">) -&gt; </code><code class="code">sig</code> <a href="Caqti_sql_utils.Make.html">..</a> <code class="code">end</code></div></pre><table border="0" cellpadding="3" width="100%">
+<tr>
+<td align="left" valign="top" width="1%%"><b>Parameters: </b></td>
+<td>
+<table class="paramstable">
+<tr>
+<td align="center" valign="top" width="15%">
+<code>Io</code></td>
+<td align="center" valign="top">:</td>
+<td><code class="type"><a href="Caqti_sigs.MONAD.html">Caqti_sigs.MONAD</a></code>
+</table>
+</td>
+</tr>
+</table>
+<hr width="100%">
+
+<pre><span id="VALread_sql_statement"><span class="keyword">val</span> read_sql_statement</span> : <code class="type">('a -> char option Io.t) -> 'a -> string option Io.t</code></pre></body></html>

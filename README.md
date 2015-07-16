@@ -1,8 +1,9 @@
 ## Synopsis
 
-Caqti is an library providing an abstraction over relational databases and
-other external data interfaces which is queried by passing a string along
-with typed parameters, and which responds with a sequence of typed tuples.
+Caqti is an library providing a common API to SQL databases and similar data
+interfaces.  The assumption is that the data service is queried by passing a
+string along with typed parameters, and responds with a sequence of typed
+tuples.
 Caqti may be used directly or to provide multi-database support to
 higher-level solutions, like code generators and syntax extensions.
 

@@ -18,8 +18,8 @@
  * This way of defining typed wrappers around queries should also work for
  * code-generators. *)
 
+open Lwt.Infix
 open Caqti_query
-let (>>=) = Lwt.(>>=)
 
 (* Query Strings
  * =============

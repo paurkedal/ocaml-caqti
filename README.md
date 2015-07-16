@@ -1,14 +1,14 @@
 ## Synopsis
 
-Caqti is an interface to data sources which accept a parametrised query
-string and responds with a sequence of tuples.  It is especially aimed at
-relational databases, where SQL is the common query language.  Caqti may be
-used directly or as an intermediate layer between database client libraries
-and high-level solutions like code generators and syntax extensions.
+Caqti is an library providing an abstraction over relational databases and
+other external data interfaces which is queried by passing a string along
+with typed parameters, and which responds with a sequence of typed tuples.
+Caqti may be used directly or to provide multi-database support to
+higher-level solutions, like code generators and syntax extensions.
 
 The interface abstracts over an IO monad to support cooperative threading.
-Async and Lwt are provided by the main library, as well as functor for
-instantiating over other IO monads.
+Async and Lwt instantiations are shipped with the main library, as well as a
+functor for instantiating over other IO monads.
 
 ## Status
 
@@ -29,8 +29,8 @@ Feedback is welcome.
 
 As the main entry point, you would normally use either of
 
-    Caqti_lwt : Caqti_sigs.CONNECT with type 'a io = 'a Lwt.t
-    Caqti_async : Caqti_sigs.CONNECT with type 'a io = 'a Deferred.Or_error.t
+    Caqti_lwt : Caqti_sigs.CAQTI with type 'a io = 'a Lwt.t
+    Caqti_async : Caqti_sigs.CAQTI with type 'a io = 'a Deferred.Or_error.t
 
 which is provided by `caqti.lwt` or `caqti.async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate

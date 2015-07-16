@@ -43,7 +43,7 @@ main documentation is the [API Reference][apiref].  Apart from the above
 connectors, the most important modules to know are:
 
   - `Caqti_query` is used for constructing query strings.
-  - `Caqti_sigs.CONNECTION` is the interface to a connected database.
+  - `Caqti_sigs.CAQTI.CONNECTION` is the interface to a connected database.
 
 
 [apiref]: http://paurkedal.github.io/ocaml-caqti/

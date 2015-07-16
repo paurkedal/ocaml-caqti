@@ -61,8 +61,8 @@ module type PARAM = sig
   (** Construct a parameter representing a date. *)
 
   val utc : CalendarLib.Calendar.t -> t
-  (** Construct a parameter representing an UTC time value.  Selecting a
-      time zone suitable for an end-user is left to the application. *)
+  (** Construct a parameter representing an date and time in the UTC time
+      zone. *)
 
   val other : string -> t
   (** A backend-specific value. *)

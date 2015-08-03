@@ -18,6 +18,36 @@ open Caqti_metadata
 
 exception Missing_query_string
 
+let format_query ?env sql lang =
+  let n = String.length sql in
+  let buf = Buffer.create n in
+  let add_substring =
+    match env with
+    | None -> Buffer.add_substring buf sql
+    | Some env ->
+      fun i n -> Buffer.add_substitute buf (env lang) (String.sub sql i n) in
+  let rec skip_quoted j =
+    if j = n then invalid_arg ("format_query: Unmatched quote: " ^ sql) else
+    if sql.[j] <> '\'' then skip_quoted (j + 1) else
+    if j + 1 < n && sql.[j + 1] = '\'' then skip_quoted (j + 2) else
+    j + 1 in
+  let rec loop p i j =
+    if j = n then add_substring i (j - i) else
+    match sql.[j] with
+    | '\'' ->
+      add_substring i (j - i);
+      let k = skip_quoted (j + 1) in
+      Buffer.add_substring buf sql j (k - j);
+      loop p k k
+    | '?' when lang = `Pgsql ->
+      add_substring i (j - i);
+      Printf.bprintf buf "$%d" p;
+      loop (p + 1) (j + 1) (j + 1)
+    | _ ->
+      loop p i (j + 1) in
+  loop 0 0 0;
+  Buffer.contents buf
+
 type oneshot_query = backend_info -> string
 
 type prepared_query = {
@@ -35,6 +65,11 @@ let oneshot_fun f = Oneshot (fun {bi_dialect_tag} -> f bi_dialect_tag)
 let oneshot_any s = Oneshot (fun _ -> s)
 let oneshot_sql s =
   oneshot_fun (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
+
+let oneshot_sql_p ?env sql = oneshot_fun @@ fun lang ->
+  match lang with
+  | #sql_dialect_tag -> format_query ?env sql lang
+  | _ -> raise Missing_query_string
 
 let next_prepared_index = ref 0
 
@@ -55,6 +90,11 @@ let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 let prepare_sql ?name s =
   prepare_fun ?name
     (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
+
+let prepare_sql_p ?name ?env sql = prepare_fun ?name @@ fun lang ->
+  match lang with
+  | #sql_dialect_tag -> format_query ?env sql lang
+  | _ -> raise Missing_query_string
 
 type query_info = [ `Oneshot of string | `Prepared of string * string ]
 

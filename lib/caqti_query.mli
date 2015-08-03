@@ -57,20 +57,40 @@ val oneshot_any : string -> query
 val oneshot_sql : string -> query
 (** Create a one-shot query string expected to work with any SQL dialect. *)
 
+val oneshot_sql_p : ?env: (dialect_tag -> string -> string) -> string -> query
+(** Create a one-shot query string expected to work with any SQL dialect after
+    conversion of parameters.
+    @param env If provided, parameters in the form accepted by
+	   {!Buffer.add_substitute} will be substituted using this environment.
+  *)
+
 val prepare_full : ?name: string -> (backend_info -> string) -> query
 (** Create a prepared statement dispatching on the full query language
-    descriptor.  *)
+    descriptor.
+    @param name A fixed name for the query. *)
 
 val prepare_fun : ?name: string -> (dialect_tag -> string) -> query
-(** Create a prepared statement dispatching on the language tag. *)
+(** Create a prepared statement dispatching on the language tag.
+    @param name A fixed name for the query. *)
 
 val prepare_any : ?name: string -> string -> query
 (** Create a prepared statement accepted by any backend.  This only makes
     sense if backend are known to be restricted to a set sharing a common
-    query string.  Consider using {!prepare_sql} or {!oneshot} instead. *)
+    query string.  Consider using {!prepare_sql} or {!oneshot} instead.
+    @param name A fixed name for the query. *)
 
 val prepare_sql : ?name: string -> string -> query
-(** Create a prepared statement expected to work with any SQL dialect. *)
+(** Create a prepared statement expected to work with any SQL dialect.
+    @param name A fixed name for the query. *)
+
+val prepare_sql_p : ?name: string -> ?env: (dialect_tag -> string -> string) ->
+		    string -> query
+(** Create a prepared statement expected to work with any SQL dialect after
+    conversion of parameters.
+    @param name A fixed name for the query.
+    @param env If provided, parameters in the form accepted by
+	   {!Buffer.add_substitute} will be substituted using this environment.
+  *)
 
 type query_info = [`Oneshot of string | `Prepared of string * string]
 

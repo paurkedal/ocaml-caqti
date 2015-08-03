@@ -146,9 +146,14 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
 
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>
+  Db.start () >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 1; text "one"|]) >>
+  Db.rollback () >>
+  Db.start () >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 2; text "two"|]) >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 3; text "three"|]) >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 5; text "five"|]) >>
+  Db.commit () >>
   lwt (i_acc, s_acc) = Db.fold Q.select_from_tmp
     Db.Tuple.(fun t (i_acc, s_acc) -> (i_acc + int 0 t, s_acc ^ "+" ^ text 1 t))
     [||] (0, "zero") in

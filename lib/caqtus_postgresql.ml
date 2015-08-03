@@ -53,6 +53,12 @@ let utc_of_timestamp s =
     ("%F %T%:::z", s0 ^ "+00") in
   with_utc (fun () -> CL.Printer.Calendar.from_fstring fmt s)
 
+module Q = struct
+  let start = Caqti_query.prepare_sql "BEGIN"
+  let commit = Caqti_query.prepare_sql "COMMIT"
+  let rollback = Caqti_query.prepare_sql "ROLLBACK"
+end
+
 module Param = struct
   type t = string
   let null = null
@@ -493,6 +499,10 @@ module Wrap (Wrapper : WRAPPER) = struct
 	  if i = 0 then acc else
 	  loop (i - 1) (f' (i, r) :: acc) in
 	join (loop r#ntuples [])
+
+      let start () = exec Q.start [||]
+      let commit () = exec Q.commit [||]
+      let rollback () = exec Q.rollback [||]
     end : CONNECTION)
 
 end (* Wrap *)

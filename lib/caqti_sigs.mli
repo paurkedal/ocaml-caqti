@@ -159,7 +159,7 @@ module type CONNECTION_BASE = sig
       number of paratemers and tuple components should be correct, but the
       types may be [`Unknown]. *)
 
-  (** {3 Querying } *)
+  (** {3 Querying} *)
 
   val exec : query -> param array -> unit io
   (** [exec q params] executes a query [q(params)] which is not expected to
@@ -191,6 +191,20 @@ module type CONNECTION_BASE = sig
   val iter_s : query -> unit io callback -> param array -> unit io
   (** [fold_s q f params] executes [q(params)] and calls [f t] sequentially in
       the thread monad for each resulting tuple [t] in order. *)
+
+  (** {3 Transactions} *)
+
+  val start : unit -> unit io
+  (** Starts a transaction if supported by the underlying database, otherwise
+      does nothing. *)
+
+  val commit : unit -> unit io
+  (** Commits the current transaction if supported by the underlying database,
+      otherwise does nothing. *)
+
+  val rollback : unit -> unit io
+  (** Rolls back a transaction if supported by the underlying database,
+      otherwise does nothing. *)
 
 end
 

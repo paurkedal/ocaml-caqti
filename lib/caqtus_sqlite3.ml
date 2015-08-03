@@ -41,6 +41,12 @@ let typedesc_of_decltype = function
     | _ -> `Other s
     end
 
+module Q = struct
+  let start = Caqti_query.prepare_sql "BEGIN"
+  let commit = Caqti_query.prepare_sql "COMMIT"
+  let rollback = Caqti_query.prepare_sql "ROLLBACK"
+end
+
 module Param = struct
   open Sqlite3.Data
   type t = Data.t
@@ -333,6 +339,9 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       let iter_p = iter_s (* TODO *)
 
+      let start () = exec Q.start [||]
+      let commit () = exec Q.commit [||]
+      let rollback () = exec Q.rollback [||]
     end : CONNECTION)
 
 end (* Wrap *)

@@ -1,6 +1,8 @@
 (* OASIS_START *)
 (* OASIS_STOP *)
 
+let () = mark_tag_used "tests"
+
 let () = dispatch begin function
 
   | Before_options ->

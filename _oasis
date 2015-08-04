@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name: ocaml-caqti
-Version: 0.2.3
+Version: 0.3
 Synopsis: Cooperative-threaded access to relational data
 Authors: Petter A. Urkedal
 License: LGPL-3 with OCaml linking exception

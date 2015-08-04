@@ -41,7 +41,7 @@ let format_query ?env sql lang =
       loop p k k
     | '?' when lang = `Pgsql ->
       add_substring i (j - i);
-      Printf.bprintf buf "$%d" p;
+      Printf.bprintf buf "$%d" (p + 1);
       loop (p + 1) (j + 1) (j + 1)
     | _ ->
       loop p i (j + 1) in

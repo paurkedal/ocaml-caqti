@@ -72,7 +72,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   for_lwt i = 0 to 199 do
     let qs = sprintf "SELECT %d, '%s'" i (string_of_int i) in
     lwt j, s =
-      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, text 1 u) [||] in
+      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, string 1 u) [||] in
     assert (i = j);
     assert (i = int_of_string s);
     Lwt.return_unit
@@ -126,7 +126,8 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_string x y =
     lwt s =
       Db.find Q.select_cat
-	      Db.Tuple.(fun u -> text 0 u) Db.Param.([|text x; text y|]) in
+	      Db.Tuple.(fun u -> string 0 u)
+	      Db.Param.([|string x; string y|]) in
     assert (s = x ^ y); Lwt.return_unit in
   for_lwt m = 0 to 199 do
     let x = sprintf "%x" (Random.int (1 lsl 29)) in
@@ -147,15 +148,15 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>
   Db.start () >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 1; text "one"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>
   Db.rollback () >>
   Db.start () >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 2; text "two"|]) >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 3; text "three"|]) >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 5; text "five"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 3; string "three"|]) >>
+  Db.exec Q.insert_into_tmp Db.Param.([|int 5; string "five"|]) >>
   Db.commit () >>
   lwt (i_acc, s_acc) = Db.fold Q.select_from_tmp
-    Db.Tuple.(fun t (i_acc, s_acc) -> (i_acc + int 0 t, s_acc ^ "+" ^ text 1 t))
+    Db.Tuple.(fun t (i_acc, s_acc) -> i_acc + int 0 t, s_acc ^ "+" ^ string 1 t)
     [||] (0, "zero") in
   assert (i_acc = 10);
   assert (s_acc = "zero+two+three+five");
@@ -166,7 +167,7 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   if Db.backend_info.bi_describe_has_typed_parameters then
     assert (qd.querydesc_params = [|`Int|]);
   if Db.backend_info.bi_describe_has_typed_fields then
-    assert (qd.querydesc_fields = [|"i", `Int; "s", `Text|]);
+    assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
   Lwt.return_unit
 
 let test (module Db : Caqti_lwt.CONNECTION) =

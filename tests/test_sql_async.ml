@@ -42,11 +42,11 @@ let test (module Db : Caqti_async.CONNECTION) =
 
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>= fun () ->
-  Db.exec Q.insert_into_tmp Db.Param.([|int 2; text "two"|]) >>= fun () ->
-  Db.exec Q.insert_into_tmp Db.Param.([|int 3; text "three"|]) >>= fun () ->
-  Db.exec Q.insert_into_tmp Db.Param.([|int 5; text "five"|]) >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 3; string "three"|]) >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 5; string "five"|]) >>= fun () ->
   Db.fold Q.select_from_tmp
-    Db.Tuple.(fun t (i_acc, s_acc) -> (i_acc + int 0 t, s_acc ^ "+" ^ text 1 t))
+    Db.Tuple.(fun t (i_acc, s_acc) -> i_acc + int 0 t, s_acc ^ "+" ^ string 1 t)
     [||] (0, "zero") >>= fun (i_acc, s_acc) ->
   assert (i_acc = 10);
   assert (s_acc = "zero+two+three+five");
@@ -55,7 +55,7 @@ let test (module Db : Caqti_async.CONNECTION) =
   if is_typed then begin
     Db.describe Q.select_from_tmp >>= fun qd ->
     assert (qd.querydesc_params = [||]);
-    assert (qd.querydesc_fields = [|"i", `Int; "s", `Text|]);
+    assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
     return ()
   end else return ()
 

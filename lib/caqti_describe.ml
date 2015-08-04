@@ -18,8 +18,8 @@ type typedesc =
   [ `Bool
   | `Int
   | `Float
-  | `Text
-  | `Octets
+  | `String
+  | `Bytes
   | `Date
   | `Utc
   | `Other of string
@@ -34,8 +34,8 @@ let string_of_typedesc = function
   | `Bool -> "bool"
   | `Int -> "int"
   | `Float -> "float"
-  | `Text -> "text"
-  | `Octets -> "octets"
+  | `String -> "string"
+  | `Bytes -> "bytes"
   | `Date -> "date"
   | `Utc -> "utc"
   | `Other s -> s

@@ -49,13 +49,16 @@ module type PARAM = sig
   (** Constructs a floating point parameter. The precision of the storage
       may be different from that of the OCaml [float]. *)
 
-  val text : string -> t
+  val string : string -> t
   (** Given an UTF-8 encoded text, constructs a textual parameter with
       backend-specific encoding. *)
 
-  val octets : string -> t
-  (** Constructs a parameter from an arbitrary [string].  For SQL, the
+  val bytes : bytes -> t
+  (** Constructs a parameter from an arbirary octet string.  For SQL, the
       parameter is compatible with the [BINARY] type. *)
+
+  val sub_bytes : bytes -> int -> int -> t
+  (** [sub_bytes s i n] is equivalent to [bytes (Bytes.sub s i n)]. *)
 
   val date : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
@@ -66,6 +69,9 @@ module type PARAM = sig
 
   val other : string -> t
   (** A backend-specific value. *)
+
+  val text : string -> t		[@@ocaml.deprecated "Use string"]
+  val octets : string -> t		[@@ocaml.deprecated "Use bytes"]
 end
 
 (** Tuple decoding functions.
@@ -87,11 +93,14 @@ module type TUPLE = sig
   val int32 : int -> t -> int32
   val int64 : int -> t -> int64
   val float : int -> t -> float
-  val text : int -> t -> string
-  val octets : int -> t -> string
+  val string : int -> t -> string
+  val bytes : int -> t -> bytes
   val date : int -> t -> CalendarLib.Date.t
   val utc : int -> t -> CalendarLib.Calendar.t
   val other : int -> t -> string
+
+  val text : int -> t -> string		[@@ocaml.deprecated "Use string"]
+  val octets : int -> t -> string	[@@ocaml.deprecated "Use bytes"]
 end
 
 module type REPORT = sig

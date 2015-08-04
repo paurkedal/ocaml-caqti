@@ -78,14 +78,14 @@ end
 let create_bikereg (module Db : Caqti_lwt.CONNECTION) =
   Db.exec Q.create_bikereg [||]
 let reg_bike (module Db : Caqti_lwt.CONNECTION) frameno owner =
-  Db.exec Q.reg_bike Db.Param.([|text frameno; text owner|])
+  Db.exec Q.reg_bike Db.Param.([|string frameno; string owner|])
 let report_stolen (module Db : Caqti_lwt.CONNECTION) frameno =
-  Db.exec Q.report_stolen Db.Param.([|text frameno|])
+  Db.exec Q.report_stolen Db.Param.([|string frameno|])
 
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
 let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
-  Db.find_opt Q.select_frameno Db.Tuple.(text 1) Db.Param.([|text frameno|])
+  Db.find_opt Q.select_frameno Db.Tuple.(string 1) Db.Param.([|string frameno|])
 
 (* As a helper for iterators, [wrap db f] accepts a raw tuple and passes its
  * converted components as arguments to [f].  First-class modules are
@@ -97,7 +97,7 @@ let wrap (type tuple)
   let open Db.Tuple in
   (* You might prefer to pass the result as a tuple or record depending on the
    * application. *)
-  f ~frameno:(text 0 t) ~owner:(text 1 t) ?stolen:(option utc 2 t) ()
+  f ~frameno:(string 0 t) ~owner:(string 1 t) ?stolen:(option utc 2 t) ()
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
 let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =

@@ -34,8 +34,8 @@ let typedesc_of_decltype = function
     begin match String.lowercase s with
     | "integer" -> `Int
     | "float" -> `Float
-    | "text" -> `Text
-    | "blob" -> `Octets
+    | "text" -> `String
+    | "blob" -> `Bytes
     | "date" -> `Date
     | "timestamp" -> `Utc
     | _ -> `Other s
@@ -57,11 +57,15 @@ module Param = struct
   let int32 x = INT (Int64.of_int32 x)
   let int64 x = INT x
   let float x = FLOAT x
-  let text x = TEXT x
-  let octets x = BLOB x
+  let string x = TEXT x
+  let bytes x = BLOB (Bytes.to_string x)
+  let sub_bytes x i n = BLOB (Bytes.sub_string x i n)
   let date x = TEXT (CL.Printer.Date.sprint "%F" x)
   let utc x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
   let other x = failwith "Param.other is invalid for sqlite3"
+
+  let text = string
+  let octets x = BLOB x
 end
 
 let params_info ps = Array.to_list (Array.map Data.to_string_debug ps)
@@ -98,14 +102,14 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | FLOAT x -> x
     | _ -> invalid_decode "float" i stmt
-  let text i stmt =
+  let string i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> x
-    | _ -> invalid_decode "text" i stmt
-  let octets i stmt =
+    | _ -> invalid_decode "string" i stmt
+  let bytes i stmt =
     match Sqlite3.column stmt i with
-    | BLOB x -> x
-    | _ -> invalid_decode "octets" i stmt
+    | BLOB x -> Bytes.of_string x
+    | _ -> invalid_decode "bytes" i stmt
   let date i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> CL.Printer.Date.from_fstring "%F" x
@@ -115,6 +119,12 @@ module Tuple = struct
     | TEXT x -> with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x)
     | _ -> invalid_decode "timestamp" i stmt
   let other i stmt = to_string (Sqlite3.column stmt i)
+
+  let text = string
+  let octets i stmt =
+    match Sqlite3.column stmt i with
+    | BLOB x -> x
+    | _ -> invalid_decode "octets" i stmt
 end
 
 module Report = struct

@@ -24,8 +24,8 @@ type typedesc =
   [ `Bool
   | `Int
   | `Float
-  | `Text
-  | `Octets
+  | `String
+  | `Bytes
   | `Date
   | `Utc
   | `Other of string

@@ -35,8 +35,8 @@ module Connection_utils (C : CONNECTION) = struct
     | `Bool -> if C.Tuple.bool i r then "true" else "false"
     | `Int -> string_of_int (C.Tuple.int i r)
     | `Float -> string_of_float (C.Tuple.float i r)
-    | `Text -> csv_quoted (C.Tuple.text i r)
-    | `Octets -> csv_quoted (C.Tuple.octets i r)
+    | `String -> csv_quoted (C.Tuple.string i r)
+    | `Bytes -> csv_quoted (C.Tuple.bytes i r)
     | `Date -> Cal.Printer.Date.to_string (C.Tuple.date i r)
     | `Utc -> Cal.Printer.Calendar.to_string (C.Tuple.utc i r)
     | `Other _ -> C.Tuple.other i r

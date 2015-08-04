@@ -32,8 +32,8 @@ let typedesc_of_ftype = function
   | BOOL -> `Bool
   | INT2 | INT4 | INT8 -> `Int
   | FLOAT4 | FLOAT8 | NUMERIC -> `Float
-  | CHAR | VARCHAR | TEXT -> `Text
-  | BYTEA -> `Octets
+  | CHAR | VARCHAR | TEXT -> `String
+  | BYTEA -> `Bytes
   | DATE -> `Date
   | TIMESTAMP | TIMESTAMPTZ | ABSTIME -> `Utc
   | ft -> `Other (string_of_ftype ft)
@@ -68,11 +68,15 @@ module Param = struct
   let int32 x = Int32.to_string x
   let int64 x = Int64.to_string x
   let float x = sprintf "%.*g" float_prec x
-  let text s = s
-  let octets s = s
+  let string s = s
+  let bytes s = Bytes.to_string s
+  let sub_bytes s i n = Bytes.sub_string s i n
   let date t = CL.Printer.Date.sprint "%F" t
   let utc t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
   let other s = s
+
+  let text = string
+  let octets = string
 end
 
 module Tuple = struct
@@ -98,11 +102,14 @@ module Tuple = struct
   let int32 j t = Int32.of_string (raw j t)
   let int64 j t = Int64.of_string (raw j t)
   let float j t = float_of_string (raw j t)
-  let text j t = raw j t
-  let octets j t = raw j t
+  let string j t = raw j t
+  let bytes j t = Bytes.of_string (raw j t)
   let date j t = CL.Printer.Date.from_fstring "%F" (raw j t)
   let utc j t = utc_of_timestamp (raw j t)
   let other = raw
+
+  let text = string
+  let octets = string
 end
 
 module Report = struct

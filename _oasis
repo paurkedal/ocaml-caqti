@@ -35,6 +35,7 @@ Library caqti
     Caqti_plugin,
     Caqti_pool,
     Caqti_sigs,
+    Caqti_sql,
     Caqti_sql_io,
     Caqti_sql_utils,
     Caqti_query

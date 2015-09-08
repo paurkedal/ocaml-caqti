@@ -18,4 +18,5 @@ open Caqti_sigs
 
 module Make (Io : MONAD) : sig
   val read_sql_statement : ('a -> char option Io.t) -> 'a -> string option Io.t
+  [@@ocaml.deprecated "Use the Caqti_sql_io module."]
 end

@@ -14,4 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti_sql_io
+open Caqti_lwt
+
+include Caqti_sql_io.Make (struct
+  include System
+  type 'a t = 'a io
+end)

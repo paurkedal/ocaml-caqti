@@ -22,3 +22,4 @@ open Caqti_sigs
 include CAQTI with type 'a System.io = 'a Lwt.t
 
 val read_sql_statement : ('a -> char option Lwt.t) -> 'a -> string option Lwt.t
+[@@ocaml.deprecated "open Caqti_sql_io_lwt instead"]

@@ -35,13 +35,16 @@ Library caqti
     Caqti_plugin,
     Caqti_pool,
     Caqti_sigs,
+    Caqti_sql_io,
     Caqti_sql_utils,
     Caqti_query
   BuildDepends: calendar, dynlink, findlib, uri
 
 Library caqti_async
   Path: lib-async
-  Modules: Caqti_async
+  Modules:
+    Caqti_async,
+    Caqti_async_sql_io
   FindlibParent: caqti
   FindlibName: async
   BuildDepends: caqti, core, async
@@ -52,7 +55,9 @@ Library caqti_async
 
 Library caqti_lwt
   Path: lib-lwt
-  Modules: Caqti_lwt
+  Modules:
+    Caqti_lwt,
+    Caqti_lwt_sql_io
   FindlibParent: caqti
   FindlibName: lwt
   BuildDepends: caqti, lwt, lwt.preemptive

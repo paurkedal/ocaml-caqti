@@ -80,7 +80,8 @@ include Caqti.Make (struct
 
 end)
 
-include Caqti_sql_utils.Make (struct
+(* TODO: Remove after deprecation period. *)
+include Caqti_sql_io.Make (struct
   include System
   type 'a t = 'a io
 end)

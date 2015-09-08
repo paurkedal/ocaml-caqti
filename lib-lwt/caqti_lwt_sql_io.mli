@@ -14,4 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti_sql_io
+(** SQL IO utilities for Lwt. *)
+
+include Caqti_sql_io.S with type 'a io := 'a Lwt.t

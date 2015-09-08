@@ -14,4 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti_sql_io
+(** SQL IO utilities for Async. *)
+
+open Async.Std
+
+include Caqti_sql_io.S with type 'a io := 'a Deferred.Or_error.t

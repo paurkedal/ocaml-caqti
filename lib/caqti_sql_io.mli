@@ -14,4 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti_sql_io
+open Caqti_sigs
+
+module type S = sig
+  type 'a io
+  val read_sql_statement : ('a -> char option io) -> 'a -> string option io
+end
+
+module Make (Io : MONAD) : S with type 'a io := 'a Io.t

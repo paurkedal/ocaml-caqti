@@ -14,6 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+let default_max_size =
+  try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
+
 module Make (System : Caqti_sigs.SYSTEM) = struct
   open System
 
@@ -37,7 +40,7 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
   }
 
   let create
-	?(max_size = 8)
+	?(max_size = default_max_size)
 	?(check = fun _ f -> f true)
 	?(validate = fun _ -> return true)
 	create free =

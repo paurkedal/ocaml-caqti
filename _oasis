@@ -99,6 +99,20 @@ Test test_heap
   Type: Custom (0.3)
   Command: $test_heap
 
+Executable test_parallel_lwt
+  Path: tests
+  MainIs: test_parallel_lwt.ml
+  BuildDepends: caqti, caqti.lwt
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: best
+  Build$: flag(lwt)
+  Install: false
+Test test_parallel_lwt
+  Type: Custom (0.3)
+  Command: OCAMLPATH=tests $test_parallel_lwt
+  Run$: flag(lwt)
+
 Executable test_pool_lwt
   Path: tests
   MainIs: test_pool_lwt.ml

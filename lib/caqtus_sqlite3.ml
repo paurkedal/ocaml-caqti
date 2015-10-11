@@ -61,6 +61,10 @@ module Param = struct
   let bytes x = BLOB (Bytes.to_string x)
   let sub_bytes x i n = BLOB (Bytes.sub_string x i n)
   let date x = TEXT (CL.Printer.Date.sprint "%F" x)
+  let utc_float x =
+    let t = CL.Calendar.from_unixfloat x in
+    TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" t))
+  let utc_string x = TEXT x
   let utc x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
   let other x = failwith "Param.other is invalid for sqlite3"
 
@@ -114,6 +118,16 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | TEXT x -> CL.Printer.Date.from_fstring "%F" x
     | _ -> invalid_decode "date" i stmt
+  let utc_float i stmt =
+    match Sqlite3.column stmt i with
+    | TEXT x ->
+      CL.Calendar.to_unixfloat
+	(with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x))
+    | _ -> invalid_decode "timestamp" i stmt
+  let utc_string i stmt =
+    match Sqlite3.column stmt i with
+    | TEXT x -> x
+    | _ -> invalid_decode "timestamp" i stmt
   let utc i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x)

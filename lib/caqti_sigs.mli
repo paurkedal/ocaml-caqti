@@ -63,6 +63,14 @@ module type PARAM = sig
   val date : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
 
+  val utc_float : float -> t
+  (** Construct a parameter representing date and time in the UTC time zone,
+      converted from a float representing the number of seconds since Epoch. *)
+
+  val utc_string : string -> t
+  (** Create a parameter for an UTC timestamp field from a UTC time string in
+      ISO 8601 format. *)
+
   val utc : CalendarLib.Calendar.t -> t
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
@@ -96,6 +104,8 @@ module type TUPLE = sig
   val string : int -> t -> string
   val bytes : int -> t -> bytes
   val date : int -> t -> CalendarLib.Date.t
+  val utc_float : int -> t -> float
+  val utc_string : int -> t -> string
   val utc : int -> t -> CalendarLib.Calendar.t
   val other : int -> t -> string
 

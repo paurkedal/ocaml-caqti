@@ -41,6 +41,14 @@ let typedesc_of_decltype = function
     | _ -> `Other s
     end
 
+let typename_of_data = function
+  | Data.NONE -> "none"
+  | Data.NULL -> "null"
+  | Data.INT _ -> "int"
+  | Data.FLOAT _ -> "float"
+  | Data.TEXT _ -> "text"
+  | Data.BLOB _ -> "blob"
+
 module Q = struct
   let start = Caqti_query.prepare_sql "BEGIN"
   let commit = Caqti_query.prepare_sql "COMMIT"
@@ -75,7 +83,10 @@ end
 let params_info ps = Array.to_list (Array.map Data.to_string_debug ps)
 
 let invalid_decode typename i stmt =
-  let msg = sprintf "Expected %s in column %d of Sqlite result." typename i in
+  let typename' = typename_of_data (Sqlite3.column stmt i) in
+  let msg =
+    sprintf "Expected %s but received %s for column %d of Sqlite result."
+	    typename typename' i in
   raise (Invalid_argument msg)
 
 module Tuple = struct
@@ -192,6 +203,12 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     let db_mutex = Mutex.create () in
     let db = Sqlite3.db_open (Uri.path uri) in
+    begin
+      try
+	Sqlite3.busy_timeout db
+	  (int_of_string (Sys.getenv "CAQTUS_SQLITE3_BUSY_TIMEOUT"))
+      with Not_found -> ()
+    end;
 
     let with_db f =
       Preemptive.detach begin fun () ->

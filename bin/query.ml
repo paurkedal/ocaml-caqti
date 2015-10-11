@@ -45,21 +45,21 @@ end
 
 let main describe uri qs =
   let q = Caqti_query.prepare_any qs in
-  lwt connection = Caqti_lwt.connect uri in
+  let%lwt connection = Caqti_lwt.connect uri in
   let module C = (val connection) in
   let module U = Connection_utils (C) in
-  lwt qd = C.describe q in
+  let%lwt qd = C.describe q in
   let n = Array.length qd.querydesc_fields in
   let print_tuple r =
     assert (n > 0);
     Lwt_io.print (U.show_field qd 0 r) >>
-    for_lwt i = 1 to n - 1 do
+    for%lwt i = 1 to n - 1 do
       Lwt_io.print !field_separator >>
       Lwt_io.print (U.show_field qd i r)
     done >>
     Lwt_io.print "\n" in
   if describe then
-    for_lwt i = 0 to n - 1 do
+    for%lwt i = 0 to n - 1 do
       let name, tdesc = qd.querydesc_fields.(i) in
       Lwt_io.printf "%s : %s\n" name (string_of_typedesc tdesc)
     done

@@ -1,1 +1,1 @@
-<*_lwt.ml*>: syntax(camlp4o), package(lwt.syntax)
+<*_lwt.ml*>: package(lwt.ppx)

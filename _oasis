@@ -144,7 +144,7 @@ Test test_sql_async
 Executable bikereg
   Path: examples
   MainIs: bikereg.ml
-  BuildDepends: caqti.lwt, lwt, lwt.syntax
+  BuildDepends: caqti.lwt, lwt
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: best

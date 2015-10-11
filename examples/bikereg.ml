@@ -123,7 +123,7 @@ let test db =
 
   (* Examples of single-row queries. *)
   let show_owner frameno =
-    match_lwt find_bike_owner frameno db with
+    match%lwt find_bike_owner frameno db with
     | Some owner -> Lwt_io.printf "%s is owned by %s.\n" frameno owner
     | None -> Lwt_io.printf "%s is not registered.\n" frameno in
   show_owner "BIKE-0003" >>

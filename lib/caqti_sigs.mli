@@ -60,6 +60,9 @@ module type PARAM = sig
   val sub_bytes : bytes -> int -> int -> t
   (** [sub_bytes s i n] is equivalent to [bytes (Bytes.sub s i n)]. *)
 
+  val date_string : string -> t
+  (** Construct a date paramater from a string using ISO 8601 format. *)
+
   val date : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
 
@@ -103,6 +106,7 @@ module type TUPLE = sig
   val float : int -> t -> float
   val string : int -> t -> string
   val bytes : int -> t -> bytes
+  val date_string : int -> t -> string
   val date : int -> t -> CalendarLib.Date.t
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string

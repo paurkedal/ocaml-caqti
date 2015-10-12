@@ -15,3 +15,6 @@
  *)
 
 val finally : (unit -> unit) -> (unit -> 'a) -> 'a
+
+val datetuple_of_iso8601 : string -> int * int * int
+val iso8601_of_datetuple : int * int * int -> string

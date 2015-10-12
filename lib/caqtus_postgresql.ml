@@ -16,6 +16,7 @@
 
 open Caqti_describe
 open Caqti_metadata
+open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
 open Postgresql
@@ -72,6 +73,7 @@ module Param = struct
   let bytes s = Bytes.to_string s
   let sub_bytes s i n = Bytes.sub_string s i n
   let date_string s = s
+  let date_tuple = iso8601_of_datetuple
   let date t = CL.Printer.Date.sprint "%F" t
   let utc_float t =
     let t' = CL.Calendar.from_unixfloat t in
@@ -110,6 +112,7 @@ module Tuple = struct
   let string j t = raw j t
   let bytes j t = Bytes.of_string (raw j t)
   let date_string j t = raw j t
+  let date_tuple j t = datetuple_of_iso8601 (raw j t)
   let date j t = CL.Printer.Date.from_fstring "%F" (raw j t)
   let utc_float j t = CL.Calendar.to_unixfloat (utc_of_timestamp (raw j t))
   let utc_string = raw

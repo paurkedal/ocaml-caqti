@@ -14,6 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Printf
+
 let finally cleanup thunk =
   let r = try thunk () with xc -> cleanup (); raise xc in
   cleanup (); r
+
+let datetuple_of_iso8601 s =
+  if String.length s = 10 && s.[4] = '-' && s.[7] = '-' then
+    (int_of_string (String.sub s 0 4),
+     int_of_string (String.sub s 5 2),
+     int_of_string (String.sub s 8 2))
+  else
+    failwith "Caqti_internal.datetuple_of_iso8601"
+
+let iso8601_of_datetuple (y, m, d) =
+  sprintf "%04d-%02d-%02d" y m d

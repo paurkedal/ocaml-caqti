@@ -69,6 +69,7 @@ module Param = struct
   let bytes x = BLOB (Bytes.to_string x)
   let sub_bytes x i n = BLOB (Bytes.sub_string x i n)
   let date_string x = TEXT x
+  let date_tuple x = TEXT (iso8601_of_datetuple x)
   let date x = TEXT (CL.Printer.Date.sprint "%F" x)
   let utc_float x =
     let t = CL.Calendar.from_unixfloat x in
@@ -129,6 +130,10 @@ module Tuple = struct
   let date_string i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> x
+    | _ -> invalid_decode "date" i stmt
+  let date_tuple i stmt =
+    match Sqlite3.column stmt i with
+    | TEXT x -> datetuple_of_iso8601 x
     | _ -> invalid_decode "date" i stmt
   let date i stmt =
     match Sqlite3.column stmt i with

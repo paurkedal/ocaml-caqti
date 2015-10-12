@@ -63,6 +63,10 @@ module type PARAM = sig
   val date_string : string -> t
   (** Construct a date paramater from a string using ISO 8601 format. *)
 
+  val date_tuple : int * int * int -> t
+  (** Construct a date parameter from the year, month, and day of the month,
+      using the literal enumeration. I.e. Epoch is [(1970, 1, 1)]. *)
+
   val date : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
 
@@ -107,6 +111,7 @@ module type TUPLE = sig
   val string : int -> t -> string
   val bytes : int -> t -> bytes
   val date_string : int -> t -> string
+  val date_tuple : int -> t -> int * int * int
   val date : int -> t -> CalendarLib.Date.t
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string

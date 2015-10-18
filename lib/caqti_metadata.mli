@@ -32,8 +32,8 @@ type parameter_style = private
     between dialects typically have an intrusive effect on query strings.
     This may also be useful for non-SQL languages which support some form of
     variables or placeholders.
-    - [`None] means that non the following parameter styles apply, or that the
-      backend does not support parameters at all.
+    - [`None] means that non of the following parameter styles apply, or that
+      the backend does not support parameters at all.
     - [`Linear s] means that occurrences of [s] bind to successive parameters.
     - [`Indexed f] means that an occurrence of [f i] represents parameter
       number [i], counting from 0. *)

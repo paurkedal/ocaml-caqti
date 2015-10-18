@@ -15,6 +15,7 @@
  *)
 
 open Caqti_query
+open Common
 open Lwt.Infix
 
 let create_q = prepare_sql_p "CREATE TABLE test_parallel \
@@ -67,22 +68,12 @@ let rec test2 pool n =
   merge (+) xs 0
 
 let () =
-  (* Needed for bytecode as plugins link against C libraries. *)
-  Dynlink.allow_unsafe_modules true;
-  Random.self_init ();
-
-  let uri_r = ref None in
   let n_r = ref 1000 in
   Arg.parse
-    [ "-u", Arg.String (fun s -> uri_r := Some (Uri.of_string s)),
-	"URI Test against URI."; ]
+    common_args
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     Sys.argv.(0);
-  let uri =
-    match !uri_r with
-    | None ->
-      Uri.of_string (try Unix.getenv "CAQTI_URI" with Not_found -> "sqlite3:")
-    | Some uri -> uri in
+  let uri = common_uri () in
   Lwt_main.run begin
     let pool = Caqti_lwt.connect_pool ~max_size:4 uri in
     Caqti_lwt.Pool.use

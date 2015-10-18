@@ -18,6 +18,7 @@ open Core.Std
 open Async.Std
 open Caqti_describe
 open Caqti_query
+open Common
 
 module Q = struct
   let create_tmp = prepare_fun @@ function
@@ -71,16 +72,9 @@ let main uri () =
   Shutdown.shutdown 0
 
 let () =
-  Dynlink.allow_unsafe_modules true;
-  let uri_r = ref None in
   Arg.parse
-    [ "-u", Arg.String (fun s -> uri_r := Some (Uri.of_string s)),
-	"URI Test against URI."; ]
+    common_args
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     Sys.argv.(0);
-  let uri =
-    match !uri_r with
-    | None ->
-      Uri.of_string (Option.value ~default:"sqlite3:" (Sys.getenv "CAQTI_URI"))
-    | Some uri -> uri in
+  let uri = common_uri () in
   never_returns (Scheduler.go_main (main uri) ())

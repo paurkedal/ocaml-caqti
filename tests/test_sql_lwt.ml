@@ -17,6 +17,7 @@
 open Caqti_describe
 open Caqti_metadata
 open Caqti_query
+open Common
 open Printf
 
 let (>>=) = Lwt.(>>=)
@@ -185,20 +186,11 @@ let test_pool pool =
   Caqti_lwt.Pool.drain pool
 
 let () =
-  (* Needed for bytecode as plugins link against C libraries. *)
-  Dynlink.allow_unsafe_modules true;
-
-  let uri_r = ref None in
   Arg.parse
-    [ "-u", Arg.String (fun s -> uri_r := Some (Uri.of_string s)),
-	"URI Test against URI."; ]
+    common_args
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     Sys.argv.(0);
-  let uri =
-    match !uri_r with
-    | None ->
-      Uri.of_string (try Unix.getenv "CAQTI_URI" with Not_found -> "sqlite3:")
-    | Some uri -> uri in
+  let uri = common_uri () in
   Lwt_main.run begin
     Caqti_lwt.connect uri >>= test >>
     test_pool (Caqti_lwt.connect_pool uri)

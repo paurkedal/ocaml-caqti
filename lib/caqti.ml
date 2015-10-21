@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -101,6 +101,7 @@ module Make (System : SYSTEM) = struct
       module Report : REPORT
       include CONNECTION_BASE
 	 with type 'a io = 'a System.io
+	  and type param = Param.t
 	  and type tuple = Tuple.t
 	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end

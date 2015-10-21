@@ -23,6 +23,8 @@ open Caqti_query
 (** Parameter encoding functions. *)
 module type PARAM = sig
   type t
+  (** An abstract type for a query parameter.  Only the backend knows the
+      actual type. *)
 
   val null : t
   (** For SQL, [null] is [NULL]. *)
@@ -101,6 +103,9 @@ end
     embedding the call in a returned monad leads to undefined behaviour. *)
 module type TUPLE = sig
   type t
+  (** An abstract type for a tuple passed by a backend to callbacks during
+      query execution. *)
+
   val is_null : int -> t -> bool
   val option : (int -> t -> 'a) -> int -> t -> 'a option
   val bool : int -> t -> bool
@@ -145,22 +150,23 @@ end
       module Report : REPORT
       module Tuple : TUPLE
     ]} *)
-module type CONNECTION_BASE = sig
+module type CONNECTION = sig
+
+  module Param : PARAM
+  (** Interface for constructing query parameters. *)
+
+  module Tuple : TUPLE
+  (** Interface for extracting result tuples. *)
+
+  module Report : REPORT
+  (** Interface for fetching auxiliary information about a result. *)
 
   type 'a io
   (** The IO monad for which the module is specialized. *)
 
-  type param
-  (** An abstract type for a query parameter.  Only the backend knows the
-      actual type. *)
-
-  type tuple
-  (** An abstract type for a tuple passed by a backend to callbacks during
-      query execution. *)
-
   type 'a callback
   (** The form of callbacks.  For the default connection functions, this type
-      is [tuple -> 'a]. *)
+      is [Tuple.t -> 'a]. *)
 
   val uri : Uri.t
   (** The connected URI. *)
@@ -189,34 +195,34 @@ module type CONNECTION_BASE = sig
 
   (** {3 Querying} *)
 
-  val exec : query -> param array -> unit io
+  val exec : query -> Param.t array -> unit io
   (** [exec q params] executes a query [q(params)] which is not expected to
       return anything. *)
 
-  val find : query -> 'a callback -> param array -> 'a io
+  val find : query -> 'a callback -> Param.t array -> 'a io
   (** [find_e q params] executes [q(params)] which is expected to return
       exactly one tuple. *)
 
-  val find_opt : query -> 'a callback -> param array -> 'a option io
+  val find_opt : query -> 'a callback -> Param.t array -> 'a option io
   (** [find q params] executes a query [q(params)] which is expected to return
       at most one tuple. *)
 
-  val fold : query -> ('a -> 'a) callback -> param array -> 'a -> 'a io
+  val fold : query -> ('a -> 'a) callback -> Param.t array -> 'a -> 'a io
   (** [fold q f params acc] executes [q(params)], composes [f] over the
       resulting tuples in order, and applies the composition to [acc]. *)
 
-  val fold_s : query -> ('a -> 'a io) callback -> param array -> 'a -> 'a io
+  val fold_s : query -> ('a -> 'a io) callback -> Param.t array -> 'a -> 'a io
   (** [fold_s q f params acc] executes [q(params)], forms a threaded
       composition of [f] over the resulting tuples, and applies the
       composition to [acc]. *)
 
-  val iter_p : query -> unit io callback -> param array -> unit io
+  val iter_p : query -> unit io callback -> Param.t array -> unit io
   (** [fold_p q f params] executes [q(params)] and calls [f t] in the thread
       monad in parallel for each resulting tuple [t].  A certain backend may
       not implement parallel execution, in which case this is the same as
       {!iter_s}. *)
 
-  val iter_s : query -> unit io callback -> param array -> unit io
+  val iter_s : query -> unit io callback -> Param.t array -> unit io
   (** [fold_s q f params] executes [q(params)] and calls [f t] sequentially in
       the thread monad for each resulting tuple [t] in order. *)
 
@@ -306,13 +312,12 @@ module type CAQTUS = sig
   type 'a io
   module Wrap (Wrapper : WRAPPER) : sig
     module type CONNECTION = sig
-      module Param : PARAM
       module Tuple : TUPLE
       module Report : REPORT
-      include CONNECTION_BASE
+      include CONNECTION
 	 with type 'a io = 'a io
-	  and type param = Param.t
-	  and type tuple = Tuple.t
+	  and module Tuple := Tuple
+	  and module Report := Report
 	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
     val connect : Uri.t -> (module CONNECTION) io
@@ -336,15 +341,26 @@ module type CAQTI = sig
   module Pool : POOL with type 'a io := 'a System.io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
+  module Wrap (Wrapper : WRAPPER) : sig
+    module type CONNECTION = sig
+      module Tuple : TUPLE
+      module Report : REPORT
+      include CONNECTION
+	with type 'a io = 'a System.io
+	 and module Tuple := Tuple
+	 and module Report := Report
+	 and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+    end
+
+    val connect : Uri.t -> (module CONNECTION) System.io
+  end
+
   module type CONNECTION = sig
-    module Param : PARAM
     module Tuple : TUPLE
-    module Report : REPORT
-    include CONNECTION_BASE
-       with type 'a io = 'a System.io
-	and type param = Param.t
-	and type tuple = Tuple.t
-	and type 'a callback = Tuple.t -> 'a
+    include CONNECTION
+      with type 'a io = 'a System.io
+       and module Tuple := Tuple
+       and type 'a callback = Tuple.t -> 'a
   end
 
   val connect : Uri.t -> (module CONNECTION) System.io
@@ -354,18 +370,4 @@ module type CAQTI = sig
   val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
   (** Create a pool of connections which can be shared among multiple
       cooperative threads run from the main system thread. *)
-
-  module Wrap (Wrapper : WRAPPER) : sig
-    module type CONNECTION = sig
-      module Param : PARAM
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION_BASE
-	 with type 'a io = 'a System.io
-	  and type param = Param.t
-	  and type tuple = Tuple.t
-	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-    val connect : Uri.t -> (module CONNECTION) System.io
-  end
 end

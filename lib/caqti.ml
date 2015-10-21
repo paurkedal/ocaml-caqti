@@ -42,17 +42,6 @@ module Make (System : SYSTEM) = struct
 
   module System = System
 
-  module type CONNECTION = sig
-    module Param : PARAM
-    module Tuple : TUPLE
-    module Report : REPORT
-    include CONNECTION_BASE
-       with type 'a io = 'a System.io
-	and type param = Param.t
-	and type tuple = Tuple.t
-	and type 'a callback = Tuple.t -> 'a
-  end
-
   module type CAQTUS = CAQTUS with type 'a io := 'a System.io
 
   let caqtuses : (string, (module CAQTUS)) Hashtbl.t = Hashtbl.create 11
@@ -68,6 +57,42 @@ module Make (System : SYSTEM) = struct
     let module Caqtus = Caqtus_functor (System) in
     let caqtus = (module Caqtus : CAQTUS) in
     Hashtbl.add caqtuses scheme caqtus; caqtus
+
+  module Wrap (Wrapper : WRAPPER) = struct
+
+    module type CONNECTION = sig
+      module Tuple : TUPLE
+      module Report : REPORT
+      include CONNECTION
+	 with type 'a io = 'a System.io
+	  and module Tuple := Tuple
+	  and module Report := Report
+	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+    end
+
+    let connect uri : (module CONNECTION) System.io =
+      match Uri.scheme uri with
+      | None ->
+	fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
+			       (Uri.to_string uri)))
+      | Some scheme ->
+	try
+	  let caqtus = load_caqtus scheme in
+	  let module Caqtus = (val caqtus) in
+	  let module Conn = Caqtus.Wrap (Wrapper) in
+	  Conn.connect uri >>= fun client ->
+	  let module Client = (val client) in
+	  return (module Client : CONNECTION)
+	with xc -> fail xc
+  end
+
+  module type CONNECTION = sig
+    module Tuple : TUPLE
+    include CONNECTION
+       with type 'a io = 'a System.io
+	and module Tuple := Tuple
+	and type 'a callback = Tuple.t -> 'a
+  end
 
   let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
@@ -92,33 +117,4 @@ module Make (System : SYSTEM) = struct
     let validate (module Conn : CONNECTION) = Conn.validate () in
     let check (module Conn : CONNECTION) = Conn.check in
     Pool.create ?max_size ~validate ~check connect disconnect
-
-  module Wrap (Wrapper : WRAPPER) = struct
-
-    module type CONNECTION = sig
-      module Param : PARAM
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION_BASE
-	 with type 'a io = 'a System.io
-	  and type param = Param.t
-	  and type tuple = Tuple.t
-	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-
-    let connect uri : (module CONNECTION) System.io =
-      match Uri.scheme uri with
-      | None ->
-	fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
-			       (Uri.to_string uri)))
-      | Some scheme ->
-	try
-	  let caqtus = load_caqtus scheme in
-	  let module Caqtus = (val caqtus) in
-	  let module Conn = Caqtus.Wrap (Wrapper) in
-	  Conn.connect uri >>= fun client ->
-	  let module Client = (val client) in
-	  return (module Client : CONNECTION)
-	with xc -> fail xc
-  end
 end

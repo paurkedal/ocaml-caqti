@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -326,13 +326,12 @@ module Wrap (Wrapper : WRAPPER) = struct
   end
 
   module type CONNECTION = sig
-    module Param : PARAM
     module Tuple : TUPLE
     module Report : REPORT
-    include CONNECTION_BASE
+    include CONNECTION
        with type 'a io = 'a System.io
-	and type param = Param.t
-	and type tuple = Tuple.t
+	and module Tuple := Tuple
+	and module Report := Report
 	and type 'a callback = 'a Wrapper (Tuple) (Report).callback
   end
 

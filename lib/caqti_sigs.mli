@@ -240,6 +240,9 @@ module type CONNECTION = sig
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
 
+  (**/**)
+  type param = Param.t [@@ocaml.deprecated "Use Param.t"]
+  type tuple = Tuple.t [@@ocaml.deprecated "Use Tuple.t"]
 end
 
 (** The signature of pools of reusable resources.  We use it to keep pools of

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -133,7 +133,7 @@ let escaped_connvalue s =
   let buf = Buffer.create (String.length s) in
   String.iter
     (fun ch -> if ch = '\\' || ch = '\'' then Buffer.add_char buf '\\';
-	       Buffer.add_char buf ch)
+               Buffer.add_char buf ch)
     s;
   Buffer.contents buf
 
@@ -144,7 +144,7 @@ let param_info p = Array.to_list (Array.map debug_quote p)
 
 let tuple_info (i, r) =
   let rec loop j acc = if j < 0 then acc else
-		       loop (j - 1) (debug_quote (r#getvalue i j) :: acc) in
+                       loop (j - 1) (debug_quote (r#getvalue i j) :: acc) in
   loop (r#nfields - 1) []
 
 module Caqtus_functor (System : SYSTEM) = struct
@@ -176,8 +176,8 @@ module Wrap (Wrapper : WRAPPER) = struct
       if Uri.host uri <> None then Uri.to_string uri else
       let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
       String.concat " "
-	(List.flatten (List.map (fun (k, vs) -> List.map (mkparam k) vs)
-				(Uri.query uri))) in
+        (List.flatten (List.map (fun (k, vs) -> List.map (mkparam k) vs)
+                                (Uri.query uri))) in
   object (self)
     inherit Postgresql.connection ~conninfo ()
 
@@ -189,14 +189,14 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     method private wait_for_result =
       Unix.wrap_fd
-	begin fun socket_fd ->
-	  let rec hold () =
-	    self#consume_input;
-	    if self#is_busy then Unix.wait_read socket_fd >>= hold
-			    else return () in
-	  hold ()
-	end
-	(Obj.magic self#socket)
+        begin fun socket_fd ->
+          let rec hold () =
+            self#consume_input;
+            if self#is_busy then Unix.wait_read socket_fd >>= hold
+                            else return () in
+          hold ()
+        end
+        (Obj.magic self#socket)
 
     method private fetch_result_io =
       self#wait_for_result >>= fun () ->
@@ -206,22 +206,22 @@ module Wrap (Wrapper : WRAPPER) = struct
       self#fetch_result_io >>= function
       | None -> fail (Caqti.Miscommunication (uri, qi, "Missing response."))
       | Some r ->
-	self#fetch_result_io >>=
-	begin function
-	| None -> return r
-	| Some r -> fail (Caqti.Miscommunication
-			    (uri, qi, "Unexpected multirow response."))
-	end
+        self#fetch_result_io >>=
+        begin function
+        | None -> return r
+        | Some r -> fail (Caqti.Miscommunication
+                            (uri, qi, "Unexpected multirow response."))
+        end
 
     (* Connection *)
 
     method private poll_loop_io step =
       let on_fd fd =
-	let rec next = function
-	  | Polling_reading -> Unix.wait_read fd  >>= fun () -> next (step ())
-	  | Polling_writing -> Unix.wait_write fd >>= fun () -> next (step ())
-	  | Polling_failed | Polling_ok -> return () in
-	next Polling_writing in
+        let rec next = function
+          | Polling_reading -> Unix.wait_read fd  >>= fun () -> next (step ())
+          | Polling_writing -> Unix.wait_write fd >>= fun () -> next (step ())
+          | Polling_failed | Polling_ok -> return () in
+        next Polling_writing in
       Unix.wrap_fd on_fd (Obj.magic self#socket)
 
     method finish_connecting_io =
@@ -229,11 +229,11 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     method reset_io =
       if self#reset_start then begin
-	Hashtbl.clear prepared_queries;
-	self#poll_loop_io (fun () -> self#reset_poll) >>= fun () ->
-	return (self#status = Ok)
+        Hashtbl.clear prepared_queries;
+        self#poll_loop_io (fun () -> self#reset_poll) >>= fun () ->
+        return (self#status = Ok)
       end else
-	return false
+        return false
 
     method try_reset_io =
       if self#status = Ok then return true else self#reset_io
@@ -241,87 +241,87 @@ module Wrap (Wrapper : WRAPPER) = struct
     method wrap_send f =
       try f (); return () with
       | Postgresql.Error (Connection_failure _ as err) as exc
-	  when self#status <> Ok ->
-	Log.warning_f "Reconnecting due to connection failure during send:\n%s"
-		      (Postgresql.string_of_error err) >>= fun () ->
-	self#reset_io >>= function true -> f (); return ()
-				 | false -> raise exc
+          when self#status <> Ok ->
+        Log.warning_f "Reconnecting due to connection failure during send:\n%s"
+                      (Postgresql.string_of_error err) >>= fun () ->
+        self#reset_io >>= function true -> f (); return ()
+                                 | false -> raise exc
 
     (* Direct Execution *)
 
     method exec_oneshot_io ?params ?binary_params qs =
       try
-	self#wrap_send (fun () -> self#send_query ?params ?binary_params qs)
-	  >>= fun () ->
-	self#fetch_single_result_io (`Oneshot qs)
+        self#wrap_send (fun () -> self#send_query ?params ?binary_params qs)
+          >>= fun () ->
+        self#fetch_single_result_io (`Oneshot qs)
       with
       | Postgresql.Error err ->
-	let msg = Postgresql.string_of_error err in
-	fail (Caqti.Execute_failed (uri, `Oneshot qs, msg))
+        let msg = Postgresql.string_of_error err in
+        fail (Caqti.Execute_failed (uri, `Oneshot qs, msg))
       | xc -> fail xc
 
     (* Prepared Execution *)
 
     method prepare_io q name sql =
       begin try
-	self#wrap_send (fun () -> self#send_prepare name sql) >>= fun () ->
-	self#fetch_single_result_io (query_info q)
+        self#wrap_send (fun () -> self#send_prepare name sql) >>= fun () ->
+        self#fetch_single_result_io (query_info q)
       with
       | Missing_query_string ->
-	prepare_failed uri q "PostgreSQL query strings are missing."
+        prepare_failed uri q "PostgreSQL query strings are missing."
       | Postgresql.Error err ->
-	prepare_failed uri q (Postgresql.string_of_error err)
+        prepare_failed uri q (Postgresql.string_of_error err)
       | xc -> fail xc
       end >>= fun r ->
       match r#status with
       | Command_ok -> return ()
       | Bad_response | Nonfatal_error | Fatal_error ->
-	prepare_failed uri q r#error
+        prepare_failed uri q r#error
       | _ ->
-	miscommunication uri q
-	  "Expected Command_ok or an error as response to prepare."
+        miscommunication uri q
+          "Expected Command_ok or an error as response to prepare."
 
     method describe_io qi name =
       self#wrap_send (fun () -> self#send_describe_prepared name) >>= fun () ->
       self#fetch_single_result_io qi >>= fun r ->
       let describe_param i =
-	try typedesc_of_ftype (r#paramtype i)
-	with Oid oid -> `Other ("oid" ^ string_of_int oid) in
+        try typedesc_of_ftype (r#paramtype i)
+        with Oid oid -> `Other ("oid" ^ string_of_int oid) in
       let describe_field i =
-	let t = try typedesc_of_ftype (r#ftype i)
-		with Oid oid -> `Other ("oid" ^ string_of_int oid) in
-	r#fname i, t in
+        let t = try typedesc_of_ftype (r#ftype i)
+                with Oid oid -> `Other ("oid" ^ string_of_int oid) in
+        r#fname i, t in
       let binary_params =
-	let n = r#ntuples in
-	let is_binary i = r#paramtype i = BYTEA in
-	let rec has_binary i =
-	  i < n && (is_binary i || has_binary (i + 1)) in
-	if has_binary 0 then Some (Array.init r#ntuples is_binary)
-			else None in
+        let n = r#ntuples in
+        let is_binary i = r#paramtype i = BYTEA in
+        let rec has_binary i =
+          i < n && (is_binary i || has_binary (i + 1)) in
+        if has_binary 0 then Some (Array.init r#ntuples is_binary)
+                        else None in
       let querydesc =
-	{ querydesc_params = Array.init r#nparams describe_param;
-	  querydesc_fields = Array.init r#nfields describe_field } in
+        { querydesc_params = Array.init r#nparams describe_param;
+          querydesc_fields = Array.init r#nfields describe_field } in
       return (binary_params, querydesc)
 
     method cached_prepare_io ({pq_index; pq_name; pq_encode} as pq) =
       try return (Hashtbl.find prepared_queries pq_index)
       with Not_found ->
-	let qs = pq_encode backend_info in
-	self#prepare_io (Prepared pq) pq_name qs >>= fun () ->
-	self#describe_io (`Prepared (pq_name, qs)) pq_name >>= fun pqinfo ->
-	Hashtbl.add prepared_queries pq_index pqinfo;
-	return pqinfo
+        let qs = pq_encode backend_info in
+        self#prepare_io (Prepared pq) pq_name qs >>= fun () ->
+        self#describe_io (`Prepared (pq_name, qs)) pq_name >>= fun pqinfo ->
+        Hashtbl.add prepared_queries pq_index pqinfo;
+        return pqinfo
 
     method exec_prepared_io ?params ({pq_name} as pq) =
       self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
-	self#wrap_send
-	  (fun () -> self#send_query_prepared ?params ?binary_params pq_name)
-	  >>= fun () ->
-	self#fetch_single_result_io (query_info (Prepared pq))
+        self#wrap_send
+          (fun () -> self#send_query_prepared ?params ?binary_params pq_name)
+          >>= fun () ->
+        self#fetch_single_result_io (query_info (Prepared pq))
       with
       | Postgresql.Error err ->
-	execute_failed uri (Prepared pq) (Postgresql.string_of_error err)
+        execute_failed uri (Prepared pq) (Postgresql.string_of_error err)
       | xc -> fail xc
   end
 
@@ -330,9 +330,9 @@ module Wrap (Wrapper : WRAPPER) = struct
     module Report : REPORT
     include CONNECTION
        with type 'a io = 'a System.io
-	and module Tuple := Tuple
-	and module Report := Report
-	and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+        and module Tuple := Tuple
+        and module Report := Report
+        and type 'a callback = 'a Wrapper (Tuple) (Report).callback
   end
 
   let connect uri =
@@ -340,16 +340,16 @@ module Wrap (Wrapper : WRAPPER) = struct
     (* Establish a single connection. *)
     catch
       (fun () ->
-	try
-	  let conn = new connection uri in
-	  conn#finish_connecting_io >>= fun () ->
-	  return conn
-	with Error e ->
-	  fail (Error e))
+        try
+          let conn = new connection uri in
+          conn#finish_connecting_io >>= fun () ->
+          return conn
+        with Error e ->
+          fail (Error e))
       (function
-	| Error e ->
-	  fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e))
-	| xc -> fail xc) >>=
+        | Error e ->
+          fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e))
+        | xc -> fail xc) >>=
     fun conn ->
 
     (* Basic check that the client doesn't use the same unpooled connection
@@ -379,143 +379,143 @@ module Wrap (Wrapper : WRAPPER) = struct
       let check f = f (conn#status = Ok)
 
       let check_command_ok q r =
-	match r#status with
-	| Command_ok -> return ()
-	| Bad_response | Nonfatal_error | Fatal_error ->
-	  execute_failed uri q r#error
-	| _ ->
-	  miscommunication uri q "Expected Command_ok or an error response."
+        match r#status with
+        | Command_ok -> return ()
+        | Bad_response | Nonfatal_error | Fatal_error ->
+          execute_failed uri q r#error
+        | _ ->
+          miscommunication uri q "Expected Command_ok or an error response."
 
       let check_tuples_ok q r =
-	match r#status with
-	| Tuples_ok -> return ()
-	| Bad_response | Nonfatal_error | Fatal_error ->
-	  execute_failed uri q r#error
-	| _ ->
-	  miscommunication uri q "Expected Tuples_ok or an error response."
+        match r#status with
+        | Tuples_ok -> return ()
+        | Bad_response | Nonfatal_error | Fatal_error ->
+          execute_failed uri q r#error
+        | _ ->
+          miscommunication uri q "Expected Tuples_ok or an error response."
 
       let describe q =
-	use begin fun c ->
-	  match q with
-	  | Prepared pq ->
-	    c#cached_prepare_io pq >>= fun (_, r) -> return r
-	  | Oneshot qsf ->
-	    let qs = qsf backend_info in
-	    c#prepare_io q "_desc_tmp" qs >>= fun () ->
-	    c#describe_io (`Oneshot qs) "_desc_tmp" >>= fun (_, r) ->
-	    c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
-	end
+        use begin fun c ->
+          match q with
+          | Prepared pq ->
+            c#cached_prepare_io pq >>= fun (_, r) -> return r
+          | Oneshot qsf ->
+            let qs = qsf backend_info in
+            c#prepare_io q "_desc_tmp" qs >>= fun () ->
+            c#describe_io (`Oneshot qs) "_desc_tmp" >>= fun (_, r) ->
+            c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
+        end
 
       let exec_prepared params q =
-	(if Log.debug_query_enabled ()
-	 then Log.debug_query (query_info q) (param_info params)
-	 else return ()) >>= fun () ->
-	use begin fun c ->
-	  match q with
-	  | Oneshot qsf -> c#exec_oneshot_io ~params (qsf backend_info)
-	  | Prepared pp -> c#exec_prepared_io ~params pp
-	end
+        (if Log.debug_query_enabled ()
+         then Log.debug_query (query_info q) (param_info params)
+         else return ()) >>= fun () ->
+        use begin fun c ->
+          match q with
+          | Oneshot qsf -> c#exec_oneshot_io ~params (qsf backend_info)
+          | Prepared pp -> c#exec_prepared_io ~params pp
+        end
 
       let exec q params =
-	exec_prepared params q >>= check_command_ok q
+        exec_prepared params q >>= check_command_ok q
 
       let find q f params =
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	if r#ntuples = 1 then begin
-	  (if Log.debug_tuple_enabled ()
-	   then Log.debug_tuple (tuple_info (0, r))
-	   else return ()) >>=
-	  fun () -> return (W.on_tuple f r' (0, r))
-	end else
-	miscommunication uri q "Received %d tuples, expected one." r#ntuples
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        if r#ntuples = 1 then begin
+          (if Log.debug_tuple_enabled ()
+           then Log.debug_tuple (tuple_info (0, r))
+           else return ()) >>=
+          fun () -> return (W.on_tuple f r' (0, r))
+        end else
+        miscommunication uri q "Received %d tuples, expected one." r#ntuples
 
       let find_opt q f params =
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	if r#ntuples = 0 then return None else
-	if r#ntuples = 1 then begin
-	  (if Log.debug_tuple_enabled ()
-	   then Log.debug_tuple (tuple_info (0, r))
-	   else return ()) >>=
-	  fun () -> return (Some (W.on_tuple f r' (0, r)))
-	end else
-	miscommunication uri q
-			 "Received %d tuples, expected at most one." r#ntuples
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        if r#ntuples = 0 then return None else
+        if r#ntuples = 1 then begin
+          (if Log.debug_tuple_enabled ()
+           then Log.debug_tuple (tuple_info (0, r))
+           else return ()) >>=
+          fun () -> return (Some (W.on_tuple f r' (0, r)))
+        end else
+        miscommunication uri q
+                         "Received %d tuples, expected at most one." r#ntuples
 
       let fold q f params acc =
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	let f' = W.on_tuple f r' in
-	let n = r#ntuples in
-	if Log.debug_tuple_enabled () then
-	  let rec loop i acc =
-	    if i = n then return acc else
-	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
-	    loop (i + 1) (f' (i, r) acc) in
-	  loop 0 acc
-	else
-	  let rec loop i acc =
-	    if i = n then acc else
-	    loop (i + 1) (f' (i, r) acc) in
-	  return (loop 0 acc)
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        let f' = W.on_tuple f r' in
+        let n = r#ntuples in
+        if Log.debug_tuple_enabled () then
+          let rec loop i acc =
+            if i = n then return acc else
+            Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+            loop (i + 1) (f' (i, r) acc) in
+          loop 0 acc
+        else
+          let rec loop i acc =
+            if i = n then acc else
+            loop (i + 1) (f' (i, r) acc) in
+          return (loop 0 acc)
 
       let fold_s q f params acc =
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	let f' = W.on_tuple f r' in
-	let n = r#ntuples in
-	if Log.debug_tuple_enabled () then
-	  let rec loop i acc =
-	    if i = n then return acc else
-	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
-	    f' (i, r) acc >>= loop (i + 1) in
-	  loop 0 acc
-	else
-	  let rec loop i acc =
-	    if i = n then return acc else
-	    f' (i, r) acc >>= loop (i + 1) in
-	  loop 0 acc
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        let f' = W.on_tuple f r' in
+        let n = r#ntuples in
+        if Log.debug_tuple_enabled () then
+          let rec loop i acc =
+            if i = n then return acc else
+            Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+            f' (i, r) acc >>= loop (i + 1) in
+          loop 0 acc
+        else
+          let rec loop i acc =
+            if i = n then return acc else
+            f' (i, r) acc >>= loop (i + 1) in
+          loop 0 acc
 
       let iter_s q f params =
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	let f' = W.on_tuple f r' in
-	let a = r#get_all in
-	let n = Array.length a in
-	if Log.debug_tuple_enabled () then
-	  let rec loop i =
-	    if i = n then return () else
-	    Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
-	    f' (i, r) >>= fun () -> loop (i + 1) in
-	  loop 0
-	else
-	  let rec loop i =
-	    if i = n then return () else
-	    f' (i, r) >>= fun () -> loop (i + 1) in
-	  loop 0
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        let f' = W.on_tuple f r' in
+        let a = r#get_all in
+        let n = Array.length a in
+        if Log.debug_tuple_enabled () then
+          let rec loop i =
+            if i = n then return () else
+            Log.debug_tuple (tuple_info (i, r)) >>= fun () ->
+            f' (i, r) >>= fun () -> loop (i + 1) in
+          loop 0
+        else
+          let rec loop i =
+            if i = n then return () else
+            f' (i, r) >>= fun () -> loop (i + 1) in
+          loop 0
 
       let iter_p q f params =
-	if Log.debug_tuple_enabled () then iter_s q f params else
-	let q' = W.on_query q in
-	exec_prepared params q >>= fun r ->
-	check_tuples_ok q r >>= fun () ->
-	let r' = W.on_report q' r in
-	let f' = W.on_tuple f r' in
-	let rec loop i acc =
-	  if i = 0 then acc else
-	  loop (i - 1) (f' (i, r) :: acc) in
-	join (loop r#ntuples [])
+        if Log.debug_tuple_enabled () then iter_s q f params else
+        let q' = W.on_query q in
+        exec_prepared params q >>= fun r ->
+        check_tuples_ok q r >>= fun () ->
+        let r' = W.on_report q' r in
+        let f' = W.on_tuple f r' in
+        let rec loop i acc =
+          if i = 0 then acc else
+          loop (i - 1) (f' (i, r) :: acc) in
+        join (loop r#ntuples [])
 
       let start () = exec Q.start [||]
       let commit () = exec Q.commit [||]

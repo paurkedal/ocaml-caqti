@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@ open Common
 open Lwt.Infix
 
 let create_q = prepare_sql_p "CREATE TABLE test_parallel \
-				(x int NOT NULL, y int NOT NULL)"
+                                (x int NOT NULL, y int NOT NULL)"
 let drop_q = prepare_sql_p "DROP TABLE IF EXISTS test_parallel"
 let insert_q = prepare_sql_p "INSERT INTO test_parallel VALUES (?, ?)"
 let delete_q = prepare_sql_p "DELETE FROM test_parallel WHERE x = ?"
@@ -34,14 +34,14 @@ let do_query =
   Caqti_lwt.Pool.use @@ fun (module C : Caqti_lwt.CONNECTION) ->
   match Random.int 4 with
   | 0 -> C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>
-	 Lwt.return 0
+         Lwt.return 0
   | 1 -> C.exec delete_q C.Param.[|int (random_int ())|] >>
-	 Lwt.return 0
+         Lwt.return 0
   | 2 -> C.fold select_1_q C.Tuple.(fun t -> (+) (int 0 t))
-			   C.Param.[|int (random_int ())|] 0
+                           C.Param.[|int (random_int ())|] 0
   | 3 -> C.find select_2_q C.Tuple.(option int 0)
-			   C.Param.[|int (random_int ())|] >|=
-	 (function None -> 0 | Some i -> i)
+                           C.Param.[|int (random_int ())|] >|=
+         (function None -> 0 | Some i -> i)
   | _ -> assert false
 
 let rec list_diff f = function
@@ -59,11 +59,11 @@ let rec test2 pool n =
   if n = 0 then Lwt.return 0 else
   if n = 1 then do_query pool else
   let ns = Array.init (Random.int n * (Random.int n + 1) / n + 1)
-		      (fun i -> Random.int n)
-	|> Array.to_list |> (fun xs -> n :: xs)
-	|> List.sort compare
-	|> list_diff (-)
-	|> List.filter ((<>) 0) in
+                      (fun i -> Random.int n)
+        |> Array.to_list |> (fun xs -> n :: xs)
+        |> List.sort compare
+        |> list_diff (-)
+        |> List.filter ((<>) 0) in
   let xs = List.map (test2 pool) ns in
   merge (+) xs 0
 
@@ -78,12 +78,12 @@ let () =
     let pool = Caqti_lwt.connect_pool ~max_size:4 uri in
     Caqti_lwt.Pool.use
       (fun (module C : Caqti_lwt.CONNECTION) ->
-	C.exec drop_q [||] >>
-	C.exec create_q [||])
+        C.exec drop_q [||] >>
+        C.exec create_q [||])
       pool >>
     (test2 pool !n_r >|= ignore) >>
     Caqti_lwt.Pool.use
       (fun (module C : Caqti_lwt.CONNECTION) ->
-	C.exec drop_q [||])
+        C.exec drop_q [||])
       pool
   end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -44,14 +44,14 @@ module Make (Elt : Set.OrderedType) = struct
     | Y (n, e, hL, hR) ->
       let e_min, e_max = if Elt.compare e' e < 0 then e', e else e, e' in
       if card hL < card hR then Y (n + 1, e_min, push e_max hL, hR)
-			   else Y (n + 1, e_min, hL, push e_max hR)
+                           else Y (n + 1, e_min, hL, push e_max hR)
 
   let rec merge hL hR =
     match hL, hR with
     | O, h | h, O -> h
     | Y (nL, eL, hA, hB), Y (nR, eR, hC, hD) ->
       if Elt.compare eL eR < 0 then Y (nL + nR, eL, merge hA hB, hR)
-			       else Y (nL + nR, eR, hL, merge hC hD)
+                               else Y (nL + nR, eR, hL, merge hC hD)
 
   let pop_e = function
     | O -> invalid_arg "Caqti_heap.pop_e: Empty heap."

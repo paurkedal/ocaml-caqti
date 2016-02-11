@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,9 +50,9 @@ module Make (System : SYSTEM) = struct
     try Hashtbl.find caqtuses scheme with Not_found ->
     let caqtus_functor =
       ensure_plugin
-	(fun () -> try Some (Hashtbl.find scheme_plugins scheme)
-		   with Not_found -> None)
-	["caqtus-" ^ scheme; "caqti.caqtus-" ^ scheme] in
+        (fun () -> try Some (Hashtbl.find scheme_plugins scheme)
+                   with Not_found -> None)
+        ["caqtus-" ^ scheme; "caqti.caqtus-" ^ scheme] in
     let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
     let module Caqtus = Caqtus_functor (System) in
     let caqtus = (module Caqtus : CAQTUS) in
@@ -64,49 +64,49 @@ module Make (System : SYSTEM) = struct
       module Tuple : TUPLE
       module Report : REPORT
       include CONNECTION
-	 with type 'a io = 'a System.io
-	  and module Tuple := Tuple
-	  and module Report := Report
-	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+         with type 'a io = 'a System.io
+          and module Tuple := Tuple
+          and module Report := Report
+          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
 
     let connect uri : (module CONNECTION) System.io =
       match Uri.scheme uri with
       | None ->
-	fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
-			       (Uri.to_string uri)))
+        fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
+                               (Uri.to_string uri)))
       | Some scheme ->
-	try
-	  let caqtus = load_caqtus scheme in
-	  let module Caqtus = (val caqtus) in
-	  let module Conn = Caqtus.Wrap (Wrapper) in
-	  Conn.connect uri >>= fun client ->
-	  let module Client = (val client) in
-	  return (module Client : CONNECTION)
-	with xc -> fail xc
+        try
+          let caqtus = load_caqtus scheme in
+          let module Caqtus = (val caqtus) in
+          let module Conn = Caqtus.Wrap (Wrapper) in
+          Conn.connect uri >>= fun client ->
+          let module Client = (val client) in
+          return (module Client : CONNECTION)
+        with xc -> fail xc
   end
 
   module type CONNECTION = sig
     module Tuple : TUPLE
     include CONNECTION
        with type 'a io = 'a System.io
-	and module Tuple := Tuple
-	and type 'a callback = Tuple.t -> 'a
+        and module Tuple := Tuple
+        and type 'a callback = Tuple.t -> 'a
   end
 
   let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
     | None ->
       fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
-			     (Uri.to_string uri)))
+                             (Uri.to_string uri)))
     | Some scheme ->
       try
-	let caqtus = load_caqtus scheme in
-	let module Caqtus = (val caqtus) in
-	let module Conn = Caqtus.Wrap (Default_wrapper) in
-	Conn.connect uri >>= fun client ->
-	let module Client = (val client) in
-	return (module Client : CONNECTION)
+        let caqtus = load_caqtus scheme in
+        let module Caqtus = (val caqtus) in
+        let module Conn = Caqtus.Wrap (Default_wrapper) in
+        Conn.connect uri >>= fun client ->
+        let module Client = (val client) in
+        return (module Client : CONNECTION)
       with xc -> fail xc
 
   module Pool = Caqti_pool.Make (System)

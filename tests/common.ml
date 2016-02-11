@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ let common_args =
 let common_uri () =
   match !common_uri_r with
   | None -> Uri.of_string (try Unix.getenv "CAQTI_URI"
-			   with Not_found -> "sqlite3::memory:")
+                           with Not_found -> "sqlite3::memory:")
   | Some uri -> uri
 
 let () =

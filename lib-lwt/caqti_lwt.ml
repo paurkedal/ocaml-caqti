@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -54,19 +54,19 @@ include Caqti.Make (struct
     let debug_query qi params =
       begin match qi with
       | `Oneshot qs ->
-	Lwt_log.debug_f ~section:qnr_section "Sent query: %s" qs
+        Lwt_log.debug_f ~section:qnr_section "Sent query: %s" qs
       | `Prepared (qn, qs) ->
-	Lwt_log.debug_f ~section:qnr_section "Sent query %s: %s" qn qs
+        Lwt_log.debug_f ~section:qnr_section "Sent query %s: %s" qn qs
       end >>= fun () ->
       if params = [] then
-	Lwt.return_unit
+        Lwt.return_unit
       else
-	Lwt_log.debug_f ~section:qnr_section "with parameters: %s"
-			(String.concat ", " params)
+        Lwt_log.debug_f ~section:qnr_section "with parameters: %s"
+                        (String.concat ", " params)
 
     let debug_tuple tuple =
       Lwt_log.debug_f ~section:qnr_section "Received tuple: %s"
-		      (String.concat ", " tuple)
+                      (String.concat ", " tuple)
   end
 
   module Unix = struct

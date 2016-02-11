@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,10 +40,10 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
   }
 
   let create
-	?(max_size = default_max_size)
-	?(check = fun _ f -> f true)
-	?(validate = fun _ -> return true)
-	create free =
+        ?(max_size = default_max_size)
+        ?(check = fun _ f -> f true)
+        ?(validate = fun _ -> return true)
+        create free =
     { p_create = create; p_free = free;
       p_check = check; p_validate = validate;
       p_max_size = max_size;
@@ -60,12 +60,12 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
     if Queue.is_empty p.p_pool then begin
       if p.p_cur_size < p.p_max_size
       then (p.p_create () >>= fun e ->
-	    p.p_cur_size <- p.p_cur_size + 1; return e)
+            p.p_cur_size <- p.p_cur_size + 1; return e)
       else (wait ~priority p >>= fun () -> acquire ~priority p)
     end else begin
       let e = Queue.take p.p_pool in
       catch (fun () -> p.p_validate e)
-	    (fun xc -> Queue.add e p.p_pool; fail xc) >>= fun ok ->
+            (fun xc -> Queue.add e p.p_pool; fail xc) >>= fun ok ->
       if ok then return e else
       catch p.p_create (fun xc -> p.p_cur_size <- p.p_cur_size - 1; fail xc)
     end
@@ -73,7 +73,7 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
   let release p e =
     p.p_check e @@ fun ok ->
     if ok then Queue.add e p.p_pool
-	  else p.p_cur_size <- p.p_cur_size - 1;
+          else p.p_cur_size <- p.p_cur_size - 1;
     if not (Taskq.is_empty p.p_waiting) then
       let task, taskq = Taskq.pop_e p.p_waiting in
       p.p_waiting <- taskq;
@@ -82,7 +82,7 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>= fun e ->
     catch (fun () -> f e >>= fun r -> release p e; return r)
-	  (fun xc -> release p e; fail xc)
+          (fun xc -> release p e; fail xc)
 
   let dispose p e =
     p.p_free e >>= fun () -> p.p_cur_size <- p.p_cur_size - 1; return ()

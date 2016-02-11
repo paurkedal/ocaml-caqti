@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,12 +62,12 @@ val create_backend_info :
 (** For use by backends to create a descriptor for their query languages.
     @param uri_scheme The URI scheme this backend binds to.
     @param dialect_tag The {!dialect_tag} describing the SQL dialect or other
-	   query language.  Omit it if non of the cases apply.
+           query language.  Omit it if non of the cases apply.
     @param parameter_style How to represent parameters in query strings.
     @param default_max_pool_size The suggested pool size for this backend.
-	   Unless the backend is special like preferring a single connection,
-	   leave this out.
+           Unless the backend is special like preferring a single connection,
+           leave this out.
     @param describe_has_typed_parameters True iff the describe function is
-	   capable of supplying information about parameter types.
+           capable of supplying information about parameter types.
     @param describe_has_typed_parameters True iff the describe function is
-	   capable of supplying information about field types. *)
+           capable of supplying information about field types. *)

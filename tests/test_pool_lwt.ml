@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -39,11 +39,11 @@ let test n =
       let waiter, waker = Lwt.wait () in
       wait_count := succ !wait_count;
       Lwt.async
-	(fun () ->
-	  Pool.use
-	    (fun i -> waiter >>= fun () ->
-		      wait_count := pred !wait_count; Lwt.return_unit)
-	    pool);
+        (fun () ->
+          Pool.use
+            (fun i -> waiter >>= fun () ->
+                      wait_count := pred !wait_count; Lwt.return_unit)
+            pool);
       a.(j) <- Some waker
     | Some u -> wake j u
   done;

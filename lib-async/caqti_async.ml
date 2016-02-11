@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,11 +56,11 @@ include Caqti.Make (struct
 
     let wait_for op fd =
       Deferred.bind
-	(Async_unix.Fd.ready_to fd op)
-	begin function
-	| `Bad_fd | `Closed -> assert false
-	| `Ready -> Deferred.Or_error.return ()
-	end
+        (Async_unix.Fd.ready_to fd op)
+        begin function
+        | `Bad_fd | `Closed -> assert false
+        | `Ready -> Deferred.Or_error.return ()
+        end
     let wait_read = wait_for `Read
     let wait_write = wait_for `Write
   end
@@ -68,8 +68,8 @@ include Caqti.Make (struct
   module Log = struct
     let log_f level fmt =
       ksprintf
-	(fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
-	fmt
+        (fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
+        fmt
     let error_f   fmt = log_f `Error fmt
     let warning_f fmt = log_f `Info  fmt
     let info_f    fmt = log_f `Info  fmt
@@ -85,9 +85,9 @@ include Caqti.Make (struct
       | `Prepared (qn, qs) -> log_f `Debug "Sent query %s: %s" qn qs
       end >>= fun () ->
       if params = [] then
-	return ()
+        return ()
       else
-	log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
+        log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
 
     let debug_tuple tuple =
       log_f `Debug "Received tuple: %s" (String.concat ~sep:", " tuple)

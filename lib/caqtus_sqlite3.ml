@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -88,7 +88,7 @@ let invalid_decode typename i stmt =
   let typename' = typename_of_data (Sqlite3.column stmt i) in
   let msg =
     sprintf "Expected %s but received %s for column %d of Sqlite result."
-	    typename typename' i in
+            typename typename' i in
   raise (Invalid_argument msg)
 
 module Tuple = struct
@@ -143,7 +143,7 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | TEXT x ->
       CL.Calendar.to_unixfloat
-	(with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x))
+        (with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x))
     | _ -> invalid_decode "timestamp" i stmt
   let utc_string i stmt =
     match Sqlite3.column stmt i with
@@ -179,9 +179,9 @@ module Wrap (Wrapper : WRAPPER) = struct
     module Report : REPORT
     include CONNECTION
        with type 'a io = 'a System.io
-	and module Tuple := Tuple
-	and module Report := Report
-	and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+        and module Tuple := Tuple
+        and module Report := Report
+        and type 'a callback = 'a Wrapper (Tuple) (Report).callback
   end
 
   type 'a io = 'a System.io
@@ -205,7 +205,7 @@ module Wrap (Wrapper : WRAPPER) = struct
     begin match Uri.userinfo uri, Uri.host uri with
     | None, (None | Some "") -> return ()
     | _ -> fail (Invalid_argument "Sqlite URI cannot contain user or host \
-				   components.")
+                                   components.")
     end >>= fun () ->
 
     (* Database Handle *)
@@ -214,15 +214,15 @@ module Wrap (Wrapper : WRAPPER) = struct
     let db = Sqlite3.db_open (Uri.path uri) in
     begin
       try
-	Sqlite3.busy_timeout db
-	  (int_of_string (Sys.getenv "CAQTUS_SQLITE3_BUSY_TIMEOUT"))
+        Sqlite3.busy_timeout db
+          (int_of_string (Sys.getenv "CAQTUS_SQLITE3_BUSY_TIMEOUT"))
       with Not_found -> ()
     end;
 
     let with_db f =
       Preemptive.detach begin fun () ->
-	Mutex.lock db_mutex;
-	finally (fun () -> Mutex.unlock db_mutex) (fun () -> f db)
+        Mutex.lock db_mutex;
+        finally (fun () -> Mutex.unlock db_mutex) (fun () -> f db)
       end () in
 
     let close_db () = with_db @@ fun db ->
@@ -232,7 +232,7 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     let raise_rc q rc =
       raise (Caqti.Execute_failed
-		(uri, query_info q, Sqlite3.Rc.to_string rc)) in
+                (uri, query_info q, Sqlite3.Rc.to_string rc)) in
 
     let prim_exec extract q params =
       (if Log.debug_query_enabled ()
@@ -240,29 +240,29 @@ module Wrap (Wrapper : WRAPPER) = struct
        else return ()) >>= fun () ->
       begin match q with
       | Prepared {pq_encode} ->
-	begin try return (pq_encode backend_info)
-	with Missing_query_string ->
-	  fail (Caqti.Prepare_failed (uri, query_info q,
-				      "Missing query string for SQLite."))
-	end
+        begin try return (pq_encode backend_info)
+        with Missing_query_string ->
+          fail (Caqti.Prepare_failed (uri, query_info q,
+                                      "Missing query string for SQLite."))
+        end
       | Oneshot qsf -> return (qsf backend_info)
       end >>= fun qs ->
       with_db begin fun db ->
-	let stmt =
-	  try Sqlite3.prepare db qs with
-	  | Sqlite3.Error msg ->
-	    raise (Caqti.Prepare_failed (uri, query_info q, msg)) in
-	finally (fun () -> ignore (Sqlite3.finalize stmt))
-	  begin fun () ->
-	    for i = 0 to Array.length params - 1 do
-	      match Sqlite3.bind stmt (i + 1) params.(i) with
-	      | Sqlite3.Rc.OK -> ()
-	      | rc ->
-		raise (Caqti.Prepare_failed (uri, query_info q,
-					     Sqlite3.Rc.to_string rc))
-	    done;
-	    extract stmt
-	  end
+        let stmt =
+          try Sqlite3.prepare db qs with
+          | Sqlite3.Error msg ->
+            raise (Caqti.Prepare_failed (uri, query_info q, msg)) in
+        finally (fun () -> ignore (Sqlite3.finalize stmt))
+          begin fun () ->
+            for i = 0 to Array.length params - 1 do
+              match Sqlite3.bind stmt (i + 1) params.(i) with
+              | Sqlite3.Rc.OK -> ()
+              | rc ->
+                raise (Caqti.Prepare_failed (uri, query_info q,
+                                             Sqlite3.Rc.to_string rc))
+            done;
+            extract stmt
+          end
       end in
 
     (* The Module *)
@@ -287,105 +287,105 @@ module Wrap (Wrapper : WRAPPER) = struct
       let check f = f true
 
       let describe q =
-	let extract stmt =
-	  let desc_field i =
-	    Sqlite3.column_name stmt i,
-	    typedesc_of_decltype (Sqlite3.column_decltype stmt i) in
-	  let n_params = Sqlite3.bind_parameter_count stmt in
-	  let n_fields = Sqlite3.column_count stmt in
-	  { querydesc_params = Array.make n_params `Unknown;
-	    querydesc_fields = Array.init n_fields desc_field } in
-	prim_exec extract q [||]
+        let extract stmt =
+          let desc_field i =
+            Sqlite3.column_name stmt i,
+            typedesc_of_decltype (Sqlite3.column_decltype stmt i) in
+          let n_params = Sqlite3.bind_parameter_count stmt in
+          let n_fields = Sqlite3.column_count stmt in
+          { querydesc_params = Array.make n_params `Unknown;
+            querydesc_fields = Array.init n_fields desc_field } in
+        prim_exec extract q [||]
 
       let exec q params =
-	let extract stmt =
-	  match Sqlite3.step stmt with
-	  | Sqlite3.Rc.DONE -> ()
-	  | rc -> raise_rc q rc in
-	prim_exec extract q params
+        let extract stmt =
+          match Sqlite3.step stmt with
+          | Sqlite3.Rc.DONE -> ()
+          | rc -> raise_rc q rc in
+        prim_exec extract q params
 
       let find q f params =
-	let q' = W.on_query q in
-	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
-	let rec extract stmt =
-	  match Sqlite3.step stmt with
-	  | Sqlite3.Rc.DONE ->
-	    let msg = "Received no tuples, expected one." in
-	    raise (Caqti.Miscommunication (uri, query_info q, msg))
-	  | Sqlite3.Rc.ROW ->
-	    let r = W.on_tuple f (Lazy.force r') stmt in
-	    begin match Sqlite3.step stmt with
-	    | Sqlite3.Rc.DONE -> r
-	    | Sqlite3.Rc.ROW ->
-	      let msg = "Received multiple tuples, expected one." in
-	      raise (Caqti.Miscommunication (uri, query_info q, msg))
-	    | rc -> raise_rc q rc
-	    end
-	  | rc -> raise_rc q rc in
-	prim_exec extract q params
+        let q' = W.on_query q in
+        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+        let rec extract stmt =
+          match Sqlite3.step stmt with
+          | Sqlite3.Rc.DONE ->
+            let msg = "Received no tuples, expected one." in
+            raise (Caqti.Miscommunication (uri, query_info q, msg))
+          | Sqlite3.Rc.ROW ->
+            let r = W.on_tuple f (Lazy.force r') stmt in
+            begin match Sqlite3.step stmt with
+            | Sqlite3.Rc.DONE -> r
+            | Sqlite3.Rc.ROW ->
+              let msg = "Received multiple tuples, expected one." in
+              raise (Caqti.Miscommunication (uri, query_info q, msg))
+            | rc -> raise_rc q rc
+            end
+          | rc -> raise_rc q rc in
+        prim_exec extract q params
 
       let find_opt q f params =
-	let q' = W.on_query q in
-	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
-	let rec extract stmt =
-	  match Sqlite3.step stmt with
-	  | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); None
-	  | Sqlite3.Rc.ROW ->
-	    let r = W.on_tuple f (Lazy.force r') stmt in
-	    begin match Sqlite3.step stmt with
-	    | Sqlite3.Rc.DONE -> Some r
-	    | Sqlite3.Rc.ROW ->
-	      raise (Caqti.Miscommunication
-		      (uri, query_info q,
-		       "Expected at most one tuple response."))
-	    | rc -> raise_rc q rc
-	    end
-	  | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); extract stmt
-	  | rc -> raise_rc q rc in
-	prim_exec extract q params
+        let q' = W.on_query q in
+        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+        let rec extract stmt =
+          match Sqlite3.step stmt with
+          | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); None
+          | Sqlite3.Rc.ROW ->
+            let r = W.on_tuple f (Lazy.force r') stmt in
+            begin match Sqlite3.step stmt with
+            | Sqlite3.Rc.DONE -> Some r
+            | Sqlite3.Rc.ROW ->
+              raise (Caqti.Miscommunication
+                      (uri, query_info q,
+                       "Expected at most one tuple response."))
+            | rc -> raise_rc q rc
+            end
+          | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); extract stmt
+          | rc -> raise_rc q rc in
+        prim_exec extract q params
 
       let fold q f params acc =
-	let q' = W.on_query q in
-	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
-	let rec extract stmt =
-	  let rec loop acc =
-	    match Sqlite3.step stmt with
-	    | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
-	    | Sqlite3.Rc.ROW -> loop (W.on_tuple f (Lazy.force r') stmt acc)
-	    | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
-	    | rc -> raise_rc q rc in
-	  loop acc in
-	prim_exec extract q params
+        let q' = W.on_query q in
+        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+        let rec extract stmt =
+          let rec loop acc =
+            match Sqlite3.step stmt with
+            | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
+            | Sqlite3.Rc.ROW -> loop (W.on_tuple f (Lazy.force r') stmt acc)
+            | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
+            | rc -> raise_rc q rc in
+          loop acc in
+        prim_exec extract q params
 
       let fold_s q f params acc =
-	let q' = W.on_query q in
-	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
-	let rec extract stmt =
-	  let rec loop acc =
-	    match Sqlite3.step stmt with
-	    | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
-	    | Sqlite3.Rc.ROW ->
-	      let m = W.on_tuple f (Lazy.force r') stmt acc in
-	      loop (Preemptive.run_in_main (fun () -> m))
-	    | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
-	    | rc -> raise_rc q rc in
-	  loop acc in
-	prim_exec extract q params
+        let q' = W.on_query q in
+        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+        let rec extract stmt =
+          let rec loop acc =
+            match Sqlite3.step stmt with
+            | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
+            | Sqlite3.Rc.ROW ->
+              let m = W.on_tuple f (Lazy.force r') stmt acc in
+              loop (Preemptive.run_in_main (fun () -> m))
+            | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
+            | rc -> raise_rc q rc in
+          loop acc in
+        prim_exec extract q params
 
       let iter_s q f params =
-	let q' = W.on_query q in
-	let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
-	let rec extract stmt =
-	  let rec loop () =
-	    match Sqlite3.step stmt with
-	    | Sqlite3.Rc.DONE -> ignore (Lazy.force r')
-	    | Sqlite3.Rc.ROW ->
-	      let m = W.on_tuple f (Lazy.force r') stmt in
-	      Preemptive.run_in_main (fun () -> m); loop ()
-	    | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop ()
-	    | rc -> raise_rc q rc in
-	  loop () in
-	prim_exec extract q params
+        let q' = W.on_query q in
+        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
+        let rec extract stmt =
+          let rec loop () =
+            match Sqlite3.step stmt with
+            | Sqlite3.Rc.DONE -> ignore (Lazy.force r')
+            | Sqlite3.Rc.ROW ->
+              let m = W.on_tuple f (Lazy.force r') stmt in
+              Preemptive.run_in_main (fun () -> m); loop ()
+            | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop ()
+            | rc -> raise_rc q rc in
+          loop () in
+        prim_exec extract q params
 
       let iter_p = iter_s (* TODO *)
 

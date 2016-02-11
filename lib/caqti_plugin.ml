@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@ let rec depth_process_package f pkg =
   if not (Hashtbl.mem processed_packages pkg) then begin
     Hashtbl.add processed_packages pkg ();
     let requires = try Findlib.package_property [] pkg "requires"
-		   with Not_found -> "" in
+                   with Not_found -> "" in
     iter_chopped (depth_process_package f) requires;
     f pkg
   end
@@ -84,7 +84,7 @@ let ensure_plugin extract pkgs =
       begin match extract () with
       | Some x -> x
       | None ->
-	invalid_f pkg "The plugin did not provide the expected functionality."
+        invalid_f pkg "The plugin did not provide the expected functionality."
       end
     | None -> raise (Plugin_missing pkgs)
     end

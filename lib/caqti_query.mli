@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,8 +40,8 @@ type prepared_query = private {
 (** The type of prepared queries. *)
 
 type query =
-  | Oneshot of oneshot_query	(** A one-shot query. *)
-  | Prepared of prepared_query	(** A prepared query. *)
+  | Oneshot of oneshot_query        (** A one-shot query. *)
+  | Prepared of prepared_query        (** A prepared query. *)
 (** The type of queries accepted by the CONNECTION API. *)
 
 val oneshot_full : (backend_info -> string) -> query
@@ -61,7 +61,7 @@ val oneshot_sql_p : ?env: (dialect_tag -> string -> string) -> string -> query
 (** Create a one-shot query string expected to work with any SQL dialect after
     conversion of parameters.
     @param env If provided, parameters in the form accepted by
-	   {!Buffer.add_substitute} will be substituted using this environment.
+           {!Buffer.add_substitute} will be substituted using this environment.
   *)
 
 val prepare_full : ?name: string -> (backend_info -> string) -> query
@@ -84,12 +84,12 @@ val prepare_sql : ?name: string -> string -> query
     @param name A fixed name for the query. *)
 
 val prepare_sql_p : ?name: string -> ?env: (dialect_tag -> string -> string) ->
-		    string -> query
+                    string -> query
 (** Create a prepared statement expected to work with any SQL dialect after
     conversion of parameters.
     @param name A fixed name for the query.
     @param env If provided, parameters in the form accepted by
-	   {!Buffer.add_substitute} will be substituted using this environment.
+           {!Buffer.add_substitute} will be substituted using this environment.
   *)
 
 type query_info = [`Oneshot of string | `Prepared of string * string]

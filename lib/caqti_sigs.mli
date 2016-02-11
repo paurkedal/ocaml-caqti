@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -87,8 +87,8 @@ module type PARAM = sig
   val other : string -> t
   (** A backend-specific value. *)
 
-  val text : string -> t		[@@ocaml.deprecated "Use string"]
-  val octets : string -> t		[@@ocaml.deprecated "Use bytes"]
+  val text : string -> t                [@@ocaml.deprecated "Use string"]
+  val octets : string -> t                [@@ocaml.deprecated "Use bytes"]
 end
 
 (** Tuple decoding functions.
@@ -123,8 +123,8 @@ module type TUPLE = sig
   val utc : int -> t -> CalendarLib.Calendar.t
   val other : int -> t -> string
 
-  val text : int -> t -> string		[@@ocaml.deprecated "Use string"]
-  val octets : int -> t -> string	[@@ocaml.deprecated "Use bytes"]
+  val text : int -> t -> string                [@@ocaml.deprecated "Use string"]
+  val octets : int -> t -> string        [@@ocaml.deprecated "Use bytes"]
 end
 
 module type REPORT = sig
@@ -253,10 +253,10 @@ module type POOL = sig
   type 'a io
   type 'a t
   val create :
-	?max_size: int ->
-	?check: ('a -> (bool -> unit) -> unit) ->
-	?validate: ('a -> bool io) ->
-	(unit -> 'a io) -> ('a -> unit io) -> 'a t
+        ?max_size: int ->
+        ?check: ('a -> (bool -> unit) -> unit) ->
+        ?validate: ('a -> bool io) ->
+        (unit -> 'a io) -> ('a -> unit io) -> 'a t
   val size : 'a t -> int
   val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
   val drain : 'a t -> unit io
@@ -318,10 +318,10 @@ module type CAQTUS = sig
       module Tuple : TUPLE
       module Report : REPORT
       include CONNECTION
-	 with type 'a io = 'a io
-	  and module Tuple := Tuple
-	  and module Report := Report
-	  and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+         with type 'a io = 'a io
+          and module Tuple := Tuple
+          and module Report := Report
+          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
     val connect : Uri.t -> (module CONNECTION) io
   end
@@ -349,10 +349,10 @@ module type CAQTI = sig
       module Tuple : TUPLE
       module Report : REPORT
       include CONNECTION
-	with type 'a io = 'a System.io
-	 and module Tuple := Tuple
-	 and module Report := Report
-	 and type 'a callback = 'a Wrapper (Tuple) (Report).callback
+        with type 'a io = 'a System.io
+         and module Tuple := Tuple
+         and module Report := Report
+         and type 'a callback = 'a Wrapper (Tuple) (Report).callback
     end
 
     val connect : Uri.t -> (module CONNECTION) System.io

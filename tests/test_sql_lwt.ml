@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,9 +29,9 @@ module Q = struct
     | `Pgsql ->
       let i = ref 1 and buf = Buffer.create (String.length sql + 8) in
       String.iter
-	(function '?' -> bprintf buf "$%d" !i; i := succ !i
-		| c -> Buffer.add_char buf c)
-	sql;
+        (function '?' -> bprintf buf "$%d" !i; i := succ !i
+                | c -> Buffer.add_char buf c)
+        sql;
       Buffer.contents buf
     | `Sqlite -> sql
     | _ -> failwith "Unimplemented."
@@ -49,9 +49,9 @@ module Q = struct
 
   let create_tmp = prepare_fun @@ function
     | `Pgsql -> "CREATE TEMPORARY TABLE caqti_test \
-		 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
+                 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | `Sqlite -> "CREATE TABLE caqti_test \
-		  (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
+                  (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | _ -> failwith "Unimplemented."
   let insert_into_tmp = prepare_fun @@ function
     | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
@@ -83,7 +83,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_and a b =
     let%lwt c =
       Db.find Q.select_and
-	      Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|]) in
+              Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|]) in
     assert (c = (a && b)); Lwt.return_unit in
   ck_and false false >> ck_and false true >>
   ck_and true  false >> ck_and true  true >>
@@ -92,7 +92,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_plus_int i j =
     let%lwt k =
       Db.find Q.select_plus_int
-	      Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|]) in
+              Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|]) in
     assert (k = (i + j)); Lwt.return_unit in
   for%lwt m = 0 to 199 do
     let i, j = Random.int (1 lsl 29), Random.int (1 lsl 29) in
@@ -103,7 +103,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_plus_int64 i j =
     let%lwt k =
       Db.find Q.select_plus_int
-	      Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|]) in
+              Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|]) in
     assert (k = Int64.add i j); Lwt.return_unit in
   for%lwt m = 0 to 199 do
     let i = Random.int64 Int64.(shift_left one 29) in
@@ -115,7 +115,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_plus_float x y =
     let%lwt z =
       Db.find Q.select_plus_float
-	      Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|]) in
+              Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|]) in
     assert (abs_float (z -. (x +. y)) < 1e-8 *. (x +. y));
     Lwt.return_unit in
   for%lwt m = 0 to 199 do
@@ -127,8 +127,8 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
   let ck_string x y =
     let%lwt s =
       Db.find Q.select_cat
-	      Db.Tuple.(fun u -> string 0 u)
-	      Db.Param.([|string x; string y|]) in
+              Db.Tuple.(fun u -> string 0 u)
+              Db.Param.([|string x; string y|]) in
     assert (s = x ^ y); Lwt.return_unit in
   for%lwt m = 0 to 199 do
     let x = sprintf "%x" (Random.int (1 lsl 29)) in
@@ -139,7 +139,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
 let dump_querydesc qn qd =
   let pns = Array.map string_of_typedesc qd.querydesc_params in
   let fns = Array.map (fun (pn, pt) -> pn ^ " : " ^ string_of_typedesc pt)
-		      qd.querydesc_fields in
+                      qd.querydesc_fields in
   Lwt_io.printf "%s : %s -> {%s}\n" qn
     (String.concat " * " (Array.to_list pns))
     (String.concat "; " (Array.to_list fns))

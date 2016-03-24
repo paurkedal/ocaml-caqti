@@ -86,9 +86,6 @@ module type PARAM = sig
 
   val other : string -> t
   (** A backend-specific value. *)
-
-  val text : string -> t                [@@ocaml.deprecated "Use string"]
-  val octets : string -> t                [@@ocaml.deprecated "Use bytes"]
 end
 
 (** Tuple decoding functions.
@@ -122,9 +119,6 @@ module type TUPLE = sig
   val utc_string : int -> t -> string
   val utc : int -> t -> CalendarLib.Calendar.t
   val other : int -> t -> string
-
-  val text : int -> t -> string                [@@ocaml.deprecated "Use string"]
-  val octets : int -> t -> string        [@@ocaml.deprecated "Use bytes"]
 end
 
 module type REPORT = sig
@@ -239,10 +233,6 @@ module type CONNECTION = sig
   val rollback : unit -> unit io
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
-
-  (**/**)
-  type param = Param.t [@@ocaml.deprecated "Use Param.t"]
-  type tuple = Tuple.t [@@ocaml.deprecated "Use Tuple.t"]
 end
 
 (** The signature of pools of reusable resources.  We use it to keep pools of

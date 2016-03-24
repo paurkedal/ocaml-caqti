@@ -81,9 +81,6 @@ module Param = struct
   let utc_string = string
   let utc t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
   let other s = s
-
-  let text = string
-  let octets = string
 end
 
 module Tuple = struct
@@ -118,9 +115,6 @@ module Tuple = struct
   let utc_string = raw
   let utc j t = utc_of_timestamp (raw j t)
   let other = raw
-
-  let text = string
-  let octets = string
 end
 
 module Report = struct

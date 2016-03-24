@@ -77,9 +77,6 @@ module Param = struct
   let utc_string x = TEXT x
   let utc x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
   let other x = failwith "Param.other is invalid for sqlite3"
-
-  let text = string
-  let octets x = BLOB x
 end
 
 let params_info ps = Array.to_list (Array.map Data.to_string_debug ps)
@@ -154,12 +151,6 @@ module Tuple = struct
     | TEXT x -> with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x)
     | _ -> invalid_decode "timestamp" i stmt
   let other i stmt = to_string (Sqlite3.column stmt i)
-
-  let text = string
-  let octets i stmt =
-    match Sqlite3.column stmt i with
-    | BLOB x -> x
-    | _ -> invalid_decode "octets" i stmt
 end
 
 module Report = struct

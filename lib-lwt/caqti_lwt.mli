@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,3 @@
 open Caqti_sigs
 
 include CAQTI with type 'a System.io = 'a Lwt.t
-
-val read_sql_statement : ('a -> char option Lwt.t) -> 'a -> string option Lwt.t
-[@@ocaml.deprecated "open Caqti_sql_io_lwt instead"]

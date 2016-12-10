@@ -1,20 +1,12 @@
-(* OASIS_START *)
-(* OASIS_STOP *)
+open Ocamlbuild_plugin
 
-let () = mark_tag_used "tests"
-
-let () = dispatch begin function
-
-  | Before_options ->
-    Options.use_ocamlfind := true
-
-  | After_rules as e ->
-    flag ["doc"; "ocaml"] & A"-thread";
-    flag ["doc"; "ocaml"; "extension:html"] &
-      S[A"-charset"; A"utf8"; A"-t"; A"The Caqti API"];
-    dispatch_default e
-
-  | e ->
-    dispatch_default e
-
-end
+let () = dispatch @@ function
+ | After_rules ->
+    (match Sys.getenv "TERM" with
+     | exception Not_found -> ()
+     | "" | "dumb" -> ()
+     | _ -> flag ["ocaml"; "compile"] (S [A"-color"; A"always"]));
+    rule "%.mli & %.idem -> %.ml"
+      ~deps:["%.mli"; "%.idem"] ~prod:"%.ml"
+      (fun env _ -> cp (env "%.mli") (env "%.ml"));
+ | _ -> ()

@@ -1,0 +1,32 @@
+opam-version: "1.2"
+name: "ocaml-caqti"
+authors: ["Petter A. Urkedal"]
+maintainer: "paurkedal@gmail.com"
+homepage: "https://github.com/paurkedal/ocaml-caqti/"
+bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
+dev-repo: "https://github.com/paurkedal/ocaml-caqti.git"
+license: "LGPL-3 with OCaml linking exception"
+
+build: [[
+  "ocaml" "pkg/pkg.ml" "build"
+    "--pinned" "%{pinned}%"
+    "--with-async" async:installed
+    "--with-lwt" lwt:installed
+    "--with-sqlite3" sqlite3:installed
+    "--with-postgresql" postgresql:installed
+]]
+depends: [
+  "calendar"
+  "dynlink"
+  "findlib"
+  "ocamlbuild" {build}
+  "topkg" {build}
+  "uri"
+]
+depopts: [
+  "async"
+  "core"
+  "lwt"
+  "postgresql"
+  "sqlite3"
+]

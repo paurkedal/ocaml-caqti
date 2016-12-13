@@ -277,7 +277,7 @@ module Wrap (Wrapper : WRAPPER) = struct
       let validate () = return true
       let check f = f true
 
-      let describe q =
+      let describe = Some (fun q ->
         let extract stmt =
           let desc_field i =
             Sqlite3.column_name stmt i,
@@ -286,7 +286,7 @@ module Wrap (Wrapper : WRAPPER) = struct
           let n_fields = Sqlite3.column_count stmt in
           { querydesc_params = Array.make n_params `Unknown;
             querydesc_fields = Array.init n_fields desc_field } in
-        prim_exec extract q [||]
+        prim_exec extract q [||])
 
       let exec q params =
         let extract stmt =

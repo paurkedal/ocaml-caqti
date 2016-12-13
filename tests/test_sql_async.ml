@@ -53,12 +53,14 @@ let test (module Db : Caqti_async.CONNECTION) =
   assert (s_acc = "zero+two+three+five");
 
   (* Describe *)
-  if is_typed then begin
-    Db.describe Q.select_from_tmp >>= fun qd ->
-    assert (qd.querydesc_params = [||]);
-    assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
-    return ()
-  end else return ()
+  (match is_typed, Db.describe with
+   | true, None -> assert false
+   | false, _ -> return ()
+   | true, Some describe ->
+      describe Q.select_from_tmp >>= fun qd ->
+      assert (qd.querydesc_params = [||]);
+      assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
+      return ())
 
 let test_pool = Caqti_async.Pool.use test
 

@@ -388,8 +388,8 @@ module Wrap (Wrapper : WRAPPER) = struct
         | _ ->
           miscommunication uri q "Expected Tuples_ok or an error response."
 
-      let describe q =
-        use begin fun c ->
+      let describe =
+        Some (fun q -> use begin fun c ->
           match q with
           | Prepared pq ->
             c#cached_prepare_io pq >>= fun (_, r) -> return r
@@ -398,7 +398,7 @@ module Wrap (Wrapper : WRAPPER) = struct
             c#prepare_io q "_desc_tmp" qs >>= fun () ->
             c#describe_io (`Oneshot qs) "_desc_tmp" >>= fun (_, r) ->
             c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
-        end
+        end)
 
       let exec_prepared params q =
         (if Log.debug_query_enabled ()

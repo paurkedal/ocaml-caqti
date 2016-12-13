@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,12 +43,16 @@ module Connection_utils (C : CONNECTION) = struct
     | `Unknown -> failwith "Cannot determine field type."
 end
 
-let main describe uri qs =
+let main do_describe uri qs =
   let q = Caqti_query.prepare_any qs in
   let%lwt connection = Caqti_lwt.connect uri in
   let module C = (val connection) in
   let module U = Connection_utils (C) in
-  let%lwt qd = C.describe q in
+  let describe =
+    (match C.describe with
+     | None -> failwith "The database does not support describe."
+     | Some describe -> describe) in
+  let%lwt qd = describe q in
   let n = Array.length qd.querydesc_fields in
   let print_tuple r =
     assert (n > 0);
@@ -58,7 +62,7 @@ let main describe uri qs =
       Lwt_io.print (U.show_field qd i r)
     done >>
     Lwt_io.print "\n" in
-  if describe then
+  if do_describe then
     for%lwt i = 0 to n - 1 do
       let name, tdesc = qd.querydesc_fields.(i) in
       Lwt_io.printf "%s : %s\n" name (string_of_typedesc tdesc)

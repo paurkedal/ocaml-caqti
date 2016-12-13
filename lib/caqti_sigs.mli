@@ -181,7 +181,7 @@ module type CONNECTION = sig
       used.  [check f] must call [f ()] exactly once with an argument
       indicating whether to keep the connection in the pool or discard it. *)
 
-  val describe : query -> querydesc io
+  val describe : (query -> querydesc io) option
   (** Returns a description of parameters and returned tuples.  What is
       returned may be limited by what the underlying library supports.  The
       number of paratemers and tuple components should be correct, but the

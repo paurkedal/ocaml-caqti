@@ -163,13 +163,16 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   assert (s_acc = "zero+two+three+five");
 
   (* Describe *)
-  let%lwt qd = Db.describe Q.select_from_tmp_where_i_lt in
-  dump_querydesc "select_from_tmp_where_i_lt" qd >>= fun () ->
-  if Db.backend_info.bi_describe_has_typed_parameters then
-    assert (qd.querydesc_params = [|`Int|]);
-  if Db.backend_info.bi_describe_has_typed_fields then
-    assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
-  Lwt.return_unit
+  (match Db.describe with
+   | None -> Lwt.return_unit
+   | Some describe ->
+      let%lwt qd = describe Q.select_from_tmp_where_i_lt in
+      dump_querydesc "select_from_tmp_where_i_lt" qd >>= fun () ->
+      if Db.backend_info.bi_describe_has_typed_parameters then
+        assert (qd.querydesc_params = [|`Int|]);
+      if Db.backend_info.bi_describe_has_typed_fields then
+        assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
+      Lwt.return_unit)
 
 let test (module Db : Caqti_lwt.CONNECTION) =
   test_expr (module Db) >>

@@ -15,7 +15,7 @@
  *)
 
 open Caqti_query
-open Common
+open Testkit
 open Lwt.Infix
 
 let create_q = prepare_sql_p "CREATE TABLE test_parallel \

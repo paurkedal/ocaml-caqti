@@ -17,7 +17,7 @@
 open Caqti_describe
 open Caqti_metadata
 open Caqti_query
-open Common
+open Testkit
 open Printf
 
 let (>>=) = Lwt.(>>=)

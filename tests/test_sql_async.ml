@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@ open Core.Std
 open Async.Std
 open Caqti_describe
 open Caqti_query
-open Common
+open Testkit
 
 module Q = struct
   let create_tmp = prepare_fun @@ function

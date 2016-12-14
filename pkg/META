@@ -15,6 +15,7 @@ package "async" (
   archive(native) = "caqti-async.cmxa"
   plugin(byte) = "caqti-async.cma"
   plugin(native) = "caqti-async.cmxs"
+  exists_if = "caqti-async.cma"
 )
 
 package "lwt" (
@@ -25,16 +26,7 @@ package "lwt" (
   archive(native) = "caqti-lwt.cmxa"
   plugin(byte) = "caqti-lwt.cma"
   plugin(native) = "caqti-lwt.cmxs"
-)
-
-package "caqtus-sqlite3" (
-  description = "Sqlite backend for Caqti"
-  version = "%%VERSION_NUM%%"
-  requires = "calendar sqlite3 uri"
-  archive(byte) = "caqtus-sqlite3.cma"
-  archive(native) = "caqtus-sqlite3.cmxa"
-  plugin(byte) = "caqtus-sqlite3.cma"
-  plugin(native) = "caqtus-sqlite3.cmxs"
+  exists_if = "caqti-lwt.cma"
 )
 
 package "caqtus-postgresql" (
@@ -45,4 +37,16 @@ package "caqtus-postgresql" (
   archive(native) = "caqtus-postgresql.cmxa"
   plugin(byte) = "caqtus-postgresql.cma"
   plugin(native) = "caqtus-postgresql.cmxs"
+  exists_if = "caqtus-postgresql.cma"
+)
+
+package "caqtus-sqlite3" (
+  description = "Sqlite backend for Caqti"
+  version = "%%VERSION_NUM%%"
+  requires = "calendar sqlite3 uri"
+  archive(byte) = "caqtus-sqlite3.cma"
+  archive(native) = "caqtus-sqlite3.cmxa"
+  plugin(byte) = "caqtus-sqlite3.cma"
+  plugin(native) = "caqtus-sqlite3.cmxs"
+  exists_if = "caqtus-sqlite3.cma"
 )

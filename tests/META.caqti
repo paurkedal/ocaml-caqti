@@ -10,6 +10,7 @@ package "lwt" (
   archive(byte) = "caqti_lwt.cma"
   archive(native, plugin) = "caqti_lwt.cmxs"
   requires = "caqti lwt lwt.preemptive"
+  exists_if = "caqti_lwt.cma"
 )
 
 package "caqtus-postgresql" (
@@ -17,6 +18,7 @@ package "caqtus-postgresql" (
   archive(byte) = "caqtus_postgresql.cma"
   archive(native, plugin) = "caqtus_postgresql.cmxs"
   requires = "calendar postgresql uri"
+  exists_if = "caqtus_postgresql.cma"
 )
 
 package "caqtus-sqlite3" (
@@ -24,4 +26,5 @@ package "caqtus-sqlite3" (
   archive(byte) = "caqtus_sqlite3.cma"
   archive(native, plugin) = "caqtus_sqlite3.cmxs"
   requires = "calendar sqlite3 uri"
+  exists_if = "caqtus_sqlite3.cma"
 )

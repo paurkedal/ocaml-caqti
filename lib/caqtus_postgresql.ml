@@ -151,7 +151,8 @@ module Wrap (Wrapper : WRAPPER) = struct
       ~uri_scheme:"postgresql" ~dialect_tag:`Pgsql
       ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
       ~describe_has_typed_parameters:true
-      ~describe_has_typed_fields:true ()
+      ~describe_has_typed_fields:true
+      ~has_transactions:true ()
 
   let query_info = make_query_info backend_info
 

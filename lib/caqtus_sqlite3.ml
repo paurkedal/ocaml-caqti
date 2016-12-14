@@ -184,7 +184,8 @@ module Wrap (Wrapper : WRAPPER) = struct
       ~parameter_style:(`Linear "?")
       ~default_max_pool_size:1
       ~describe_has_typed_parameters:false
-      ~describe_has_typed_fields:true ()
+      ~describe_has_typed_fields:true
+      ~has_transactions:true ()
 
   let query_info = make_query_info backend_info
 

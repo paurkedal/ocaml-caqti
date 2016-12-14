@@ -17,6 +17,7 @@
 open Core.Std
 open Async.Std
 open Caqti_describe
+open Caqti_metadata
 open Caqti_query
 open Testkit
 
@@ -39,8 +40,6 @@ end
 let test (module Db : Caqti_async.CONNECTION) =
   let open Deferred.Or_error in
 
-  let is_typed = Uri.scheme Db.uri <> Some "sqlite3" in
-
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>= fun () ->
   Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>= fun () ->
@@ -53,10 +52,10 @@ let test (module Db : Caqti_async.CONNECTION) =
   assert (s_acc = "zero+two+three+five");
 
   (* Describe *)
-  (match is_typed, Db.describe with
-   | true, None -> assert false
-   | false, _ -> return ()
-   | true, Some describe ->
+  (match Db.describe, Db.backend_info.bi_describe_has_typed_fields with
+   | None, true -> assert false
+   | _, false -> return ()
+   | Some describe, true ->
       describe Q.select_from_tmp >>= fun qd ->
       assert (qd.querydesc_params = [||]);
       assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);

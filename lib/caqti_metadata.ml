@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,6 +32,7 @@ type backend_info = {
   bi_default_max_pool_size : int;
   bi_describe_has_typed_parameters : bool;
   bi_describe_has_typed_fields : bool;
+  bi_has_transactions : bool;
 }
 
 let create_backend_info
@@ -41,6 +42,7 @@ let create_backend_info
       ?(default_max_pool_size = 8)
       ~describe_has_typed_parameters
       ~describe_has_typed_fields
+      ~has_transactions
       () =
   let bi_index = !next_backend_index in
   next_backend_index := succ !next_backend_index;
@@ -52,4 +54,5 @@ let create_backend_info
     bi_default_max_pool_size = default_max_pool_size;
     bi_describe_has_typed_parameters = describe_has_typed_parameters;
     bi_describe_has_typed_fields = describe_has_typed_fields;
+    bi_has_transactions = has_transactions;
   }

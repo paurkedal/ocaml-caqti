@@ -148,9 +148,14 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
 
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>
-  Db.start () >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>
-  Db.rollback () >>
+  begin
+    if Db.backend_info.Caqti_metadata.bi_has_transactions then
+      Db.start () >>
+      Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>
+      Db.rollback ()
+    else
+      Lwt.return_unit
+  end >>
   Db.start () >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>
   Db.exec Q.insert_into_tmp Db.Param.([|int 3; string "three"|]) >>

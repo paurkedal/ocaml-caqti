@@ -46,6 +46,7 @@ type backend_info = private {
   bi_default_max_pool_size : int;
   bi_describe_has_typed_parameters : bool;
   bi_describe_has_typed_fields : bool;
+  bi_has_transactions : bool;
 }
 (** Information about database, backend, and query language.  For the meaning
     of the fields, see the corresponding parameters to
@@ -58,6 +59,7 @@ val create_backend_info :
       ?default_max_pool_size: int ->
       describe_has_typed_parameters: bool ->
       describe_has_typed_fields: bool ->
+      has_transactions: bool ->
       unit -> backend_info
 (** For use by backends to create a descriptor for their query languages.
     @param uri_scheme The URI scheme this backend binds to.
@@ -70,4 +72,5 @@ val create_backend_info :
     @param describe_has_typed_parameters True iff the describe function is
            capable of supplying information about parameter types.
     @param describe_has_typed_parameters True iff the describe function is
-           capable of supplying information about field types. *)
+           capable of supplying information about field types.
+    @param has_transactions Whether the backend supports transactions. *)

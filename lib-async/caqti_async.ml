@@ -22,6 +22,7 @@ open Async.Std
 include Caqti.Make (struct
   type 'a io = 'a Deferred.Or_error.t
   let (>>=) = Deferred.Or_error.bind
+  let (>|=) = Deferred.Or_error.(>>|)
   let return = Deferred.Or_error.return
   let fail = Deferred.Or_error.of_exn
   let join = Deferred.Or_error.all_ignore
@@ -54,15 +55,32 @@ include Caqti.Make (struct
       Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
       return r
 
-    let wait_for op fd =
-      Deferred.bind
-        (Async_unix.Fd.ready_to fd op)
-        begin function
-        | `Bad_fd | `Closed -> assert false
-        | `Ready -> Deferred.Or_error.return ()
-        end
-    let wait_read = wait_for `Read
-    let wait_write = wait_for `Write
+    let poll ?(read = false) ?(write = false) ?timeout fd =
+      let aux res = function
+       | `Bad_fd ->
+          Error (Error.of_exn (Invalid_argument
+            "Caqti_async.Unix.wait_for: Bad file descriptor."))
+       | `Closed ->
+          Error (Error.of_exn (Invalid_argument
+            "Caqti_async.Unix.wait_for: File descriptor closed."))
+       | `Ready -> Ok res in
+      let wait_read =
+        if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
+      let wait_write =
+        if write then Async_unix.Fd.ready_to fd `Write else Deferred.never () in
+      let wait_timeout =
+        (match timeout with
+         | Some t -> Clock.after (Time.Span.of_sec t)
+         | None -> Deferred.never ()) in
+      let did_read, did_write, did_timeout = ref false, ref false, ref false in
+      Deferred.enabled [
+        Deferred.choice wait_read (fun st -> did_read := st = `Ready);
+        Deferred.choice wait_write (fun st -> did_write := st = `Ready);
+        Deferred.choice wait_timeout (fun () -> did_timeout := true);
+      ] >>|
+      (fun f ->
+        ignore (f ());
+        Ok (!did_read, !did_write, !did_timeout))
   end
 
   module Log = struct

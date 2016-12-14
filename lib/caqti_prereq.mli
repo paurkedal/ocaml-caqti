@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -13,6 +13,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
+
+module Option : sig
+  type 'a t = 'a option
+  val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b
+end
 
 val finally : (unit -> unit) -> (unit -> 'a) -> 'a
 

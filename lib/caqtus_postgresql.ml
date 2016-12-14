@@ -187,8 +187,9 @@ module Wrap (Wrapper : WRAPPER) = struct
         begin fun socket_fd ->
           let rec hold () =
             self#consume_input;
-            if self#is_busy then Unix.wait_read socket_fd >>= hold
-                            else return () in
+            if self#is_busy
+              then Unix.poll ~read:true socket_fd >|= (fun _ -> ()) >>= hold
+              else return () in
           hold ()
         end
         (Obj.magic self#socket)
@@ -213,8 +214,10 @@ module Wrap (Wrapper : WRAPPER) = struct
     method private poll_loop_io step =
       let on_fd fd =
         let rec next = function
-          | Polling_reading -> Unix.wait_read fd  >>= fun () -> next (step ())
-          | Polling_writing -> Unix.wait_write fd >>= fun () -> next (step ())
+          | Polling_reading ->
+            Unix.poll ~read:true fd  >>= fun _ -> next (step ())
+          | Polling_writing ->
+            Unix.poll ~write:true fd >>= fun _ -> next (step ())
           | Polling_failed | Polling_ok -> return () in
         next Polling_writing in
       Unix.wrap_fd on_fd (Obj.magic self#socket)

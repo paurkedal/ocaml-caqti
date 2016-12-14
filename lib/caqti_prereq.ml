@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,13 @@
  *)
 
 open Printf
+
+let ident x = x
+
+module Option = struct
+  type 'a t = 'a option
+  let fold f = function None -> ident | Some x -> f x
+end
 
 let finally cleanup thunk =
   let r = try thunk () with xc -> cleanup (); raise xc in

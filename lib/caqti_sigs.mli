@@ -255,6 +255,7 @@ end
 module type MONAD = sig
   type 'a t
   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val (>|=) : 'a t -> ('a -> 'b) -> 'b t
   val return : 'a -> 'a t
 end
 
@@ -277,9 +278,9 @@ module type SYSTEM = sig
 
   module Unix : sig
     type file_descr
-    val wrap_fd : (file_descr -> unit io) -> Unix.file_descr -> unit io
-    val wait_read : file_descr -> unit io
-    val wait_write : file_descr -> unit io
+    val wrap_fd : (file_descr -> 'a io) -> Unix.file_descr -> 'a io
+    val poll : ?read: bool -> ?write: bool -> ?timeout: float ->
+               file_descr -> (bool * bool * bool) io
   end
 
   module Log : sig

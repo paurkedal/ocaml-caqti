@@ -14,10 +14,13 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_prereq
+
 include Caqti.Make (struct
 
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)
+  let (>|=) = Lwt.(>|=)
   let return = Lwt.return
   let fail = Lwt.fail
   let join = Lwt.join
@@ -71,9 +74,21 @@ include Caqti.Make (struct
 
   module Unix = struct
     type file_descr = Lwt_unix.file_descr
+
     let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
-    let wait_read = Lwt_unix.wait_read
-    let wait_write = Lwt_unix.wait_write
+
+    let poll ?(read = false) ?(write = false) ?timeout fd =
+      let choices =
+        [] |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
+           |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
+           |> Option.fold (fun t acc -> Lwt_unix.timeout t :: acc) timeout in
+      if choices = [] then
+        Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
+      else
+        let%lwt timed_out =
+          try%lwt Lwt.choose choices >|= fun _ -> false
+          with Lwt_unix.Timeout -> Lwt.return_true in
+        Lwt.return (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
   end
 
   module Preemptive = Lwt_preemptive

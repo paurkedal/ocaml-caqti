@@ -12,8 +12,9 @@ build: [[
     "--pinned" "%{pinned}%"
     "--with-async" async:installed
     "--with-lwt" lwt:installed
-    "--with-sqlite3" sqlite3:installed
+    "--with-mariadb" mariadb:installed
     "--with-postgresql" postgresql:installed
+    "--with-sqlite3" sqlite3:installed
 ]]
 depends: [
   "calendar"
@@ -27,6 +28,7 @@ depopts: [
   "async"
   "core"
   "lwt"
+  "mariadb"
   "postgresql"
   "sqlite3"
 ]

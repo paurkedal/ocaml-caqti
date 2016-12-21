@@ -16,11 +16,18 @@ functor for instantiating over other IO monads.
 The library is under development; expect backwards incompatible API changes.
 Backends are implemented for
 
-  - PostgreSQL (`postgresql:/`)
-    - Implemented in terms of postgresql-ocaml.
+  - MariaDB (`mariadb://`)
+    - Implemented in terms of
+      [ocaml-mariadb](https://github.com/andrenth/ocaml-mariadb)
+    - Use asynchronous calls.
+    - Transaction and describe are not supported yet.
+  - PostgreSQL (`postgresql://`)
+    - Implemented in terms of
+      [postgresql-ocaml](https://mmottl.github.io/postgresql-ocaml/)
     - Supports real prepared statements and connection pooling.
-  - SQLite3 (`sqlite3:/`)
-    - Implemented in terms of sqlite3-ocaml.
+  - SQLite3 (`sqlite3://`)
+    - Implemented in terms of
+      [sqlite3-ocaml][https://github.com/mmottl/sqlite3-ocaml]
     - Uses preemtive threading to provide non-blocking operation.
     - Connections are not pooled.
 

@@ -5,6 +5,7 @@
 true: bin_annot, package(calendar), package(findlib), package(uri)
 <lib-lwt/*>: thread, package(lwt), package(lwt.ppx), package(lwt.preemptive)
 <lib-async/*>: thread, package(core), package(async)
+<lib/caqtus_mariadb.*>: package(mariadb)
 <lib/caqtus_postgresql.*>: thread, package(postgresql)
 <lib/caqtus_sqlite3.*>: thread, package(sqlite3)
 

@@ -29,6 +29,17 @@ package "lwt" (
   exists_if = "caqti-lwt.cma"
 )
 
+package "caqtus-mariadb" (
+  description = "MariaDB backend for Caqti"
+  version = "%%VERSION_NUM%%"
+  requires = "calendar mariadb uri"
+  archive(byte) = "caqtus-mariadb.cma"
+  archive(native) = "caqtus-mariadb.cmxa"
+  plugin(byte) = "caqtus-mariadb.cma"
+  plugin(native) = "caqtus-mariadb.cmxs"
+  exists_if = "caqtus-mariadb.cma"
+)
+
 package "caqtus-postgresql" (
   description = "PostgreSQL backend for Caqti"
   version = "%%VERSION_NUM%%"

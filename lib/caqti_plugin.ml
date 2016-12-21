@@ -50,6 +50,7 @@ module Link_also = struct
   module M3 = Caqti_prereq
   module M4 = Caqti_pool
   module M5 = Caqti_metadata
+  module M6 = ListLabels    (* mariadb => ctypes.cstub *)
 end
 
 let findlib_load =

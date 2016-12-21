@@ -23,17 +23,23 @@ open Testkit
 
 module Q = struct
   let create_tmp = prepare_fun @@ function
-    | `Pgsql -> "CREATE TEMPORARY TABLE caqti_test \
-                 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
-    | `Sqlite -> "CREATE TABLE caqti_test \
-                  (id INTEGER PRIMARY KEY, i INTEGRE NOT NULL, s TEXT NOT NULL)"
+    | `Pgsql ->
+      "CREATE TEMPORARY TABLE caqti_test \
+         (id SERIAL NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
+    | `Mysql ->
+      "CREATE TEMPORARY TABLE caqti_test \
+         (id INTEGER NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
+    | `Sqlite ->
+      "CREATE TABLE caqti_test \
+         (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
     | _ -> failwith "Unimplemented."
+  let drop_tmp = prepare_sql "DROP TABLE caqti_test"
   let insert_into_tmp = prepare_fun @@ function
     | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
-    | `Sqlite -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
+    | `Sqlite | `Mysql -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
     | _ -> failwith "Unimplemented."
   let select_from_tmp = prepare_fun @@ function
-    | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
+    | `Pgsql | `Sqlite | `Mysql -> "SELECT i, s FROM caqti_test"
     | _ -> failwith "Unimplemented."
 end
 
@@ -59,7 +65,10 @@ let test (module Db : Caqti_async.CONNECTION) =
       describe Q.select_from_tmp >>= fun qd ->
       assert (qd.querydesc_params = [||]);
       assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
-      return ())
+      return ()) >>= fun () ->
+
+  (* Drop *)
+  Db.exec Q.drop_tmp [||]
 
 let test_pool = Caqti_async.Pool.use test
 

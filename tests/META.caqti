@@ -13,6 +13,14 @@ package "lwt" (
   exists_if = "caqti_lwt.cma"
 )
 
+package "caqtus-mariadb" (
+  description = "Caqtus MariaDB loaded from the build directory"
+  archive(byte) = "caqtus_mariadb.cma"
+  archive(native, plugin) = "caqtus_mariadb.cmxs"
+  requires = "calendar mariadb uri"
+  exists_if = "caqtus_mariadb.cma"
+)
+
 package "caqtus-postgresql" (
   description = "Caqtus PostgreSQL loaded from the build directory"
   archive(byte) = "caqtus_postgresql.cma"

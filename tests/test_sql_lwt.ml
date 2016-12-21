@@ -33,36 +33,44 @@ module Q = struct
                 | c -> Buffer.add_char buf c)
         sql;
       Buffer.contents buf
-    | `Sqlite -> sql
+    | `Mysql | `Sqlite -> sql
     | _ -> failwith "Unimplemented."
+
+  let select_null_etc = _q "SELECT ? IS NULL, ?"
 
   let select_and = _q "SELECT ? AND ?"
   let select_plus_int = prepare_fun @@ function
     | `Pgsql -> "SELECT $1::integer + $2::integer"
-    | `Sqlite -> "SELECT ? + ?"
+    | `Mysql | `Sqlite -> "SELECT CAST(? AS integer) + CAST(? AS integer)"
     | _ -> failwith "Unimplemented."
   let select_plus_float = prepare_fun @@ function
     | `Pgsql -> "SELECT $1::float + $2::float"
-    | `Sqlite -> "SELECT ? + ?"
+    | `Mysql | `Sqlite -> "SELECT ? + ?"
     | _ -> failwith "Unimplemented."
-  let select_cat = _q "SELECT ? || ?"
+  let select_cat = prepare_fun @@ function
+    | `Pgsql -> "SELECT $1 || $2"
+    | `Mysql -> "SELECT concat(?, ?)"
+    | `Sqlite -> "SELECT ? || ?"
+    | _ -> failwith "Unimplemented."
 
   let create_tmp = prepare_fun @@ function
-    | `Pgsql -> "CREATE TEMPORARY TABLE caqti_test \
-                 (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
-    | `Sqlite -> "CREATE TABLE caqti_test \
-                  (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
+    | `Mysql | `Pgsql ->
+        "CREATE TEMPORARY TABLE caqti_test \
+          (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
+    | `Sqlite ->
+        "CREATE TABLE caqti_test \
+          (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | _ -> failwith "Unimplemented."
   let insert_into_tmp = prepare_fun @@ function
     | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
-    | `Sqlite -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
+    | `Mysql | `Sqlite -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
     | _ -> failwith "Unimplemented."
   let select_from_tmp = prepare_fun @@ function
-    | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
+    | `Mysql | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
     | _ -> failwith "Unimplemented."
   let select_from_tmp_where_i_lt = prepare_fun @@ function
     | `Pgsql -> "SELECT i, s FROM caqti_test WHERE i < $1"
-    | `Sqlite -> "SELECT i, s FROM caqti_test WHERE i < ?"
+    | `Mysql | `Sqlite -> "SELECT i, s FROM caqti_test WHERE i < ?"
     | _ -> failwith "Unimplemented."
 
 end
@@ -76,6 +84,15 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
       Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, string 1 u) [||] in
     assert (i = j);
     assert (i = int_of_string s);
+    Lwt.return_unit
+  done >>
+
+  (* Prepared: null *)
+  for%lwt i = 0 to 3 do
+    let%lwt c1, c2 =
+      Db.find Q.select_null_etc Db.Tuple.(fun u -> bool 0 u, is_null 1 u)
+              Db.Param.([|null; null|]) in
+    assert (c1 && c2);
     Lwt.return_unit
   done >>
 
@@ -116,7 +133,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     let%lwt z =
       Db.find Q.select_plus_float
               Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|]) in
-    assert (abs_float (z -. (x +. y)) < 1e-8 *. (x +. y));
+    assert (abs_float (z -. (x +. y)) < 1e-6 *. (x +. y));
     Lwt.return_unit in
   for%lwt m = 0 to 199 do
     let i, j = Random.float 1e8, Random.float 1e8 in

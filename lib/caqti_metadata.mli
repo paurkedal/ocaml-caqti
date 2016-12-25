@@ -19,7 +19,9 @@
     with differences between database systems. *)
 
 type dialect_tag = private [> `Mysql | `Pgsql | `Sqlite]
-(** A tag used for easy dispatching between query languages. *)
+(** A tag used for easy dispatching between query languages.  Open an issue to
+    have a dialect added, if you are working a backend to a yet unsupported
+    database. *)
 
 type sql_dialect_tag = [`Mysql | `Pgsql | `Sqlite]
 (** Subtype of the above which includes only SQL dialects. *)
@@ -61,16 +63,26 @@ val create_backend_info :
       describe_has_typed_fields: bool ->
       has_transactions: bool ->
       unit -> backend_info
-(** For use by backends to create a descriptor for their query languages.
-    @param uri_scheme The URI scheme this backend binds to.
-    @param dialect_tag The {!dialect_tag} describing the SQL dialect or other
-           query language.  Omit it if non of the cases apply.
-    @param parameter_style How to represent parameters in query strings.
-    @param default_max_pool_size The suggested pool size for this backend.
-           Unless the backend is special like preferring a single connection,
-           leave this out.
-    @param describe_has_typed_parameters True iff the describe function is
-           capable of supplying information about parameter types.
-    @param describe_has_typed_parameters True iff the describe function is
-           capable of supplying information about field types.
-    @param has_transactions Whether the backend supports transactions. *)
+(** Use by backends to create a descriptor of their query language and other
+    features.
+
+    @param uri_scheme
+      The URI scheme this backend binds to.
+    @param dialect_tag
+      The {!dialect_tag} indicating the SQL dialect or other query language,
+      used for easy dispatching when constructing queries.  Can be omitted if
+      non of the cases applies, but this means clients must inspect the
+      backend-info to indentify the language.
+    @param parameter_style
+      How to represent parameters in query strings.
+    @param default_max_pool_size
+      The suggested pool size for this backend.  Unless the backend is special
+      like preferring a single connection, leave this out.
+    @param describe_has_typed_parameters
+      True iff the describe function is capable of supplying information about
+      parameter types.
+    @param describe_has_typed_parameters
+      True iff the describe function is capable of supplying information about
+      field types.
+    @param has_transactions
+      Whether the backend supports transactions. *)

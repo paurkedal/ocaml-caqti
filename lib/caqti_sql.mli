@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,19 +14,32 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** SQL Utility Functions *)
+(** SQL Utility Functions
+    
+    {b Note.} Since real databases generally do not implement the precise same
+    escaping mechanisms, and discrepancies between the escape function and the
+    database can lead to SQL injection, the standard SQL escaping functions
+    provided below are hardly useful for real applications. *)
 
 val bprint_sql_escaped : Buffer.t -> string -> unit
+[@@ocaml.deprecated "Unsuitable for uses with many real databases."]
 (** [bprint_sql_escaped buf s] adds an [s] to [buf] with any single quoted
-    doubled according to the standard SQL escaping rule. *)
+    doubled according to the standard SQL escaping rule.
+    @deprecated See note in module introduction. *)
 
 val bprint_sql_quoted : Buffer.t -> string -> unit
+[@@ocaml.deprecated "Unsuitable for uses with many real databases."]
 (** [bprint_sql_quoted buf s] adds [s] to [buf] as an SQL-quoted string.  Same
-    as [bprint_sql_escaped], except surrounded by single quotes. *)
+    as [bprint_sql_escaped], except surrounded by single quotes.
+    @deprecated See note in module introduction. *)
 
 val sql_escaped : string -> string
+[@@ocaml.deprecated "Unsuitable for uses with many real databases."]
 (** [sql_escaped s] is [s] with single-quotes doubled according to the
-    standard SQL escaping rule. *)
+    standard SQL escaping rule.
+    @deprecated See note in module introduction. *)
 
 val sql_quoted : string -> string
-(** [sql_quoted s] is [sql_escaped s] between a pair of single quotes. *)
+[@@ocaml.deprecated "Unsuitable for uses with many real databases."]
+(** [sql_quoted s] is [sql_escaped s] between a pair of single quotes.
+    @deprecated See note in module introduction. *)

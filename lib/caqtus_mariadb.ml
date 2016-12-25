@@ -321,7 +321,6 @@ module Caqtus_functor (System : SYSTEM) = struct
       let user = Uri.user uri in
       let pass = Uri.password uri in
       let port = Uri.port uri in
-      let path = Uri.path uri in
       let db =
         (match Uri.path uri with
          | "/" -> None

@@ -56,14 +56,6 @@ include Caqti.Make (struct
       return r
 
     let poll ?(read = false) ?(write = false) ?timeout fd =
-      let aux res = function
-       | `Bad_fd ->
-          Error (Error.of_exn (Invalid_argument
-            "Caqti_async.Unix.wait_for: Bad file descriptor."))
-       | `Closed ->
-          Error (Error.of_exn (Invalid_argument
-            "Caqti_async.Unix.wait_for: File descriptor closed."))
-       | `Ready -> Ok res in
       let wait_read =
         if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
       let wait_write =

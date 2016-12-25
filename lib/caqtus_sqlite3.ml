@@ -31,15 +31,14 @@ let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
     (* CHECKME: Can NOT NULL or other specifiers occur here? *)
-    begin match String.lowercase s with
-    | "integer" -> `Int
-    | "float" -> `Float
-    | "text" -> `String
-    | "blob" -> `Bytes
-    | "date" -> `Date
-    | "timestamp" -> `Utc
-    | _ -> `Other s
-    end
+    (match String.lowercase_ascii s with
+     | "integer" -> `Int
+     | "float" -> `Float
+     | "text" -> `String
+     | "blob" -> `Bytes
+     | "date" -> `Date
+     | "timestamp" -> `Utc
+     | _ -> `Other s)
 
 let typename_of_data = function
   | Data.NONE -> "none"

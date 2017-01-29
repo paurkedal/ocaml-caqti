@@ -172,7 +172,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     let%lwt t =
       Db.find Q.select_current_time Db.Tuple.(utc_float 0) [||] in
     let t1 = Unix.time () in
-    Lwt.return (assert (t0 -. 1.0 <= t && t <= t1 +. 1.0)) >>
+    Lwt.return (assert (t0 -. 1.1 <= t && t <= t1 +. 1.1)) >>
     let%lwt t' =
       Db.find Q.select_given_time
               Db.Tuple.(utc_float 0) Db.Param.[|utc_float t|] in

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,8 @@ module Q = struct
     | `Mysql | `Sqlite -> sql
     | _ -> failwith "Unimplemented."
 
-  let select_null_etc = _q "SELECT ? IS NULL, ?"
+  let select_null_etc = prepare_sql_p
+    "SELECT CAST(? AS integer) IS NULL, CAST(? AS integer)"
 
   let select_and = _q "SELECT ? AND ?"
   let select_plus_int = prepare_fun @@ function

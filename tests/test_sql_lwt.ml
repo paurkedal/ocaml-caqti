@@ -74,6 +74,18 @@ module Q = struct
     | `Mysql | `Sqlite -> "SELECT i, s FROM caqti_test WHERE i < ?"
     | _ -> failwith "Unimplemented."
 
+  let select_current_time = prepare_sql
+    "SELECT current_timestamp"
+  let select_given_time = prepare_fun @@ function
+    | `Pgsql  -> "SELECT $1::timestamp"
+    | `Sqlite -> "SELECT ?"
+    | `Mysql  -> "SELECT CAST(? AS datetime)"
+    | _ -> raise Caqti_query.Missing_query_string
+  let compare_to_known_time = prepare_fun @@ function
+    | `Pgsql  -> "SELECT $1 = CAST('2017-01-29T12:00:00' AS timestamp)"
+    | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00'"
+    | `Mysql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS datetime)"
+    | _ -> raise Caqti_query.Missing_query_string
 end
 
 let test_expr (module Db : Caqti_lwt.CONNECTION) =
@@ -152,7 +164,24 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     let x = sprintf "%x" (Random.int (1 lsl 29)) in
     let y = sprintf "%x" (Random.int (1 lsl 29)) in
     ck_string x y
-  done
+  done >>
+
+  (* Prepared: date *)
+  begin
+    let t0 = Unix.time () in
+    let%lwt t =
+      Db.find Q.select_current_time Db.Tuple.(utc_float 0) [||] in
+    let t1 = Unix.time () in
+    Lwt.return (assert (t0 -. 1.0 <= t && t <= t1 +. 1.0)) >>
+    let%lwt t' =
+      Db.find Q.select_given_time
+              Db.Tuple.(utc_float 0) Db.Param.[|utc_float t|] in
+    Lwt.return (assert (t' = t)) >>
+    let%lwt r =
+      Db.find Q.compare_to_known_time Db.Tuple.(bool 0)
+              Db.Param.[|utc_float 1485691200.0|] in
+    Lwt.return (assert r)
+  end
 
 let dump_querydesc qn qd =
   let pns = Array.map string_of_typedesc qd.querydesc_params in

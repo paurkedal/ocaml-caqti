@@ -1,4 +1,4 @@
-(* Copyright (C) 2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2016--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -332,7 +332,12 @@ module Caqtus_functor (System : SYSTEM) = struct
       let socket = Uri.get_query_param uri "socket" in
       Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
       (function
-       | Ok dbh -> return (make_api uri dbh)
+       | Ok dbh ->
+          let module C : CONNECTION = (val make_api uri dbh) in
+          (* MariaDB returns local times but without time zone, so change it to
+           * UTC for Caqti sessions. *)
+          C.exec (Caqti_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
+          fun () -> (module C : CONNECTION)
        | Error (code, msg) ->
           raise (Caqti.Connect_failed (uri, sprintf "Error %d, %s" code msg)))
   end

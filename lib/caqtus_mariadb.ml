@@ -132,7 +132,7 @@ module Caqtus_functor (System : SYSTEM) = struct
         ~parameter_style:(`Linear "?")
         ~describe_has_typed_parameters:false (* TODO *)
         ~describe_has_typed_fields:false (* TODO *)
-        ~has_transactions:false () (* TODO *)
+        ~has_transactions:true ()
 
     let query_info = make_query_info backend_info
 
@@ -142,6 +142,9 @@ module Caqtus_functor (System : SYSTEM) = struct
     let execute_failed uri q (code, msg) =
       let msg' = sprintf "Error %d, %s" code msg in
       fail (Caqti.Execute_failed (uri, query_info q, msg'))
+    let transaction_failed uri qs (code, msg) =
+      let msg' = sprintf "Error %d, %s" code msg in
+      fail (Caqti.Execute_failed (uri, `Oneshot qs, msg'))
     let miscommunication uri q msg =
       fail (Caqti.Miscommunication (uri, query_info q, msg))
 
@@ -309,10 +312,25 @@ module Caqtus_functor (System : SYSTEM) = struct
                | Error err -> fail_fetch q err) in
             loop acc)
 
-      (* TODO: Need bindings. *)
-      let start = return
-      let commit = return
-      let rollback = return
+      let start () =
+        Mdb.autocommit dbh false >>=
+        (function
+         | Ok () -> return ()
+         | Error err -> transaction_failed uri "# SET autocommit = 0" err)
+
+      let commit () =
+        Mdb.commit dbh >>= fun commit_result ->
+        Mdb.autocommit dbh true >>= fun autocommit_result ->
+        (match commit_result, autocommit_result with
+         | Ok (), Ok () -> return ()
+         | Error err, _ -> transaction_failed uri "# COMMIT" err
+         | _, Error err -> transaction_failed uri "# SET autocommit = 1" err)
+
+      let rollback () =
+        Mdb.rollback dbh >>=
+        (function
+         | Ok () -> return ()
+         | Error err -> transaction_failed uri "# ROLLBACK" err)
 
     end : CONNECTION)
 

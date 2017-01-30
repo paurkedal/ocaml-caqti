@@ -176,7 +176,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     let%lwt t' =
       Db.find Q.select_given_time
               Db.Tuple.(utc_float 0) Db.Param.[|utc_float t|] in
-    Lwt.return (assert (t' = t)) >>
+    Lwt.return (assert (abs_float (t' -. t) < 1.1)) >>
     let%lwt r =
       Db.find Q.compare_to_known_time Db.Tuple.(bool 0)
               Db.Param.[|utc_float 1485691200.0|] in

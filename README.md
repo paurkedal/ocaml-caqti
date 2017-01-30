@@ -19,19 +19,24 @@ Backends are implemented for
   - MariaDB (`mariadb://`)
     - Implemented in terms of
       [ocaml-mariadb](https://github.com/andrenth/ocaml-mariadb)
-    - Use asynchronous calls.
-    - Transaction and describe are not supported yet.
+      using asynchronous calls.
+    - Supports transactions.
+    - Does not currently support describe.
+    - Pools connections.
   - PostgreSQL (`postgresql://`)
     - Implemented in terms of
       [postgresql-ocaml](https://mmottl.github.io/postgresql-ocaml/)
-    - Supports real prepared statements and connection pooling.
+      using asynchronous calls.
+    - Supports transactions.
+    - Supports describe.
+    - Pools connections and caches statements.
   - SQLite3 (`sqlite3://`)
     - Implemented in terms of
       [sqlite3-ocaml][https://github.com/mmottl/sqlite3-ocaml]
-    - Uses preemtive threading to provide non-blocking operation.
-    - Connections are not pooled.
-
-Feedback is welcome.
+      using preemtive threading for non-blocking operation.
+    - Supports transactions.
+    - Supports describe, but without type information for parameters.
+    - Does not pool connections or cache statements.
 
 ## Documentation
 

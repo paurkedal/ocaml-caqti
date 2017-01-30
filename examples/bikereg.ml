@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,32 +38,24 @@ open Caqti_query
  * [tests/test_sql_lwt.ml]. *)
 
 module Q = struct
-  let create_bikereg =
-    prepare_sql "CREATE TEMPORARY TABLE bikereg \
-		 (frameno TEXT NOT NULL, owner TEXT NOT NULL,
-		  stolen TIMESTAMP)"
-    (* Since this is only used once, we could have used a oneshot-query. *)
+  let create_bikereg = oneshot_sql
+    "CREATE TEMPORARY TABLE bikereg (\
+        frameno text NOT NULL, \
+        owner text NOT NULL, \
+        stolen timestamp\
+     )"
 
-  let reg_bike = prepare_fun @@ function
-    | `Pgsql -> "INSERT INTO bikereg (frameno, owner) VALUES ($1, $2)"
-    | `Sqlite -> "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
-    | _ -> raise Missing_query_string
+  let reg_bike = prepare_sql_p
+    "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
-  let report_stolen = prepare_fun @@ function
-    | `Pgsql ->
-      "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = $1"
-    | `Sqlite ->
-      "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
-    | _ -> raise Missing_query_string
+  let report_stolen = prepare_sql_p
+    "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
 
-  let select_stolen =
-    prepare_sql "SELECT frameno, owner, stolen \
-		 FROM bikereg WHERE stolen IS NOT NULL"
+  let select_stolen = prepare_sql
+    "SELECT frameno, owner, stolen FROM bikereg WHERE stolen IS NOT NULL"
 
-  let select_frameno = prepare_fun @@ function
-    | `Pgsql -> "SELECT * FROM bikereg WHERE frameno = $1"
-    | `Sqlite -> "SELECT * FROM bikereg WHERE frameno = ?"
-    | _ -> raise Missing_query_string
+  let select_frameno = prepare_sql_p
+    "SELECT * FROM bikereg WHERE frameno = ?"
 end
 
 (* Wrappers around the Generic Execution Functions
@@ -92,8 +84,8 @@ let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
  * brilliant, though they sometimes requires us to elaborate type
  * dependencies.  *)
 let wrap (type tuple)
-	 (module Db : Caqti_lwt.CONNECTION with type Tuple.t = tuple)
-	 f (t : tuple) =
+         (module Db : Caqti_lwt.CONNECTION with type Tuple.t = tuple)
+         f (t : tuple) =
   let open Db.Tuple in
   (* You might prefer to pass the result as a tuple or record depending on the
    * application. *)
@@ -135,7 +127,7 @@ let test db =
     (fun ~frameno ~owner ?stolen () ->
       let stolen = match stolen with Some x -> x | None -> assert false in
       Lwt_io.printf "\t%s %s %s\n" frameno
-		    (CalendarLib.Printer.Calendar.to_string stolen) owner)
+                    (CalendarLib.Printer.Calendar.to_string stolen) owner)
 
 let () =
   let uri =

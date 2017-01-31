@@ -32,7 +32,7 @@ Backends are implemented for
     - Pools connections and caches statements.
   - SQLite3 (`sqlite3://`)
     - Implemented in terms of
-      [sqlite3-ocaml][https://github.com/mmottl/sqlite3-ocaml]
+      [sqlite3-ocaml](https://github.com/mmottl/sqlite3-ocaml)
       using preemtive threading for non-blocking operation.
     - Supports transactions.
     - Supports describe, but without type information for parameters.

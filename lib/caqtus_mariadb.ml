@@ -170,6 +170,8 @@ module Caqtus_functor (System : SYSTEM) = struct
 
       let uri = uri
       let backend_info = backend_info
+      let prepared_queries = Hashtbl.create 11
+
       let disconnect () = Mdb.close dbh
       let validate () = return true (* FIXME *)
       let check f = f true (* FIXME *)
@@ -182,22 +184,41 @@ module Caqtus_functor (System : SYSTEM) = struct
       (* TODO: Cache prepared queries, though it may require Stmt.reset which is
        * currently not bound. *)
       let with_prepared q f =
-        let qs =
-          (match q with
-           | Caqti_query.Prepared pq -> pq.Caqti_query.pq_encode backend_info
-           | Caqti_query.Oneshot qsf -> qsf backend_info) in
-        prepare dbh qs >>=
-        (function
-         | Error err -> prepare_failed uri q err
-         | Ok stmt ->
-            catch
-              (fun () ->
-                f stmt >>= fun y ->
-                Mdb.Stmt.close stmt >>= fun _ ->
-                return y)
-              (fun exn ->
-                Mdb.Stmt.close stmt >>= fun _ ->
-                fail exn))
+        match q with
+         | Caqti_query.Oneshot qsf ->
+            prepare dbh (qsf backend_info) >>=
+            (function
+             | Error err -> prepare_failed uri q err
+             | Ok stmt ->
+                catch
+                  (fun () ->
+                    f stmt >>= fun y ->
+                    Mdb.Stmt.close stmt >>= fun _ ->
+                    return y)
+                  (fun exn ->
+                    Mdb.Stmt.close stmt >>= fun _ ->
+                    fail exn))
+         | Caqti_query.Prepared pq ->
+            let index = pq.Caqti_query.pq_index in
+            (try
+              let stmt = Hashtbl.find prepared_queries index in
+              return stmt
+             with Not_found ->
+              prepare dbh (pq.Caqti_query.pq_encode backend_info) >>=
+              (function
+               | Error err -> prepare_failed uri q err
+               | Ok stmt ->
+                  Hashtbl.replace prepared_queries index stmt;
+                  return stmt)) >>=
+            (fun stmt ->
+              let cleanup () =
+                Mdb.Stmt.reset stmt >|=
+                (function
+                 | Ok () -> ()
+                 | Error _ -> Hashtbl.remove prepared_queries index) in
+              catch
+                (fun () -> f stmt >>= fun y -> cleanup () >|= fun () -> y)
+                (fun exn -> cleanup () >>= fun () -> fail exn))
 
       let with_executed q params f =
         with_prepared q @@ fun stmt ->

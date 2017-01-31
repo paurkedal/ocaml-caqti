@@ -22,7 +22,7 @@ Backends are implemented for
       using asynchronous calls.
     - Supports transactions.
     - Does not currently support describe.
-    - Pools connections.
+    - Pools connections and caches statements.
   - PostgreSQL (`postgresql://`)
     - Implemented in terms of
       [postgresql-ocaml](https://mmottl.github.io/postgresql-ocaml/)

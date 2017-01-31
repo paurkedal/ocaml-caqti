@@ -26,6 +26,8 @@ module Caldate_format = CalendarLib.Printer.Date
 module Caltime = CalendarLib.Calendar
 module Caltime_format = CalendarLib.Printer.Calendar
 
+let failwith_f fmt = ksprintf failwith fmt
+
 module Caqtus_functor (System : SYSTEM) = struct
 
   module Mdb = Mariadb.Nonblocking.Make
@@ -81,15 +83,35 @@ module Caqtus_functor (System : SYSTEM) = struct
     let is_null i a = Field.null_value a.(i)
     let option f i a = if is_null i a then None else Some (f i a)
     let bool i a = Field.int a.(i) <> 0
-    let int i a = Field.int a.(i)
-    let int32 i a = Int32.of_int (Field.int a.(i))
-    let int64 i a = Int64.of_int (Field.int a.(i))
-    let float i a = Field.float a.(i)
+
+    let int i a =
+      (match Field.value a.(i) with
+       | `Int i -> i
+       | `String s ->
+          (* An expression like `sum(1)` comes back as a string, presumably as
+           * originally as decimal from MariaDB. *)
+          (try int_of_string s with Failure _ ->
+           failwith_f "Cannot convert %s = %S to int." (Field.name a.(i)) s)
+       | _ -> failwith_f "%s is not an integer." (Field.name a.(i)))
+
+    let int32 i a = Int32.of_int (int i a)
+    let int64 i a = Int64.of_int (int i a)
+
+    let float i a =
+      (match Field.value a.(i) with
+       | `Int i -> float_of_int i
+       | `Float x -> x
+       | `String s ->
+          (try float_of_string s with Failure _ ->
+           failwith_f "Cannot convert %s = %S to float." (Field.name a.(i)) s)
+       | _ -> failwith_f "%s is not a float." (Field.name a.(i)))
+
     let string i a =
       (match Field.value a.(i) with
        | `String s -> s
        | `Bytes s -> Bytes.to_string s
-       | _ -> ksprintf failwith "%s is not a string" (Field.name a.(i)))
+       | _ -> failwith_f "%s is not a string." (Field.name a.(i)))
+
     let bytes i a = Field.bytes a.(i)
 
     let date i a =

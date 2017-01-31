@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,10 +31,11 @@ let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
     (* CHECKME: Can NOT NULL or other specifiers occur here? *)
-    (match String.lowercase_ascii s with
+    let parts = String.split_on_char '(' s in
+    (match String.lowercase_ascii (List.hd parts) with
      | "integer" -> `Int
      | "float" -> `Float
-     | "text" -> `String
+     | "text" | "varchar" -> `String
      | "blob" -> `Bytes
      | "date" -> `Date
      | "timestamp" -> `Utc

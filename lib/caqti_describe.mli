@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -44,4 +44,7 @@ type querydesc = {
 (** The result of {!Caqti_sigs.CONNECTION.describe}. *)
 
 val string_of_typedesc : typedesc -> string
-(** A informative textual representation of a type. *)
+(** An informative textual representation of a type. *)
+
+val string_of_querydesc : querydesc -> string
+(** An informative textual description of query parameters and results. *)

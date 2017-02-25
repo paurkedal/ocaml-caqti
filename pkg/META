@@ -10,7 +10,7 @@ exists_if = "caqti.cma"
 package "async" (
   description = "Async instance of Caqti"
   version = "%%VERSION_NUM%%"
-  requires = "caqti, core, async"
+  requires = "caqti core async"
   archive(byte) = "caqti-async.cma"
   archive(native) = "caqti-async.cmxa"
   plugin(byte) = "caqti-async.cma"

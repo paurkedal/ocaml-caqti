@@ -5,34 +5,42 @@ description = "Caqti loaded from the build directory"
 directory = "../_build/lib"
 requires = "calendar dynlink findlib uri"
 
+package "async" (
+  directory = "../_build/lib-async"
+  archive(byte) = "caqti-async.cma"
+  archive(native, plugin) = "caqti-async.cmxs"
+  requires = "caqti core async"
+  exists_if = "caqti-async.cma"
+)
+
 package "lwt" (
   directory = "../_build/lib-lwt"
-  archive(byte) = "caqti_lwt.cma"
-  archive(native, plugin) = "caqti_lwt.cmxs"
+  archive(byte) = "caqti-lwt.cma"
+  archive(native, plugin) = "caqti-lwt.cmxs"
   requires = "caqti lwt lwt.preemptive"
-  exists_if = "caqti_lwt.cma"
+  exists_if = "caqti-lwt.cma"
 )
 
 package "caqtus-mariadb" (
   description = "Caqtus MariaDB loaded from the build directory"
-  archive(byte) = "caqtus_mariadb.cma"
-  archive(native, plugin) = "caqtus_mariadb.cmxs"
+  archive(byte) = "caqtus-mariadb.cma"
+  archive(native, plugin) = "caqtus-mariadb.cmxs"
   requires = "calendar mariadb uri"
-  exists_if = "caqtus_mariadb.cma"
+  exists_if = "caqtus-mariadb.cma"
 )
 
 package "caqtus-postgresql" (
   description = "Caqtus PostgreSQL loaded from the build directory"
-  archive(byte) = "caqtus_postgresql.cma"
-  archive(native, plugin) = "caqtus_postgresql.cmxs"
+  archive(byte) = "caqtus-postgresql.cma"
+  archive(native, plugin) = "caqtus-postgresql.cmxs"
   requires = "calendar postgresql uri"
-  exists_if = "caqtus_postgresql.cma"
+  exists_if = "caqtus-postgresql.cma"
 )
 
 package "caqtus-sqlite3" (
   description = "Caqtus SQLite3 loaded from the build directory"
-  archive(byte) = "caqtus_sqlite3.cma"
-  archive(native, plugin) = "caqtus_sqlite3.cmxs"
+  archive(byte) = "caqtus-sqlite3.cma"
+  archive(native, plugin) = "caqtus-sqlite3.cmxs"
   requires = "calendar sqlite3 uri"
-  exists_if = "caqtus_sqlite3.cma"
+  exists_if = "caqtus-sqlite3.cma"
 )

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -75,7 +75,8 @@ let () =
     Sys.argv.(0);
   let uri = common_uri () in
   Lwt_main.run begin
-    let pool = Caqti_lwt.connect_pool ~max_size:4 uri in
+    let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
+    let pool = Caqti_lwt.connect_pool ~max_size uri in
     Caqti_lwt.Pool.use
       (fun (module C : Caqti_lwt.CONNECTION) ->
         C.exec drop_q [||] >>

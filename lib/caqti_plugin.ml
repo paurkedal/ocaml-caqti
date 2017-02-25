@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -59,6 +59,9 @@ let findlib_load =
     let co = if Dynlink.is_native then "native" else "byte" in
     let dir = package_directory pkg in
     try
+      let arch = package_property [co] pkg "plugin" in
+      Dynlink.loadfile (Filename.concat dir arch)
+    with Not_found -> try
       let arch = package_property [co; "plugin"] pkg "archive" in
       Dynlink.loadfile (Filename.concat dir arch)
     with Not_found -> ()

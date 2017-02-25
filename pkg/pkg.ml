@@ -15,7 +15,11 @@ let with_mariadb = Conf.with_pkg "mariadb"
 (* Make locally built backends available for testing. *)
 let () = Unix.putenv "OCAMLPATH" "tests"
 
-let () = Pkg.describe ~licenses "caqti" @@ fun c ->
+let opams = [
+  Pkg.opam_file ~lint_deps_excluding:(Some ["dynlink"; "findlib"]) "opam"
+]
+
+let () = Pkg.describe ~licenses ~opams "caqti" @@ fun c ->
   let have_async = Conf.value c with_async in
   let have_lwt = Conf.value c with_lwt in
   let have_postgresql = Conf.value c with_postgresql in
@@ -23,11 +27,11 @@ let () = Pkg.describe ~licenses "caqti" @@ fun c ->
   let have_mariadb = Conf.value c with_mariadb in
   Ok [
     Pkg.mllib "lib/caqti.mllib";
-    Pkg.mllib ~cond:have_postgresql ~api:[] "lib/caqtus_postgresql.mllib";
-    Pkg.mllib ~cond:have_sqlite3 ~api:[] "lib/caqtus_sqlite3.mllib";
-    Pkg.mllib ~cond:have_mariadb ~api:[] "lib/caqtus_mariadb.mllib";
-    Pkg.mllib ~cond:have_async "lib-async/caqti_async.mllib";
-    Pkg.mllib ~cond:have_lwt "lib-lwt/caqti_lwt.mllib";
+    Pkg.mllib ~cond:have_postgresql ~api:[] "lib/caqtus-postgresql.mllib";
+    Pkg.mllib ~cond:have_sqlite3 ~api:[] "lib/caqtus-sqlite3.mllib";
+    Pkg.mllib ~cond:have_mariadb ~api:[] "lib/caqtus-mariadb.mllib";
+    Pkg.mllib ~cond:have_async "lib-async/caqti-async.mllib";
+    Pkg.mllib ~cond:have_lwt "lib-lwt/caqti-lwt.mllib";
     Pkg.test "tests/test_heap";
     Pkg.test ~cond:have_lwt "tests/test_parallel_lwt";
     Pkg.test ~cond:have_lwt "tests/test_pool_lwt";

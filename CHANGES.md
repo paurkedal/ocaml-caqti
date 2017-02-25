@@ -1,6 +1,10 @@
 # Change Log
 
-## [0.5.0]
+## [0.5.1] - 2017-02-25
+
+- Rename libraries to match META.
+
+## [0.5.0] - 2017-02-25 retracted
 
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.

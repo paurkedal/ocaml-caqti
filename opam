@@ -1,5 +1,5 @@
 opam-version: "1.2"
-name: "ocaml-caqti"
+name: "caqti"
 authors: ["Petter A. Urkedal"]
 maintainer: "paurkedal@gmail.com"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
@@ -18,9 +18,8 @@ build: [[
 ]]
 depends: [
   "calendar"
-  "dynlink"
-  "findlib"
   "ocamlbuild" {build}
+  "ocamlfind"
   "topkg" {build}
   "uri"
 ]

@@ -203,7 +203,7 @@ module Wrap (Wrapper : WRAPPER) = struct
     (* Database Handle *)
 
     let db_mutex = Mutex.create () in
-    let db = Sqlite3.db_open (Uri.path uri) in
+    let db = Sqlite3.db_open (Uri.path uri |> Uri.pct_decode) in
     begin
       try
         Sqlite3.busy_timeout db

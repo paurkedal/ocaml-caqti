@@ -194,16 +194,38 @@ module Wrap (Wrapper : WRAPPER) = struct
     (* Check URI *)
 
     assert (Uri.scheme uri = Some "sqlite3");
+
     begin match Uri.userinfo uri, Uri.host uri with
     | None, (None | Some "") -> return ()
     | _ -> fail (Invalid_argument "Sqlite URI cannot contain user or host \
                                    components.")
     end >>= fun () ->
 
+    (* Determine mode *)
+
+    let get_bool name =
+      (match Uri.get_query_param uri name with
+       | Some ("true" | "yes") -> return (Some true)
+       | Some ("false" | "no") -> return (Some false)
+       | Some _ ->
+          let msg = sprintf "The %s parameter is boolean." name in
+          fail (Caqti.Connect_failed (uri, msg))
+       | None -> return None) in
+    begin
+      get_bool "write" >>= fun write ->
+      get_bool "create" >>= fun create ->
+      (match write, create with
+       | Some false, Some true ->
+          fail (Caqti.Connect_failed (uri, "Create mode presumes write."))
+       | (Some false), (Some false | None)      -> return (Some `READONLY)
+       | (Some true | None), (Some true | None) -> return (None)
+       | (Some true | None), (Some false)       -> return (Some `NO_CREATE))
+    end >>= fun mode ->
+
     (* Database Handle *)
 
     let db_mutex = Mutex.create () in
-    let db = Sqlite3.db_open (Uri.path uri |> Uri.pct_decode) in
+    let db = Sqlite3.db_open ?mode (Uri.path uri |> Uri.pct_decode) in
     begin
       try
         Sqlite3.busy_timeout db

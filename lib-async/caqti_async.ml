@@ -16,8 +16,8 @@
 
 (* This is partly based on https://github.com/janestreet/lwt-async *)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 include Caqti.Make (struct
   type 'a io = 'a Deferred.Or_error.t

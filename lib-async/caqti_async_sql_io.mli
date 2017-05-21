@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,6 @@
 
 (** SQL IO utilities for Async. *)
 
-open Async.Std
+open Async
 
 include Caqti_sql_io.S with type 'a io := 'a Deferred.Or_error.t

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,7 +16,7 @@
 
 (** Connector for Async. *)
 
-open Async.Std
+open Async
 open Caqti_sigs
 
 include CAQTI with type 'a System.io = 'a Deferred.Or_error.t

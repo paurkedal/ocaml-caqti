@@ -46,7 +46,8 @@ let rec depth_process_package f pkg =
  * which may be needed by plugins. *)
 let () = depth_process_package (fun _ -> ()) "caqti"
 module Link_also = struct
-  module M2 = CalendarLib
+  module M1 = CalendarLib
+  module M2 = Caqti_errors
   module M3 = Caqti_prereq
   module M4 = Caqti_pool
   module M5 = Caqti_metadata

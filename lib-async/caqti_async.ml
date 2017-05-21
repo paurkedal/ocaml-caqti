@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,7 @@ open Async.Std
 
 include Caqti.Make (struct
   type 'a io = 'a Deferred.Or_error.t
-  let (>>=) = Deferred.Or_error.bind
+  let (>>=) m f = Deferred.Or_error.bind m ~f
   let (>|=) = Deferred.Or_error.(>>|)
   let return = Deferred.Or_error.return
   let fail = Deferred.Or_error.of_exn
@@ -52,7 +52,7 @@ include Caqti.Make (struct
       let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
       let open Deferred in
       f fd >>= fun r ->
-      Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
+      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd >>= fun () ->
       return r
 
     let poll ?(read = false) ?(write = false) ?timeout fd =

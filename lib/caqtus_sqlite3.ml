@@ -15,6 +15,7 @@
  *)
 
 open Caqti_describe
+open Caqti_errors
 open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
@@ -209,14 +210,14 @@ module Wrap (Wrapper : WRAPPER) = struct
        | Some ("false" | "no") -> return (Some false)
        | Some _ ->
           let msg = sprintf "The %s parameter is boolean." name in
-          fail (Caqti.Connect_failed (uri, msg))
+          fail (Connect_failed (uri, msg))
        | None -> return None) in
     begin
       get_bool "write" >>= fun write ->
       get_bool "create" >>= fun create ->
       (match write, create with
        | Some false, Some true ->
-          fail (Caqti.Connect_failed (uri, "Create mode presumes write."))
+          fail (Connect_failed (uri, "Create mode presumes write."))
        | (Some false), (Some false | None)      -> return (Some `READONLY)
        | (Some true | None), (Some true | None) -> return (None)
        | (Some true | None), (Some false)       -> return (Some `NO_CREATE))
@@ -245,8 +246,7 @@ module Wrap (Wrapper : WRAPPER) = struct
     (* Helpers *)
 
     let raise_rc q rc =
-      raise (Caqti.Execute_failed
-                (uri, query_info q, Sqlite3.Rc.to_string rc)) in
+      raise (Execute_failed (uri, query_info q, Sqlite3.Rc.to_string rc)) in
 
     let prim_exec extract q params =
       (if Log.debug_query_enabled ()
@@ -256,8 +256,8 @@ module Wrap (Wrapper : WRAPPER) = struct
       | Prepared {pq_encode} ->
         begin try return (pq_encode backend_info)
         with Missing_query_string ->
-          fail (Caqti.Prepare_failed (uri, query_info q,
-                                      "Missing query string for SQLite."))
+          fail (Prepare_failed
+                  (uri, query_info q, "Missing query string for SQLite."))
         end
       | Oneshot qsf -> return (qsf backend_info)
       end >>= fun qs ->
@@ -265,15 +265,15 @@ module Wrap (Wrapper : WRAPPER) = struct
         let stmt =
           try Sqlite3.prepare db qs with
           | Sqlite3.Error msg ->
-            raise (Caqti.Prepare_failed (uri, query_info q, msg)) in
+            raise (Prepare_failed (uri, query_info q, msg)) in
         finally (fun () -> ignore (Sqlite3.finalize stmt))
           begin fun () ->
             for i = 0 to Array.length params - 1 do
               match Sqlite3.bind stmt (i + 1) params.(i) with
               | Sqlite3.Rc.OK -> ()
               | rc ->
-                raise (Caqti.Prepare_failed (uri, query_info q,
-                                             Sqlite3.Rc.to_string rc))
+                raise (Prepare_failed
+                        (uri, query_info q, Sqlite3.Rc.to_string rc))
             done;
             extract stmt
           end
@@ -325,14 +325,14 @@ module Wrap (Wrapper : WRAPPER) = struct
           match Sqlite3.step stmt with
           | Sqlite3.Rc.DONE ->
             let msg = "Received no tuples, expected one." in
-            raise (Caqti.Miscommunication (uri, query_info q, msg))
+            raise (Miscommunication (uri, query_info q, msg))
           | Sqlite3.Rc.ROW ->
             let r = W.on_tuple f (Lazy.force r') stmt in
             begin match Sqlite3.step stmt with
             | Sqlite3.Rc.DONE -> r
             | Sqlite3.Rc.ROW ->
               let msg = "Received multiple tuples, expected one." in
-              raise (Caqti.Miscommunication (uri, query_info q, msg))
+              raise (Miscommunication (uri, query_info q, msg))
             | rc -> raise_rc q rc
             end
           | rc -> raise_rc q rc in
@@ -349,7 +349,7 @@ module Wrap (Wrapper : WRAPPER) = struct
             begin match Sqlite3.step stmt with
             | Sqlite3.Rc.DONE -> Some r
             | Sqlite3.Rc.ROW ->
-              raise (Caqti.Miscommunication
+              raise (Miscommunication
                       (uri, query_info q,
                        "Expected at most one tuple response."))
             | rc -> raise_rc q rc
@@ -411,4 +411,4 @@ module Wrap (Wrapper : WRAPPER) = struct
 end (* Wrap *)
 end (* Connect_functor *)
 
-let () = Caqti.register_scheme "sqlite3" (module Connect_functor)
+let () = Caqti_connect.register_scheme "sqlite3" (module Connect_functor)

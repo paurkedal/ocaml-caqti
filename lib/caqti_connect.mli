@@ -14,9 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Deprecated. *)
+(** Connection functor and backend registration. *)
 
-[@@@ocaml.deprecated "Split into Caqti_errors and Caqti_connect."]
+open Caqti_metadata
+open Caqti_sigs
 
-include module type of Caqti_errors
-include module type of Caqti_connect
+val register_scheme : string -> (module CAQTUS_FUNCTOR) -> unit
+(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
+    [scheme].  This call must be done by a backend installed with findlib name
+    caqtus-{i scheme} as part of its initialization. *)
+
+module Make (System : SYSTEM) : CAQTI with module System = System

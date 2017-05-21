@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,7 @@
  *)
 
 open Caqti_describe
+open Caqti_errors
 open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
@@ -157,11 +158,11 @@ module Wrap (Wrapper : WRAPPER) = struct
   let query_info = make_query_info backend_info
 
   let prepare_failed uri q msg =
-    fail (Caqti.Prepare_failed (uri, query_info q, msg))
+    fail (Prepare_failed (uri, query_info q, msg))
   let execute_failed uri q msg =
-    fail (Caqti.Execute_failed (uri, query_info q, msg))
+    fail (Execute_failed (uri, query_info q, msg))
   let miscommunication uri q fmt =
-    ksprintf (fun s -> fail (Caqti.Miscommunication (uri, query_info q, s))) fmt
+    ksprintf (fun s -> fail (Miscommunication (uri, query_info q, s))) fmt
 
   class connection uri =
     (* Connection URIs were introduced in version 9.2, so deconstruct URIs of
@@ -200,13 +201,13 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     method private fetch_single_result_io qi =
       self#fetch_result_io >>= function
-      | None -> fail (Caqti.Miscommunication (uri, qi, "Missing response."))
+      | None -> fail (Miscommunication (uri, qi, "Missing response."))
       | Some r ->
         self#fetch_result_io >>=
         begin function
         | None -> return r
-        | Some r -> fail (Caqti.Miscommunication
-                            (uri, qi, "Unexpected multirow response."))
+        | Some r ->
+          fail (Miscommunication (uri, qi, "Unexpected multirow response."))
         end
 
     (* Connection *)
@@ -255,7 +256,7 @@ module Wrap (Wrapper : WRAPPER) = struct
       with
       | Postgresql.Error err ->
         let msg = Postgresql.string_of_error err in
-        fail (Caqti.Execute_failed (uri, `Oneshot qs, msg))
+        fail (Execute_failed (uri, `Oneshot qs, msg))
       | xc -> fail xc
 
     (* Prepared Execution *)
@@ -346,7 +347,7 @@ module Wrap (Wrapper : WRAPPER) = struct
           fail (Error e))
       (function
         | Error e ->
-          fail (Caqti.Connect_failed (uri, Postgresql.string_of_error e))
+          fail (Connect_failed (uri, Postgresql.string_of_error e))
         | xc -> fail xc) >>=
     fun conn ->
 
@@ -523,4 +524,4 @@ module Wrap (Wrapper : WRAPPER) = struct
 end (* Wrap *)
 end (* Caqtus_functor *)
 
-let () = Caqti.register_scheme "postgresql" (module Caqtus_functor)
+let () = Caqti_connect.register_scheme "postgresql" (module Caqtus_functor)

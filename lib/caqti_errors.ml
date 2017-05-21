@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Deprecated. *)
+open Caqti_query
 
-[@@@ocaml.deprecated "Split into Caqti_errors and Caqti_connect."]
-
-include module type of Caqti_errors
-include module type of Caqti_connect
+exception Connect_failed of Uri.t * string
+exception Prepare_failed of Uri.t * query_info * string
+exception Execute_failed of Uri.t * query_info * string
+exception Miscommunication of Uri.t * query_info * string

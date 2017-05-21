@@ -15,6 +15,7 @@
  *)
 
 open Caqti_describe
+open Caqti_errors
 open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
@@ -160,15 +161,15 @@ module Caqtus_functor (System : SYSTEM) = struct
 
     let prepare_failed uri q (code, msg) =
       let msg' = sprintf "Error %d, %s" code msg in
-      fail (Caqti.Prepare_failed (uri, query_info q, msg'))
+      fail (Prepare_failed (uri, query_info q, msg'))
     let execute_failed uri q (code, msg) =
       let msg' = sprintf "Error %d, %s" code msg in
-      fail (Caqti.Execute_failed (uri, query_info q, msg'))
+      fail (Execute_failed (uri, query_info q, msg'))
     let transaction_failed uri qs (code, msg) =
       let msg' = sprintf "Error %d, %s" code msg in
-      fail (Caqti.Execute_failed (uri, `Oneshot qs, msg'))
+      fail (Execute_failed (uri, `Oneshot qs, msg'))
     let miscommunication uri q msg =
-      fail (Caqti.Miscommunication (uri, query_info q, msg))
+      fail (Miscommunication (uri, query_info q, msg))
 
     module type CONNECTION = sig
       module Tuple : TUPLE
@@ -387,7 +388,7 @@ module Caqtus_functor (System : SYSTEM) = struct
          | "/" -> None
          | path ->
             if Filename.dirname path <> "/" then
-              raise (Caqti.Connect_failed (uri, "Bad URI"));
+              raise (Connect_failed (uri, "Bad URI"));
             Some (Filename.basename path)) in
       let flags = None (* TODO *) in
       let socket = Uri.get_query_param uri "socket" in
@@ -400,8 +401,8 @@ module Caqtus_functor (System : SYSTEM) = struct
           C.exec (Caqti_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
           fun () -> (module C : CONNECTION)
        | Error (code, msg) ->
-          raise (Caqti.Connect_failed (uri, sprintf "Error %d, %s" code msg)))
+          raise (Connect_failed (uri, sprintf "Error %d, %s" code msg)))
   end
 end
 
-let () = Caqti.register_scheme "mariadb" (module Caqtus_functor)
+let () = Caqti_connect.register_scheme "mariadb" (module Caqtus_functor)

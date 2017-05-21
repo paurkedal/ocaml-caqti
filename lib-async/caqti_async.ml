@@ -19,7 +19,7 @@
 open Core
 open Async
 
-include Caqti.Make (struct
+include Caqti_connect.Make (struct
   type 'a io = 'a Deferred.Or_error.t
   let (>>=) m f = Deferred.Or_error.bind m ~f
   let (>|=) = Deferred.Or_error.(>>|)

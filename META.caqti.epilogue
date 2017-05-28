@@ -1,0 +1,12 @@
+package "caqtus-mariadb" (
+  description = "Transitional alias for caqtus-mariadb"
+  requires = "caqtus-mariadb"
+)
+package "caqtus-postgresql" (
+  description = "Transitional alias for caqtus-postgresql"
+  requires = "caqtus-postgresql"
+)
+package "caqtus-sqlite3" (
+  description = "Transitional alias for caqtus-sqlite3"
+  requires = "caqtus-sqlite3"
+)

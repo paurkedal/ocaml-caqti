@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(rule
+ ((targets (META.caqti))
+  (deps (META.caqti.from-jbuilder META.caqti.epilogue))
+  (action (with-stdout-to ${@}
+    (progn
+      (cat ${<})
+      (cat META.caqti.epilogue))))))

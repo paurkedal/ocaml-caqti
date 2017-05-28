@@ -1,0 +1,49 @@
+(jbuild_version 1)
+
+(library
+ ((name caqti)
+  (public_name caqti)
+  (wrapped false)
+  (modules
+   (Caqti
+    Caqti_connect
+    Caqti_describe
+    Caqti_errors
+    Caqti_metadata
+    Caqti_plugin
+    Caqti_pool
+    Caqti_sigs
+    Caqti_sql
+    Caqti_sql_io
+    Caqti_query
+
+    Caqti_heap
+    Caqti_prereq))
+  (libraries (calendar findlib uri))))
+
+(rule
+ ((targets (caqti_sigs.ml))
+  (deps (caqti_sigs.mli))
+  (action (copy ${<} ${@}))))
+
+(library
+ ((name caqtus_postgresql)
+  (public_name caqtus-postgresql)
+  (wrapped false)
+  (modules (Caqtus_postgresql))
+  (libraries (caqti postgresql))))
+
+(library
+ ((name caqtus_mariadb)
+  (public_name caqtus-mariadb)
+  (wrapped false)
+  (modules (Caqtus_mariadb))
+  (libraries (caqti mariadb))))
+
+(library
+ ((name caqtus_sqlite3)
+  (public_name caqtus-sqlite3)
+  (wrapped false)
+  (flags (-thread))
+  (modules (Caqtus_sqlite3))
+  (libraries (caqti sqlite3))))

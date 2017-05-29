@@ -9,7 +9,7 @@ license: "LGPL-3 with OCaml linking exception"
 
 build: [[
   "ocaml" "pkg/pkg.ml" "build"
-    "--dev-pkg" "%{dev}%"
+    "--pinned" "%{pinned}%"
     "--with-async" async:installed
     "--with-lwt" lwt:installed
     "--with-mariadb" mariadb:installed

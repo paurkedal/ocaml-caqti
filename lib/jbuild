@@ -19,7 +19,7 @@
 
     Caqti_heap
     Caqti_prereq))
-  (libraries (calendar findlib uri))))
+  (libraries (calendar dynlink findlib uri))))
 
 (rule
  ((targets (caqti_sigs.ml))

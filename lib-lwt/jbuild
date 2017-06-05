@@ -8,4 +8,4 @@
   (modules
    (Caqti_lwt
     Caqti_lwt_sql_io))
-  (libraries (caqti lwt))))
+  (libraries (caqti lwt lwt.unix lwt.preemptive))))

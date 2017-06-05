@@ -14,3 +14,4 @@ depends: [
   "caqti"
   "lwt"
 ]
+conflicts: ["caqti" {<"0.6.0"}]

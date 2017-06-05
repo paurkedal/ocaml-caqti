@@ -14,3 +14,4 @@ depends: [
   "caqti"
   "postgresql"
 ]
+conflicts: ["caqti" {<"0.6.0"}]

@@ -14,3 +14,4 @@ depends: [
   "caqti"
   "mariadb"
 ]
+conflicts: ["caqti" {<"0.6.0"}]

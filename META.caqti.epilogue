@@ -1,3 +1,12 @@
+package "lwt" (
+  description = "Transitional alias for caqti-lwt"
+  requires = "caqti-lwt"
+)
+package "async" (
+  description = "Transitional alias for caqti-async"
+  requires = "caqti-async"
+)
+
 package "caqtus-mariadb" (
   description = "Transitional alias for caqti-driver-mariadb"
   requires = "caqti-driver-mariadb"

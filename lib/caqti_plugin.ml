@@ -16,80 +16,52 @@
 
 open Printf
 
-exception Plugin_missing of string list
+exception Plugin_missing of string * string
 exception Plugin_invalid of string * string
 
-let rec iter_chopped_from f i s =
-  let n = String.length s in
-  if i < n then begin
-    let j = try String.index_from s i ' ' with Not_found -> n in
-    if i < j then f (String.sub s i (j - i));
-    iter_chopped_from f (j + 1) s
-  end
+(* Because it lacks a cmxs? *)
+module Really_link_CalendarLib = struct include CalendarLib end
 
-let iter_chopped f s = iter_chopped_from f 0 s
+let msg_invalid = "The plugin seemed to load, but did not register."
 
-let processed_packages = Hashtbl.create 11
+let debug =
+  try bool_of_string (Sys.getenv "CAQTI_DEBUG_PLUGIN")
+  with Not_found -> false
 
-let rec depth_process_package f pkg =
-  if not (Hashtbl.mem processed_packages pkg) then begin
-    Hashtbl.add processed_packages pkg ();
-    let requires = try Findlib.package_property [] pkg "requires"
-                   with Not_found -> "" in
-    iter_chopped (depth_process_package f) requires;
-    f pkg
-  end
-
-(* Skip libraries on which we already depend; some lacks installed shared
- * objects, anyway.  However, the OCaml linker includes only modules needed by
- * the main application, so add bring in some modules from linked libraries
- * which may be needed by plugins. *)
-let () = depth_process_package (fun _ -> ()) "caqti"
-module Link_also = struct
-  module M1 = CalendarLib
-  module M2 = Caqti_errors
-  module M3 = Caqti_prereq
-  module M4 = Caqti_pool
-  module M5 = Caqti_metadata
-  module M6 = ListLabels    (* mariadb => ctypes.cstub *)
+let init = lazy begin
+  Findlib.init ();
+  Findlib.record_package_predicates
+    (match Sys.backend_type with
+     | Sys.Native -> ["native"]
+     | Sys.Bytecode -> ["byte"]
+     | Sys.Other _ -> []);
+  List.iter (Findlib.record_package Record_core)
+            (Findlib.package_deep_ancestors ["native"] ["caqti"]);
+  if debug then
+    Printf.eprintf "\
+        [DEBUG] Caqti_plugin: recorded_predicates = %s\n\
+        [DEBUG] Caqti_plugin: recorded_packages.core = %s\n\
+        [DEBUG] Caqti_plugin: recorded_packages.load = %s\n%!"
+      (String.concat " " (Findlib.recorded_predicates ()))
+      (String.concat " " (Findlib.recorded_packages Record_core))
+      (String.concat " " (Findlib.recorded_packages Record_load))
 end
 
-let findlib_load =
-  depth_process_package begin fun pkg ->
-    let open Findlib in
-    let co = if Dynlink.is_native then "native" else "byte" in
-    let dir = package_directory pkg in
-    try
-      let arch = package_property [co] pkg "plugin" in
-      Dynlink.loadfile (Filename.concat dir arch)
-    with Not_found -> try
-      let arch = package_property [co; "plugin"] pkg "archive" in
-      Dynlink.loadfile (Filename.concat dir arch)
-    with Not_found -> ()
-  end
-
-let invalid_f pkg fmt =
-  ksprintf (fun msg -> raise (Plugin_invalid (pkg, msg))) fmt
-
-let rec load_plugin = function
-  | [] -> None
-  | pkg :: pkgs ->
-    begin try findlib_load pkg; Some pkg with
-    | Findlib.No_such_package _ -> load_plugin pkgs
-    | Dynlink.Error err ->
-      invalid_f pkg "Failed to link plugin: %s" (Dynlink.error_message err)
-    end
-
-let ensure_plugin extract pkgs =
-  match extract () with
-  | Some x -> x
-  | None ->
-    begin match load_plugin pkgs with
-    | Some pkg ->
-      begin match extract () with
-      | Some x -> x
-      | None ->
-        invalid_f pkg "The plugin did not provide the expected functionality."
-      end
-    | None -> raise (Plugin_missing pkgs)
-    end
+let ensure_plugin extract pkg =
+  Lazy.force init;
+  if debug then
+    Printf.eprintf "[DEBUG] Caqti_plugin: requested package: %s\n" pkg;
+  (match extract () with
+   | Some x -> x
+   | None ->
+      try
+        Fl_dynload.load_packages ~debug [pkg];
+        (match extract () with
+         | Some x -> x
+         | None ->
+            raise (Plugin_invalid (pkg, msg_invalid)))
+      with
+       | Dynlink.Error err ->
+          raise (Plugin_missing (pkg, Dynlink.error_message err))
+       | Findlib.No_such_package (pkg, info) ->
+          raise (Plugin_missing (pkg, info)))

@@ -1,0 +1,105 @@
+(jbuild_version 1)
+
+(library
+ ((name testkit)
+  (modules (Testkit))
+  (wrapped false)
+  (libraries (dynlink uri))))
+
+; Basic Tests
+
+(alias ((name runtest) (deps (test_heap.exe)) (action (run ${<}))))
+(executable
+ ((name test_heap)
+  (modules (Test_heap))
+  (libraries (caqti testkit))))
+
+(alias ((name runtest) (deps (test_pool_lwt.exe)) (action (run ${<}))))
+(executable
+ ((name test_pool_lwt)
+  (modules (Test_pool_lwt))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti_lwt testkit))))
+
+; Tests Using DBs
+
+(alias
+ ((name runtest)
+  (deps (bikereg.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name bikereg)
+  (modules (Bikereg))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti caqti_lwt testkit))))
+
+(alias
+ ((name runtest)
+  (deps (test_sql_async.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_sql_async)
+  (modules (Test_sql_async))
+  (libraries (caqti caqti_async testkit))))
+
+(alias
+ ((name runtest)
+  (deps (test_parallel_lwt.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_parallel_lwt)
+  (modules (Test_parallel_lwt))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti caqti_lwt testkit))))
+
+(alias
+ ((name runtest)
+  (deps (test_sql_lwt.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_sql_lwt)
+  (modules (Test_sql_lwt))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti caqti_lwt testkit))))
+
+; Fake META Files
+
+(alias ((name drivers) (deps (META.caqti))))
+(rule
+ ((targets (META.caqti))
+  (deps (../META.caqti))
+  (action
+   (with-stdout-to ${@}
+    (progn
+      (echo "directory = \"../lib\"\n")
+      (cat ${<}))))))
+
+(alias ((name drivers) (deps (META.caqti-driver-mariadb))))
+(rule
+ ((targets (META.caqti-driver-mariadb))
+  (deps (../META.caqti-driver-mariadb))
+  (action
+   (with-stdout-to ${@}
+    (progn
+      (echo "directory = \"../lib\"\n")
+      (cat ${<}))))))
+
+(alias ((name drivers) (deps (META.caqti-driver-sqlite3))))
+(rule
+ ((targets (META.caqti-driver-sqlite3))
+  (deps (../META.caqti-driver-sqlite3))
+  (action
+   (with-stdout-to ${@}
+    (progn
+      (echo "directory = \"../lib\"\n")
+      (cat ${<}))))))
+
+(alias ((name drivers) (deps (META.caqti-driver-postgresql))))
+(rule
+ ((targets (META.caqti-driver-postgresql))
+  (deps (../META.caqti-driver-postgresql))
+  (action
+   (with-stdout-to ${@}
+    (progn
+      (echo "directory = \"../lib\"\n")
+      (cat ${<}))))))

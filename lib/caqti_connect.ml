@@ -46,7 +46,7 @@ module Make (System : SYSTEM) = struct
       ensure_plugin
         (fun () -> try Some (Hashtbl.find scheme_plugins scheme)
                    with Not_found -> None)
-        ["caqti-driver-" ^ scheme] in
+        ("caqti-driver-" ^ scheme) in
     let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
     let module Caqtus = Caqtus_functor (System) in
     let caqtus = (module Caqtus : CAQTUS) in

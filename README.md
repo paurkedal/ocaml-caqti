@@ -59,4 +59,4 @@ connectors, the most important modules to know are:
 
 
 [apiref]: http://paurkedal.github.io/ocaml-caqti/
-[bikereg]: https://github.com/paurkedal/ocaml-caqti/blob/master/examples/bikereg.ml
+[bikereg]: tests/bikereg.ml

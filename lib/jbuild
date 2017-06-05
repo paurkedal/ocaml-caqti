@@ -10,16 +10,17 @@
     Caqti_describe
     Caqti_errors
     Caqti_metadata
-    Caqti_plugin
     Caqti_pool
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
     Caqti_query
-
+    ; internal
     Caqti_heap
+    Caqti_plugin
     Caqti_prereq))
-  (libraries (calendar dynlink findlib uri))))
+  (library_flags (-linkall))
+  (libraries (findlib.dynload calendar uri))))
 
 (rule
  ((targets (caqti_sigs.ml))

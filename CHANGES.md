@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.6.0] - 2017-06-05
+
+- Split into separate packages to avoid depopts and rename findlib names
+  accordingly.
+- Use findlib to load DB drivers, and use `-linkall`. This hopefully solves
+  loading issues.
+
 ## [0.5.3] - 2017-05-22
 
 - Fix handling of spaces in Sqlite3 URIs and allow setting mode.
@@ -19,7 +26,7 @@
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
 
-[unreleased]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...HEAD
+[0.6.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.0...v0.5.1

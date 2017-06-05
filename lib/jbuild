@@ -27,23 +27,23 @@
   (action (copy ${<} ${@}))))
 
 (library
- ((name caqtus_postgresql)
-  (public_name caqtus-postgresql)
+ ((name caqti_driver_postgresql)
+  (public_name caqti-driver-postgresql)
   (wrapped false)
-  (modules (Caqtus_postgresql))
+  (modules (Caqti_driver_postgresql))
   (libraries (caqti postgresql))))
 
 (library
- ((name caqtus_mariadb)
-  (public_name caqtus-mariadb)
+ ((name caqti_driver_mariadb)
+  (public_name caqti-driver-mariadb)
   (wrapped false)
-  (modules (Caqtus_mariadb))
+  (modules (Caqti_driver_mariadb))
   (libraries (caqti mariadb))))
 
 (library
- ((name caqtus_sqlite3)
-  (public_name caqtus-sqlite3)
+ ((name caqti_driver_sqlite3)
+  (public_name caqti-driver-sqlite3)
   (wrapped false)
   (flags (-thread))
-  (modules (Caqtus_sqlite3))
+  (modules (Caqti_driver_sqlite3))
   (libraries (caqti sqlite3))))

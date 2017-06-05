@@ -1,12 +1,12 @@
 package "caqtus-mariadb" (
-  description = "Transitional alias for caqtus-mariadb"
-  requires = "caqtus-mariadb"
+  description = "Transitional alias for caqti-driver-mariadb"
+  requires = "caqti-driver-mariadb"
 )
 package "caqtus-postgresql" (
-  description = "Transitional alias for caqtus-postgresql"
-  requires = "caqtus-postgresql"
+  description = "Transitional alias for caqti-driver-postgresql"
+  requires = "caqti-driver-postgresql"
 )
 package "caqtus-sqlite3" (
-  description = "Transitional alias for caqtus-sqlite3"
-  requires = "caqtus-sqlite3"
+  description = "Transitional alias for caqti-driver-sqlite3"
+  requires = "caqti-driver-sqlite3"
 )

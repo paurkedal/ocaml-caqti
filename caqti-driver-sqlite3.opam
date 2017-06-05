@@ -1,5 +1,5 @@
 opam-version: "1.2"
-name: "caqtus-postgresql"
+name: "caqti-driver-sqlite3"
 authors: ["Petter A. Urkedal"]
 maintainer: "paurkedal@gmail.com"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
@@ -12,5 +12,5 @@ build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "caqti"
-  "postgresql"
+  "sqlite3"
 ]

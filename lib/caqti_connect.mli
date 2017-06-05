@@ -22,6 +22,6 @@ open Caqti_sigs
 val register_scheme : string -> (module CAQTUS_FUNCTOR) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
-    caqtus-{i scheme} as part of its initialization. *)
+    caqti-driver-{i scheme} as part of its initialization. *)
 
 module Make (System : SYSTEM) : CAQTI with module System = System

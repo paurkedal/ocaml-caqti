@@ -4,4 +4,4 @@
 /caqti.install
 /caqti-async.install
 /caqti-lwt.install
-/caqtus-*.install
+/caqti-driver-*.install

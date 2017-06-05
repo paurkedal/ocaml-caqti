@@ -3,4 +3,10 @@
 (executable
  ((name query)
   (modules (query))
-  (libraries (caqti))))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti caqti-lwt))))
+
+(install
+ ((section bin)
+  (package caqti-lwt)
+  (files ((query.exe as caqtiq)))))

@@ -32,8 +32,8 @@ let typedesc_of_decltype = function
   | None -> `Unknown
   | Some s ->
     (* CHECKME: Can NOT NULL or other specifiers occur here? *)
-    let parts = String.split_on_char '(' s in
-    (match String.lowercase_ascii (List.hd parts) with
+    let lparen = try String.index s '(' with Not_found -> String.length s in
+    (match String.lowercase_ascii (String.sub s 0 lparen) with
      | "integer" -> `Int
      | "float" -> `Float
      | "text" | "varchar" -> `String

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,7 +33,7 @@ module Make (Io : MONAD) = struct
     let rec scan level = function
       | Some ';' when level = 0 -> finish ()
       | Some '\'' -> Buffer.add_char buf '\''; read_char ic >>= scan_quote level
-      | Some '-' -> 
+      | Some '-' ->
         read_char ic >>=
           begin function
           | Some '-' -> read_char ic >>= scan_comment level
@@ -49,7 +49,7 @@ module Make (Io : MONAD) = struct
       | None -> finish ()
     and scan_comment level = function
       | Some '\n' -> read_char ic >>= scan level
-      | Some c -> read_char ic >>= scan_comment level
+      | Some _ -> read_char ic >>= scan_comment level
       | None -> finish () in
     read_char ic >>= scan 0
 

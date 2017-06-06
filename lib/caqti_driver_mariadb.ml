@@ -14,10 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_describe
 open Caqti_errors
 open Caqti_metadata
-open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
 open Printf
@@ -183,8 +181,6 @@ module Caqtus_functor (System : SYSTEM) = struct
 
     let make_api uri dbh = (module struct
       type 'a io = 'a System.io
-      type param = Mdb.Field.t
-      type tuple = Mdb.Row.Array.t
       module Param = Param
       module Tuple = Tuple
       module Report = Report
@@ -270,7 +266,7 @@ module Caqtus_functor (System : SYSTEM) = struct
         let q' = W.on_query q in
         with_executed q params @@
         (function
-         | Some res -> fail_miss q "Did not expect result from statement."
+         | Some _ -> fail_miss q "Did not expect result from statement."
          | None ->
             let _ = W.on_report q' () in
             return ())

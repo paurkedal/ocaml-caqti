@@ -14,8 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Printf
-
 exception Plugin_missing of string * string
 exception Plugin_invalid of string * string
 

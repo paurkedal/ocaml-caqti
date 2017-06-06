@@ -206,7 +206,7 @@ module Wrap (Wrapper : WRAPPER) = struct
         self#fetch_result_io >>=
         begin function
         | None -> return r
-        | Some r ->
+        | Some _ ->
           fail (Miscommunication (uri, qi, "Unexpected multirow response."))
         end
 
@@ -311,7 +311,7 @@ module Wrap (Wrapper : WRAPPER) = struct
         Hashtbl.add prepared_queries pq_index pqinfo;
         return pqinfo
 
-    method exec_prepared_io ?params ({pq_name} as pq) =
+    method exec_prepared_io ?params ({pq_name; _} as pq) =
       self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
         self#wrap_send
@@ -362,8 +362,6 @@ module Wrap (Wrapper : WRAPPER) = struct
 
     return (module struct
       type 'a io = 'a System.io
-      type param = string
-      type tuple = int * Postgresql.result
       module Param = Param
       module Tuple = Tuple
       module Report = Report

@@ -87,4 +87,4 @@ let () =
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     Sys.argv.(0);
   let uri = common_uri () in
-  never_returns (Scheduler.go_main (main uri) ())
+  never_returns (Scheduler.go_main ~main:(main uri) ())

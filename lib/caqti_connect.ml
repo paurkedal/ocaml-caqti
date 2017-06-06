@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_metadata
 open Caqti_plugin
 open Caqti_sigs
 open Printf

@@ -16,7 +16,6 @@
 
 (** Connection functor and backend registration. *)
 
-open Caqti_metadata
 open Caqti_sigs
 
 val register_scheme : string -> (module CAQTUS_FUNCTOR) -> unit

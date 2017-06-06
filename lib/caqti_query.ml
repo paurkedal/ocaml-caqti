@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -61,7 +61,7 @@ type query =
   | Prepared of prepared_query
 
 let oneshot_full f = Oneshot f
-let oneshot_fun f = Oneshot (fun {bi_dialect_tag} -> f bi_dialect_tag)
+let oneshot_fun f = Oneshot (fun {bi_dialect_tag; _} -> f bi_dialect_tag)
 let oneshot_any s = Oneshot (fun _ -> s)
 let oneshot_sql s =
   oneshot_fun (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
@@ -83,7 +83,7 @@ let prepare_full ?name pq_encode =
   Prepared {pq_index; pq_name; pq_encode}
 
 let prepare_fun ?name f =
-  prepare_full ?name (fun {bi_dialect_tag} -> f bi_dialect_tag)
+  prepare_full ?name (fun {bi_dialect_tag; _} -> f bi_dialect_tag)
 
 let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 
@@ -99,5 +99,7 @@ let prepare_sql_p ?name ?env sql = prepare_fun ?name @@ fun lang ->
 type query_info = [ `Oneshot of string | `Prepared of string * string ]
 
 let make_query_info backend_info = function
-  | Oneshot qsf -> `Oneshot (qsf backend_info)
-  | Prepared {pq_name; pq_encode} -> `Prepared (pq_name, pq_encode backend_info)
+ | Oneshot qsf ->
+    `Oneshot (qsf backend_info)
+ | Prepared {pq_name; pq_encode; _} ->
+    `Prepared (pq_name, pq_encode backend_info)

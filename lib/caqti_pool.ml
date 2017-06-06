@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,8 +22,8 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
 
   module Task = struct
     type t = {priority : float; mvar : unit Mvar.t}
-    let wake {mvar} = Mvar.store () mvar
-    let compare {priority = pA} {priority = pB} = Pervasives.compare pB pA
+    let wake {mvar; _} = Mvar.store () mvar
+    let compare {priority = pA; _} {priority = pB; _} = Pervasives.compare pB pA
   end
 
   module Taskq = Caqti_heap.Make (Task)
@@ -49,7 +49,7 @@ module Make (System : Caqti_sigs.SYSTEM) = struct
       p_max_size = max_size;
       p_cur_size = 0; p_pool = Queue.create (); p_waiting = Taskq.empty }
 
-  let size {p_cur_size} = p_cur_size
+  let size {p_cur_size; _} = p_cur_size
 
   let wait ~priority p =
     let mvar = Mvar.create () in

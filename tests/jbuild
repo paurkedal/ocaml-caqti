@@ -64,7 +64,11 @@
 
 ; Fake META Files
 
-(alias ((name drivers) (deps (META.caqti))))
+(alias
+ ((name drivers)
+  (deps (META.caqti
+         ../lib/caqti.cma
+         ../lib/caqti.cmxs))))
 (rule
  ((targets (META.caqti))
   (deps (../META.caqti))
@@ -74,7 +78,11 @@
       (echo "directory = \"../lib\"\n")
       (cat ${<}))))))
 
-(alias ((name drivers) (deps (META.caqti-driver-mariadb))))
+(alias
+ ((name drivers)
+  (deps (META.caqti-driver-mariadb
+         ../lib/caqti_driver_mariadb.cma
+         ../lib/caqti_driver_mariadb.cmxs))))
 (rule
  ((targets (META.caqti-driver-mariadb))
   (deps (../META.caqti-driver-mariadb))
@@ -84,7 +92,11 @@
       (echo "directory = \"../lib\"\n")
       (cat ${<}))))))
 
-(alias ((name drivers) (deps (META.caqti-driver-sqlite3))))
+(alias
+ ((name drivers)
+  (deps (META.caqti-driver-sqlite3
+         ../lib/caqti_driver_sqlite3.cma
+         ../lib/caqti_driver_sqlite3.cmxs))))
 (rule
  ((targets (META.caqti-driver-sqlite3))
   (deps (../META.caqti-driver-sqlite3))
@@ -94,7 +106,11 @@
       (echo "directory = \"../lib\"\n")
       (cat ${<}))))))
 
-(alias ((name drivers) (deps (META.caqti-driver-postgresql))))
+(alias
+ ((name drivers)
+  (deps (META.caqti-driver-postgresql
+         ../lib/caqti_driver_postgresql.cma
+         ../lib/caqti_driver_postgresql.cmxs))))
 (rule
  ((targets (META.caqti-driver-postgresql))
   (deps (../META.caqti-driver-postgresql))

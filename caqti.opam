@@ -19,3 +19,4 @@ depends: [
   "ppx_optcomp" {build}
   "uri"
 ]
+available: [ocaml-version >= "4.03.0"]

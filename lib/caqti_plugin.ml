@@ -26,13 +26,23 @@ let debug =
   try bool_of_string (Sys.getenv "CAQTI_DEBUG_PLUGIN")
   with Not_found -> false
 
+#if ocaml_version < (4, 04, 0)
+let backend_predicates () =
+  let ic = open_in Sys.executable_name in
+  let is_byte = input_char ic = '#' in
+  close_in ic;
+  if is_byte then ["byte"] else ["native"]
+#else
+let backend_predicates () =
+  (match Sys.backend_type with
+   | Sys.Native -> ["native"]
+   | Sys.Bytecode -> ["byte"]
+   | Sys.Other _ -> [])
+#endif
+
 let init = lazy begin
   Findlib.init ();
-  Findlib.record_package_predicates
-    (match Sys.backend_type with
-     | Sys.Native -> ["native"]
-     | Sys.Bytecode -> ["byte"]
-     | Sys.Other _ -> []);
+  Findlib.record_package_predicates (backend_predicates ());
   List.iter (Findlib.record_package Record_core)
             (Findlib.package_deep_ancestors ["native"] ["caqti"]);
   if debug then

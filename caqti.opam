@@ -16,5 +16,6 @@ depends: [
   "topkg-jbuilder" {build}
   "calendar"
   "ocamlfind"
+  "ppx_optcomp" {build}
   "uri"
 ]

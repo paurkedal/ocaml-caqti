@@ -62,14 +62,11 @@ let ensure_plugin extract pkg =
   (match extract () with
    | Some x -> x
    | None ->
-      try
-        Fl_dynload.load_packages ~debug [pkg];
-        (match extract () with
-         | Some x -> x
-         | None ->
-            raise (Plugin_invalid (pkg, msg_invalid)))
-      with
+      (try Fl_dynload.load_packages ~debug [pkg] with
        | Dynlink.Error err ->
           raise (Plugin_missing (pkg, Dynlink.error_message err))
        | Findlib.No_such_package (pkg, info) ->
-          raise (Plugin_missing (pkg, info)))
+          raise (Plugin_missing (pkg, info)));
+      (match extract () with
+       | Some x -> x
+       | None -> raise (Plugin_invalid (pkg, msg_invalid))))

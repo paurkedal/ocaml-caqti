@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,8 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** SQL Utility Functions
-    
+(** SQL utility functions.
+
     {b Note.} Since real databases generally do not implement the precise same
     escaping mechanisms, and discrepancies between the escape function and the
     database can lead to SQL injection, the standard SQL escaping functions

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,9 +14,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Information about a database, its backend, and its query language.  This
-    is static data supplied by the backend to aid the application in dealing
-    with differences between database systems. *)
+(** Information about a database, its backend, and its query language.
+
+    This module provides descriptions supplied by the backend to aid the
+    application in dealing with differences between database systems. *)
 
 type dialect_tag = private [> `Mysql | `Pgsql | `Sqlite]
 (** A tag used for easy dispatching between query languages.  Open an issue to

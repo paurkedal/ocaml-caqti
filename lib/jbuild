@@ -21,7 +21,7 @@
     Caqti_prereq))
   (library_flags (-linkall))
   (preprocess
-    (per_file
+    (per_module
       ((pps (ppx_optcomp ppx_driver.runner)) (Caqti_plugin))))
   (libraries (findlib.dynload calendar uri))))
 

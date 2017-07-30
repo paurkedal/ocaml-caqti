@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -364,4 +364,9 @@ module type CAQTI = sig
   val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
   (** Create a pool of connections which can be shared among multiple
       cooperative threads run from the main system thread. *)
+
+  module type CONNECTION_V2 =
+    Caqti_connection_sig.S with type 'a io := 'a System.io
+
+  val connect_v2 : Uri.t -> (module CONNECTION_V2) System.io
 end

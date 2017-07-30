@@ -110,4 +110,19 @@ module Make (System : SYSTEM) = struct
     let validate (module Conn : CONNECTION) = Conn.validate () in
     let check (module Conn : CONNECTION) = Conn.check in
     Pool.create ?max_size ~validate ~check connect disconnect
+
+  module type CONNECTION_V2 =
+    Caqti_connection_sig.S with type 'a io := 'a System.io
+
+  let connect_v2 uri : (module CONNECTION_V2) System.io =
+    (match Uri.scheme uri with
+     | None -> failwith "caqti_*.connect: Missing URI scheme."
+     | Some scheme ->
+        try
+          let caqtus = load_caqtus scheme in
+          let module Caqtus = (val caqtus) in
+          connect uri >|= fun c ->
+          let module C = (val c) in
+          (module Caqti_compat.Connection_v2_of_v1 (System) (C) : CONNECTION_V2)
+        with xc -> fail xc)
 end

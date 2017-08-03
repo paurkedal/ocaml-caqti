@@ -9,6 +9,7 @@
     Caqti_connect
     Caqti_connection_sig
     Caqti_describe
+    Caqti_driver_info
     Caqti_error
     Caqti_errors
     Caqti_metadata

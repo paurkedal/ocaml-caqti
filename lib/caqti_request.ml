@@ -14,12 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type driver_info = {
-  uri_scheme: string;
-}
-
-let driver_info ~uri_scheme () = {uri_scheme}
-
 module Mult = struct
 
   type +'m t = (* not GADT due to variance *)
@@ -44,7 +38,7 @@ end
 
 type ('a, 'b, +'m) t = {
   id: int option;
-  query_string: driver_info -> string;
+  query_string: Caqti_driver_info.t -> string;
   params_type: 'a Caqti_type.t;
   row_type: 'b Caqti_type.t;
   row_mult: 'm Mult.t;

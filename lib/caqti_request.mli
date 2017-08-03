@@ -16,10 +16,6 @@
 
 (** Request specification. *)
 
-type driver_info
-
-val driver_info : uri_scheme: string -> unit -> driver_info
-
 module Mult : sig
   type +'m t constraint 'm = [< `Zero | `One | `Many]
 
@@ -38,11 +34,11 @@ type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 val create :
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Mult.t ->
-  (driver_info -> string) -> ('a, 'b, 'm) t
+  (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
 
 val params_type : ('a, _, _) t -> 'a Caqti_type.t
 val row_type : (_, 'b, _) t -> 'b Caqti_type.t
 val row_mult : (_, _, 'm) t -> 'm Mult.t
 
 val query_id : ('a, 'b, 'm) t -> int option
-val query_string : ('a, 'b, 'm) t -> driver_info -> string
+val query_string : ('a, 'b, 'm) t -> Caqti_driver_info.t -> string

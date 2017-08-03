@@ -128,8 +128,8 @@ struct
             all_null (i + 1) j
           in
           if all_null i j then (None, j) else
-          let y, j = decode' t (tup, i) in
-          assert (i = j);
+          let y, k = decode' t (tup, i) in
+          assert (j = k);
           (Some y, j)
        | Type.[] -> fun (_, i) -> (Caqti_tuple.[], i)
        | Type.(t :: ts) -> fun (tup, i) ->

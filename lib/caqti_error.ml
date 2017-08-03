@@ -95,3 +95,10 @@ let pp_hum ppf = function
     pp_request_error ppf ~fmt:"Request to %a failed" err
  | `Response_rejected err ->
     pp_response_error ppf err
+
+let to_string_hum err =
+  let buf = Buffer.create 128 in
+  let ppf = Format.formatter_of_buffer buf in
+  pp_hum ppf err;
+  Format.pp_print_flush ppf ();
+  Buffer.contents buf

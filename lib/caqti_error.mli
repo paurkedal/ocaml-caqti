@@ -66,3 +66,5 @@ type t = [
 val uri : [< t] -> Uri.t
 
 val pp_hum : Format.formatter -> [< t] -> unit
+
+val to_string_hum : [< t] -> string

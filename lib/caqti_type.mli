@@ -40,3 +40,7 @@ type _ t =
  | Iso : (module ISO with type t = 'a and type u = 'b) * 'b t -> 'a t
 
 val length : 'a t -> int
+
+val pp_hum : Format.formatter -> 'a t -> unit
+
+val to_string_hum : 'a t -> string

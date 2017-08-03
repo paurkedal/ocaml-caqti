@@ -37,7 +37,6 @@ type _ t =
  | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
  | Iso : (module ISO with type t = 'a and type u = 'b) * 'b t -> 'a t
 
-
 let rec length : type a. a t -> int = function
  | Unit -> 0
  | Bool -> 1
@@ -53,3 +52,36 @@ let rec length : type a. a t -> int = function
  | (t :: ts) -> length t + length ts
  | Iso (_, t) -> length t
 
+let rec pp_hum_at
+  : type a. int -> Format.formatter -> a t -> unit
+  = fun prec ppf -> function
+ | Unit -> Format.pp_print_string ppf "unit"
+ | Bool -> Format.pp_print_string ppf "bool"
+ | Int -> Format.pp_print_string ppf "int"
+ | Int32 -> Format.pp_print_string ppf "int32"
+ | Int64 -> Format.pp_print_string ppf "int64"
+ | Float -> Format.pp_print_string ppf "float"
+ | String -> Format.pp_print_string ppf "string"
+ | Pdate -> Format.pp_print_string ppf "pdate"
+ | Ptime -> Format.pp_print_string ppf "ptime"
+ | Option t -> pp_hum_at 1 ppf t; Format.pp_print_string ppf " option"
+ | [] -> Format.pp_print_string ppf "[]"
+ | (t :: ts) ->
+    if prec > 0 then Format.pp_print_char ppf '[';
+    pp_hum_at 1 ppf t;
+    Format.pp_print_string ppf ", ";
+    pp_hum_at 0 ppf ts;
+    if prec > 0 then Format.pp_print_char ppf ']'
+ | Iso (_, t) ->
+    Format.pp_print_string ppf "</";
+    pp_hum_at 0 ppf t;
+    Format.pp_print_string ppf "/>"
+
+let pp_hum ppf = pp_hum_at 1 ppf
+
+let to_string_hum t =
+  let buf = Buffer.create 64 in
+  let ppf = Format.formatter_of_buffer buf in
+  pp_hum ppf t;
+  Format.pp_print_flush ppf ();
+  Buffer.contents buf

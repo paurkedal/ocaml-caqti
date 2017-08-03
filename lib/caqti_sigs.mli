@@ -103,6 +103,8 @@ module type TUPLE = sig
   (** An abstract type for a tuple passed by a backend to callbacks during
       query execution. *)
 
+  val length : t -> int
+
   val is_null : int -> t -> bool
   val option : (int -> t -> 'a) -> int -> t -> 'a option
   val bool : int -> t -> bool

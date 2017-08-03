@@ -140,7 +140,10 @@ struct
           fun (tup, i) -> let y, j = decode' t (tup, i) in (Iso.g y, j))
       [@ocaml.warning "-33"] (* FIXME *)
 
-    let decode rt tup = decode' rt (tup, 0) |> fst
+    let decode rt tup =
+      let y, j = decode' rt (tup, 0) in
+      assert (j = C.Tuple.length tup);
+      y
 
     let exec (q, ps, _) =
       catch_as_result (fun () -> C.exec q ps)

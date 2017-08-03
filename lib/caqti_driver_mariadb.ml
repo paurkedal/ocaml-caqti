@@ -79,6 +79,8 @@ module Caqtus_functor (System : SYSTEM) = struct
   module Tuple = struct
     type t = Field.t array
 
+    let length = Array.length
+
     let is_null i a = Field.null_value a.(i)
     let option f i a = if is_null i a then None else Some (f i a)
     let bool i a = Field.int a.(i) <> 0

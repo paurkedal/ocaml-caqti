@@ -88,6 +88,8 @@ module Tuple = struct
 
   type t = int * Postgresql.result
 
+  let length (_, r) = r#nfields
+
   let raw j (i, r) =
     try r#getvalue i j with Error msg ->
     raise (Invalid_argument (string_of_error msg))

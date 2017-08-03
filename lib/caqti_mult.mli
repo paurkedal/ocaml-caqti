@@ -14,18 +14,13 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Request specification. *)
+type +'m t constraint 'm = [< `Zero | `One | `Many]
 
-type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
+val zero : [> `Zero] t
+val one : [> `One] t
+val zero_or_one : [> `Zero | `One] t
+val many : ([> `Zero | `One | `Many] as 'a) t
 
-val create :
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
-
-val params_type : ('a, _, _) t -> 'a Caqti_type.t
-val row_type : (_, 'b, _) t -> 'b Caqti_type.t
-val row_mult : (_, _, 'm) t -> 'm Caqti_mult.t
-
-val query_id : ('a, 'b, 'm) t -> int option
-val query_string : ('a, 'b, 'm) t -> Caqti_driver_info.t -> string
+val only_zero : [< `Zero] t -> unit
+val only_one : [< `One] t -> unit
+val only_zero_or_one : [< `Zero | `One] t -> unit

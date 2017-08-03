@@ -13,6 +13,7 @@
     Caqti_error
     Caqti_errors
     Caqti_metadata
+    Caqti_mult
     Caqti_pool
     Caqti_request
     Caqti_response_sig

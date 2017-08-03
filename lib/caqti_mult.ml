@@ -14,18 +14,23 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Request specification. *)
+(** Multiplicities of zero, one, and many. *)
 
-type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
+type +'m t = (* not GADT due to variance *)
+ | Zero
+ | One
+ | Zero_to_one
+ | Zero_to_many
+constraint 'm = [< `Zero | `One | `Many]
 
-val create :
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
+let zero : [> `Zero] t = Zero
+let one : [> `One] t = One
+let zero_or_one : [> `Zero | `One] t = Zero_to_one
+let many : ([> `Zero | `One | `Many] as 'a) t = Zero_to_many
 
-val params_type : ('a, _, _) t -> 'a Caqti_type.t
-val row_type : (_, 'b, _) t -> 'b Caqti_type.t
-val row_mult : (_, _, 'm) t -> 'm Caqti_mult.t
-
-val query_id : ('a, 'b, 'm) t -> int option
-val query_string : ('a, 'b, 'm) t -> Caqti_driver_info.t -> string
+let only_zero : [< `Zero] t -> unit =
+  function Zero -> () | _ -> assert false
+let only_one : [< `One] t -> unit =
+  function One -> () | _ -> assert false
+let only_zero_or_one : [< `Zero | `One] t -> unit =
+  function Zero | One -> () | _ -> assert false

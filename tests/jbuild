@@ -35,6 +35,16 @@
 
 (alias
  ((name runtest)
+  (deps (bikereg_v2.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name bikereg_v2)
+  (modules (Bikereg_v2))
+  (flags (-ppx ppx_lwt))
+  (libraries (caqti caqti_lwt testkit))))
+
+(alias
+ ((name runtest)
   (deps (test_sql_async.exe (alias drivers)))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable

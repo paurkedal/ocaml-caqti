@@ -50,4 +50,9 @@ module type S = sig
     ('b -> 'c -> ('c, 'e) result io) ->
     'a -> 'c -> ('c, [> Caqti_error.t] as 'e) result io
 
+  val iter_s :
+    ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
+    ('b -> (unit, 'e) result io) ->
+    'a -> (unit, [> Caqti_error.t] as 'e) result io
+
 end

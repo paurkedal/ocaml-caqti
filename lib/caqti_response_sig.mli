@@ -42,4 +42,8 @@ module type S = sig
   val fold_s :
     ('b -> 'c -> ('c, 'e) result io) ->
     ('b, 'm) t -> 'c -> ('c, [> Caqti_error.t] as 'e) result io
+
+  val iter_s :
+    ('b -> (unit, 'e) result io) ->
+    ('b, 'm) t -> (unit, [> Caqti_error.t] as 'e) result io
 end

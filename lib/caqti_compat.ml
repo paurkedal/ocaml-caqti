@@ -168,6 +168,16 @@ struct
       catch_result_with_client_error client_error
         (fun () -> C.fold_s q aux ps acc)
 
+    let iter_s f (q, ps, rt) =
+      let client_error = ref None in
+      let aux x =
+        f (decode rt x) >>=
+        (function
+         | Ok () -> return ()
+         | Error err -> client_error := Some err; fail Client_error)
+      in
+      catch_result_with_client_error client_error (fun () -> C.iter_s q aux ps)
+
   end
 
   let rec encode
@@ -243,5 +253,6 @@ struct
   let find_opt req p = call ~f:Response.find_opt req p
   let fold req f p acc = call ~f:(fun rsp -> Response.fold f rsp acc) req p
   let fold_s req f p acc = call ~f:(fun rsp -> Response.fold_s f rsp acc) req p
+  let iter_s req f p = call ~f:(fun rsp -> Response.iter_s f rsp) req p
 
 end

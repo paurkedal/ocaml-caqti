@@ -14,7 +14,11 @@
   (modules (Test_heap))
   (libraries (caqti testkit))))
 
-(alias ((name runtest) (deps (test_pool_lwt.exe)) (action (run ${<}))))
+(alias
+ ((name runtest)
+  (package caqti-lwt)
+  (deps (test_pool_lwt.exe))
+  (action (run ${<}))))
 (executable
  ((name test_pool_lwt)
   (modules (Test_pool_lwt))
@@ -25,6 +29,7 @@
 
 (alias
  ((name runtest)
+  (package caqti-lwt)
   (deps (bikereg.exe (alias drivers)))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
@@ -35,6 +40,7 @@
 
 (alias
  ((name runtest)
+  (package caqti-async)
   (deps (test_sql_async.exe (alias drivers)))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
@@ -44,6 +50,7 @@
 
 (alias
  ((name runtest)
+  (package caqti-lwt)
   (deps (test_parallel_lwt.exe (alias drivers)))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
@@ -54,6 +61,7 @@
 
 (alias
  ((name runtest)
+  (package caqti-lwt)
   (deps (test_sql_lwt.exe (alias drivers)))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
@@ -80,6 +88,7 @@
 
 (alias
  ((name drivers)
+  (package caqti-driver-mariadb)
   (deps (META.caqti-driver-mariadb
          ../lib/caqti_driver_mariadb.cma
          ../lib/caqti_driver_mariadb.cmxs))))
@@ -94,6 +103,7 @@
 
 (alias
  ((name drivers)
+  (package caqti-driver-sqlite3)
   (deps (META.caqti-driver-sqlite3
          ../lib/caqti_driver_sqlite3.cma
          ../lib/caqti_driver_sqlite3.cmxs))))
@@ -108,6 +118,7 @@
 
 (alias
  ((name drivers)
+  (package caqti-driver-postgresql)
   (deps (META.caqti-driver-postgresql
          ../lib/caqti_driver_postgresql.cma
          ../lib/caqti_driver_postgresql.cmxs))))

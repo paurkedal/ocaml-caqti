@@ -237,14 +237,15 @@ module Wrap (Wrapper : WRAPPER) = struct
     method try_reset_io =
       if self#status = Ok then return true else self#reset_io
 
-    method wrap_send f =
-      try f (); return () with
-      | Postgresql.Error (Connection_failure _ as err) as exc
-          when self#status <> Ok ->
-        Log.warning_f "Reconnecting due to connection failure during send:\n%s"
-                      (Postgresql.string_of_error err) >>= fun () ->
-        self#reset_io >>= function true -> f (); return ()
-                                 | false -> raise exc
+    method retry_on_failure : 'a. (unit -> 'a io) -> 'a io = fun f ->
+      (try f () with
+        | Postgresql.Error (Connection_failure _ as err) as exc
+            when self#status <> Ok ->
+          Log.warning_f "Reconnecting due to connection failure:\n%s"
+                        (Postgresql.string_of_error err) >>= fun () ->
+          self#reset_io >>= function true -> f () | false -> raise exc)
+
+    method wrap_send f = self#retry_on_failure (fun () -> f (); return ())
 
     (* Direct Execution *)
 
@@ -312,10 +313,11 @@ module Wrap (Wrapper : WRAPPER) = struct
         return pqinfo
 
     method exec_prepared_io ?params ({pq_name; _} as pq) =
-      self#cached_prepare_io pq >>= fun (binary_params, _) ->
       try
-        self#wrap_send
-          (fun () -> self#send_query_prepared ?params ?binary_params pq_name)
+        self#retry_on_failure
+          (fun () ->
+            self#cached_prepare_io pq >|= fun (binary_params, _) ->
+            self#send_query_prepared ?params ?binary_params pq_name)
           >>= fun () ->
         self#fetch_single_result_io (query_info (Prepared pq))
       with
@@ -395,7 +397,8 @@ module Wrap (Wrapper : WRAPPER) = struct
         Some (fun q -> use begin fun c ->
           match q with
           | Prepared pq ->
-            c#cached_prepare_io pq >>= fun (_, r) -> return r
+            c#retry_on_failure (fun () -> c#cached_prepare_io pq)
+              >>= fun (_, r) -> return r
           | Oneshot qsf ->
             let qs = qsf backend_info in
             c#prepare_io q "_desc_tmp" qs >>= fun () ->

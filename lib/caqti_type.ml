@@ -14,28 +14,20 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module type ISO = sig
-  type t
-  type u
-
-  val f : t -> u
-  val g : u -> t
-end
-
 type _ t =
- | Unit : unit t
- | Bool : bool t
- | Int : int t
- | Int32 : int32 t
- | Int64 : int64 t
- | Float : float t
- | String : string t
- | Pdate : int t
- | Ptime : Ptime.t t
- | Option : 'a t -> 'a option t
- | [] : unit Caqti_tuple.t t
- | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
- | Iso : (module ISO with type t = 'a and type u = 'b) * 'b t -> 'a t
+  | Unit : unit t
+  | Bool : bool t
+  | Int : int t
+  | Int32 : int32 t
+  | Int64 : int64 t
+  | Float : float t
+  | String : string t
+  | Pdate : int t
+  | Ptime : Ptime.t t
+  | Option : 'a t -> 'a option t
+  | [] : unit Caqti_tuple.t t
+  | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
+  | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
 
 let rec length : type a. a t -> int = function
  | Unit -> 0
@@ -50,7 +42,7 @@ let rec length : type a. a t -> int = function
  | Option t -> length t
  | [] -> 0
  | (t :: ts) -> length t + length ts
- | Iso (_, t) -> length t
+ | Custom {rep; _} -> length rep
 
 let rec pp_hum_at
   : type a. int -> Format.formatter -> a t -> unit
@@ -72,9 +64,9 @@ let rec pp_hum_at
     Format.pp_print_string ppf ", ";
     pp_hum_at 0 ppf ts;
     if prec > 0 then Format.pp_print_char ppf ']'
- | Iso (_, t) ->
+ | Custom {rep; _} ->
     Format.pp_print_string ppf "</";
-    pp_hum_at 0 ppf t;
+    pp_hum_at 0 ppf rep;
     Format.pp_print_string ppf "/>"
 
 let pp_hum ppf = pp_hum_at 1 ppf

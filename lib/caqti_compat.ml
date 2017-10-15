@@ -136,8 +136,8 @@ struct
           let x, i = decode' t (tup, i) in
           let xs, i = decode' ts (tup, i) in
           (Caqti_tuple.(x :: xs), i)
-       | Type.Iso ((module Iso), t) ->
-          fun (tup, i) -> let y, j = decode' t (tup, i) in (Iso.g y, j))
+       | Type.Custom {rep; decode = g; _} ->
+          fun (tup, i) -> let y, j = decode' rep (tup, i) in (g y, j))
       [@ocaml.warning "-33"] (* FIXME *)
 
     let decode rt tup =
@@ -201,7 +201,7 @@ struct
      | Type.(t :: ts) ->
         let Caqti_tuple.(x :: xs) = x in
         i |> encode t x a |> encode ts xs a
-     | Type.Iso ((module Iso), u) -> encode u (Iso.f x) a i)
+     | Type.Custom {rep; encode = f; _} -> encode rep (f x) a i)
     [@ocaml.warning "-33"] (* FIXME *)
 
   let translate_dialect_tag = function

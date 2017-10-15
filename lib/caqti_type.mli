@@ -16,28 +16,20 @@
 
 (** Type descriptor for a span of database columns. *)
 
-module type ISO = sig
-  type t
-  type u
-
-  val f : t -> u
-  val g : u -> t
-end
-
 type _ t =
- | Unit : unit t
- | Bool : bool t
- | Int : int t
- | Int32 : int32 t
- | Int64 : int64 t
- | Float : float t
- | String : string t
- | Pdate : int t
- | Ptime : Ptime.t t
- | Option : 'a t -> 'a option t
- | [] : unit Caqti_tuple.t t
- | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
- | Iso : (module ISO with type t = 'a and type u = 'b) * 'b t -> 'a t
+  | Unit : unit t
+  | Bool : bool t
+  | Int : int t
+  | Int32 : int32 t
+  | Int64 : int64 t
+  | Float : float t
+  | String : string t
+  | Pdate : int t
+  | Ptime : Ptime.t t
+  | Option : 'a t -> 'a option t
+  | [] : unit Caqti_tuple.t t
+  | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
+  | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
 
 val length : 'a t -> int
 

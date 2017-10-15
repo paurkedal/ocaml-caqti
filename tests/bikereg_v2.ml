@@ -26,13 +26,12 @@ module Bike = struct
     owner: string;
     stolen: Ptime.t option;
   }
-  module Iso = struct
-    type nonrec t = t
-    type u = (string * (string * (Ptime.t option * unit))) Caqti_tuple.t
-    let f {frameno; owner; stolen} = Caqti_tuple.[frameno; owner; stolen]
-    let g Caqti_tuple.[frameno; owner; stolen] = {frameno; owner; stolen}
-  end
-  let t = Caqti_type.(Iso ((module Iso), [String; String; Option Ptime]))
+  let t =
+    let encode {frameno; owner; stolen} =
+      Caqti_tuple.[frameno; owner; stolen] in
+    let decode Caqti_tuple.[frameno; owner; stolen] =
+      {frameno; owner; stolen} in
+    Caqti_type.(Custom {rep = [String; String; Option Ptime]; encode; decode})
 end
 
 (* Query Strings

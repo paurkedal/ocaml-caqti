@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -102,6 +102,8 @@ module type TUPLE = sig
   type t
   (** An abstract type for a tuple passed by a backend to callbacks during
       query execution. *)
+
+  val length : t -> int
 
   val is_null : int -> t -> bool
   val option : (int -> t -> 'a) -> int -> t -> 'a option

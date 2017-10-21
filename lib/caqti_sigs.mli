@@ -63,9 +63,6 @@ module type PARAM = sig
   (** Constructs a parameter from an arbirary octet string.  For SQL, the
       parameter is compatible with the [BINARY] type. *)
 
-  val sub_bytes : bytes -> int -> int -> t
-  (** [sub_bytes s i n] is equivalent to [bytes (Bytes.sub s i n)]. *)
-
   val date_string : string -> t
   (** Construct a date paramater from a string using ISO 8601 format. *)
 
@@ -88,8 +85,12 @@ module type PARAM = sig
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
 
+  (**/**)
+  val sub_bytes : bytes -> int -> int -> t
+  [@@deprecated "Rarely useful optimisation dropped in favour of driver simplicity."]
   val other : string -> t
-  (** A backend-specific value. *)
+  [@@deprecated "This will be reconsidered if/when we need it."]
+  (**/**)
 end
 
 (** Tuple decoding functions.
@@ -124,7 +125,11 @@ module type TUPLE = sig
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string
   val utc : int -> t -> CalendarLib.Calendar.t
+
+  (**/**)
   val other : int -> t -> string
+  [@@deprecated "This will be reconsidered if/when we need it."]
+  (**/**)
 end
 
 module type REPORT = sig

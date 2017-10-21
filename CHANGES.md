@@ -1,5 +1,10 @@
 # Change Log
 
+## Unreleased
+
+- Deprecated `Param.sub_types`.
+- Deprecated `Param.other` and `Tuple.other`.
+
 ## [0.6.0] - 2017-06-05
 
 - Split into separate packages to avoid depopts and rename findlib names

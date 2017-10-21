@@ -27,13 +27,15 @@ module type PARAM = sig
       actual type. *)
 
   val null : t
-  (** For SQL, [null] is [NULL]. *)
+  (** A designated value to replace a missing parameter. For SQL, [null] is
+      [NULL]. *)
 
   val option : ('a -> t) -> 'a option -> t
   (** [option f None] is [null] and [option f (Some x)] is [f x]. *)
 
   val bool : bool -> t
-  (** Constructs a boolean parameter. *)
+  (** Constructs a boolean parameter. If the database does not have booleans, an
+      integer value of 0 for false and 1 for true is used. *)
 
   val int : int -> t
   (** Constructs an integer parameter. The remote end may have a different
@@ -48,8 +50,10 @@ module type PARAM = sig
       range. For SQL, works with all integer types. *)
 
   val float : float -> t
-  (** Constructs a floating point parameter. The precision of the storage
-      may be different from that of the OCaml [float]. *)
+  (** Constructs a floating point parameter. Note that the precision in the
+      database may be different from that of the OCaml [float]. If conversion to
+      string is requried by the backend, this is done with the [%.*g] format
+      specifier, which may incur a small loss of precision, as well. *)
 
   val string : string -> t
   (** Given an UTF-8 encoded text, constructs a textual parameter with
@@ -139,13 +143,7 @@ sig
   val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
 end
 
-(** The main API as provided after connecting to a resource.  In addition to
-    these components, the connection will provide
-    {[
-      module Param : PARAM
-      module Report : REPORT
-      module Tuple : TUPLE
-    ]} *)
+(** The main API as provided after connecting to a resource. *)
 module type CONNECTION = sig
 
   module Param : PARAM
@@ -165,7 +163,7 @@ module type CONNECTION = sig
       is [Tuple.t -> 'a]. *)
 
   val uri : Uri.t
-  (** The connected URI. *)
+  (** The URI used to connect to the database. *)
 
   val backend_info : backend_info
   (** Various metadata about the backend which provides the connection. *)
@@ -327,10 +325,8 @@ module type CAQTUS_FUNCTOR =
 (** The connect functions as exposed to application code through the
     concurrency implementations:
 
-    - [Caqti_lwt] which is provided in the [caqti.lwt] package
-      if caqti was built with [--enable-lwt].
-    - [Caqti_async] which is provided in the [caqti.async] package
-      if caqti was built with [--enable-async]. *)
+    - [Caqti_lwt] provided by caqti-lwt.
+    - [Caqti_async] provided by caqti-async. *)
 module type CAQTI = sig
   module System : SYSTEM
 

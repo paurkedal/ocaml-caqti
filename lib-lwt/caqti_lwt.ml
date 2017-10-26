@@ -85,9 +85,13 @@ include Caqti_connect.Make (struct
       if choices = [] then
         Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
       else
-        let%lwt timed_out =
-          try%lwt Lwt.choose choices >|= fun _ -> false
-          with Lwt_unix.Timeout -> Lwt.return_true in
+        begin
+          Lwt.catch
+            (fun () -> Lwt.choose choices >|= fun _ -> false)
+            (function
+             | Lwt_unix.Timeout -> Lwt.return_true
+             | exn -> Lwt.fail exn)
+        end >>= fun timed_out ->
         Lwt.return (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
   end
 

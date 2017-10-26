@@ -58,13 +58,13 @@ let test n =
 
 let () =
   Lwt_main.run begin
-    test 0 >>
-    test 1 >>
-    test 3 >>
-    test 8 >>
-    test 12 >>
-    test 16 >>
-    test 64 >>
-    test 128 >>
+    test 0 >>= fun () ->
+    test 1 >>= fun () ->
+    test 3 >>= fun () ->
+    test 8 >>= fun () ->
+    test 12 >>= fun () ->
+    test 16 >>= fun () ->
+    test 64 >>= fun () ->
+    test 128 >>= fun () ->
     test 1024
   end

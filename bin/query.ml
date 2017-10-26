@@ -16,6 +16,7 @@
 
 open Caqti_describe
 open Caqti_lwt
+open Lwt.Infix
 module Cal = CalendarLib
 
 let field_separator = ref ","
@@ -45,30 +46,36 @@ end
 
 let main do_describe uri qs =
   let q = Caqti_query.prepare_any qs in
-  let%lwt connection = Caqti_lwt.connect uri in
+  Caqti_lwt.connect uri >>= fun connection ->
   let module C = (val connection) in
   let module U = Connection_utils (C) in
   let describe =
     (match C.describe with
      | None -> failwith "The database does not support describe."
      | Some describe -> describe) in
-  let%lwt qd = describe q in
+  describe q >>= fun qd ->
+
   let n = Array.length qd.querydesc_fields in
+
+  let print_description () =
+    let rec loop i =
+      if i = n then Lwt.return_unit else
+      let name, tdesc = qd.querydesc_fields.(i) in
+      Lwt_io.printf "%s : %s\n" name (string_of_typedesc tdesc) >>= fun () ->
+      loop (i + 1) in
+    loop 0 in
+
   let print_tuple r =
     assert (n > 0);
-    Lwt_io.print (U.show_field qd 0 r) >>
-    for%lwt i = 1 to n - 1 do
-      Lwt_io.print !field_separator >>
-      Lwt_io.print (U.show_field qd i r)
-    done >>
+    let rec loop i =
+      Lwt_io.print (U.show_field qd i r) >>= fun () ->
+      if i = n then Lwt.return_unit else
+      Lwt_io.print !field_separator >>= fun () ->
+      loop (i + 1) in
+    loop 0 >>= fun () ->
     Lwt_io.print "\n" in
-  if do_describe then
-    for%lwt i = 0 to n - 1 do
-      let name, tdesc = qd.querydesc_fields.(i) in
-      Lwt_io.printf "%s : %s\n" name (string_of_typedesc tdesc)
-    done
-  else
-    C.iter_s q print_tuple [||]
+
+  if do_describe then print_description () else C.iter_s q print_tuple [||]
 
 let () =
   let arg_desc = ref false in

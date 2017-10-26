@@ -104,25 +104,25 @@ let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =
 
 let test db =
   (* Examples of statement execution: Create and populate the register. *)
-  create_bikereg db >>
-  reg_bike db "BIKE-0000" "Arthur Dent" >>
-  reg_bike db "BIKE-0001" "Ford Perfect" >>
-  reg_bike db "BIKE-0002" "Zaphod Beeblebrox" >>
-  reg_bike db "BIKE-0003" "Trillian" >>
-  reg_bike db "BIKE-0004" "Marvin" >>
-  report_stolen db "BIKE-0000" >>
-  report_stolen db "BIKE-0004" >>
+  create_bikereg db >>= fun () ->
+  reg_bike db "BIKE-0000" "Arthur Dent" >>= fun () ->
+  reg_bike db "BIKE-0001" "Ford Perfect" >>= fun () ->
+  reg_bike db "BIKE-0002" "Zaphod Beeblebrox" >>= fun () ->
+  reg_bike db "BIKE-0003" "Trillian" >>= fun () ->
+  reg_bike db "BIKE-0004" "Marvin" >>= fun () ->
+  report_stolen db "BIKE-0000" >>= fun () ->
+  report_stolen db "BIKE-0004" >>= fun () ->
 
   (* Examples of single-row queries. *)
   let show_owner frameno =
-    match%lwt find_bike_owner frameno db with
-    | Some owner -> Lwt_io.printf "%s is owned by %s.\n" frameno owner
-    | None -> Lwt_io.printf "%s is not registered.\n" frameno in
-  show_owner "BIKE-0003" >>
-  show_owner "BIKE-0042" >>
+    find_bike_owner frameno db >>= function
+     | Some owner -> Lwt_io.printf "%s is owned by %s.\n" frameno owner
+     | None -> Lwt_io.printf "%s is not registered.\n" frameno in
+  show_owner "BIKE-0003" >>= fun () ->
+  show_owner "BIKE-0042" >>= fun () ->
 
   (* An example multi-row query. *)
-  Lwt_io.printf "Stolen:" >>
+  Lwt_io.printf "Stolen:" >>= fun () ->
   iter_s_stolen db
     (fun ~frameno ~owner ?stolen () ->
       let stolen = match stolen with Some x -> x | None -> assert false in

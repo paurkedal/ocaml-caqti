@@ -34,10 +34,10 @@ let do_query =
   Caqti_lwt.Pool.use @@ fun (module C : Caqti_lwt.CONNECTION) ->
   (match Random.int 4 with
    | 0 ->
-      C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>
+      C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>= fun () ->
       Lwt.return 0
    | 1 ->
-      C.exec delete_q C.Param.[|int (random_int ())|] >>
+      C.exec delete_q C.Param.[|int (random_int ())|] >>= fun () ->
       Lwt.return 0
    | 2 ->
       C.fold select_1_q C.Tuple.(fun t -> (+) (int 0 t))
@@ -84,10 +84,10 @@ let () =
     let pool = Caqti_lwt.connect_pool ~max_size uri in
     Caqti_lwt.Pool.use
       (fun (module C : Caqti_lwt.CONNECTION) ->
-        C.exec drop_q [||] >>
+        C.exec drop_q [||] >>= fun () ->
         C.exec create_q [||])
-      pool >>
-    (test2 pool !n_r >|= ignore) >>
+      pool >>= fun () ->
+    (test2 pool !n_r >|= ignore) >>= fun () ->
     Caqti_lwt.Pool.use
       (fun (module C : Caqti_lwt.CONNECTION) ->
         C.exec drop_q [||])

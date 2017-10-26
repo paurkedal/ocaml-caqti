@@ -3,7 +3,6 @@
 (executable
  ((name query)
   (modules (query))
-  (preprocess (pps (lwt.ppx)))
   (libraries (caqti caqti-lwt))))
 
 (install

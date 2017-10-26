@@ -88,98 +88,98 @@ module Q = struct
     | _ -> raise Caqti_query.Missing_query_string
 end
 
+let repeat n f =
+  let rec loop i =
+    if i = n then Lwt.return_unit else
+    f i >>= fun () -> loop (i + 1) in
+  loop 0
+
 let test_expr (module Db : Caqti_lwt.CONNECTION) =
 
   (* Non-prepared. *)
-  for%lwt i = 0 to 199 do
+  repeat 200 (fun i ->
     let qs = sprintf "SELECT %d, '%s'" i (string_of_int i) in
-    let%lwt j, s =
-      Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, string 1 u) [||] in
+    Db.find (oneshot_sql qs) Db.Tuple.(fun u -> int 0 u, string 1 u) [||] >>=
+      fun (j, s) ->
     assert (i = j);
     assert (i = int_of_string s);
     Lwt.return_unit
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: null *)
-  for%lwt i = 0 to 3 do
-    let%lwt c1, c2 =
-      Db.find Q.select_null_etc Db.Tuple.(fun u -> bool 0 u, is_null 1 u)
-              Db.Param.([|null; null|]) in
+  repeat 3 (fun _ ->
+    Db.find Q.select_null_etc Db.Tuple.(fun u -> bool 0 u, is_null 1 u)
+            Db.Param.([|null; null|]) >>= fun (c1, c2) ->
     assert (c1 && c2);
     Lwt.return_unit
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: bool *)
   let ck_and a b =
-    let%lwt c =
-      Db.find Q.select_and
-              Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|]) in
+    Db.find Q.select_and
+            Db.Tuple.(fun u -> bool 0 u) Db.Param.([|bool a; bool b|])
+      >>= fun c ->
     assert (c = (a && b)); Lwt.return_unit in
-  ck_and false false >> ck_and false true >>
-  ck_and true  false >> ck_and true  true >>
+  ck_and false false >>= fun () -> ck_and false true >>= fun () ->
+  ck_and true  false >>= fun () -> ck_and true  true >>= fun () ->
 
   (* Prepared: int *)
   let ck_plus_int i j =
-    let%lwt k =
-      Db.find Q.select_plus_int
-              Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|]) in
+    Db.find Q.select_plus_int
+            Db.Tuple.(fun u -> int 0 u) Db.Param.([|int i; int j|]) >>= fun k ->
     assert (k = (i + j)); Lwt.return_unit in
-  for%lwt m = 0 to 199 do
+  repeat 200 (fun _ ->
     let i, j = Random.int (1 lsl 29), Random.int (1 lsl 29) in
     ck_plus_int i j
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: int64 *)
   let ck_plus_int64 i j =
-    let%lwt k =
-      Db.find Q.select_plus_int
-              Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|]) in
+    Db.find Q.select_plus_int
+            Db.Tuple.(fun u -> int64 0 u) Db.Param.([|int64 i; int64 j|])
+      >>= fun k ->
     assert (k = Int64.add i j); Lwt.return_unit in
-  for%lwt m = 0 to 199 do
+  repeat 200 (fun _ ->
     let i = Random.int64 Int64.(shift_left one 29) in
     let j = Random.int64 Int64.(shift_left one 29) in
     ck_plus_int64 i j
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: float *)
   let ck_plus_float x y =
-    let%lwt z =
-      Db.find Q.select_plus_float
-              Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|]) in
+    Db.find Q.select_plus_float
+            Db.Tuple.(fun u -> float 0 u) Db.Param.([|float x; float y|])
+      >>= fun z ->
     assert (abs_float (z -. (x +. y)) < 1e-6 *. (x +. y));
     Lwt.return_unit in
-  for%lwt m = 0 to 199 do
+  repeat 200 (fun _ ->
     let i, j = Random.float 1e8, Random.float 1e8 in
     ck_plus_float i j
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: string *)
   let ck_string x y =
-    let%lwt s =
-      Db.find Q.select_cat
-              Db.Tuple.(fun u -> string 0 u)
-              Db.Param.([|string x; string y|]) in
+    Db.find Q.select_cat
+            Db.Tuple.(fun u -> string 0 u)
+            Db.Param.([|string x; string y|]) >>= fun s ->
     assert (s = x ^ y); Lwt.return_unit in
-  for%lwt m = 0 to 199 do
+  repeat 200 (fun _ ->
     let x = sprintf "%x" (Random.int (1 lsl 29)) in
     let y = sprintf "%x" (Random.int (1 lsl 29)) in
     ck_string x y
-  done >>
+  ) >>= fun () ->
 
   (* Prepared: date *)
   begin
     let t0 = Unix.time () in
-    let%lwt t =
-      Db.find Q.select_current_time Db.Tuple.(utc_float 0) [||] in
+    Db.find Q.select_current_time Db.Tuple.(utc_float 0) [||] >>= fun t ->
     let t1 = Unix.time () in
-    Lwt.return (assert (t0 -. 1.1 <= t && t <= t1 +. 1.1)) >>
-    let%lwt t' =
-      Db.find Q.select_given_time
-              Db.Tuple.(utc_float 0) Db.Param.[|utc_float t|] in
-    Lwt.return (assert (abs_float (t' -. t) < 1.1)) >>
-    let%lwt r =
-      Db.find Q.compare_to_known_time Db.Tuple.(bool 0)
-              Db.Param.[|utc_float 1485691200.0|] in
+    Lwt.return (assert (t0 -. 1.1 <= t && t <= t1 +. 1.1)) >>= fun () ->
+    Db.find Q.select_given_time
+            Db.Tuple.(utc_float 0) Db.Param.[|utc_float t|] >>= fun t' ->
+    Lwt.return (assert (abs_float (t' -. t) < 1.1)) >>= fun () ->
+    Db.find Q.compare_to_known_time Db.Tuple.(bool 0)
+            Db.Param.[|utc_float 1485691200.0|] >>= fun r ->
     Lwt.return (assert r)
   end
 
@@ -194,23 +194,23 @@ let dump_querydesc qn qd =
 let test_table (module Db : Caqti_lwt.CONNECTION) =
 
   (* Create, insert, select *)
-  Db.exec Q.create_tmp [||] >>
+  Db.exec Q.create_tmp [||] >>= fun () ->
   begin
     if Db.backend_info.Caqti_metadata.bi_has_transactions then
-      Db.start () >>
-      Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>
+      Db.start () >>= fun () ->
+      Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>= fun () ->
       Db.rollback ()
     else
       Lwt.return_unit
-  end >>
-  Db.start () >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 3; string "three"|]) >>
-  Db.exec Q.insert_into_tmp Db.Param.([|int 5; string "five"|]) >>
-  Db.commit () >>
-  let%lwt (i_acc, s_acc) = Db.fold Q.select_from_tmp
+  end >>= fun () ->
+  Db.start () >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 2; string "two"|]) >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 3; string "three"|]) >>= fun () ->
+  Db.exec Q.insert_into_tmp Db.Param.([|int 5; string "five"|]) >>= fun () ->
+  Db.commit () >>= fun () ->
+  Db.fold Q.select_from_tmp
     Db.Tuple.(fun t (i_acc, s_acc) -> i_acc + int 0 t, s_acc ^ "+" ^ string 1 t)
-    [||] (0, "zero") in
+    [||] (0, "zero") >>= fun (i_acc, s_acc) ->
   assert (i_acc = 10);
   assert (s_acc = "zero+two+three+five");
 
@@ -218,7 +218,7 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   (match Db.describe with
    | None -> Lwt.return_unit
    | Some describe ->
-      let%lwt qd = describe Q.select_from_tmp_where_i_lt in
+      describe Q.select_from_tmp_where_i_lt >>= fun qd ->
       dump_querydesc "select_from_tmp_where_i_lt" qd >>= fun () ->
       if Db.backend_info.bi_describe_has_typed_parameters then
         assert (qd.querydesc_params = [|`Int|]);
@@ -227,17 +227,17 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
       Lwt.return_unit)
 
 let test (module Db : Caqti_lwt.CONNECTION) =
-  test_expr (module Db) >>
-  test_table (module Db) >>
+  test_expr (module Db) >>= fun () ->
+  test_table (module Db) >>= fun () ->
   Db.disconnect ()
 
 let test_pool pool =
   Caqti_lwt.Pool.use
     begin fun (module Db : Caqti_lwt.CONNECTION) ->
-      test_expr (module Db) >>
+      test_expr (module Db) >>= fun () ->
       test_table (module Db)
     end
-    pool >>
+    pool >>= fun () ->
   Caqti_lwt.Pool.drain pool
 
 let () =
@@ -247,6 +247,6 @@ let () =
     Sys.argv.(0);
   let uri = common_uri () in
   Lwt_main.run begin
-    Caqti_lwt.connect uri >>= test >>
+    Caqti_lwt.connect uri >>= test >>= fun () ->
     test_pool (Caqti_lwt.connect_pool uri)
   end

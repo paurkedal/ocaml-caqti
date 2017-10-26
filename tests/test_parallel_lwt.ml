@@ -32,17 +32,22 @@ let random_int () = Random.int (1 + Random.int 16)
 
 let do_query =
   Caqti_lwt.Pool.use @@ fun (module C : Caqti_lwt.CONNECTION) ->
-  match Random.int 4 with
-  | 0 -> C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>
-         Lwt.return 0
-  | 1 -> C.exec delete_q C.Param.[|int (random_int ())|] >>
-         Lwt.return 0
-  | 2 -> C.fold select_1_q C.Tuple.(fun t -> (+) (int 0 t))
-                           C.Param.[|int (random_int ())|] 0
-  | 3 -> C.find select_2_q C.Tuple.(option int 0)
-                           C.Param.[|int (random_int ())|] >|=
-         (function None -> 0 | Some i -> i)
-  | _ -> assert false
+  (match Random.int 4 with
+   | 0 ->
+      C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>
+      Lwt.return 0
+   | 1 ->
+      C.exec delete_q C.Param.[|int (random_int ())|] >>
+      Lwt.return 0
+   | 2 ->
+      C.fold select_1_q C.Tuple.(fun t -> (+) (int 0 t))
+                        C.Param.[|int (random_int ())|] 0
+   | 3 ->
+      C.find select_2_q C.Tuple.(option int 0)
+                        C.Param.[|int (random_int ())|]
+      >|= (function None -> 0 | Some i -> i)
+   | _ ->
+      assert false)
 
 let rec list_diff f = function
   | x0 :: x1 :: xs -> f x1 x0 :: list_diff f (x1 :: xs)
@@ -60,10 +65,10 @@ let rec test2 pool n =
   if n = 1 then do_query pool else
   let ns = Array.init (Random.int n * (Random.int n + 1) / n + 1)
                       (fun _ -> Random.int n)
-        |> Array.to_list |> (fun xs -> n :: xs)
-        |> List.sort compare
-        |> list_diff (-)
-        |> List.filter ((<>) 0) in
+    |> Array.to_list |> (fun xs -> n :: xs)
+    |> List.sort compare
+    |> list_diff (-)
+    |> List.filter ((<>) 0) in
   let xs = List.map (test2 pool) ns in
   merge (+) xs 0
 

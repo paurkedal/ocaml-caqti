@@ -14,8 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
+open Lwt.Infix
 
 module Pool = Caqti_pool.Make (Caqti_lwt.System)
 
@@ -34,23 +33,23 @@ let test n =
   for _ = 0 to n - 1 do
     let j = Random.int n in
     assert (Pool.size pool = Hashtbl.length Resource.ht);
-    match a.(j) with
-    | None ->
-      let waiter, waker = Lwt.wait () in
-      wait_count := succ !wait_count;
-      Lwt.async
-        (fun () ->
-          Pool.use
-            (fun _ -> waiter >>= fun () ->
-                      wait_count := pred !wait_count; Lwt.return_unit)
-            pool);
-      a.(j) <- Some waker
-    | Some u -> wake j u
+    (match a.(j) with
+     | None ->
+        let waiter, waker = Lwt.wait () in
+        wait_count := succ !wait_count;
+        Lwt.async
+          (fun () ->
+            Pool.use
+              (fun _ -> waiter >>= fun () ->
+                        wait_count := pred !wait_count; Lwt.return_unit)
+              pool);
+        a.(j) <- Some waker
+     | Some u -> wake j u)
   done;
   for j = 0 to n - 1 do
-    match a.(j) with
-    | None -> ()
-    | Some u -> wake j u
+    (match a.(j) with
+     | None -> ()
+     | Some u -> wake j u)
   done;
   assert (!wait_count = 0);
   Pool.drain pool >|= fun () ->

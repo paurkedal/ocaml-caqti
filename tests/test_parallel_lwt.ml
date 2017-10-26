@@ -59,7 +59,7 @@ let rec test2 pool n =
   if n = 0 then Lwt.return 0 else
   if n = 1 then do_query pool else
   let ns = Array.init (Random.int n * (Random.int n + 1) / n + 1)
-                      (fun i -> Random.int n)
+                      (fun _ -> Random.int n)
         |> Array.to_list |> (fun xs -> n :: xs)
         |> List.sort compare
         |> list_diff (-)

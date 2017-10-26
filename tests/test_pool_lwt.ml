@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@ let test n =
   let a = Array.make n None in
   let wait_count = ref 0 in
   let wake j u = Lwt.wakeup u (); a.(j) <- None in
-  for i = 0 to n - 1 do
+  for _ = 0 to n - 1 do
     let j = Random.int n in
     assert (Pool.size pool = Hashtbl.length Resource.ht);
     match a.(j) with
@@ -41,7 +41,7 @@ let test n =
       Lwt.async
         (fun () ->
           Pool.use
-            (fun i -> waiter >>= fun () ->
+            (fun _ -> waiter >>= fun () ->
                       wait_count := pred !wait_count; Lwt.return_unit)
             pool);
       a.(j) <- Some waker

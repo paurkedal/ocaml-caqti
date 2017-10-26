@@ -1,7 +1,11 @@
 # Change Log
 
-## Unreleased
+## [0.6.1] - 2017-10-26
 
+- Fixed support for lwt >= 3, but keep supporting 2.7 as well for now.
+- Fixed preparation of query after reconnect to PostgrSQL.
+- Fixed support for ocaml 4.03.x.
+- Added `Tuple.length`.
 - Deprecated `Param.sub_types`.
 - Deprecated `Param.other` and `Tuple.other`.
 
@@ -31,6 +35,7 @@
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
 
+[0.6.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.1...v0.5.2

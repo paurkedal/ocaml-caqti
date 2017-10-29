@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Pool of open resources. *)
+(** Semi-internal: Resource pool. *)
 
 open Caqti_sigs
-module Make (System : SYSTEM) : POOL with type 'a io := 'a System.io
+module Make (System : Caqti_system_sig.S) : POOL with type 'a io := 'a System.io

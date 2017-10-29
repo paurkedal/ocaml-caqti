@@ -3,7 +3,6 @@
 (executable
  ((name query)
   (modules (query))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti caqti-lwt))))
 
 (install

@@ -4,7 +4,6 @@
  ((name caqti_lwt)
   (public_name caqti-lwt)
   (wrapped false)
-  (flags (-ppx ppx_lwt))
   (modules
    (Caqti_lwt
     Caqti_lwt_sql_io))

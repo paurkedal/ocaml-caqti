@@ -11,6 +11,7 @@
     Caqti_describe
     Caqti_driver_info
     Caqti_error
+    Caqti_driver_sig
     Caqti_errors
     Caqti_metadata
     Caqti_mult
@@ -22,6 +23,7 @@
     Caqti_sql_io
     Caqti_tuple
     Caqti_type
+    Caqti_system_sig
     Caqti_query
     ; internal
     Caqti_compat
@@ -44,6 +46,14 @@
   (deps (caqti_response_sig.mli))
   (action (copy ${<} ${@}))))
 
+(rule
+ ((targets (caqti_driver_sig.ml))
+  (deps (caqti_driver_sig.mli))
+  (action (copy ${<} ${@}))))
+(rule
+ ((targets (caqti_system_sig.ml))
+  (deps (caqti_system_sig.mli))
+  (action (copy ${<} ${@}))))
 (rule
  ((targets (caqti_sigs.ml))
   (deps (caqti_sigs.mli))

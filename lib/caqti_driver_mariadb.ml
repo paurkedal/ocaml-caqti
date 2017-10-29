@@ -27,7 +27,7 @@ module Caltime_format = CalendarLib.Printer.Calendar
 
 let failwith_f fmt = ksprintf failwith fmt
 
-module Caqtus_functor (System : SYSTEM) = struct
+module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
   module Mdb = Mariadb.Nonblocking.Make
     (struct
@@ -139,268 +139,230 @@ module Caqtus_functor (System : SYSTEM) = struct
     let other i a = Field.string a.(i)
   end
 
-  module Report = struct
-    type t = unit
-    let returned_count = None (* TODO *)
-    let affected_count = None (* TODO *)
-  end
+  open System
 
-  module Wrap (Wrapper : WRAPPER) = struct
+  let backend_info =
+    create_backend_info
+      ~uri_scheme:"mariadb" ~dialect_tag:`Mysql
+      ~parameter_style:(`Linear "?")
+      ~describe_has_typed_parameters:false (* TODO *)
+      ~describe_has_typed_fields:false (* TODO *)
+      ~has_transactions:true ()
 
-    open System
+  let query_info = make_query_info backend_info
 
-    let backend_info =
-      create_backend_info
-        ~uri_scheme:"mariadb" ~dialect_tag:`Mysql
-        ~parameter_style:(`Linear "?")
-        ~describe_has_typed_parameters:false (* TODO *)
-        ~describe_has_typed_fields:false (* TODO *)
-        ~has_transactions:true ()
+  let prepare_failed uri q (code, msg) =
+    let msg' = sprintf "Error %d, %s" code msg in
+    fail (Prepare_failed (uri, query_info q, msg'))
+  let execute_failed uri q (code, msg) =
+    let msg' = sprintf "Error %d, %s" code msg in
+    fail (Execute_failed (uri, query_info q, msg'))
+  let transaction_failed uri qs (code, msg) =
+    let msg' = sprintf "Error %d, %s" code msg in
+    fail (Execute_failed (uri, `Oneshot qs, msg'))
+  let miscommunication uri q msg =
+    fail (Miscommunication (uri, query_info q, msg))
 
-    let query_info = make_query_info backend_info
+  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
-    let prepare_failed uri q (code, msg) =
-      let msg' = sprintf "Error %d, %s" code msg in
-      fail (Prepare_failed (uri, query_info q, msg'))
-    let execute_failed uri q (code, msg) =
-      let msg' = sprintf "Error %d, %s" code msg in
-      fail (Execute_failed (uri, query_info q, msg'))
-    let transaction_failed uri qs (code, msg) =
-      let msg' = sprintf "Error %d, %s" code msg in
-      fail (Execute_failed (uri, `Oneshot qs, msg'))
-    let miscommunication uri q msg =
-      fail (Miscommunication (uri, query_info q, msg))
+  let make_api uri dbh = (module struct
+    type 'a io = 'a System.io
+    module Param = Param
+    module Tuple = Tuple
 
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-        with type 'a io = 'a System.io
-         and module Tuple := Tuple
-         and module Report := Report
-         and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
+    let uri = uri
+    let backend_info = backend_info
+    let prepared_queries = Hashtbl.create 11
 
-    let make_api uri dbh = (module struct
-      type 'a io = 'a System.io
-      module Param = Param
-      module Tuple = Tuple
-      module Report = Report
-      module W = Wrapper (Tuple) (Report)
-      type 'a callback = 'a W.callback
+    let disconnect () = Mdb.close dbh
+    let validate () = return true (* FIXME *)
+    let check f = f true (* FIXME *)
+    let describe = None (* TODO: Need bindings *)
 
-      let uri = uri
-      let backend_info = backend_info
-      let prepared_queries = Hashtbl.create 11
+    let fail_exec q msg = execute_failed uri q msg
+    let fail_fetch q msg = execute_failed uri q msg
+    let fail_miss q msg = miscommunication uri q msg
 
-      let disconnect () = Mdb.close dbh
-      let validate () = return true (* FIXME *)
-      let check f = f true (* FIXME *)
-      let describe = None (* TODO: Need bindings *)
-
-      let fail_exec q msg = execute_failed uri q msg
-      let fail_fetch q msg = execute_failed uri q msg
-      let fail_miss q msg = miscommunication uri q msg
-
-      (* TODO: Cache prepared queries, though it may require Stmt.reset which is
-       * currently not bound. *)
-      let with_prepared q f =
-        match q with
-         | Caqti_query.Oneshot qsf ->
-            prepare dbh (qsf backend_info) >>=
+    (* TODO: Cache prepared queries, though it may require Stmt.reset which is
+     * currently not bound. *)
+    let with_prepared q f =
+      match q with
+       | Caqti_query.Oneshot qsf ->
+          prepare dbh (qsf backend_info) >>=
+          (function
+           | Error err -> prepare_failed uri q err
+           | Ok stmt ->
+              catch
+                (fun () ->
+                  f stmt >>= fun y ->
+                  Mdb.Stmt.close stmt >>= fun _ ->
+                  return y)
+                (fun exn ->
+                  Mdb.Stmt.close stmt >>= fun _ ->
+                  fail exn))
+       | Caqti_query.Prepared pq ->
+          let index = pq.Caqti_query.pq_index in
+          (try
+            let stmt = Hashtbl.find prepared_queries index in
+            return stmt
+           with Not_found ->
+            prepare dbh (pq.Caqti_query.pq_encode backend_info) >>=
             (function
              | Error err -> prepare_failed uri q err
              | Ok stmt ->
-                catch
-                  (fun () ->
-                    f stmt >>= fun y ->
-                    Mdb.Stmt.close stmt >>= fun _ ->
-                    return y)
-                  (fun exn ->
-                    Mdb.Stmt.close stmt >>= fun _ ->
-                    fail exn))
-         | Caqti_query.Prepared pq ->
-            let index = pq.Caqti_query.pq_index in
-            (try
-              let stmt = Hashtbl.find prepared_queries index in
-              return stmt
-             with Not_found ->
-              prepare dbh (pq.Caqti_query.pq_encode backend_info) >>=
+                Hashtbl.replace prepared_queries index stmt;
+                return stmt)) >>=
+          (fun stmt ->
+            let cleanup () =
+              Mdb.Stmt.reset stmt >|=
               (function
-               | Error err -> prepare_failed uri q err
-               | Ok stmt ->
-                  Hashtbl.replace prepared_queries index stmt;
-                  return stmt)) >>=
-            (fun stmt ->
-              let cleanup () =
-                Mdb.Stmt.reset stmt >|=
-                (function
-                 | Ok () -> ()
-                 | Error _ -> Hashtbl.remove prepared_queries index) in
-              catch
-                (fun () -> f stmt >>= fun y -> cleanup () >|= fun () -> y)
-                (fun exn -> cleanup () >>= fun () -> fail exn))
+               | Ok () -> ()
+               | Error _ -> Hashtbl.remove prepared_queries index) in
+            catch
+              (fun () -> f stmt >>= fun y -> cleanup () >|= fun () -> y)
+              (fun exn -> cleanup () >>= fun () -> fail exn))
 
-      let with_executed q params f =
-        with_prepared q @@ fun stmt ->
-        Mdb.Stmt.execute stmt params >>=
-        (function
-         | Error err -> fail_exec q err
-         | Ok res -> f res)
-
-      let fetch0 q res =
-        Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-        (function
-         | Ok None -> return ()
-         | Ok (Some _) -> fail_miss q "Received unexpected row."
-         | Error err -> fail_fetch q err)
-
-      let fetch1 f' q res =
-        Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-        (function
-         | Ok None -> fail_miss q "Res.fetch did not return an expected row."
-         | Ok (Some row) ->
-            fetch0 q res >>= fun () ->
-            return (f' row)
-         | Error err -> fail_fetch q err)
-
-      let exec q params =
-        let q' = W.on_query q in
-        with_executed q params @@
-        (function
-         | Some _ -> fail_miss q "Did not expect result from statement."
-         | None ->
-            let _ = W.on_report q' () in
-            return ())
-
-      let find q f params =
-        let q' = W.on_query q in
-        with_executed q params
-        (function
-         | None ->
-            fail_miss q "find: Did not receive query result."
-         | Some res ->
-            let report' = W.on_report q' () in
-            let f' = W.on_tuple f report' in
-            (match Mdb.Res.num_rows res with
-             | 1 -> fetch1 f' q res
-             | n -> ksprintf (fail_miss q) "Received %d tuples, expected 1." n))
-
-      let find_opt q f params =
-        let q' = W.on_query q in
-        with_executed q params
-        (function
-         | None ->
-            fail_miss q "find_opt: Did not receive query result."
-         | Some res ->
-            let report' = W.on_report q' () in
-            let f' = W.on_tuple f report' in
-            (match Mdb.Res.num_rows res with
-             | 0 -> fetch0 q res >>= fun () -> return None
-             | 1 -> fetch1 f' q res >>= fun y -> return (Some y)
-             | n -> ksprintf (fail_miss q)
-                             "Received %d tuples, expected at most one." n))
-
-      let iter_s q f params =
-        let q' = W.on_query q in
-        with_executed q params
-        (function
-         | None ->
-            fail_miss q "iter_s or iter_p: Did not receive query result."
-         | Some res ->
-            let report' = W.on_report q' () in
-            let f' = W.on_tuple f report' in
-            let rec loop () =
-              Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-              (function
-               | Ok None -> return ()
-               | Ok (Some row) -> f' row >>= loop
-               | Error err -> fail_fetch q err) in
-            loop ())
-
-      let iter_p = iter_s
-
-      let fold_s q f params acc =
-        let q' = W.on_query q in
-        with_executed q params
-        (function
-         | None ->
-            fail_miss q "fold_s: Did not receive query result."
-         | Some res ->
-            let report' = W.on_report q' () in
-            let f' = W.on_tuple f report' in
-            let rec loop acc =
-              Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-              (function
-               | Ok None -> return acc
-               | Ok (Some row) -> f' row acc >>= loop
-               | Error err -> fail_fetch q err) in
-            loop acc)
-
-      let fold q f params acc =
-        let q' = W.on_query q in
-        with_executed q params
-        (function
-         | None ->
-            fail_miss q "fold: Did not receive query result."
-         | Some res ->
-            let report' = W.on_report q' () in
-            let f' = W.on_tuple f report' in
-            let rec loop acc =
-              Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-              (function
-               | Ok None -> return acc
-               | Ok (Some row) -> loop (f' row acc)
-               | Error err -> fail_fetch q err) in
-            loop acc)
-
-      let start () =
-        Mdb.autocommit dbh false >>=
-        (function
-         | Ok () -> return ()
-         | Error err -> transaction_failed uri "# SET autocommit = 0" err)
-
-      let commit () =
-        Mdb.commit dbh >>= fun commit_result ->
-        Mdb.autocommit dbh true >>= fun autocommit_result ->
-        (match commit_result, autocommit_result with
-         | Ok (), Ok () -> return ()
-         | Error err, _ -> transaction_failed uri "# COMMIT" err
-         | _, Error err -> transaction_failed uri "# SET autocommit = 1" err)
-
-      let rollback () =
-        Mdb.rollback dbh >>=
-        (function
-         | Ok () -> return ()
-         | Error err -> transaction_failed uri "# ROLLBACK" err)
-
-    end : CONNECTION)
-
-    let connect uri =
-      let host = Uri.host uri in
-      let user = Uri.user uri in
-      let pass = Uri.password uri in
-      let port = Uri.port uri in
-      let db =
-        (match Uri.path uri with
-         | "/" -> None
-         | path ->
-            if Filename.dirname path <> "/" then
-              raise (Connect_failed (uri, "Bad URI"));
-            Some (Filename.basename path)) in
-      let flags = None (* TODO *) in
-      let socket = Uri.get_query_param uri "socket" in
-      Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
+    let with_executed q params f =
+      with_prepared q @@ fun stmt ->
+      Mdb.Stmt.execute stmt params >>=
       (function
-       | Ok dbh ->
-          let module C : CONNECTION = (val make_api uri dbh) in
-          (* MariaDB returns local times but without time zone, so change it to
-           * UTC for Caqti sessions. *)
-          C.exec (Caqti_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
-          fun () -> (module C : CONNECTION)
-       | Error (code, msg) ->
-          raise (Connect_failed (uri, sprintf "Error %d, %s" code msg)))
-  end
+       | Error err -> fail_exec q err
+       | Ok res -> f res)
+
+    let fetch0 q res =
+      Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+      (function
+       | Ok None -> return ()
+       | Ok (Some _) -> fail_miss q "Received unexpected row."
+       | Error err -> fail_fetch q err)
+
+    let fetch1 f' q res =
+      Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+      (function
+       | Ok None -> fail_miss q "Res.fetch did not return an expected row."
+       | Ok (Some row) ->
+          fetch0 q res >>= fun () ->
+          return (f' row)
+       | Error err -> fail_fetch q err)
+
+    let exec q params =
+      with_executed q params @@
+      (function
+       | Some _ -> fail_miss q "Did not expect result from statement."
+       | None -> return ())
+
+    let find q f params =
+      with_executed q params
+      (function
+       | None ->
+          fail_miss q "find: Did not receive query result."
+       | Some res ->
+          (match Mdb.Res.num_rows res with
+           | 1 -> fetch1 f q res
+           | n -> ksprintf (fail_miss q) "Received %d tuples, expected 1." n))
+
+    let find_opt q f params =
+      with_executed q params
+      (function
+       | None ->
+          fail_miss q "find_opt: Did not receive query result."
+       | Some res ->
+          (match Mdb.Res.num_rows res with
+           | 0 -> fetch0 q res >>= fun () -> return None
+           | 1 -> fetch1 f q res >>= fun y -> return (Some y)
+           | n -> ksprintf (fail_miss q)
+                           "Received %d tuples, expected at most one." n))
+
+    let iter_s q f params =
+      with_executed q params
+      (function
+       | None ->
+          fail_miss q "iter_s or iter_p: Did not receive query result."
+       | Some res ->
+          let rec loop () =
+            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+            (function
+             | Ok None -> return ()
+             | Ok (Some row) -> f row >>= loop
+             | Error err -> fail_fetch q err) in
+          loop ())
+
+    let iter_p = iter_s
+
+    let fold_s q f params acc =
+      with_executed q params
+      (function
+       | None ->
+          fail_miss q "fold_s: Did not receive query result."
+       | Some res ->
+          let rec loop acc =
+            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+            (function
+             | Ok None -> return acc
+             | Ok (Some row) -> f row acc >>= loop
+             | Error err -> fail_fetch q err) in
+          loop acc)
+
+    let fold q f params acc =
+      with_executed q params
+      (function
+       | None ->
+          fail_miss q "fold: Did not receive query result."
+       | Some res ->
+          let rec loop acc =
+            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+            (function
+             | Ok None -> return acc
+             | Ok (Some row) -> loop (f row acc)
+             | Error err -> fail_fetch q err) in
+          loop acc)
+
+    let start () =
+      Mdb.autocommit dbh false >>=
+      (function
+       | Ok () -> return ()
+       | Error err -> transaction_failed uri "# SET autocommit = 0" err)
+
+    let commit () =
+      Mdb.commit dbh >>= fun commit_result ->
+      Mdb.autocommit dbh true >>= fun autocommit_result ->
+      (match commit_result, autocommit_result with
+       | Ok (), Ok () -> return ()
+       | Error err, _ -> transaction_failed uri "# COMMIT" err
+       | _, Error err -> transaction_failed uri "# SET autocommit = 1" err)
+
+    let rollback () =
+      Mdb.rollback dbh >>=
+      (function
+       | Ok () -> return ()
+       | Error err -> transaction_failed uri "# ROLLBACK" err)
+
+  end : CONNECTION)
+
+  let connect uri =
+    let host = Uri.host uri in
+    let user = Uri.user uri in
+    let pass = Uri.password uri in
+    let port = Uri.port uri in
+    let db =
+      (match Uri.path uri with
+       | "/" -> None
+       | path ->
+          if Filename.dirname path <> "/" then
+            raise (Connect_failed (uri, "Bad URI"));
+          Some (Filename.basename path)) in
+    let flags = None (* TODO *) in
+    let socket = Uri.get_query_param uri "socket" in
+    Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
+    (function
+     | Ok dbh ->
+        let module C : CONNECTION = (val make_api uri dbh) in
+        (* MariaDB returns local times but without time zone, so change it to
+         * UTC for Caqti sessions. *)
+        C.exec (Caqti_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
+        fun () -> (module C : CONNECTION)
+     | Error (code, msg) ->
+        raise (Connect_failed (uri, sprintf "Error %d, %s" code msg)))
 end
 
 let () = Caqti_connect.register_scheme "mariadb" (module Caqtus_functor)

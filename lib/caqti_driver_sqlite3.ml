@@ -155,27 +155,20 @@ module Tuple = struct
   let other i stmt = to_string (Sqlite3.column stmt i)
 end
 
+(*
 module Report = struct
   type t = Sqlite3.db
   let returned_count = None
   let affected_count = Some (fun db -> Sqlite3.changes db)
 end
+*)
 
 let yield = Thread.yield
 
-module Connect_functor (System : SYSTEM) = struct
-module Wrap (Wrapper : WRAPPER) = struct
+module Connect_functor (System : Caqti_system_sig.S) = struct
   open System
 
-  module type CONNECTION = sig
-    module Tuple : TUPLE
-    module Report : REPORT
-    include CONNECTION
-       with type 'a io = 'a System.io
-        and module Tuple := Tuple
-        and module Report := Report
-        and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-  end
+  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
   type 'a io = 'a System.io
 
@@ -289,10 +282,6 @@ module Wrap (Wrapper : WRAPPER) = struct
 
       module Param = Param
       module Tuple = Tuple
-      module Report = Report
-      module W = Wrapper (Tuple) (Report)
-
-      type 'a callback = 'a W.callback
 
       let uri = uri
       let backend_info = backend_info
@@ -320,15 +309,13 @@ module Wrap (Wrapper : WRAPPER) = struct
         prim_exec extract q params
 
       let find q f params =
-        let q' = W.on_query q in
-        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
         let rec extract stmt =
           match Sqlite3.step stmt with
           | Sqlite3.Rc.DONE ->
             let msg = "Received no tuples, expected one." in
             raise (Miscommunication (uri, query_info q, msg))
           | Sqlite3.Rc.ROW ->
-            let r = W.on_tuple f (Lazy.force r') stmt in
+            let r = f stmt in
             begin match Sqlite3.step stmt with
             | Sqlite3.Rc.DONE -> r
             | Sqlite3.Rc.ROW ->
@@ -340,13 +327,11 @@ module Wrap (Wrapper : WRAPPER) = struct
         prim_exec extract q params
 
       let find_opt q f params =
-        let q' = W.on_query q in
-        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
         let rec extract stmt =
           match Sqlite3.step stmt with
-          | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); None
+          | Sqlite3.Rc.DONE -> None
           | Sqlite3.Rc.ROW ->
-            let r = W.on_tuple f (Lazy.force r') stmt in
+            let r = f stmt in
             begin match Sqlite3.step stmt with
             | Sqlite3.Rc.DONE -> Some r
             | Sqlite3.Rc.ROW ->
@@ -360,27 +345,23 @@ module Wrap (Wrapper : WRAPPER) = struct
         prim_exec extract q params
 
       let fold q f params acc =
-        let q' = W.on_query q in
-        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
         let rec extract stmt =
           let rec loop acc =
             match Sqlite3.step stmt with
-            | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
-            | Sqlite3.Rc.ROW -> loop (W.on_tuple f (Lazy.force r') stmt acc)
+            | Sqlite3.Rc.DONE -> acc
+            | Sqlite3.Rc.ROW -> loop (f stmt acc)
             | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
             | rc -> raise_rc q rc in
           loop acc in
         prim_exec extract q params
 
       let fold_s q f params acc =
-        let q' = W.on_query q in
-        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
         let rec extract stmt =
           let rec loop acc =
             match Sqlite3.step stmt with
-            | Sqlite3.Rc.DONE -> ignore (Lazy.force r'); acc
+            | Sqlite3.Rc.DONE -> acc
             | Sqlite3.Rc.ROW ->
-              let m = W.on_tuple f (Lazy.force r') stmt acc in
+              let m = f stmt acc in
               loop (Preemptive.run_in_main (fun () -> m))
             | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop acc
             | rc -> raise_rc q rc in
@@ -388,14 +369,12 @@ module Wrap (Wrapper : WRAPPER) = struct
         prim_exec extract q params
 
       let iter_s q f params =
-        let q' = W.on_query q in
-        let r' = Lazy.from_fun (fun () -> W.on_report q' db) in
         let rec extract stmt =
           let rec loop () =
             match Sqlite3.step stmt with
-            | Sqlite3.Rc.DONE -> ignore (Lazy.force r')
+            | Sqlite3.Rc.DONE -> ()
             | Sqlite3.Rc.ROW ->
-              let m = W.on_tuple f (Lazy.force r') stmt in
+              let m = f stmt in
               Preemptive.run_in_main (fun () -> m); loop ()
             | Sqlite3.Rc.BUSY | Sqlite3.Rc.LOCKED -> yield (); loop ()
             | rc -> raise_rc q rc in
@@ -409,7 +388,6 @@ module Wrap (Wrapper : WRAPPER) = struct
       let rollback () = exec Q.rollback [||]
     end : CONNECTION)
 
-end (* Wrap *)
-end (* Connect_functor *)
+end
 
 let () = Caqti_connect.register_scheme "sqlite3" (module Connect_functor)

@@ -14,11 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Only for internal use, and to be removed. *)
+(** Semi-internal: Signature for driver implementation.
+
+    This interface is unstable. *)
 
 open Caqti_sigs
 
-module Connection_v2_of_v1
-    (System : Caqti_system_sig.S)
-    (Conn : CONNECTION with type 'a io = 'a System.io) :
-  Caqti_connection_sig.S with type 'a io := 'a System.io
+(** The part of {!CAQTI} which is implemented by backends. *)
+module type S = sig
+  type 'a io
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
+  val connect : Uri.t -> (module CONNECTION) io
+end
+
+(** Abstraction of the connect function over the concurrency monad. *)
+module type FUNCTOR =
+  functor (System : Caqti_system_sig.S) -> S with type 'a io := 'a System.io

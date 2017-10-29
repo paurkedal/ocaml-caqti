@@ -17,7 +17,7 @@
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
-module Make (System : Caqti_sigs.SYSTEM) = struct
+module Make (System : Caqti_system_sig.S) = struct
   open System
 
   module Task = struct

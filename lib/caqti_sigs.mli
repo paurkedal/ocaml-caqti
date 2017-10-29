@@ -27,13 +27,15 @@ module type PARAM = sig
       actual type. *)
 
   val null : t
-  (** For SQL, [null] is [NULL]. *)
+  (** A designated value to replace a missing parameter. For SQL, [null] is
+      [NULL]. *)
 
   val option : ('a -> t) -> 'a option -> t
   (** [option f None] is [null] and [option f (Some x)] is [f x]. *)
 
   val bool : bool -> t
-  (** Constructs a boolean parameter. *)
+  (** Constructs a boolean parameter. If the database does not have booleans, an
+      integer value of 0 for false and 1 for true is used. *)
 
   val int : int -> t
   (** Constructs an integer parameter. The remote end may have a different
@@ -48,8 +50,10 @@ module type PARAM = sig
       range. For SQL, works with all integer types. *)
 
   val float : float -> t
-  (** Constructs a floating point parameter. The precision of the storage
-      may be different from that of the OCaml [float]. *)
+  (** Constructs a floating point parameter. Note that the precision in the
+      database may be different from that of the OCaml [float]. If conversion to
+      string is requried by the backend, this is done with the [%.*g] format
+      specifier, which may incur a small loss of precision, as well. *)
 
   val string : string -> t
   (** Given an UTF-8 encoded text, constructs a textual parameter with
@@ -58,9 +62,6 @@ module type PARAM = sig
   val bytes : bytes -> t
   (** Constructs a parameter from an arbirary octet string.  For SQL, the
       parameter is compatible with the [BINARY] type. *)
-
-  val sub_bytes : bytes -> int -> int -> t
-  (** [sub_bytes s i n] is equivalent to [bytes (Bytes.sub s i n)]. *)
 
   val date_string : string -> t
   (** Construct a date paramater from a string using ISO 8601 format. *)
@@ -84,8 +85,12 @@ module type PARAM = sig
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
 
+  (**/**)
+  val sub_bytes : bytes -> int -> int -> t
+  [@@deprecated "Rarely useful optimisation dropped in favour of driver simplicity."]
   val other : string -> t
-  (** A backend-specific value. *)
+  [@@deprecated "This will be reconsidered if/when we need it."]
+  (**/**)
 end
 
 (** Tuple decoding functions.
@@ -120,32 +125,14 @@ module type TUPLE = sig
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string
   val utc : int -> t -> CalendarLib.Calendar.t
+
+  (**/**)
   val other : int -> t -> string
+  [@@deprecated "This will be reconsidered if/when we need it."]
+  (**/**)
 end
 
-module type REPORT = sig
-  type t
-  val returned_count : (t -> int) option
-  val affected_count : (t -> int) option
-end
-
-module type WRAPPER = functor (Tuple : TUPLE) -> functor (Report : REPORT) ->
-sig
-  type 'a callback
-  type queried
-  type reported
-  val on_query : query -> queried
-  val on_report : queried -> Report.t -> reported
-  val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
-end
-
-(** The main API as provided after connecting to a resource.  In addition to
-    these components, the connection will provide
-    {[
-      module Param : PARAM
-      module Report : REPORT
-      module Tuple : TUPLE
-    ]} *)
+(** The main API as provided after connecting to a resource. *)
 module type CONNECTION = sig
 
   module Param : PARAM
@@ -154,18 +141,11 @@ module type CONNECTION = sig
   module Tuple : TUPLE
   (** Interface for extracting result tuples. *)
 
-  module Report : REPORT
-  (** Interface for fetching auxiliary information about a result. *)
-
   type 'a io
   (** The IO monad for which the module is specialized. *)
 
-  type 'a callback
-  (** The form of callbacks.  For the default connection functions, this type
-      is [Tuple.t -> 'a]. *)
-
   val uri : Uri.t
-  (** The connected URI. *)
+  (** The URI used to connect to the database. *)
 
   val backend_info : backend_info
   (** Various metadata about the backend which provides the connection. *)
@@ -195,30 +175,30 @@ module type CONNECTION = sig
   (** [exec q params] executes a query [q(params)] which is not expected to
       return anything. *)
 
-  val find : query -> 'a callback -> Param.t array -> 'a io
+  val find : query -> (Tuple.t -> 'a) -> Param.t array -> 'a io
   (** [find_e q params] executes [q(params)] which is expected to return
       exactly one tuple. *)
 
-  val find_opt : query -> 'a callback -> Param.t array -> 'a option io
+  val find_opt : query -> (Tuple.t -> 'a) -> Param.t array -> 'a option io
   (** [find q params] executes a query [q(params)] which is expected to return
       at most one tuple. *)
 
-  val fold : query -> ('a -> 'a) callback -> Param.t array -> 'a -> 'a io
+  val fold : query -> (Tuple.t -> 'a -> 'a) -> Param.t array -> 'a -> 'a io
   (** [fold q f params acc] executes [q(params)], composes [f] over the
       resulting tuples in order, and applies the composition to [acc]. *)
 
-  val fold_s : query -> ('a -> 'a io) callback -> Param.t array -> 'a -> 'a io
+  val fold_s : query -> (Tuple.t -> 'a -> 'a io) -> Param.t array -> 'a -> 'a io
   (** [fold_s q f params acc] executes [q(params)], forms a threaded
       composition of [f] over the resulting tuples, and applies the
       composition to [acc]. *)
 
-  val iter_p : query -> unit io callback -> Param.t array -> unit io
+  val iter_p : query -> (Tuple.t -> unit io) -> Param.t array -> unit io
   (** [fold_p q f params] executes [q(params)] and calls [f t] in the thread
       monad in parallel for each resulting tuple [t].  A certain backend may
       not implement parallel execution, in which case this is the same as
       {!iter_s}. *)
 
-  val iter_s : query -> unit io callback -> Param.t array -> unit io
+  val iter_s : query -> (Tuple.t -> unit io) -> Param.t array -> unit io
   (** [fold_s q f params] executes [q(params)] and calls [f t] sequentially in
       the thread monad for each resulting tuple [t] in order. *)
 
@@ -260,106 +240,29 @@ module type MONAD = sig
   val (>|=) : 'a t -> ('a -> 'b) -> 'b t
   val return : 'a -> 'a t
 end
+[@@ocaml.deprecated "Included in Caqti_system_sig.S"]
 
-(** The IO monad and system utilities used by backends.  Note that this
-    signature will likely be extended due requirements of new backends. *)
-module type SYSTEM = sig
-
-  type 'a io
-  include MONAD with type 'a t := 'a io
-  val fail : exn -> 'a io
-  val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
-  val join : unit io list -> unit io
-
-  module Mvar : sig
-    type 'a t
-    val create : unit -> 'a t
-    val store : 'a -> 'a t -> unit
-    val fetch : 'a t -> 'a io
-  end
-
-  module Unix : sig
-    type file_descr
-    val wrap_fd : (file_descr -> 'a io) -> Unix.file_descr -> 'a io
-    val poll : ?read: bool -> ?write: bool -> ?timeout: float ->
-               file_descr -> (bool * bool * bool) io
-  end
-
-  module Log : sig
-    val error_f : ('a, unit, string, unit io) format4 -> 'a
-    val warning_f : ('a, unit, string, unit io) format4 -> 'a
-    val info_f : ('a, unit, string, unit io) format4 -> 'a
-    val debug_f : ('a, unit, string, unit io) format4 -> 'a
-    val debug_query_enabled : unit -> bool
-    val debug_query : query_info -> string list -> unit io
-    val debug_tuple_enabled : unit -> bool
-    val debug_tuple : string list -> unit io
-  end
-
-  module Preemptive : sig
-    val detach : ('a -> 'b) -> 'a -> 'b io
-    val run_in_main : (unit -> 'a io) -> 'a
-  end
-
-end
-
-(** The part of {!CAQTI} which is implemented by backends. *)
-module type CAQTUS = sig
-  type 'a io
-  module Wrap (Wrapper : WRAPPER) : sig
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-         with type 'a io = 'a io
-          and module Tuple := Tuple
-          and module Report := Report
-          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-    val connect : Uri.t -> (module CONNECTION) io
-  end
-end
-
-(** Abstraction of the connect function over the concurrency monad. *)
-module type CAQTUS_FUNCTOR =
-  functor (System : SYSTEM) -> CAQTUS with type 'a io := 'a System.io
+module type SYSTEM = Caqti_system_sig.S
+[@@ocaml.deprecated "Moved to Caqti_system_sig.S"]
 
 (** The connect functions as exposed to application code through the
     concurrency implementations:
 
-    - [Caqti_lwt] which is provided in the [caqti.lwt] package
-      if caqti was built with [--enable-lwt].
-    - [Caqti_async] which is provided in the [caqti.async] package
-      if caqti was built with [--enable-async]. *)
+    - [Caqti_lwt] provided by caqti-lwt.
+    - [Caqti_async] provided by caqti-async. *)
 module type CAQTI = sig
-  module System : SYSTEM
+  type 'a io
 
-  module Pool : POOL with type 'a io := 'a System.io
+  module System : Caqti_system_sig.S with type 'a io = 'a io
+  [@@ocaml.deprecated "The System module is internal and will soon no longer \
+                       be exposed here."]
+
+  module Pool : POOL with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
-  module Wrap (Wrapper : WRAPPER) : sig
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-        with type 'a io = 'a System.io
-         and module Tuple := Tuple
-         and module Report := Report
-         and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
 
-    val connect : Uri.t -> (module CONNECTION) System.io
-  end
-
-  module type CONNECTION = sig
-    module Tuple : TUPLE
-    include CONNECTION
-      with type 'a io = 'a System.io
-       and module Tuple := Tuple
-       and type 'a callback = Tuple.t -> 'a
-  end
-
-  val connect : Uri.t -> (module CONNECTION) System.io
+  val connect : Uri.t -> (module CONNECTION) io
   (** Establish a single connection to a database.  This must only be used by
       one thread at a time, cooperative or not. *)
 
@@ -368,7 +271,7 @@ module type CAQTI = sig
       cooperative threads run from the main system thread. *)
 
   module type CONNECTION_V2 =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+    Caqti_connection_sig.S with type 'a io := 'a io
 
-  val connect_v2 : Uri.t -> (module CONNECTION_V2) System.io
+  val connect_v2 : Uri.t -> (module CONNECTION_V2) io
 end

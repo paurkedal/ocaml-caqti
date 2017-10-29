@@ -21,71 +21,28 @@ open Printf
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p
 
-module Default_wrapper (Tuple : TUPLE) (Report : REPORT) = struct
-  type 'a callback = Tuple.t -> 'a
-  type queried = unit
-  type reported = unit
-  let on_query _ = ()
-  let on_report _ _ = ()
-  let on_tuple f _ = f
-end
-
-module Make (System : SYSTEM) = struct
+module Make (System : Caqti_system_sig.S) = struct
   open System
 
   module System = System
 
-  module type CAQTUS = CAQTUS with type 'a io := 'a System.io
+  module type DRIVER = Caqti_driver_sig.S with type 'a io := 'a System.io
 
-  let caqtuses : (string, (module CAQTUS)) Hashtbl.t = Hashtbl.create 11
+  let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
-  let load_caqtus scheme =
-    try Hashtbl.find caqtuses scheme with Not_found ->
-    let caqtus_functor =
+  let load_driver scheme =
+    try Hashtbl.find drivers scheme with Not_found ->
+    let driver_functor =
       ensure_plugin
         (fun () -> try Some (Hashtbl.find scheme_plugins scheme)
                    with Not_found -> None)
         ("caqti-driver-" ^ scheme) in
-    let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
-    let module Caqtus = Caqtus_functor (System) in
-    let caqtus = (module Caqtus : CAQTUS) in
-    Hashtbl.add caqtuses scheme caqtus; caqtus
+    let module Make_driver = (val driver_functor : Caqti_driver_sig.FUNCTOR) in
+    let module Driver = Make_driver (System) in
+    let driver = (module Driver : DRIVER) in
+    Hashtbl.add drivers scheme driver; driver
 
-  module Wrap (Wrapper : WRAPPER) = struct
-
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-         with type 'a io = 'a System.io
-          and module Tuple := Tuple
-          and module Report := Report
-          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-
-    let connect uri : (module CONNECTION) System.io =
-      match Uri.scheme uri with
-      | None ->
-        fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
-                               (Uri.to_string uri)))
-      | Some scheme ->
-        try
-          let caqtus = load_caqtus scheme in
-          let module Caqtus = (val caqtus) in
-          let module Conn = Caqtus.Wrap (Wrapper) in
-          Conn.connect uri >>= fun client ->
-          let module Client = (val client) in
-          return (module Client : CONNECTION)
-        with xc -> fail xc
-  end
-
-  module type CONNECTION = sig
-    module Tuple : TUPLE
-    include CONNECTION
-       with type 'a io = 'a System.io
-        and module Tuple := Tuple
-        and type 'a callback = Tuple.t -> 'a
-  end
+  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
   let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
@@ -94,10 +51,9 @@ module Make (System : SYSTEM) = struct
                              (Uri.to_string uri)))
     | Some scheme ->
       try
-        let caqtus = load_caqtus scheme in
-        let module Caqtus = (val caqtus) in
-        let module Conn = Caqtus.Wrap (Default_wrapper) in
-        Conn.connect uri >>= fun client ->
+        let driver = load_driver scheme in
+        let module Driver = (val driver) in
+        Driver.connect uri >>= fun client ->
         let module Client = (val client) in
         return (module Client : CONNECTION)
       with xc -> fail xc
@@ -119,8 +75,8 @@ module Make (System : SYSTEM) = struct
      | None -> failwith "caqti_*.connect: Missing URI scheme."
      | Some scheme ->
         try
-          let caqtus = load_caqtus scheme in
-          let module Caqtus = (val caqtus) in
+          let driver = load_driver scheme in
+          let module Caqtus = (val driver) in
           connect uri >|= fun c ->
           let module C = (val c) in
           (module Caqti_compat.Connection_v2_of_v1 (System) (C) : CONNECTION_V2)

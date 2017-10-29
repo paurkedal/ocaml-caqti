@@ -22,7 +22,6 @@
 (executable
  ((name test_pool_lwt)
   (modules (Test_pool_lwt))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti_lwt testkit))))
 
 ; Tests Using DBs
@@ -35,7 +34,6 @@
 (executable
  ((name bikereg)
   (modules (Bikereg))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti caqti_lwt testkit))))
 
 (alias
@@ -46,7 +44,6 @@
 (executable
  ((name bikereg_v2)
   (modules (Bikereg_v2))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti caqti_lwt testkit))))
 
 (alias
@@ -67,7 +64,6 @@
 (executable
  ((name test_parallel_lwt)
   (modules (Test_parallel_lwt))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti caqti_lwt testkit))))
 
 (alias
@@ -78,7 +74,6 @@
 (executable
  ((name test_sql_lwt)
   (modules (Test_sql_lwt))
-  (flags (-ppx ppx_lwt))
   (libraries (caqti caqti_lwt testkit))))
 
 ; Fake META Files

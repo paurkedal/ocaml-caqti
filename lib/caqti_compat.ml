@@ -30,14 +30,8 @@ let () =
   Caqti_error.register_driver_detail ~pp [%extension_constructor Driver_detail]
 
 module Connection_v2_of_v1
-    (System : SYSTEM)
-    (C : sig
-      module Tuple : TUPLE
-      include CONNECTION
-        with module Tuple := Tuple
-         and type 'a callback = Tuple.t -> 'a
-         and type 'a io = 'a System.io
-     end) =
+    (System : Caqti_system_sig.S)
+    (C : CONNECTION with type 'a io = 'a System.io) =
 struct
   open System
 

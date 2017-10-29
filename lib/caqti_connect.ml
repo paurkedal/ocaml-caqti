@@ -21,15 +21,6 @@ open Printf
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p
 
-module Default_wrapper (Tuple : TUPLE) (Report : REPORT) = struct
-  type 'a callback = Tuple.t -> 'a
-  type queried = unit
-  type reported = unit
-  let on_query _ = ()
-  let on_report _ _ = ()
-  let on_tuple f _ = f
-end
-
 module Make (System : SYSTEM) = struct
   open System
 
@@ -51,41 +42,7 @@ module Make (System : SYSTEM) = struct
     let caqtus = (module Caqtus : CAQTUS) in
     Hashtbl.add caqtuses scheme caqtus; caqtus
 
-  module Wrap (Wrapper : WRAPPER) = struct
-
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-         with type 'a io = 'a System.io
-          and module Tuple := Tuple
-          and module Report := Report
-          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-
-    let connect uri : (module CONNECTION) System.io =
-      match Uri.scheme uri with
-      | None ->
-        fail (Invalid_argument (sprintf "Cannot use schemeless URI %s"
-                               (Uri.to_string uri)))
-      | Some scheme ->
-        try
-          let caqtus = load_caqtus scheme in
-          let module Caqtus = (val caqtus) in
-          let module Conn = Caqtus.Wrap (Wrapper) in
-          Conn.connect uri >>= fun client ->
-          let module Client = (val client) in
-          return (module Client : CONNECTION)
-        with xc -> fail xc
-  end
-
-  module type CONNECTION = sig
-    module Tuple : TUPLE
-    include CONNECTION
-       with type 'a io = 'a System.io
-        and module Tuple := Tuple
-        and type 'a callback = Tuple.t -> 'a
-  end
+  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
   let connect uri : (module CONNECTION) System.io =
     match Uri.scheme uri with
@@ -96,8 +53,7 @@ module Make (System : SYSTEM) = struct
       try
         let caqtus = load_caqtus scheme in
         let module Caqtus = (val caqtus) in
-        let module Conn = Caqtus.Wrap (Default_wrapper) in
-        Conn.connect uri >>= fun client ->
+        Caqtus.connect uri >>= fun client ->
         let module Client = (val client) in
         return (module Client : CONNECTION)
       with xc -> fail xc

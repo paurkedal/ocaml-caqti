@@ -132,22 +132,6 @@ module type TUPLE = sig
   (**/**)
 end
 
-module type REPORT = sig
-  type t
-  val returned_count : (t -> int) option
-  val affected_count : (t -> int) option
-end
-
-module type WRAPPER = functor (Tuple : TUPLE) -> functor (Report : REPORT) ->
-sig
-  type 'a callback
-  type queried
-  type reported
-  val on_query : query -> queried
-  val on_report : queried -> Report.t -> reported
-  val on_tuple : 'a callback -> reported -> Tuple.t -> 'a
-end
-
 (** The main API as provided after connecting to a resource. *)
 module type CONNECTION = sig
 
@@ -157,15 +141,8 @@ module type CONNECTION = sig
   module Tuple : TUPLE
   (** Interface for extracting result tuples. *)
 
-  module Report : REPORT
-  (** Interface for fetching auxiliary information about a result. *)
-
   type 'a io
   (** The IO monad for which the module is specialized. *)
-
-  type 'a callback
-  (** The form of callbacks.  For the default connection functions, this type
-      is [Tuple.t -> 'a]. *)
 
   val uri : Uri.t
   (** The URI used to connect to the database. *)
@@ -198,30 +175,30 @@ module type CONNECTION = sig
   (** [exec q params] executes a query [q(params)] which is not expected to
       return anything. *)
 
-  val find : query -> 'a callback -> Param.t array -> 'a io
+  val find : query -> (Tuple.t -> 'a) -> Param.t array -> 'a io
   (** [find_e q params] executes [q(params)] which is expected to return
       exactly one tuple. *)
 
-  val find_opt : query -> 'a callback -> Param.t array -> 'a option io
+  val find_opt : query -> (Tuple.t -> 'a) -> Param.t array -> 'a option io
   (** [find q params] executes a query [q(params)] which is expected to return
       at most one tuple. *)
 
-  val fold : query -> ('a -> 'a) callback -> Param.t array -> 'a -> 'a io
+  val fold : query -> (Tuple.t -> 'a -> 'a) -> Param.t array -> 'a -> 'a io
   (** [fold q f params acc] executes [q(params)], composes [f] over the
       resulting tuples in order, and applies the composition to [acc]. *)
 
-  val fold_s : query -> ('a -> 'a io) callback -> Param.t array -> 'a -> 'a io
+  val fold_s : query -> (Tuple.t -> 'a -> 'a io) -> Param.t array -> 'a -> 'a io
   (** [fold_s q f params acc] executes [q(params)], forms a threaded
       composition of [f] over the resulting tuples, and applies the
       composition to [acc]. *)
 
-  val iter_p : query -> unit io callback -> Param.t array -> unit io
+  val iter_p : query -> (Tuple.t -> unit io) -> Param.t array -> unit io
   (** [fold_p q f params] executes [q(params)] and calls [f t] in the thread
       monad in parallel for each resulting tuple [t].  A certain backend may
       not implement parallel execution, in which case this is the same as
       {!iter_s}. *)
 
-  val iter_s : query -> unit io callback -> Param.t array -> unit io
+  val iter_s : query -> (Tuple.t -> unit io) -> Param.t array -> unit io
   (** [fold_s q f params] executes [q(params)] and calls [f t] sequentially in
       the thread monad for each resulting tuple [t] in order. *)
 
@@ -309,18 +286,8 @@ end
 (** The part of {!CAQTI} which is implemented by backends. *)
 module type CAQTUS = sig
   type 'a io
-  module Wrap (Wrapper : WRAPPER) : sig
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-         with type 'a io = 'a io
-          and module Tuple := Tuple
-          and module Report := Report
-          and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-    val connect : Uri.t -> (module CONNECTION) io
-  end
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
+  val connect : Uri.t -> (module CONNECTION) io
 end
 
 (** Abstraction of the connect function over the concurrency monad. *)
@@ -338,27 +305,7 @@ module type CAQTI = sig
   module Pool : POOL with type 'a io := 'a System.io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
-  module Wrap (Wrapper : WRAPPER) : sig
-    module type CONNECTION = sig
-      module Tuple : TUPLE
-      module Report : REPORT
-      include CONNECTION
-        with type 'a io = 'a System.io
-         and module Tuple := Tuple
-         and module Report := Report
-         and type 'a callback = 'a Wrapper (Tuple) (Report).callback
-    end
-
-    val connect : Uri.t -> (module CONNECTION) System.io
-  end
-
-  module type CONNECTION = sig
-    module Tuple : TUPLE
-    include CONNECTION
-      with type 'a io = 'a System.io
-       and module Tuple := Tuple
-       and type 'a callback = Tuple.t -> 'a
-  end
+  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
   val connect : Uri.t -> (module CONNECTION) System.io
   (** Establish a single connection to a database.  This must only be used by

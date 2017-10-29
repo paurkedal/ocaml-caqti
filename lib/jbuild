@@ -14,6 +14,7 @@
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
+    Caqti_system_sig
     Caqti_query
     ; internal
     Caqti_heap
@@ -28,6 +29,11 @@
 (rule
  ((targets (caqti_sigs.ml))
   (deps (caqti_sigs.mli))
+  (action (copy ${<} ${@}))))
+
+(rule
+ ((targets (caqti_system_sig.ml))
+  (deps (caqti_system_sig.mli))
   (action (copy ${<} ${@}))))
 
 (library

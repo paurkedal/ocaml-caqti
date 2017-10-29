@@ -244,17 +244,6 @@ end
 
 module type SYSTEM = Caqti_system_sig.S
 
-(** The part of {!CAQTI} which is implemented by backends. *)
-module type CAQTUS = sig
-  type 'a io
-  module type CONNECTION = CONNECTION with type 'a io = 'a io
-  val connect : Uri.t -> (module CONNECTION) io
-end
-
-(** Abstraction of the connect function over the concurrency monad. *)
-module type CAQTUS_FUNCTOR =
-  functor (System : SYSTEM) -> CAQTUS with type 'a io := 'a System.io
-
 (** The connect functions as exposed to application code through the
     concurrency implementations:
 

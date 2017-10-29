@@ -14,13 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connection functor and backend registration. *)
+(** Semi-internal: Signature for driver implementation.
+
+    This interface is unstable. *)
 
 open Caqti_sigs
 
-val register_scheme : string -> (module Caqti_driver_sig.FUNCTOR) -> unit
-(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
-    [scheme].  This call must be done by a backend installed with findlib name
-    caqti-driver-{i scheme} as part of its initialization. *)
+(** The part of {!CAQTI} which is implemented by backends. *)
+module type S = sig
+  type 'a io
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
+  val connect : Uri.t -> (module CONNECTION) io
+end
 
-module Make (System : SYSTEM) : CAQTI with module System = System
+(** Abstraction of the connect function over the concurrency monad. *)
+module type FUNCTOR =
+  functor (System : Caqti_system_sig.S) -> S with type 'a io := 'a System.io

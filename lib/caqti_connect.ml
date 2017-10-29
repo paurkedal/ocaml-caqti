@@ -26,21 +26,21 @@ module Make (System : SYSTEM) = struct
 
   module System = System
 
-  module type CAQTUS = CAQTUS with type 'a io := 'a System.io
+  module type DRIVER = Caqti_driver_sig.S with type 'a io := 'a System.io
 
-  let caqtuses : (string, (module CAQTUS)) Hashtbl.t = Hashtbl.create 11
+  let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
-  let load_caqtus scheme =
-    try Hashtbl.find caqtuses scheme with Not_found ->
-    let caqtus_functor =
+  let load_driver scheme =
+    try Hashtbl.find drivers scheme with Not_found ->
+    let driver_functor =
       ensure_plugin
         (fun () -> try Some (Hashtbl.find scheme_plugins scheme)
                    with Not_found -> None)
         ("caqti-driver-" ^ scheme) in
-    let module Caqtus_functor = (val caqtus_functor : CAQTUS_FUNCTOR) in
-    let module Caqtus = Caqtus_functor (System) in
-    let caqtus = (module Caqtus : CAQTUS) in
-    Hashtbl.add caqtuses scheme caqtus; caqtus
+    let module Make_driver = (val driver_functor : Caqti_driver_sig.FUNCTOR) in
+    let module Driver = Make_driver (System) in
+    let driver = (module Driver : DRIVER) in
+    Hashtbl.add drivers scheme driver; driver
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
 
@@ -51,9 +51,9 @@ module Make (System : SYSTEM) = struct
                              (Uri.to_string uri)))
     | Some scheme ->
       try
-        let caqtus = load_caqtus scheme in
-        let module Caqtus = (val caqtus) in
-        Caqtus.connect uri >>= fun client ->
+        let driver = load_driver scheme in
+        let module Driver = (val driver) in
+        Driver.connect uri >>= fun client ->
         let module Client = (val client) in
         return (module Client : CONNECTION)
       with xc -> fail xc

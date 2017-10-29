@@ -8,6 +8,7 @@
    (Caqti
     Caqti_connect
     Caqti_describe
+    Caqti_driver_sig
     Caqti_errors
     Caqti_metadata
     Caqti_pool
@@ -27,13 +28,16 @@
   (libraries (findlib.dynload calendar uri))))
 
 (rule
- ((targets (caqti_sigs.ml))
-  (deps (caqti_sigs.mli))
+ ((targets (caqti_driver_sig.ml))
+  (deps (caqti_driver_sig.mli))
   (action (copy ${<} ${@}))))
-
 (rule
  ((targets (caqti_system_sig.ml))
   (deps (caqti_system_sig.mli))
+  (action (copy ${<} ${@}))))
+(rule
+ ((targets (caqti_sigs.ml))
+  (deps (caqti_sigs.mli))
   (action (copy ${<} ${@}))))
 
 (library

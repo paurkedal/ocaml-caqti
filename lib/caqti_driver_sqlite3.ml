@@ -165,7 +165,7 @@ end
 
 let yield = Thread.yield
 
-module Connect_functor (System : SYSTEM) = struct
+module Connect_functor (System : Caqti_system_sig.S) = struct
   open System
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io

@@ -243,6 +243,7 @@ end
 [@@ocaml.deprecated "Included in Caqti_system_sig.S"]
 
 module type SYSTEM = Caqti_system_sig.S
+[@@ocaml.deprecated "Moved to Caqti_system_sig.S"]
 
 (** The connect functions as exposed to application code through the
     concurrency implementations:
@@ -250,14 +251,18 @@ module type SYSTEM = Caqti_system_sig.S
     - [Caqti_lwt] provided by caqti-lwt.
     - [Caqti_async] provided by caqti-async. *)
 module type CAQTI = sig
-  module System : SYSTEM
+  type 'a io
 
-  module Pool : POOL with type 'a io := 'a System.io
+  module System : Caqti_system_sig.S with type 'a io = 'a io
+  [@@ocaml.deprecated "The System module is internal and will soon no longer \
+                       be exposed here."]
+
+  module Pool : POOL with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
-  module type CONNECTION = CONNECTION with type 'a io = 'a System.io
+  module type CONNECTION = CONNECTION with type 'a io = 'a io
 
-  val connect : Uri.t -> (module CONNECTION) System.io
+  val connect : Uri.t -> (module CONNECTION) io
   (** Establish a single connection to a database.  This must only be used by
       one thread at a time, cooperative or not. *)
 

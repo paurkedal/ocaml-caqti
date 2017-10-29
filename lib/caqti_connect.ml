@@ -21,7 +21,7 @@ open Printf
 let scheme_plugins = Hashtbl.create 11
 let register_scheme scheme p = Hashtbl.add scheme_plugins scheme p
 
-module Make (System : SYSTEM) = struct
+module Make (System : Caqti_system_sig.S) = struct
   open System
 
   module System = System

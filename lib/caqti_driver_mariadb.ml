@@ -27,7 +27,7 @@ module Caltime_format = CalendarLib.Printer.Calendar
 
 let failwith_f fmt = ksprintf failwith fmt
 
-module Caqtus_functor (System : SYSTEM) = struct
+module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
   module Mdb = Mariadb.Nonblocking.Make
     (struct

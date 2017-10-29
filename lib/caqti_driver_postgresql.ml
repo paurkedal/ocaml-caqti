@@ -146,7 +146,7 @@ let tuple_info (i, r) =
                        loop (j - 1) (debug_quote (r#getvalue i j) :: acc) in
   loop (r#nfields - 1) []
 
-module Caqtus_functor (System : SYSTEM) = struct
+module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
   open System
 

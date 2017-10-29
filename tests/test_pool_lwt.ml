@@ -16,7 +16,7 @@
 
 open Lwt.Infix
 
-module Pool = Caqti_pool.Make (Caqti_lwt.System)
+module Pool = Caqti_lwt.Pool
 
 module Resource = struct
   let ht = Hashtbl.create 17

@@ -19,4 +19,4 @@
 open Async
 open Caqti_sigs
 
-include CAQTI with type 'a System.io = 'a Deferred.Or_error.t
+include CAQTI with type 'a io := 'a Deferred.Or_error.t

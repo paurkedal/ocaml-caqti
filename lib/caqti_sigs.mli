@@ -70,18 +70,19 @@ module type PARAM = sig
   (** Construct a date parameter from the year, month, and day of the month,
       using the literal enumeration. I.e. Epoch is [(1970, 1, 1)]. *)
 
-  val date : CalendarLib.Date.t -> t
+  val date_cl : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
 
   val utc_float : float -> t
   (** Construct a parameter representing date and time in the UTC time zone,
-      converted from a float representing the number of seconds since Epoch. *)
+      converted from a float representing the number of non-leap seconds passed
+      since 1970-01-01T00:00:00Z. *)
 
   val utc_string : string -> t
   (** Create a parameter for an UTC timestamp field from a UTC time string in
       ISO 8601 format. *)
 
-  val utc : CalendarLib.Calendar.t -> t
+  val utc_cl : CalendarLib.Calendar.t -> t
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
 
@@ -90,6 +91,10 @@ module type PARAM = sig
   [@@deprecated "Rarely useful optimisation dropped in favour of driver simplicity."]
   val other : string -> t
   [@@deprecated "This will be reconsidered if/when we need it."]
+  val date : CalendarLib.Date.t -> t
+  [@@deprecated "Renamed to date_cl"]
+  val utc : CalendarLib.Calendar.t -> t
+  [@@deprecated "Renamed to utc_cl"]
   (**/**)
 end
 
@@ -121,14 +126,18 @@ module type TUPLE = sig
   val bytes : int -> t -> bytes
   val date_string : int -> t -> string
   val date_tuple : int -> t -> int * int * int
-  val date : int -> t -> CalendarLib.Date.t
+  val date_cl : int -> t -> CalendarLib.Date.t
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string
-  val utc : int -> t -> CalendarLib.Calendar.t
+  val utc_cl : int -> t -> CalendarLib.Calendar.t
 
   (**/**)
   val other : int -> t -> string
   [@@deprecated "This will be reconsidered if/when we need it."]
+  val date : int -> t -> CalendarLib.Date.t
+  [@@deprecated "Renamed to date_cl"]
+  val utc : int -> t -> CalendarLib.Calendar.t
+  [@@deprecated "Renamed to utc_cl"]
   (**/**)
 end
 

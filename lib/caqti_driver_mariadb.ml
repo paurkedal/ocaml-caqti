@@ -67,12 +67,16 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let string x = `String x
     let bytes x = `Bytes x
     let sub_bytes x i n = `Bytes (Bytes.sub x i n)
-    let date x = `Time (Time.utc_timestamp (Caldate.to_unixfloat x))
+    let date_cl x = `Time (Time.utc_timestamp (Caldate.to_unixfloat x))
     let date_tuple (year, month, day) = `Time (Time.date ~year ~month ~day)
-    let date_string s = date (Caldate_format.from_fstring "%F" s)
-    let utc x = `Time (Time.utc_timestamp (Caltime.to_unixfloat x))
+    let date_string s = date_cl (Caldate_format.from_fstring "%F" s)
+    let utc_cl x = `Time (Time.utc_timestamp (Caltime.to_unixfloat x))
     let utc_float t = `Time (Time.utc_timestamp t)
-    let utc_string s = utc (Caltime_format.from_fstring "%FT%T" s)
+    let utc_string s = utc_cl (Caltime_format.from_fstring "%FT%T" s)
+
+    (* deprecated *)
+    let date = date_cl
+    let utc = utc_cl
     let other = string
   end
 
@@ -115,7 +119,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
     let bytes i a = Field.bytes a.(i)
 
-    let date i a =
+    let date_cl i a =
       let t = Field.time a.(i) in
       (* FIXME: Check convensions. *)
       Caldate.make (Time.year t) (Time.month t) (Time.day t)
@@ -123,19 +127,22 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
       let t = Field.time a.(i) in
       (Time.year t, Time.month t, Time.day t)
     let date_string i a =
-      Caldate_format.sprint "%F" (date i a)
+      Caldate_format.sprint "%F" (date_cl i a)
 
-    let utc i a =
+    let utc_cl i a =
       let t = Field.time a.(i) in
       (* FIXME: Check convensions. *)
       Caltime.make
         (Time.year t) (Time.month t) (Time.day t)
         (Time.hour t) (Time.minute t) (Time.second t)
     let utc_float i a =
-      Caltime.to_unixfloat (utc i a)
+      Caltime.to_unixfloat (utc_cl i a)
     let utc_string i a =
-      Caltime_format.sprint "%FT%T" (utc i a)
+      Caltime_format.sprint "%FT%T" (utc_cl i a)
 
+    (* deprecated *)
+    let date = date_cl
+    let utc = utc_cl
     let other i a = Field.string a.(i)
   end
 

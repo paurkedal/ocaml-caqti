@@ -75,12 +75,16 @@ module Param = struct
   let sub_bytes s i n = Bytes.sub_string s i n
   let date_string s = s
   let date_tuple = iso8601_of_datetuple
-  let date t = CL.Printer.Date.sprint "%F" t
+  let date_cl t = CL.Printer.Date.sprint "%F" t
   let utc_float t =
     let t' = CL.Calendar.from_unixfloat t in
     with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t')
   let utc_string = string
-  let utc t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
+  let utc_cl t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
+
+  (* deprecated *)
+  let date = date_cl
+  let utc = utc_cl
   let other s = s
 end
 
@@ -113,10 +117,14 @@ module Tuple = struct
   let bytes j t = Bytes.of_string (raw j t)
   let date_string j t = raw j t
   let date_tuple j t = datetuple_of_iso8601 (raw j t)
-  let date j t = CL.Printer.Date.from_fstring "%F" (raw j t)
+  let date_cl j t = CL.Printer.Date.from_fstring "%F" (raw j t)
   let utc_float j t = CL.Calendar.to_unixfloat (utc_of_timestamp (raw j t))
   let utc_string = raw
-  let utc j t = utc_of_timestamp (raw j t)
+  let utc_cl j t = utc_of_timestamp (raw j t)
+
+  (* deprecated *)
+  let date = date_cl
+  let utc = utc_cl
   let other = raw
 end
 

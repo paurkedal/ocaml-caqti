@@ -89,7 +89,7 @@ let wrap (type tuple)
   let open Db.Tuple in
   (* You might prefer to pass the result as a tuple or record depending on the
    * application. *)
-  f ~frameno:(string 0 t) ~owner:(string 1 t) ?stolen:(option utc 2 t) ()
+  f ~frameno:(string 0 t) ~owner:(string 1 t) ?stolen:(option utc_cl 2 t) ()
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
 let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =

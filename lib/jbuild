@@ -39,25 +39,3 @@
  ((targets (caqti_sigs.ml))
   (deps (caqti_sigs.mli))
   (action (copy ${<} ${@}))))
-
-(library
- ((name caqti_driver_postgresql)
-  (public_name caqti-driver-postgresql)
-  (wrapped false)
-  (modules (Caqti_driver_postgresql))
-  (libraries (caqti postgresql))))
-
-(library
- ((name caqti_driver_mariadb)
-  (public_name caqti-driver-mariadb)
-  (wrapped false)
-  (modules (Caqti_driver_mariadb))
-  (libraries (caqti mariadb))))
-
-(library
- ((name caqti_driver_sqlite3)
-  (public_name caqti-driver-sqlite3)
-  (wrapped false)
-  (flags (-thread))
-  (modules (Caqti_driver_sqlite3))
-  (libraries (caqti sqlite3))))

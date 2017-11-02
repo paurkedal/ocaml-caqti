@@ -1,5 +1,13 @@
 # Change Log
 
+## Unreleased
+
+- Remove WRAPPER and REPORT functionality.
+- Remove deprecated findlib aliases.
+- Renamed `date` and `utc` conversions to `date_cl` and `utc_cl`.
+- Deprecate `Caqti_metadata` in favour of the new `Caqti_driver_info`.
+- Move various signature to separate files, leaving deprecated aliases.
+
 ## [0.6.1] - 2017-10-26
 
 - Fixed support for lwt >= 3, but keep supporting 2.7 as well for now.

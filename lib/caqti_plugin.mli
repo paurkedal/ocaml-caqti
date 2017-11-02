@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Helper for loading plugins. *)
+(** Internal: Helper for loading plugins. *)
 
 exception Plugin_missing of string * string
 (** [Plugin_missing pkgs] if {!ensure_plugin} fails to find any of the findlib

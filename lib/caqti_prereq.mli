@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Internal utilities. *)
+(** Internal: Prerequisites. *)
 
 module Option : sig
   type 'a t = 'a option

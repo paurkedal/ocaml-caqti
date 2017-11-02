@@ -231,22 +231,8 @@ module type CONNECTION = sig
   [@@@warning "+3"]
 end
 
-(** The signature of pools of reusable resources.  We use it to keep pools of
-    open database connections.  A generic implementation is found in
-    {!Caqti_pool}, and instantiations are available for each cooperative
-    thread monad. *)
-module type POOL = sig
-  type 'a io
-  type 'a t
-  val create :
-        ?max_size: int ->
-        ?check: ('a -> (bool -> unit) -> unit) ->
-        ?validate: ('a -> bool io) ->
-        (unit -> 'a io) -> ('a -> unit io) -> 'a t
-  val size : 'a t -> int
-  val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
-  val drain : 'a t -> unit io
-end
+module type POOL = Caqti_pool_sig.S
+[@@ocaml.deprecated "Moved to Caqti_pool_sig.S."]
 
 module type MONAD = sig
   type 'a t
@@ -271,7 +257,7 @@ module type CAQTI = sig
   [@@ocaml.deprecated "The System module is internal and will soon no longer \
                        be exposed here."]
 
-  module Pool : POOL with type 'a io := 'a io
+  module Pool : Caqti_pool_sig.S with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
   module type CONNECTION = CONNECTION with type 'a io = 'a io

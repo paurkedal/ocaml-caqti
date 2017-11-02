@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,14 +15,13 @@
  *)
 
 type dialect_tag = [`Mysql | `Pgsql | `Sqlite | `Other]
+let internal__default_dialect_tag = `Other
 type sql_dialect_tag = [`Mysql | `Pgsql | `Sqlite]
 
 type parameter_style =
   [ `None
   | `Linear of string
   | `Indexed of (int -> string) ]
-
-let next_backend_index = ref 0
 
 type backend_info = {
   bi_index : int;
@@ -33,26 +32,5 @@ type backend_info = {
   bi_describe_has_typed_parameters : bool;
   bi_describe_has_typed_fields : bool;
   bi_has_transactions : bool;
+  internal__can_concur : bool;
 }
-
-let create_backend_info
-      ~uri_scheme
-      ?(dialect_tag = `Other)
-      ?(parameter_style = `None)
-      ?(default_max_pool_size = 8)
-      ~describe_has_typed_parameters
-      ~describe_has_typed_fields
-      ~has_transactions
-      () =
-  let bi_index = !next_backend_index in
-  next_backend_index := succ !next_backend_index;
-  {
-    bi_index;
-    bi_uri_scheme = uri_scheme;
-    bi_dialect_tag = dialect_tag;
-    bi_parameter_style = parameter_style;
-    bi_default_max_pool_size = default_max_pool_size;
-    bi_describe_has_typed_parameters = describe_has_typed_parameters;
-    bi_describe_has_typed_fields = describe_has_typed_fields;
-    bi_has_transactions = has_transactions;
-  }

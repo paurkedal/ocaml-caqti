@@ -5,18 +5,20 @@
   (public_name caqti)
   (wrapped false)
   (modules
-   (Caqti
-    Caqti_connect
+   (Caqti_connect
     Caqti_describe
     Caqti_driver_sig
+    Caqti_driver_info
     Caqti_errors
-    Caqti_metadata
     Caqti_pool
+    Caqti_query
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
     Caqti_system_sig
-    Caqti_query
+    ; deprecated
+    Caqti
+    Caqti_metadata
     ; internal
     Caqti_heap
     Caqti_plugin

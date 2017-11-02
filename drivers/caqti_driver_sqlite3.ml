@@ -16,7 +16,6 @@
 
 open Caqti_describe
 open Caqti_errors
-open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
@@ -180,17 +179,19 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
   type 'a io = 'a System.io
 
-  let backend_info =
-    create_backend_info
+  let driver_info =
+    Caqti_driver_info.create
       ~uri_scheme:"sqlite3"
       ~dialect_tag:`Sqlite
       ~parameter_style:(`Linear "?")
-      ~default_max_pool_size:1
-      ~describe_has_typed_parameters:false
+      ~can_pool:false
+      ~can_concur:false
+      ~can_transact:true
+      ~describe_has_typed_params:false
       ~describe_has_typed_fields:true
-      ~has_transactions:true ()
+      ()
 
-  let query_info = make_query_info backend_info
+  let query_info = make_query_info driver_info
 
   let connect uri =
 
@@ -256,12 +257,12 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        else return ()) >>= fun () ->
       begin match q with
       | Prepared {pq_encode} ->
-        begin try return (pq_encode backend_info)
+        begin try return (pq_encode driver_info)
         with Missing_query_string ->
           fail (Prepare_failed
                   (uri, query_info q, "Missing query string for SQLite."))
         end
-      | Oneshot qsf -> return (qsf backend_info)
+      | Oneshot qsf -> return (qsf driver_info)
       end >>= fun qs ->
       with_db begin fun db ->
         let stmt =
@@ -292,7 +293,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       module Tuple = Tuple
 
       let uri = uri
-      let backend_info = backend_info
+      let driver_info = driver_info
+      let backend_info = driver_info
 
       let disconnect () = close_db ()
       let validate () = return true

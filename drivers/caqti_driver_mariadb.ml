@@ -15,7 +15,6 @@
  *)
 
 open Caqti_errors
-open Caqti_metadata
 open Caqti_query
 open Caqti_sigs
 open Printf
@@ -148,15 +147,19 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
   open System
 
-  let backend_info =
-    create_backend_info
-      ~uri_scheme:"mariadb" ~dialect_tag:`Mysql
+  let driver_info =
+    Caqti_driver_info.create
+      ~uri_scheme:"mariadb"
+      ~dialect_tag:`Mysql
       ~parameter_style:(`Linear "?")
-      ~describe_has_typed_parameters:false (* TODO *)
+      ~can_pool:true
+      ~can_concur:true
+      ~can_transact:true
+      ~describe_has_typed_params:false (* TODO *)
       ~describe_has_typed_fields:false (* TODO *)
-      ~has_transactions:true ()
+      ()
 
-  let query_info = make_query_info backend_info
+  let query_info = make_query_info driver_info
 
   let prepare_failed uri q (code, msg) =
     let msg' = sprintf "Error %d, %s" code msg in
@@ -178,7 +181,8 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     module Tuple = Tuple
 
     let uri = uri
-    let backend_info = backend_info
+    let driver_info = driver_info
+    let backend_info = driver_info
     let prepared_queries = Hashtbl.create 11
 
     let disconnect () = Mdb.close dbh
@@ -195,7 +199,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let with_prepared q f =
       match q with
        | Caqti_query.Oneshot qsf ->
-          prepare dbh (qsf backend_info) >>=
+          prepare dbh (qsf driver_info) >>=
           (function
            | Error err -> prepare_failed uri q err
            | Ok stmt ->
@@ -213,7 +217,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
             let stmt = Hashtbl.find prepared_queries index in
             return stmt
            with Not_found ->
-            prepare dbh (pq.Caqti_query.pq_encode backend_info) >>=
+            prepare dbh (pq.Caqti_query.pq_encode driver_info) >>=
             (function
              | Error err -> prepare_failed uri q err
              | Ok stmt ->

@@ -17,7 +17,6 @@
 (** Signatures. *)
 
 open Caqti_describe
-open Caqti_metadata
 open Caqti_query
 
 (** Parameter encoding functions. *)
@@ -156,8 +155,8 @@ module type CONNECTION = sig
   val uri : Uri.t
   (** The URI used to connect to the database. *)
 
-  val backend_info : backend_info
-  (** Various metadata about the backend which provides the connection. *)
+  val driver_info : Caqti_driver_info.t
+  (** Information about the database driver which provides this connection. *)
 
   val disconnect : unit -> unit io
   (** Calling [disconnect ()] closes the connection to the database and frees
@@ -224,6 +223,12 @@ module type CONNECTION = sig
   val rollback : unit -> unit io
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
+
+  (**/**)
+  [@@@warning "-3"]
+  val backend_info : Caqti_metadata.backend_info
+    [@@deprecated "Use driver_info."]
+  [@@@warning "+3"]
 end
 
 (** The signature of pools of reusable resources.  We use it to keep pools of

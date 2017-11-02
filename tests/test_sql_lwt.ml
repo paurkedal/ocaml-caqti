@@ -15,7 +15,6 @@
  *)
 
 open Caqti_describe
-open Caqti_metadata
 open Caqti_query
 open Testkit
 open Printf
@@ -196,7 +195,7 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>= fun () ->
   begin
-    if Db.backend_info.Caqti_metadata.bi_has_transactions then
+    if Caqti_driver_info.can_transact Db.driver_info then
       Db.start () >>= fun () ->
       Db.exec Q.insert_into_tmp Db.Param.([|int 1; string "one"|]) >>= fun () ->
       Db.rollback ()
@@ -220,9 +219,9 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
    | Some describe ->
       describe Q.select_from_tmp_where_i_lt >>= fun qd ->
       dump_querydesc "select_from_tmp_where_i_lt" qd >>= fun () ->
-      if Db.backend_info.bi_describe_has_typed_parameters then
+      if Caqti_driver_info.describe_has_typed_params Db.driver_info then
         assert (qd.querydesc_params = [|`Int|]);
-      if Db.backend_info.bi_describe_has_typed_fields then
+      if Caqti_driver_info.describe_has_typed_fields Db.driver_info then
         assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
       Lwt.return_unit)
 

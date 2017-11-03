@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## [0.7.0] - 2017-11-03
 
 - Remove WRAPPER and REPORT functionality.
 - Remove deprecated findlib aliases.
@@ -43,6 +43,7 @@
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
 
+[0.7.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.2...v0.5.3

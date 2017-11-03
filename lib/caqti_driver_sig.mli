@@ -28,5 +28,5 @@ module type S = sig
 end
 
 (** Abstraction of the connect function over the concurrency monad. *)
-module type FUNCTOR =
+module type F =
   functor (System : Caqti_system_sig.S) -> S with type 'a io := 'a System.io

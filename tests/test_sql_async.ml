@@ -17,7 +17,6 @@
 open Core
 open Async
 open Caqti_describe
-open Caqti_metadata
 open Caqti_query
 open Testkit
 
@@ -58,7 +57,8 @@ let test (module Db : Caqti_async.CONNECTION) =
   assert (s_acc = "zero+two+three+five");
 
   (* Describe *)
-  (match Db.describe, Db.backend_info.bi_describe_has_typed_fields with
+  (match Db.describe,
+         Caqti_driver_info.describe_has_typed_fields Db.driver_info with
    | None, true -> assert false
    | _, false -> return ()
    | Some describe, true ->

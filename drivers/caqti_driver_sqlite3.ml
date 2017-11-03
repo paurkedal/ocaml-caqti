@@ -16,7 +16,6 @@
 
 open Caqti_describe
 open Caqti_errors
-open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
@@ -71,12 +70,16 @@ module Param = struct
   let sub_bytes x i n = BLOB (Bytes.sub_string x i n)
   let date_string x = TEXT x
   let date_tuple x = TEXT (iso8601_of_datetuple x)
-  let date x = TEXT (CL.Printer.Date.sprint "%F" x)
+  let date_cl x = TEXT (CL.Printer.Date.sprint "%F" x)
   let utc_float x =
     let t = CL.Calendar.from_unixfloat x in
     TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" t))
   let utc_string x = TEXT x
-  let utc x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
+  let utc_cl x = TEXT (with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T" x))
+
+  (* deprecated *)
+  let date = date_cl
+  let utc = utc_cl
   let other x = failwith "Param.other is invalid for sqlite3"
 end
 
@@ -134,7 +137,7 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | TEXT x -> datetuple_of_iso8601 x
     | _ -> invalid_decode "date" i stmt
-  let date i stmt =
+  let date_cl i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> CL.Printer.Date.from_fstring "%F" x
     | _ -> invalid_decode "date" i stmt
@@ -148,11 +151,15 @@ module Tuple = struct
     match Sqlite3.column stmt i with
     | TEXT x -> x
     | _ -> invalid_decode "timestamp" i stmt
-  let utc i stmt =
+  let utc_cl i stmt =
     match Sqlite3.column stmt i with
     | TEXT x -> with_utc (fun () -> CL.Printer.Calendar.from_fstring "%F %T" x)
     | _ -> invalid_decode "timestamp" i stmt
+
+  (* deprecated *)
   let other i stmt = to_string (Sqlite3.column stmt i)
+  let date = date_cl
+  let utc = utc_cl
 end
 
 (*
@@ -172,17 +179,19 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
   type 'a io = 'a System.io
 
-  let backend_info =
-    create_backend_info
+  let driver_info =
+    Caqti_driver_info.create
       ~uri_scheme:"sqlite3"
       ~dialect_tag:`Sqlite
       ~parameter_style:(`Linear "?")
-      ~default_max_pool_size:1
-      ~describe_has_typed_parameters:false
+      ~can_pool:false
+      ~can_concur:false
+      ~can_transact:true
+      ~describe_has_typed_params:false
       ~describe_has_typed_fields:true
-      ~has_transactions:true ()
+      ()
 
-  let query_info = make_query_info backend_info
+  let query_info = make_query_info driver_info
 
   let connect uri =
 
@@ -248,12 +257,12 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        else return ()) >>= fun () ->
       begin match q with
       | Prepared {pq_encode} ->
-        begin try return (pq_encode backend_info)
+        begin try return (pq_encode driver_info)
         with Missing_query_string ->
           fail (Prepare_failed
                   (uri, query_info q, "Missing query string for SQLite."))
         end
-      | Oneshot qsf -> return (qsf backend_info)
+      | Oneshot qsf -> return (qsf driver_info)
       end >>= fun qs ->
       with_db begin fun db ->
         let stmt =
@@ -284,7 +293,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       module Tuple = Tuple
 
       let uri = uri
-      let backend_info = backend_info
+      let driver_info = driver_info
+      let backend_info = driver_info
 
       let disconnect () = close_db ()
       let validate () = return true

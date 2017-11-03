@@ -38,8 +38,8 @@ module Connection_utils (C : CONNECTION) = struct
     | `Float -> string_of_float (C.Tuple.float i r)
     | `String -> csv_quoted (C.Tuple.string i r)
     | `Bytes -> csv_quoted (C.Tuple.bytes i r)
-    | `Date -> Cal.Printer.Date.to_string (C.Tuple.date i r)
-    | `Utc -> Cal.Printer.Calendar.to_string (C.Tuple.utc i r)
+    | `Date -> Cal.Printer.Date.to_string (C.Tuple.date_cl i r)
+    | `Utc -> Cal.Printer.Calendar.to_string (C.Tuple.utc_cl i r)
     | `Other _ -> C.Tuple.other i r [@ocaml.warning "-3"]
     | `Unknown -> failwith "Cannot determine field type."
 end

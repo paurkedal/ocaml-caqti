@@ -14,8 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_metadata
-
 exception Missing_query_string
 
 let format_query ?env sql lang =
@@ -48,12 +46,12 @@ let format_query ?env sql lang =
   loop 0 0 0;
   Buffer.contents buf
 
-type oneshot_query = backend_info -> string
+type oneshot_query = Caqti_driver_info.t -> string
 
 type prepared_query = {
   pq_index : int;
   pq_name : string;
-  pq_encode : backend_info -> string;
+  pq_encode : Caqti_driver_info.t -> string;
 }
 
 type query =
@@ -64,12 +62,14 @@ let oneshot_full f = Oneshot f
 let oneshot_fun f = Oneshot (fun {bi_dialect_tag; _} -> f bi_dialect_tag)
 let oneshot_any s = Oneshot (fun _ -> s)
 let oneshot_sql s =
-  oneshot_fun (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
+  oneshot_fun @@ function
+   | #Caqti_driver_info.sql_dialect_tag -> s
+   | _ -> raise Missing_query_string
 
-let oneshot_sql_p ?env sql = oneshot_fun @@ fun lang ->
-  match lang with
-  | #sql_dialect_tag -> format_query ?env sql lang
-  | _ -> raise Missing_query_string
+let oneshot_sql_p ?env sql =
+  oneshot_fun @@ function
+   | #Caqti_driver_info.sql_dialect_tag as lang -> format_query ?env sql lang
+   | _ -> raise Missing_query_string
 
 let next_prepared_index = ref 0
 
@@ -88,18 +88,19 @@ let prepare_fun ?name f =
 let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 
 let prepare_sql ?name s =
-  prepare_fun ?name
-    (function #sql_dialect_tag -> s | _ -> raise Missing_query_string)
+  prepare_fun ?name @@ function
+   | #Caqti_driver_info.sql_dialect_tag -> s
+   | _ -> raise Missing_query_string
 
-let prepare_sql_p ?name ?env sql = prepare_fun ?name @@ fun lang ->
-  match lang with
-  | #sql_dialect_tag -> format_query ?env sql lang
-  | _ -> raise Missing_query_string
+let prepare_sql_p ?name ?env sql =
+  prepare_fun ?name @@ function
+   | #Caqti_driver_info.sql_dialect_tag as lang -> format_query ?env sql lang
+   | _ -> raise Missing_query_string
 
 type query_info = [ `Oneshot of string | `Prepared of string * string ]
 
-let make_query_info backend_info = function
+let make_query_info driver_info = function
  | Oneshot qsf ->
-    `Oneshot (qsf backend_info)
+    `Oneshot (qsf driver_info)
  | Prepared {pq_name; pq_encode; _} ->
-    `Prepared (pq_name, pq_encode backend_info)
+    `Prepared (pq_name, pq_encode driver_info)

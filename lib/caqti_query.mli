@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,13 +16,11 @@
 
 (** One-shot and prepared queries. *)
 
-open Caqti_metadata
-
 exception Missing_query_string
 (** The exception to raise in a callback passed to the various query functions
     below, to indicate that a query language is unsupported. *)
 
-type oneshot_query = backend_info -> string
+type oneshot_query = Caqti_driver_info.t -> string
 (** The type of one-shot queries. *)
 
 type prepared_query = private {
@@ -33,7 +31,7 @@ type prepared_query = private {
   pq_name : string;
   (** A name to use for the prepared query. *)
 
-  pq_encode : backend_info -> string;
+  pq_encode : Caqti_driver_info.t -> string;
   (** The SQL for each query language.
       @raise Missing_query_string if the language is not supported. *)
 }
@@ -44,11 +42,11 @@ type query =
   | Prepared of prepared_query (** A prepared query. *)
 (** The type of queries accepted by the CONNECTION API. *)
 
-val oneshot_full : (backend_info -> string) -> query
+val oneshot_full : (Caqti_driver_info.t -> string) -> query
 (** Create a one-shot family of query strings indexed by full query language
     descriptors. *)
 
-val oneshot_fun : (dialect_tag -> string) -> query
+val oneshot_fun : (Caqti_driver_info.dialect_tag -> string) -> query
 (** Create a one-shot family of query strings indexed by language tags. *)
 
 val oneshot_any : string -> query
@@ -57,7 +55,8 @@ val oneshot_any : string -> query
 val oneshot_sql : string -> query
 (** Create a one-shot query string expected to work with any SQL dialect. *)
 
-val oneshot_sql_p : ?env: (dialect_tag -> string -> string) -> string -> query
+val oneshot_sql_p :
+  ?env: (Caqti_driver_info.dialect_tag -> string -> string) -> string -> query
 (** Create a one-shot query string expected to work with any SQL dialect after
     conversion of parameters.
 
@@ -65,12 +64,13 @@ val oneshot_sql_p : ?env: (dialect_tag -> string -> string) -> string -> query
       If provided, parameters in the form accepted by {!Buffer.add_substitute}
       will be substituted using this environment. *)
 
-val prepare_full : ?name: string -> (backend_info -> string) -> query
+val prepare_full : ?name: string -> (Caqti_driver_info.t -> string) -> query
 (** Create a prepared statement dispatching on the full query language
     descriptor.
     @param name A fixed name for the query. *)
 
-val prepare_fun : ?name: string -> (dialect_tag -> string) -> query
+val prepare_fun :
+  ?name: string -> (Caqti_driver_info.dialect_tag -> string) -> query
 (** Create a prepared statement dispatching on the language tag.
     @param name A fixed name for the query. *)
 
@@ -84,8 +84,9 @@ val prepare_sql : ?name: string -> string -> query
 (** Create a prepared statement expected to work with any SQL dialect.
     @param name A fixed name for the query. *)
 
-val prepare_sql_p : ?name: string -> ?env: (dialect_tag -> string -> string) ->
-                    string -> query
+val prepare_sql_p :
+  ?name: string -> ?env: (Caqti_driver_info.dialect_tag -> string -> string) ->
+  string -> query
 (** Create a prepared statement expected to work with any SQL dialect after
     conversion of parameters.
 
@@ -99,6 +100,6 @@ type query_info = [`Oneshot of string | `Prepared of string * string]
 (** An informative analogue of {!query}, used for error reporting. For prepared
     queries, the first constructor argument is the name of the query. *)
 
-val make_query_info : backend_info -> query -> query_info
+val make_query_info : Caqti_driver_info.t -> query -> query_info
 (** [make_query_info backend query] extracts the query string from [query] as
     seen by [backend], for use in logging and error reporting. *)

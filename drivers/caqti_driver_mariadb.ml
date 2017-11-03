@@ -15,7 +15,6 @@
  *)
 
 open Caqti_errors
-open Caqti_metadata
 open Caqti_query
 open Caqti_sigs
 open Printf
@@ -67,12 +66,16 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let string x = `String x
     let bytes x = `Bytes x
     let sub_bytes x i n = `Bytes (Bytes.sub x i n)
-    let date x = `Time (Time.utc_timestamp (Caldate.to_unixfloat x))
+    let date_cl x = `Time (Time.utc_timestamp (Caldate.to_unixfloat x))
     let date_tuple (year, month, day) = `Time (Time.date ~year ~month ~day)
-    let date_string s = date (Caldate_format.from_fstring "%F" s)
-    let utc x = `Time (Time.utc_timestamp (Caltime.to_unixfloat x))
+    let date_string s = date_cl (Caldate_format.from_fstring "%F" s)
+    let utc_cl x = `Time (Time.utc_timestamp (Caltime.to_unixfloat x))
     let utc_float t = `Time (Time.utc_timestamp t)
-    let utc_string s = utc (Caltime_format.from_fstring "%FT%T" s)
+    let utc_string s = utc_cl (Caltime_format.from_fstring "%FT%T" s)
+
+    (* deprecated *)
+    let date = date_cl
+    let utc = utc_cl
     let other = string
   end
 
@@ -115,7 +118,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
     let bytes i a = Field.bytes a.(i)
 
-    let date i a =
+    let date_cl i a =
       let t = Field.time a.(i) in
       (* FIXME: Check convensions. *)
       Caldate.make (Time.year t) (Time.month t) (Time.day t)
@@ -123,33 +126,40 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
       let t = Field.time a.(i) in
       (Time.year t, Time.month t, Time.day t)
     let date_string i a =
-      Caldate_format.sprint "%F" (date i a)
+      Caldate_format.sprint "%F" (date_cl i a)
 
-    let utc i a =
+    let utc_cl i a =
       let t = Field.time a.(i) in
       (* FIXME: Check convensions. *)
       Caltime.make
         (Time.year t) (Time.month t) (Time.day t)
         (Time.hour t) (Time.minute t) (Time.second t)
     let utc_float i a =
-      Caltime.to_unixfloat (utc i a)
+      Caltime.to_unixfloat (utc_cl i a)
     let utc_string i a =
-      Caltime_format.sprint "%FT%T" (utc i a)
+      Caltime_format.sprint "%FT%T" (utc_cl i a)
 
+    (* deprecated *)
+    let date = date_cl
+    let utc = utc_cl
     let other i a = Field.string a.(i)
   end
 
   open System
 
-  let backend_info =
-    create_backend_info
-      ~uri_scheme:"mariadb" ~dialect_tag:`Mysql
+  let driver_info =
+    Caqti_driver_info.create
+      ~uri_scheme:"mariadb"
+      ~dialect_tag:`Mysql
       ~parameter_style:(`Linear "?")
-      ~describe_has_typed_parameters:false (* TODO *)
+      ~can_pool:true
+      ~can_concur:true
+      ~can_transact:true
+      ~describe_has_typed_params:false (* TODO *)
       ~describe_has_typed_fields:false (* TODO *)
-      ~has_transactions:true ()
+      ()
 
-  let query_info = make_query_info backend_info
+  let query_info = make_query_info driver_info
 
   let prepare_failed uri q (code, msg) =
     let msg' = sprintf "Error %d, %s" code msg in
@@ -171,7 +181,8 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     module Tuple = Tuple
 
     let uri = uri
-    let backend_info = backend_info
+    let driver_info = driver_info
+    let backend_info = driver_info
     let prepared_queries = Hashtbl.create 11
 
     let disconnect () = Mdb.close dbh
@@ -188,7 +199,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let with_prepared q f =
       match q with
        | Caqti_query.Oneshot qsf ->
-          prepare dbh (qsf backend_info) >>=
+          prepare dbh (qsf driver_info) >>=
           (function
            | Error err -> prepare_failed uri q err
            | Ok stmt ->
@@ -206,7 +217,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
             let stmt = Hashtbl.find prepared_queries index in
             return stmt
            with Not_found ->
-            prepare dbh (pq.Caqti_query.pq_encode backend_info) >>=
+            prepare dbh (pq.Caqti_query.pq_encode driver_info) >>=
             (function
              | Error err -> prepare_failed uri q err
              | Ok stmt ->

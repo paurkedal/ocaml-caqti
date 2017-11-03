@@ -5,26 +5,29 @@
   (public_name caqti)
   (wrapped false)
   (modules
-   (Caqti
-    Caqti_connect
+   (Caqti_connect
     Caqti_connection_sig
     Caqti_describe
     Caqti_driver_info
     Caqti_error
     Caqti_driver_sig
+    Caqti_driver_info
     Caqti_errors
-    Caqti_metadata
     Caqti_mult
     Caqti_pool
+    Caqti_pool_sig
     Caqti_request
     Caqti_response_sig
+    Caqti_query
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
     Caqti_tuple
     Caqti_type
     Caqti_system_sig
-    Caqti_query
+    ; deprecated
+    Caqti
+    Caqti_metadata
     ; internal
     Caqti_compat
     Caqti_heap
@@ -51,6 +54,10 @@
   (deps (caqti_driver_sig.mli))
   (action (copy ${<} ${@}))))
 (rule
+ ((targets (caqti_pool_sig.ml))
+  (deps (caqti_pool_sig.mli))
+  (action (copy ${<} ${@}))))
+(rule
  ((targets (caqti_system_sig.ml))
   (deps (caqti_system_sig.mli))
   (action (copy ${<} ${@}))))
@@ -58,25 +65,3 @@
  ((targets (caqti_sigs.ml))
   (deps (caqti_sigs.mli))
   (action (copy ${<} ${@}))))
-
-(library
- ((name caqti_driver_postgresql)
-  (public_name caqti-driver-postgresql)
-  (wrapped false)
-  (modules (Caqti_driver_postgresql))
-  (libraries (caqti postgresql))))
-
-(library
- ((name caqti_driver_mariadb)
-  (public_name caqti-driver-mariadb)
-  (wrapped false)
-  (modules (Caqti_driver_mariadb))
-  (libraries (caqti mariadb))))
-
-(library
- ((name caqti_driver_sqlite3)
-  (public_name caqti-driver-sqlite3)
-  (wrapped false)
-  (flags (-thread))
-  (modules (Caqti_driver_sqlite3))
-  (libraries (caqti sqlite3))))

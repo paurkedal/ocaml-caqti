@@ -17,7 +17,6 @@
 (** Signatures. *)
 
 open Caqti_describe
-open Caqti_metadata
 open Caqti_query
 
 (** Parameter encoding functions. *)
@@ -70,18 +69,19 @@ module type PARAM = sig
   (** Construct a date parameter from the year, month, and day of the month,
       using the literal enumeration. I.e. Epoch is [(1970, 1, 1)]. *)
 
-  val date : CalendarLib.Date.t -> t
+  val date_cl : CalendarLib.Date.t -> t
   (** Construct a parameter representing a date. *)
 
   val utc_float : float -> t
   (** Construct a parameter representing date and time in the UTC time zone,
-      converted from a float representing the number of seconds since Epoch. *)
+      converted from a float representing the number of non-leap seconds passed
+      since 1970-01-01T00:00:00Z. *)
 
   val utc_string : string -> t
   (** Create a parameter for an UTC timestamp field from a UTC time string in
       ISO 8601 format. *)
 
-  val utc : CalendarLib.Calendar.t -> t
+  val utc_cl : CalendarLib.Calendar.t -> t
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
 
@@ -90,6 +90,10 @@ module type PARAM = sig
   [@@deprecated "Rarely useful optimisation dropped in favour of driver simplicity."]
   val other : string -> t
   [@@deprecated "This will be reconsidered if/when we need it."]
+  val date : CalendarLib.Date.t -> t
+  [@@deprecated "Renamed to date_cl"]
+  val utc : CalendarLib.Calendar.t -> t
+  [@@deprecated "Renamed to utc_cl"]
   (**/**)
 end
 
@@ -121,14 +125,18 @@ module type TUPLE = sig
   val bytes : int -> t -> bytes
   val date_string : int -> t -> string
   val date_tuple : int -> t -> int * int * int
-  val date : int -> t -> CalendarLib.Date.t
+  val date_cl : int -> t -> CalendarLib.Date.t
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string
-  val utc : int -> t -> CalendarLib.Calendar.t
+  val utc_cl : int -> t -> CalendarLib.Calendar.t
 
   (**/**)
   val other : int -> t -> string
   [@@deprecated "This will be reconsidered if/when we need it."]
+  val date : int -> t -> CalendarLib.Date.t
+  [@@deprecated "Renamed to date_cl"]
+  val utc : int -> t -> CalendarLib.Calendar.t
+  [@@deprecated "Renamed to utc_cl"]
   (**/**)
 end
 
@@ -147,8 +155,8 @@ module type CONNECTION = sig
   val uri : Uri.t
   (** The URI used to connect to the database. *)
 
-  val backend_info : backend_info
-  (** Various metadata about the backend which provides the connection. *)
+  val driver_info : Caqti_driver_info.t
+  (** Information about the database driver which provides this connection. *)
 
   val disconnect : unit -> unit io
   (** Calling [disconnect ()] closes the connection to the database and frees
@@ -215,24 +223,16 @@ module type CONNECTION = sig
   val rollback : unit -> unit io
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
+
+  (**/**)
+  [@@@warning "-3"]
+  val backend_info : Caqti_metadata.backend_info
+    [@@deprecated "Use driver_info."]
+  [@@@warning "+3"]
 end
 
-(** The signature of pools of reusable resources.  We use it to keep pools of
-    open database connections.  A generic implementation is found in
-    {!Caqti_pool}, and instantiations are available for each cooperative
-    thread monad. *)
-module type POOL = sig
-  type 'a io
-  type 'a t
-  val create :
-        ?max_size: int ->
-        ?check: ('a -> (bool -> unit) -> unit) ->
-        ?validate: ('a -> bool io) ->
-        (unit -> 'a io) -> ('a -> unit io) -> 'a t
-  val size : 'a t -> int
-  val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
-  val drain : 'a t -> unit io
-end
+module type POOL = Caqti_pool_sig.S
+[@@ocaml.deprecated "Moved to Caqti_pool_sig.S."]
 
 module type MONAD = sig
   type 'a t
@@ -257,7 +257,7 @@ module type CAQTI = sig
   [@@ocaml.deprecated "The System module is internal and will soon no longer \
                        be exposed here."]
 
-  module Pool : POOL with type 'a io := 'a io
+  module Pool : Caqti_pool_sig.S with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
   module type CONNECTION = CONNECTION with type 'a io = 'a io

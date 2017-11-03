@@ -15,7 +15,6 @@
  *)
 
 open Caqti_errors
-open Caqti_metadata
 open Caqti_query
 open Caqti_sigs
 
@@ -198,28 +197,7 @@ struct
      | Type.Custom {rep; encode = f; _} -> encode rep (f x) a i)
     [@ocaml.warning "-33"] (* FIXME *)
 
-  let translate_dialect_tag = function
-   | `Mysql -> Some `Mysql
-   | `Pgsql -> Some `Pgsql
-   | `Sqlite -> Some `Sqlite
-   | _ -> None
-
-  let translate_parameter_style = function
-   | `None -> Some `None
-   | `Linear s -> Some (`Linear s)
-   | `Indexed f -> Some (`Indexed f)
-   | _ -> None
-
-  let driver_info =
-    let bi = C.backend_info in
-    Caqti_driver_info.create
-      ~uri_scheme: bi.bi_uri_scheme
-      ?dialect_tag: (translate_dialect_tag bi.bi_dialect_tag)
-      ?parameter_style: (translate_parameter_style bi.bi_parameter_style)
-      ~can_pool: true
-      ~can_concur: (bi.bi_default_max_pool_size > 1)
-      ~can_transact: bi.bi_has_transactions
-      ()
+  let driver_info = C.driver_info
 
   let cache = Hashtbl.create 19
 

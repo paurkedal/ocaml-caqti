@@ -16,7 +16,6 @@
 
 open Caqti_describe
 open Caqti_errors
-open Caqti_metadata
 open Caqti_prereq
 open Caqti_query
 open Caqti_sigs
@@ -75,12 +74,16 @@ module Param = struct
   let sub_bytes s i n = Bytes.sub_string s i n
   let date_string s = s
   let date_tuple = iso8601_of_datetuple
-  let date t = CL.Printer.Date.sprint "%F" t
+  let date_cl t = CL.Printer.Date.sprint "%F" t
   let utc_float t =
     let t' = CL.Calendar.from_unixfloat t in
     with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t')
   let utc_string = string
-  let utc t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
+  let utc_cl t = with_utc (fun () -> CL.Printer.Calendar.sprint "%F %T%z" t)
+
+  (* deprecated *)
+  let date = date_cl
+  let utc = utc_cl
   let other s = s
 end
 
@@ -113,10 +116,14 @@ module Tuple = struct
   let bytes j t = Bytes.of_string (raw j t)
   let date_string j t = raw j t
   let date_tuple j t = datetuple_of_iso8601 (raw j t)
-  let date j t = CL.Printer.Date.from_fstring "%F" (raw j t)
+  let date_cl j t = CL.Printer.Date.from_fstring "%F" (raw j t)
   let utc_float j t = CL.Calendar.to_unixfloat (utc_of_timestamp (raw j t))
   let utc_string = raw
-  let utc j t = utc_of_timestamp (raw j t)
+  let utc_cl j t = utc_of_timestamp (raw j t)
+
+  (* deprecated *)
+  let date = date_cl
+  let utc = utc_cl
   let other = raw
 end
 
@@ -150,15 +157,19 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
   open System
 
-  let backend_info =
-    create_backend_info
-      ~uri_scheme:"postgresql" ~dialect_tag:`Pgsql
+  let driver_info =
+    Caqti_driver_info.create
+      ~uri_scheme:"postgresql"
+      ~dialect_tag:`Pgsql
       ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
-      ~describe_has_typed_parameters:true
+      ~can_pool:true
+      ~can_concur:true
+      ~can_transact:true
+      ~describe_has_typed_params:true
       ~describe_has_typed_fields:true
-      ~has_transactions:true ()
+      ()
 
-  let query_info = make_query_info backend_info
+  let query_info = make_query_info driver_info
 
   let prepare_failed uri q msg =
     fail (Prepare_failed (uri, query_info q, msg))
@@ -309,7 +320,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     method cached_prepare_io ({pq_index; pq_name; pq_encode} as pq) =
       try return (Hashtbl.find prepared_queries pq_index)
       with Not_found ->
-        let qs = pq_encode backend_info in
+        let qs = pq_encode driver_info in
         self#prepare_io (Prepared pq) pq_name qs >>= fun () ->
         self#describe_io (`Prepared (pq_name, qs)) pq_name >>= fun pqinfo ->
         Hashtbl.add prepared_queries pq_index pqinfo;
@@ -363,7 +374,8 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
       module Tuple = Tuple
 
       let uri = uri
-      let backend_info = backend_info
+      let driver_info = driver_info
+      let backend_info = driver_info
 
       let disconnect () = use @@ fun c -> c#finish; return ()
       let validate () = conn#try_reset_io
@@ -392,7 +404,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
             c#retry_on_failure (fun () -> c#cached_prepare_io pq)
               >>= fun (_, r) -> return r
           | Oneshot qsf ->
-            let qs = qsf backend_info in
+            let qs = qsf driver_info in
             c#prepare_io q "_desc_tmp" qs >>= fun () ->
             c#describe_io (`Oneshot qs) "_desc_tmp" >>= fun (_, r) ->
             c#exec_oneshot_io "DEALLOCATE _desc_tmp" >>= fun _ -> return r
@@ -404,7 +416,7 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
          else return ()) >>= fun () ->
         use begin fun c ->
           match q with
-          | Oneshot qsf -> c#exec_oneshot_io ~params (qsf backend_info)
+          | Oneshot qsf -> c#exec_oneshot_io ~params (qsf driver_info)
           | Prepared pp -> c#exec_prepared_io ~params pp
         end
 

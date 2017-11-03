@@ -16,5 +16,5 @@
 
 (** Semi-internal: Resource pool. *)
 
-open Caqti_sigs
-module Make (System : Caqti_system_sig.S) : POOL with type 'a io := 'a System.io
+module Make (System : Caqti_system_sig.S) :
+  Caqti_pool_sig.S with type 'a io := 'a System.io

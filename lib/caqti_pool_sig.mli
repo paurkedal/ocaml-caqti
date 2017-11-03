@@ -18,8 +18,9 @@
 
 (** The signature of pools of reusable resources.  We use it to keep pools of
     open database connections.  A generic implementation is found in
-    {!Caqti_pool}, and instantiations are available for each cooperative
-    thread monad. *)
+    {!Caqti_pool} which is used to provide [connect_pool] functions.
+
+    This interface is based on [Lwt_pool]. *)
 module type S = sig
 
   type 'a io
@@ -31,18 +32,29 @@ module type S = sig
         ?check: ('a -> (bool -> unit) -> unit) ->
         ?validate: ('a -> bool io) ->
         (unit -> 'a io) -> ('a -> unit io) -> 'a t
-  (** This pool construction function should be considered internal. *)
+  (** Semi-internal: [create alloc free] is a pool of resources allocated by
+      [alloc] and freed by [free]. This is primarily indented for implementing
+      the [connect_pool] functions.
+
+      @param max_size
+        Maximum number of resources to allocate at any given time.
+
+      @param check
+        A function used to check a resource after use.
+
+      @param validate
+        A function to check before use that a resource is still valid. *)
 
   val size : 'a t -> int
-  (** The current number of allocations in the pool. *)
+  (** [size pool] is the current number of open resources in [pool]. *)
 
   val use : ?priority: float -> ('a -> 'b io) -> 'a t -> 'b io
   (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
       resource to the pool when [f] exits.
 
       @param priority
-        Users passing a high value for priority gets run before lower priority
-        users. The default priority is [0.0]. *)
+        Requests for the resource are handled in decreasing order of priority.
+        The default priority is [0.0]. *)
 
   val drain : 'a t -> unit io
   (** [drain pool] closes all resources in [pool]. The pool is still usable, as

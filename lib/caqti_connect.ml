@@ -37,7 +37,7 @@ module Make (System : Caqti_system_sig.S) = struct
         (fun () -> try Some (Hashtbl.find scheme_plugins scheme)
                    with Not_found -> None)
         ("caqti-driver-" ^ scheme) in
-    let module Make_driver = (val driver_functor : Caqti_driver_sig.FUNCTOR) in
+    let module Make_driver = (val driver_functor : Caqti_driver_sig.F) in
     let module Driver = Make_driver (System) in
     let driver = (module Driver : DRIVER) in
     Hashtbl.add drivers scheme driver; driver

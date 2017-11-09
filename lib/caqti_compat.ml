@@ -123,7 +123,6 @@ struct
           (Caqti_tuple.(x :: xs), i)
        | Type.Custom {rep; decode = g; _} ->
           fun (tup, i) -> let y, j = decode' rep (tup, i) in (g y, j))
-      [@ocaml.warning "-33"] (* FIXME *)
 
     let decode rt tup =
       let y, j = decode' rt (tup, 0) in

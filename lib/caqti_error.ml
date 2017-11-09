@@ -14,87 +14,91 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type driver_detail = ..
+type driver_msg = ..
 
-let driver_detail_pp = Hashtbl.create 7
+let driver_msg_pp = Hashtbl.create 7
 
-let register_driver_detail ~pp ec = Hashtbl.add driver_detail_pp ec pp
+let define_driver_msg ~pp ec = Hashtbl.add driver_msg_pp ec pp
 
-let pp_driver_detail ppf driver_detail =
-  let c = Obj.extension_constructor driver_detail in
+let pp_driver_msg ppf driver_msg =
+  let c = Obj.extension_constructor driver_msg in
   try
-    let pp = Hashtbl.find driver_detail_pp c in
-    pp ppf driver_detail
+    let pp = Hashtbl.find driver_msg_pp c in
+    pp ppf driver_msg
   with Not_found ->
     Format.fprintf ppf
-      "[FIXME: missing printer for (%s _ : Caqti_error.driver_detail)]"
+      "[FIXME: missing printer for (%s _ : Caqti_error.driver_msg)]"
       (Obj.extension_name c)
 
-type connect_error = {
+
+type connect_msg = {
   uri : Uri.t;
-  driver_detail : driver_detail;
+  msg : driver_msg;
 }
+type connect = [ `Connect_failed of connect_msg ]
 
-let connect_failed ~uri driver_detail =
-  `Connect_failed {uri; driver_detail}
+let connect_failed ~uri msg =
+  `Connect_failed {uri; msg}
 
-let pp_connect_error ppf err =
+let pp_connect_msg ppf err =
   Format.fprintf ppf "Failed to connect to %a, " Uri.pp_hum err.uri;
-  pp_driver_detail ppf err.driver_detail;
+  pp_driver_msg ppf err.msg;
   Format.pp_print_char ppf '.'
 
-type request_error = {
+
+type request_msg = {
   uri : Uri.t;
   query_string : string;
-  driver_detail : driver_detail;
+  msg : driver_msg;
 }
+type request =
+  [ `Request_rejected of request_msg
+  | `Request_failed of request_msg ]
 
-let request_rejected ~uri ~query_string driver_detail =
-  `Request_rejected {uri; query_string; driver_detail}
-let request_failed ~uri ~query_string driver_detail =
-  `Request_failed {uri; query_string; driver_detail}
+let request_rejected ~uri ~query_string msg =
+  `Request_rejected {uri; query_string; msg}
+let request_failed ~uri ~query_string msg =
+  `Request_failed {uri; query_string; msg}
 
-let pp_request_error ppf ~fmt err =
+let pp_request_msg ppf ~fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
   Format.pp_print_string ppf ", ";
-  pp_driver_detail ppf err.driver_detail;
+  pp_driver_msg ppf err.msg;
   Format.fprintf ppf ", for query %S." err.query_string
 
-type response_error = {
+
+type response_msg = {
   uri : Uri.t;
   query_string : string;
-  detail : string;
+  msg : string;
 }
+type response = [ `Response_rejected of response_msg ]
 
-let response_rejected ~uri ~query_string detail =
-  `Response_rejected {uri; query_string; detail}
+let response_rejected ~uri ~query_string msg =
+  `Response_rejected {uri; query_string; msg}
 
-let pp_response_error ppf err =
+let pp_response_msg ppf err =
   Format.fprintf ppf "Unexpected result from %a, %s."
-    Uri.pp_hum err.uri err.detail;
+    Uri.pp_hum err.uri err.msg;
 
-type t = [
- | `Connect_failed of connect_error
- | `Request_rejected of request_error
- | `Request_failed of request_error
- | `Response_rejected of response_error
-]
+type t = [ connect | request | response ]
+type request_or_response = [ request | response ]
 
 let uri = function
- | `Connect_failed ({uri; _} : connect_error) -> uri
- | `Request_rejected ({uri; _} : request_error) -> uri
- | `Request_failed ({uri; _} : request_error) -> uri
- | `Response_rejected ({uri; _} : response_error) -> uri
+ | `Connect_failed ({uri; _} : connect_msg) -> uri
+ | `Request_rejected ({uri; _} : request_msg) -> uri
+ | `Request_failed ({uri; _} : request_msg) -> uri
+ | `Response_rejected ({uri; _} : response_msg) -> uri
 
 let pp_hum ppf = function
  | `Connect_failed err ->
-    pp_connect_error ppf err
+    pp_connect_msg ppf err
  | `Request_rejected err ->
-    pp_request_error ppf ~fmt:"Request rejected by %a" err
+    pp_request_msg ppf ~fmt:"Request rejected by %a" err
  | `Request_failed err ->
-    pp_request_error ppf ~fmt:"Request to %a failed" err
+    pp_request_msg ppf ~fmt:"Request to %a failed" err
  | `Response_rejected err ->
-    pp_response_error ppf err
+    pp_response_msg ppf err
 
 let to_string_hum err =
   let buf = Buffer.create 128 in

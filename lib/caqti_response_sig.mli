@@ -21,29 +21,29 @@ module type S = sig
   type ('b, +'m) t
 
   val returned_count :
-    ('b, 'm) t -> (int, [Caqti_error.t | `Unsupported]) result io
+    ('b, 'm) t -> (int, [Caqti_error.response | `Unsupported]) result io
 
   val affected_count :
-    ('b, 'm) t -> (int, [Caqti_error.t | `Unsupported]) result io
+    ('b, 'm) t -> (int, [Caqti_error.response | `Unsupported]) result io
 
   val exec :
-    (unit, [< `Zero]) t -> (unit, Caqti_error.t) result io
+    (unit, [< `Zero]) t -> (unit, Caqti_error.response) result io
 
   val find :
-    ('b, [< `One]) t -> ('b, Caqti_error.t) result io
+    ('b, [< `One]) t -> ('b, Caqti_error.response) result io
 
   val find_opt :
-    ('b, [< `Zero | `One]) t -> ('b option, Caqti_error.t) result io
+    ('b, [< `Zero | `One]) t -> ('b option, Caqti_error.response) result io
 
   val fold :
     ('b -> 'c -> 'c) ->
-    ('b, 'm) t -> 'c -> ('c, Caqti_error.t) result io
+    ('b, 'm) t -> 'c -> ('c, Caqti_error.response) result io
 
   val fold_s :
     ('b -> 'c -> ('c, 'e) result io) ->
-    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.t] as 'e) result io
+    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.response] as 'e) result io
 
   val iter_s :
     ('b -> (unit, 'e) result io) ->
-    ('b, 'm) t -> (unit, [> Caqti_error.t] as 'e) result io
+    ('b, 'm) t -> (unit, [> Caqti_error.response] as 'e) result io
 end

@@ -20,13 +20,13 @@ open Caqti_sigs
 
 module Type = Caqti_type
 
-type Caqti_error.driver_detail += Driver_detail of string
+type Caqti_error.driver_msg += Driver_msg of string
 
 let () =
   let pp ppf = function
-   | Driver_detail msg -> Format.pp_print_string ppf msg
+   | Driver_msg msg -> Format.pp_print_string ppf msg
    | _ -> assert false in
-  Caqti_error.register_driver_detail ~pp [%extension_constructor Driver_detail]
+  Caqti_error.define_driver_msg ~pp [%extension_constructor Driver_msg]
 
 module Connection_v2_of_v1
     (System : Caqti_system_sig.S)
@@ -56,31 +56,27 @@ struct
 
   let prepare_failed uri qi msg =
     let query_string = qs_of_qi qi in
-    Caqti_error.request_rejected ~uri ~query_string (Driver_detail msg)
+    Caqti_error.request_rejected ~uri ~query_string (Driver_msg msg)
 
   let execute_failed uri qi msg =
     let query_string = qs_of_qi qi in
-    Caqti_error.request_failed ~uri ~query_string (Driver_detail msg)
+    Caqti_error.request_failed ~uri ~query_string (Driver_msg msg)
 
   let miscommunication uri qi msg =
     let query_string = qs_of_qi qi in
     Caqti_error.response_rejected ~uri ~query_string msg
 
-  let catch_as_result f =
+  let catch_response f =
     catch
       (fun () -> f () >|= fun y -> Ok y)
       (function
-       | Prepare_failed (uri, qi, msg) ->
-          return (Error (prepare_failed uri qi msg))
-       | Execute_failed (uri, qi, msg) ->
-          return (Error (execute_failed uri qi msg))
        | Miscommunication (uri, qi, msg) ->
           return (Error (miscommunication uri qi msg))
        | exn -> fail exn)
 
   exception Client_error
 
-  let catch_result_with_client_error client_error f =
+  let catch_response_etc client_error f =
     catch
       (fun () -> f () >|= fun y -> Ok y)
       (function
@@ -88,10 +84,6 @@ struct
           (match !client_error with
            | Some err -> return (Error err)
            | None -> assert false)
-       | Prepare_failed (uri, qi, msg) ->
-          return (Error (prepare_failed uri qi msg))
-       | Execute_failed (uri, qi, msg) ->
-          return (Error (execute_failed uri qi msg))
        | Miscommunication (uri, qi, msg) ->
           return (Error (miscommunication uri qi msg))
        | exn -> fail exn)
@@ -139,16 +131,16 @@ struct
       y
 
     let exec (q, ps, _) =
-      catch_as_result (fun () -> C.exec q ps)
+      catch_response (fun () -> C.exec q ps)
 
     let find (q, ps, rt) =
-      catch_as_result (fun () -> C.find q (decode rt) ps)
+      catch_response (fun () -> C.find q (decode rt) ps)
 
     let find_opt (q, ps, rt) =
-      catch_as_result (fun () -> C.find_opt q (decode rt) ps)
+      catch_response (fun () -> C.find_opt q (decode rt) ps)
 
     let fold f (q, ps, rt) acc =
-      catch_as_result (fun () -> C.fold q (fun x -> f (decode rt x)) ps acc)
+      catch_response (fun () -> C.fold q (fun x -> f (decode rt x)) ps acc)
 
     let fold_s f (q, ps, rt) acc =
       let client_error = ref None in
@@ -158,7 +150,7 @@ struct
          | Ok acc' -> return acc'
          | Error err -> client_error := Some err; fail Client_error)
       in
-      catch_result_with_client_error client_error
+      catch_response_etc client_error
         (fun () -> C.fold_s q aux ps acc)
 
     let iter_s f (q, ps, rt) =
@@ -169,7 +161,7 @@ struct
          | Ok () -> return ()
          | Error err -> client_error := Some err; fail Client_error)
       in
-      catch_result_with_client_error client_error (fun () -> C.iter_s q aux ps)
+      catch_response_etc client_error (fun () -> C.iter_s q aux ps)
 
   end
 
@@ -195,7 +187,6 @@ struct
         let Caqti_tuple.(x :: xs) = x in
         i |> encode t x a |> encode ts xs a
      | Type.Custom {rep; encode = f; _} -> encode rep (f x) a i)
-    [@ocaml.warning "-33"] (* FIXME *)
 
   let driver_info = C.driver_info
 
@@ -207,18 +198,26 @@ struct
     let _ = encode pt x ps 0 in
     let rt = Caqti_request.row_type req in
     let qs _ = Caqti_request.query_string req driver_info in
-    (match Caqti_request.query_id req with
-     | None ->
-        f (Caqti_query.oneshot_full qs, ps, rt)
-     | Some id ->
-        let query =
-          (try Hashtbl.find cache id with
-           | Not_found ->
-              let query = Caqti_query.prepare_full qs in
-              Hashtbl.add cache id query;
-              query)
-        in
-        f (query, ps, rt))
+    catch
+      (fun () ->
+        (match Caqti_request.query_id req with
+         | None ->
+            f (Caqti_query.oneshot_full qs, ps, rt)
+         | Some id ->
+            let query =
+              (try Hashtbl.find cache id with
+               | Not_found ->
+                  let query = Caqti_query.prepare_full qs in
+                  Hashtbl.add cache id query;
+                  query)
+            in
+            f (query, ps, rt)))
+      (function
+       | Prepare_failed (uri, qi, msg) ->
+          return (Error (prepare_failed uri qi msg))
+       | Execute_failed (uri, qi, msg) ->
+          return (Error (execute_failed uri qi msg))
+       | exn -> fail exn)
 
   let exec req p = call ~f:Response.exec req p
   let find req p = call ~f:Response.find req p

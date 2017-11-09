@@ -16,52 +16,88 @@
 
 (** Error descriptors. *)
 
-type driver_detail = ..
 
-val pp_driver_detail : Format.formatter -> driver_detail -> unit
+(** {2 Driver-Specific Error Messages} *)
 
-val register_driver_detail :
-  pp: (Format.formatter -> driver_detail -> unit) ->
+type driver_msg = ..
+(** In this type, drivers can stash information about an errors in ther own
+    format, which can later be used for pretty-printing and or future
+    operations. Drivers must {!define_driver_msg} on each constructor added to
+    this type. *)
+
+val define_driver_msg :
+  pp: (Format.formatter -> driver_msg -> unit) ->
   extension_constructor -> unit
+(** Mandatory registration of pretty-printer for a driver-supplied error
+    descriptor.  *)
 
-type connect_error = private {
-  uri : Uri.t;
-  driver_detail : driver_detail;
+val pp_driver_msg : Format.formatter -> driver_msg -> unit
+
+
+(** {2 Errors during Connect} *)
+
+type connect_msg = private {
+  uri: Uri.t;
+  msg: driver_msg;
 }
+type connect = [ `Connect_failed of connect_msg ]
 
 val connect_failed :
-  uri: Uri.t -> driver_detail -> [> `Connect_failed of connect_error]
+  uri: Uri.t -> driver_msg ->
+  [> `Connect_failed of connect_msg]
+(** [connect_failed ~uri msg] indicates that the driver failed to establish a
+    connection to the database. *)
 
-type request_error = private {
-  uri : Uri.t;
-  query_string : string;
-  driver_detail : driver_detail;
+
+(** {2 Errors during Request Processing} *)
+
+type request_msg = private {
+  uri: Uri.t;
+  query_string: string;
+  msg: driver_msg;
 }
+type request =
+  [ `Request_rejected of request_msg
+  | `Request_failed of request_msg ]
 
 val request_rejected :
-  uri: Uri.t -> query_string: string -> driver_detail ->
-  [> `Request_rejected of request_error]
+  uri: Uri.t ->
+  query_string: string -> driver_msg ->
+  [> `Request_rejected of request_msg]
+(** [request_rejected ~uri ~query_string msg] indicates that [query_string]
+    was not accepted by the database or driver. *)
 
 val request_failed :
-  uri: Uri.t -> query_string: string -> driver_detail ->
-  [> `Request_failed of request_error]
+  uri: Uri.t ->
+  query_string: string -> driver_msg ->
+  [> `Request_failed of request_msg]
+(** [request_failed ~uri ~query_string msg] indicates that the request to
+    could not be transmitted to the database, that the database was not ready to
+    process the request, or that something went wrong while the requset was
+    being processed. *)
 
-type response_error = private {
-  uri : Uri.t;
-  query_string : string;
-  detail : string;
+
+(** {2 Errors during Response Processing} *)
+
+type response_msg = private {
+  uri: Uri.t;
+  query_string: string;
+  msg: string;
 }
+type response = [ `Response_rejected of response_msg ]
 
 val response_rejected :
-  uri: Uri.t -> query_string: string -> string ->
-  [> `Response_rejected of response_error]
+  uri: Uri.t ->
+  query_string: string -> string ->
+  [> `Response_rejected of response_msg]
+(** [response_rejected ~uri ~query_string msg] indicates that the response from
+    the database was rejected due to requirements posed by client code. *)
 
-type t = [
- | `Connect_failed of connect_error
- | `Request_rejected of request_error
- | `Request_failed of request_error
- | `Response_rejected of response_error
-]
+
+(** {2 Union and Common Operations} *)
+
+type t = [connect | request | response]
+type request_or_response = [request | response]
 
 val uri : [< t] -> Uri.t
 

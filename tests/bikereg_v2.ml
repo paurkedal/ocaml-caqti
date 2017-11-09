@@ -27,11 +27,10 @@ module Bike = struct
     stolen: Ptime.t option;
   }
   let t =
-    let encode {frameno; owner; stolen} =
-      Caqti_tuple.[frameno; owner; stolen] in
-    let decode Caqti_tuple.[frameno; owner; stolen] =
-      {frameno; owner; stolen} in
-    Caqti_type.(Custom {rep = [String; String; Option Ptime]; encode; decode})
+    let encode {frameno; owner; stolen} = (frameno, owner, stolen) in
+    let decode (frameno, owner, stolen) = {frameno; owner; stolen} in
+    let rep = Caqti_type.(T3 (String, String, Option Ptime)) in
+    Caqti_type.Custom {rep; encode; decode}
 end
 
 (* Query Strings
@@ -65,7 +64,7 @@ module Q = struct
     |eos}
 
   let reg_bike = create_ign_p
-    Caqti_type.[String; String] Caqti_type.Unit Caqti_mult.zero
+    Caqti_type.(T2 (String, String)) Caqti_type.Unit Caqti_mult.zero
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
   let report_stolen = create_ign_p
@@ -93,7 +92,7 @@ end
 let create_bikereg (module Db : Caqti_lwt.CONNECTION_V2) =
   Db.exec Q.create_bikereg ()
 let reg_bike (module Db : Caqti_lwt.CONNECTION_V2) frameno owner =
-  Db.exec Q.reg_bike Caqti_tuple.[frameno; owner]
+  Db.exec Q.reg_bike (frameno, owner)
 let report_stolen (module Db : Caqti_lwt.CONNECTION_V2) frameno =
   Db.exec Q.report_stolen frameno
 

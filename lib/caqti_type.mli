@@ -27,8 +27,9 @@ type _ t =
   | Pdate : int t
   | Ptime : Ptime.t t
   | Option : 'a t -> 'a option t
-  | [] : unit Caqti_tuple.t t
-  | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
+  | T2 : 'a t * 'b t -> ('a * 'b) t
+  | T3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
+  | T4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
   | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
 
 val length : 'a t -> int

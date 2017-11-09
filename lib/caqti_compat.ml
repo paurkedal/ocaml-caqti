@@ -116,11 +116,21 @@ struct
           let y, k = decode' t (tup, i) in
           assert (j = k);
           (Some y, j)
-       | Type.[] -> fun (_, i) -> (Caqti_tuple.[], i)
-       | Type.(t :: ts) -> fun (tup, i) ->
-          let x, i = decode' t (tup, i) in
-          let xs, i = decode' ts (tup, i) in
-          (Caqti_tuple.(x :: xs), i)
+       | Type.T2 (t0, t1) -> fun (tup, i) ->
+          let x0, i = decode' t0 (tup, i) in
+          let x1, i = decode' t1 (tup, i) in
+          (x0, x1), i
+       | Type.T3 (t0, t1, t2) -> fun (tup, i) ->
+          let x0, i = decode' t0 (tup, i) in
+          let x1, i = decode' t1 (tup, i) in
+          let x2, i = decode' t2 (tup, i) in
+          (x0, x1, x2), i
+       | Type.T4 (t0, t1, t2, t3) -> fun (tup, i) ->
+          let x0, i = decode' t0 (tup, i) in
+          let x1, i = decode' t1 (tup, i) in
+          let x2, i = decode' t2 (tup, i) in
+          let x3, i = decode' t3 (tup, i) in
+          (x0, x1, x2, x3), i
        | Type.Custom {rep; decode = g; _} ->
           fun (tup, i) -> let y, j = decode' rep (tup, i) in (g y, j))
 
@@ -181,10 +191,17 @@ struct
         (match x with
          | Some x -> encode t x a i
          | None -> i + Type.length t)
-     | Type.[] -> i
-     | Type.(t :: ts) ->
-        let Caqti_tuple.(x :: xs) = x in
-        i |> encode t x a |> encode ts xs a
+     | Type.T2 (t0, t1) ->
+        let x0, x1 = x in
+        i |> encode t0 x0 a |> encode t1 x1 a
+     | Type.T3 (t0, t1, t2) ->
+        let x0, x1, x2 = x in
+        i |> encode t0 x0 a |> encode t1 x1 a
+          |> encode t2 x2 a
+     | Type.T4 (t0, t1, t2, t3) ->
+        let x0, x1, x2, x3 = x in
+        i |> encode t0 x0 a |> encode t1 x1 a
+          |> encode t2 x2 a |> encode t3 x3 a
      | Type.Custom {rep; encode = f; _} -> encode rep (f x) a i)
 
   let driver_info = C.driver_info

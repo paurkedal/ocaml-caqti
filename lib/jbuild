@@ -22,7 +22,6 @@
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
-    Caqti_tuple
     Caqti_type
     Caqti_system_sig
     ; deprecated

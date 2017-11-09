@@ -25,8 +25,9 @@ type _ t =
   | Pdate : int t
   | Ptime : Ptime.t t
   | Option : 'a t -> 'a option t
-  | [] : unit Caqti_tuple.t t
-  | (::) : 'a t * 'b Caqti_tuple.t t -> ('a * 'b) Caqti_tuple.t t
+  | T2 : 'a0 t * 'a1 t -> ('a0 * 'a1) t
+  | T3 : 'a0 t * 'a1 t * 'a2 t -> ('a0 * 'a1 * 'a2) t
+  | T4 : 'a0 t * 'a1 t * 'a2 t * 'a3 t -> ('a0 * 'a1 * 'a2 * 'a3) t
   | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
 
 let rec length : type a. a t -> int = function
@@ -40,8 +41,9 @@ let rec length : type a. a t -> int = function
  | Pdate -> 1
  | Ptime -> 1
  | Option t -> length t
- | [] -> 0
- | (t :: ts) -> length t + length ts
+ | T2 (t0, t1) -> length t0 + length t1
+ | T3 (t0, t1, t2) -> length t0 + length t1 + length t2
+ | T4 (t0, t1, t2, t3) -> length t0 + length t1 + length t2 + length t3
  | Custom {rep; _} -> length rep
 
 let rec pp_hum_at
@@ -57,13 +59,30 @@ let rec pp_hum_at
  | Pdate -> Format.pp_print_string ppf "pdate"
  | Ptime -> Format.pp_print_string ppf "ptime"
  | Option t -> pp_hum_at 1 ppf t; Format.pp_print_string ppf " option"
- | [] -> Format.pp_print_string ppf "[]"
- | (t :: ts) ->
-    if prec > 0 then Format.pp_print_char ppf '[';
-    pp_hum_at 1 ppf t;
-    Format.pp_print_string ppf ", ";
-    pp_hum_at 0 ppf ts;
-    if prec > 0 then Format.pp_print_char ppf ']'
+ | T2 (t0, t1) ->
+    if prec > 0 then Format.pp_print_char ppf '(';
+    pp_hum_at 1 ppf t0;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t1;
+    if prec > 0 then Format.pp_print_char ppf ')'
+ | T3 (t0, t1, t2) ->
+    if prec > 0 then Format.pp_print_char ppf '(';
+    pp_hum_at 1 ppf t0;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t1;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t2;
+    if prec > 0 then Format.pp_print_char ppf ')'
+ | T4 (t0, t1, t2, t3) ->
+    if prec > 0 then Format.pp_print_char ppf '(';
+    pp_hum_at 1 ppf t0;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t1;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t2;
+    Format.pp_print_string ppf " × ";
+    pp_hum_at 1 ppf t3;
+    if prec > 0 then Format.pp_print_char ppf ')'
  | Custom {rep; _} ->
     Format.pp_print_string ppf "</";
     pp_hum_at 0 ppf rep;

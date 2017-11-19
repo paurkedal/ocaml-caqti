@@ -225,6 +225,7 @@ module type CONNECTION = sig
       otherwise does nothing. *)
 
   (**/**)
+
   [@@@warning "-3"]
   val backend_info : Caqti_metadata.backend_info
     [@@deprecated "Use driver_info."]

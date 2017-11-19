@@ -17,6 +17,7 @@
 open Caqti_describe
 open Caqti_lwt
 open Lwt.Infix
+open Printf
 module Cal = CalendarLib
 
 let field_separator = ref ","
@@ -40,7 +41,7 @@ module Connection_utils (C : CONNECTION) = struct
     | `Bytes -> csv_quoted (C.Tuple.bytes i r)
     | `Date -> Cal.Printer.Date.to_string (C.Tuple.date_cl i r)
     | `Utc -> Cal.Printer.Calendar.to_string (C.Tuple.utc_cl i r)
-    | `Other _ -> C.Tuple.other i r [@ocaml.warning "-3"]
+    | `Other s -> ksprintf failwith "Field type %s not supported." s
     | `Unknown -> failwith "Cannot determine field type."
 end
 

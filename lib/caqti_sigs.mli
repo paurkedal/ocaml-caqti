@@ -84,17 +84,6 @@ module type PARAM = sig
   val utc_cl : CalendarLib.Calendar.t -> t
   (** Construct a parameter representing an date and time in the UTC time
       zone. *)
-
-  (**/**)
-  val sub_bytes : bytes -> int -> int -> t
-  [@@deprecated "Rarely useful optimisation dropped in favour of driver simplicity."]
-  val other : string -> t
-  [@@deprecated "This will be reconsidered if/when we need it."]
-  val date : CalendarLib.Date.t -> t
-  [@@deprecated "Renamed to date_cl"]
-  val utc : CalendarLib.Calendar.t -> t
-  [@@deprecated "Renamed to utc_cl"]
-  (**/**)
 end
 
 (** Tuple decoding functions.
@@ -129,15 +118,6 @@ module type TUPLE = sig
   val utc_float : int -> t -> float
   val utc_string : int -> t -> string
   val utc_cl : int -> t -> CalendarLib.Calendar.t
-
-  (**/**)
-  val other : int -> t -> string
-  [@@deprecated "This will be reconsidered if/when we need it."]
-  val date : int -> t -> CalendarLib.Date.t
-  [@@deprecated "Renamed to date_cl"]
-  val utc : int -> t -> CalendarLib.Calendar.t
-  [@@deprecated "Renamed to utc_cl"]
-  (**/**)
 end
 
 (** The main API as provided after connecting to a resource. *)
@@ -223,28 +203,7 @@ module type CONNECTION = sig
   val rollback : unit -> unit io
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
-
-  (**/**)
-
-  [@@@warning "-3"]
-  val backend_info : Caqti_metadata.backend_info
-    [@@deprecated "Use driver_info."]
-  [@@@warning "+3"]
 end
-
-module type POOL = Caqti_pool_sig.S
-[@@ocaml.deprecated "Moved to Caqti_pool_sig.S."]
-
-module type MONAD = sig
-  type 'a t
-  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
-  val (>|=) : 'a t -> ('a -> 'b) -> 'b t
-  val return : 'a -> 'a t
-end
-[@@ocaml.deprecated "Included in Caqti_system_sig.S"]
-
-module type SYSTEM = Caqti_system_sig.S
-[@@ocaml.deprecated "Moved to Caqti_system_sig.S"]
 
 (** The connect functions as exposed to application code through the
     concurrency implementations:
@@ -253,10 +212,6 @@ module type SYSTEM = Caqti_system_sig.S
     - [Caqti_async] provided by caqti-async. *)
 module type CAQTI = sig
   type 'a io
-
-  module System : Caqti_system_sig.S with type 'a io = 'a io
-  [@@ocaml.deprecated "The System module is internal and will soon no longer \
-                       be exposed here."]
 
   module Pool : Caqti_pool_sig.S with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)

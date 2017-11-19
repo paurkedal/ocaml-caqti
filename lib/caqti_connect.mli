@@ -24,4 +24,4 @@ val register_scheme : string -> (module Caqti_driver_sig.F) -> unit
     caqti-driver-{i scheme} as part of its initialization. *)
 
 module Make (System : Caqti_system_sig.S) : CAQTI
-  with type 'a io := 'a System.io and module System = System
+  with type 'a io := 'a System.io

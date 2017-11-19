@@ -182,7 +182,6 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
     let uri = uri
     let driver_info = driver_info
-    let backend_info = driver_info
     let prepared_queries = Hashtbl.create 11
 
     let disconnect () = Mdb.close dbh

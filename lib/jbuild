@@ -25,7 +25,6 @@
     Caqti_type
     Caqti_system_sig
     ; deprecated
-    Caqti
     Caqti_metadata
     ; internal
     Caqti_compat

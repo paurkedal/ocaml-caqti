@@ -375,7 +375,6 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
 
       let uri = uri
       let driver_info = driver_info
-      let backend_info = driver_info
 
       let disconnect () = use @@ fun c -> c#finish; return ()
       let validate () = conn#try_reset_io

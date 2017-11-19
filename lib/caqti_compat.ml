@@ -94,17 +94,28 @@ struct
     let returned_count _ = return (Error `Unsupported)
     let affected_count _ = return (Error `Unsupported)
 
+    let rec decode_field' : type a. a Type.Field.t -> _ -> a * int = function
+     | Type.Bool -> fun (tup, i) -> (C.Tuple.bool i tup, i + 1)
+     | Type.Int -> fun (tup, i) -> (C.Tuple.int i tup, i + 1)
+     | Type.Int32 -> fun (tup, i) -> (C.Tuple.int32 i tup, i + 1)
+     | Type.Int64 -> fun (tup, i) -> (C.Tuple.int64 i tup, i + 1)
+     | Type.Float -> fun (tup, i) -> (C.Tuple.float i tup, i + 1)
+     | Type.String -> fun (tup, i) -> (C.Tuple.string i tup, i + 1)
+     | Type.Pdate -> fun (tup, i) -> (tuple_pdate i tup, i + 1)
+     | Type.Ptime -> fun (tup, i) -> (tuple_ptime i tup, i + 1)
+     | ft -> fun (tup, i) ->
+        (match Type.Field.coding ft with
+         | None -> (* FIXME: error reporting *)
+            Printf.ksprintf failwith "Unsupported field type %s."
+              (Type.Field.to_string ft)
+         | Some (Type.Field.Coding coding) ->
+            let (y, i) = decode_field' coding.rep (tup, i) in
+            (coding.decode y, i))
+
     let rec decode' : type a. a Type.t -> _ -> a * int =
       (function
        | Type.Unit -> fun (_, i) -> ((), i)
-       | Type.Bool -> fun (tup, i) -> (C.Tuple.bool i tup, i + 1)
-       | Type.Int -> fun (tup, i) -> (C.Tuple.int i tup, i + 1)
-       | Type.Int32 -> fun (tup, i) -> (C.Tuple.int32 i tup, i + 1)
-       | Type.Int64 -> fun (tup, i) -> (C.Tuple.int64 i tup, i + 1)
-       | Type.Float -> fun (tup, i) -> (C.Tuple.float i tup, i + 1)
-       | Type.String -> fun (tup, i) -> (C.Tuple.string i tup, i + 1)
-       | Type.Pdate -> fun (tup, i) -> (tuple_pdate i tup, i + 1)
-       | Type.Ptime -> fun (tup, i) -> (tuple_ptime i tup, i + 1)
+       | Type.Field ft -> decode_field' ft
        | Type.Option t -> fun (tup, i) ->
           let j = i + Type.length t in
           let rec all_null i j =
@@ -116,16 +127,16 @@ struct
           let y, k = decode' t (tup, i) in
           assert (j = k);
           (Some y, j)
-       | Type.T2 (t0, t1) -> fun (tup, i) ->
+       | Type.Tup2 (t0, t1) -> fun (tup, i) ->
           let x0, i = decode' t0 (tup, i) in
           let x1, i = decode' t1 (tup, i) in
           (x0, x1), i
-       | Type.T3 (t0, t1, t2) -> fun (tup, i) ->
+       | Type.Tup3 (t0, t1, t2) -> fun (tup, i) ->
           let x0, i = decode' t0 (tup, i) in
           let x1, i = decode' t1 (tup, i) in
           let x2, i = decode' t2 (tup, i) in
           (x0, x1, x2), i
-       | Type.T4 (t0, t1, t2, t3) -> fun (tup, i) ->
+       | Type.Tup4 (t0, t1, t2, t3) -> fun (tup, i) ->
           let x0, i = decode' t0 (tup, i) in
           let x1, i = decode' t1 (tup, i) in
           let x2, i = decode' t2 (tup, i) in
@@ -174,11 +185,10 @@ struct
 
   end
 
-  let rec encode
-    : type a. a Type.t -> a -> C.Param.t array -> int -> int =
-    fun t x a i ->
-    (match t with
-     | Type.Unit -> i
+  let rec encode_field :
+      type a. a Type.Field.t -> a -> C.Param.t array -> int -> int =
+      fun ft x a i ->
+    (match ft with
      | Type.Bool -> a.(i) <- C.Param.bool x; i + 1
      | Type.Int -> a.(i) <- C.Param.int x; i + 1
      | Type.Int32 -> a.(i) <- C.Param.int32 x; i + 1
@@ -187,18 +197,32 @@ struct
      | Type.String -> a.(i) <- C.Param.string x; i + 1
      | Type.Pdate -> a.(i) <- param_pdate x; i + 1
      | Type.Ptime -> a.(i) <- param_ptime x; i + 1
+     | ft ->
+        (match Type.Field.coding ft with
+         | None -> (* FIXME: error reporting *)
+            Printf.ksprintf failwith "Unsupported field type %s."
+              (Type.Field.to_string ft)
+         | Some (Type.Field.Coding coding) ->
+            let y = coding.encode x in
+            encode_field coding.rep y a i))
+
+  let rec encode :
+      type a. a Type.t -> a -> C.Param.t array -> int -> int = fun t x a i ->
+    (match t with
+     | Type.Unit -> i
+     | Type.Field ft -> encode_field ft x a i
      | Type.Option t ->
         (match x with
          | Some x -> encode t x a i
          | None -> i + Type.length t)
-     | Type.T2 (t0, t1) ->
+     | Type.Tup2 (t0, t1) ->
         let x0, x1 = x in
         i |> encode t0 x0 a |> encode t1 x1 a
-     | Type.T3 (t0, t1, t2) ->
+     | Type.Tup3 (t0, t1, t2) ->
         let x0, x1, x2 = x in
         i |> encode t0 x0 a |> encode t1 x1 a
           |> encode t2 x2 a
-     | Type.T4 (t0, t1, t2, t3) ->
+     | Type.Tup4 (t0, t1, t2, t3) ->
         let x0, x1, x2, x3 = x in
         i |> encode t0 x0 a |> encode t1 x1 a
           |> encode t2 x2 a |> encode t3 x3 a

@@ -16,24 +16,66 @@
 
 (** Type descriptor for a span of database columns. *)
 
+type 'a field = ..
+
+module Field : sig
+  type 'a t = 'a field
+
+  type _ coding = Coding : {
+    rep: 'b t;
+    encode: 'a -> 'b;
+    decode: 'b -> 'a;
+  } -> 'a coding
+
+  type get_coding = {get_coding: 'a. 'a t -> 'a coding option}
+
+  val define_coding : 'a field -> get_coding -> unit
+
+  val coding : 'a field -> 'a coding option
+
+  val to_string : 'a t -> string
+end
+
+type _ field +=
+  | Bool : bool field
+  | Int : int field
+  | Int32 : int32 field
+  | Int64 : int64 field
+  | Float : float field
+  | String : string field
+  | Pdate : int field
+  | Ptime : Ptime.t field
+
 type _ t =
   | Unit : unit t
-  | Bool : bool t
-  | Int : int t
-  | Int32 : int32 t
-  | Int64 : int64 t
-  | Float : float t
-  | String : string t
-  | Pdate : int t
-  | Ptime : Ptime.t t
+  | Field : 'a field -> 'a t
   | Option : 'a t -> 'a option t
-  | T2 : 'a t * 'b t -> ('a * 'b) t
-  | T3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
-  | T4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
-  | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
+  | Tup2 : 'a t * 'b t -> ('a * 'b) t
+  | Tup3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
+  | Tup4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
+  | Custom : {
+      rep: 'b t;
+      encode: 'a -> 'b;
+      decode: 'b -> 'a;
+    } -> 'a t
 
 val length : 'a t -> int
 
 val pp_hum : Format.formatter -> 'a t -> unit
 
 val to_string_hum : 'a t -> string
+
+val unit : unit t
+val option : 'a t -> 'a option t
+val tup2 : 'a t -> 'b t -> ('a * 'b) t
+val tup3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
+val tup4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
+
+val bool : bool t
+val int : int t
+val int32 : int32 t
+val int64 : int64 t
+val float : float t
+val string : string t
+val pdate : int t
+val ptime : Ptime.t t

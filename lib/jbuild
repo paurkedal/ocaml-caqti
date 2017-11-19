@@ -6,21 +6,29 @@
   (wrapped false)
   (modules
    (Caqti_connect
+    Caqti_connection_sig
     Caqti_describe
+    Caqti_driver_info
+    Caqti_error
     Caqti_driver_sig
     Caqti_driver_info
     Caqti_errors
+    Caqti_mult
     Caqti_pool
     Caqti_pool_sig
+    Caqti_request
+    Caqti_response_sig
     Caqti_query
     Caqti_sigs
     Caqti_sql
     Caqti_sql_io
+    Caqti_type
     Caqti_system_sig
     ; deprecated
     Caqti
     Caqti_metadata
     ; internal
+    Caqti_compat
     Caqti_heap
     Caqti_plugin
     Caqti_prereq))
@@ -28,7 +36,17 @@
   (preprocess
     (per_module
       ((pps (ppx_optcomp ppx_driver.runner)) (Caqti_plugin))))
-  (libraries (findlib.dynload calendar uri))))
+  (libraries (findlib.dynload calendar ptime uri))))
+
+(rule
+ ((targets (caqti_connection_sig.ml))
+  (deps (caqti_connection_sig.mli))
+  (action (copy ${<} ${@}))))
+
+(rule
+ ((targets (caqti_response_sig.ml))
+  (deps (caqti_response_sig.mli))
+  (action (copy ${<} ${@}))))
 
 (rule
  ((targets (caqti_driver_sig.ml))

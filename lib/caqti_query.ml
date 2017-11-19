@@ -59,7 +59,7 @@ type query =
   | Prepared of prepared_query
 
 let oneshot_full f = Oneshot f
-let oneshot_fun f = Oneshot (fun {bi_dialect_tag; _} -> f bi_dialect_tag)
+let oneshot_fun f = Oneshot (fun di -> f (Caqti_driver_info.dialect_tag di))
 let oneshot_any s = Oneshot (fun _ -> s)
 let oneshot_sql s =
   oneshot_fun @@ function
@@ -83,7 +83,7 @@ let prepare_full ?name pq_encode =
   Prepared {pq_index; pq_name; pq_encode}
 
 let prepare_fun ?name f =
-  prepare_full ?name (fun {bi_dialect_tag; _} -> f bi_dialect_tag)
+  prepare_full ?name (fun di -> f (Caqti_driver_info.dialect_tag di))
 
 let prepare_any ?name qs = prepare_full ?name (fun _ -> qs)
 

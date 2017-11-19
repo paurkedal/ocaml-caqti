@@ -19,15 +19,17 @@
     This module provides descriptions supplied by the driver to aid the
     application in dealing with differences between database systems. *)
 
-[@@@ocaml.warning "-3"]
-
-type dialect_tag = Caqti_metadata.dialect_tag
+type dialect_tag = private [> `Mysql | `Pgsql | `Sqlite]
 (** A tag used for easy dispatching between query languages. *)
 
 type sql_dialect_tag = [`Mysql | `Pgsql | `Sqlite]
 (** Subtype of the above which includes only known SQL dialects. *)
 
-type parameter_style = Caqti_metadata.parameter_style
+type parameter_style = private [>
+  | `None
+  | `Linear of string
+  | `Indexed of (int -> string)
+]
 (** How parameters are named.  This is useful for SQL since the difference
     between dialects typically have an intrusive effect on query strings.
     This may also be useful for non-SQL languages which support some form of
@@ -38,7 +40,7 @@ type parameter_style = Caqti_metadata.parameter_style
     - [`Indexed f] means that an occurrence of [f i] represents parameter
       number [i], counting from 0. *)
 
-type t = Caqti_metadata.backend_info
+type t
 
 val create :
   uri_scheme: string ->

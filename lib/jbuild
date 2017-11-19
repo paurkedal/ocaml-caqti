@@ -24,8 +24,6 @@
     Caqti_sql_io
     Caqti_type
     Caqti_system_sig
-    ; deprecated
-    Caqti_metadata
     ; internal
     Caqti_compat
     Caqti_heap

@@ -152,4 +152,4 @@ let report_error = function
 let () =
   let uri =
     Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
-  Lwt_main.run (Caqti_lwt.connect_v2 uri >>= test >>= report_error)
+  Lwt_main.run (Caqti_lwt.connect_v2 uri >>=? test >>= report_error)

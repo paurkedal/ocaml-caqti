@@ -31,19 +31,34 @@ let pp_driver_msg ppf driver_msg =
       (Obj.extension_name c)
 
 
+type preconnect_msg = {
+  uri : Uri.t;
+  msg : string;
+}
+let pp_preconnect_msg ppf err =
+  Format.fprintf ppf "Failed to connect to %a, " Uri.pp_hum err.uri;
+  Format.pp_print_string ppf err.msg
+
+let connect_unavailable ~uri msg =
+  `Connect_unavailable {uri; msg}
+
 type connect_msg = {
   uri : Uri.t;
   msg : driver_msg;
 }
-type connect = [ `Connect_failed of connect_msg ]
-
-let connect_failed ~uri msg =
-  `Connect_failed {uri; msg}
-
 let pp_connect_msg ppf err =
   Format.fprintf ppf "Failed to connect to %a, " Uri.pp_hum err.uri;
   pp_driver_msg ppf err.msg;
   Format.pp_print_char ppf '.'
+
+let connect_failed ~uri msg =
+  `Connect_failed {uri; msg}
+
+type connect_pool =
+  [ `Connect_unavailable of preconnect_msg ]
+type connect =
+  [ `Connect_unavailable of preconnect_msg
+  | `Connect_failed of connect_msg ]
 
 
 type request_msg = {
@@ -85,12 +100,15 @@ type t = [ connect | request | response ]
 type request_or_response = [ request | response ]
 
 let uri = function
+ | `Connect_unavailable ({uri; _} : preconnect_msg) -> uri
  | `Connect_failed ({uri; _} : connect_msg) -> uri
  | `Request_rejected ({uri; _} : request_msg) -> uri
  | `Request_failed ({uri; _} : request_msg) -> uri
  | `Response_rejected ({uri; _} : response_msg) -> uri
 
 let pp_hum ppf = function
+ | `Connect_unavailable err ->
+    pp_preconnect_msg ppf err
  | `Connect_failed err ->
     pp_connect_msg ppf err
  | `Request_rejected err ->
@@ -106,3 +124,5 @@ let to_string_hum err =
   pp_hum ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
+
+exception Exn of t

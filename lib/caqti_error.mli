@@ -36,11 +36,25 @@ val pp_driver_msg : Format.formatter -> driver_msg -> unit
 
 (** {2 Errors during Connect} *)
 
+type preconnect_msg = private {
+  uri: Uri.t;
+  msg: string;
+}
 type connect_msg = private {
   uri: Uri.t;
   msg: driver_msg;
 }
-type connect = [ `Connect_failed of connect_msg ]
+type connect_pool =
+  [ `Connect_unavailable of preconnect_msg ]
+type connect =
+  [ `Connect_unavailable of preconnect_msg
+  | `Connect_failed of connect_msg ]
+
+val connect_unavailable :
+  uri: Uri.t -> string ->
+  [> `Connect_unavailable of preconnect_msg]
+(** [connect_unavailable ~uri msg] indicates that the driver could not be
+    identified from [uri] or that the identified driver could not be loaded. *)
 
 val connect_failed :
   uri: Uri.t -> driver_msg ->
@@ -84,7 +98,8 @@ type response_msg = private {
   query_string: string;
   msg: string;
 }
-type response = [ `Response_rejected of response_msg ]
+type response =
+  [ `Response_rejected of response_msg ]
 
 val response_rejected :
   uri: Uri.t ->
@@ -104,3 +119,6 @@ val uri : [< t] -> Uri.t
 val pp_hum : Format.formatter -> [< t] -> unit
 
 val to_string_hum : [< t] -> string
+
+exception Exn of t
+(** Exception raised by [_exn] variants of functions. *)

@@ -266,4 +266,11 @@ struct
   let fold_s req f p acc = call ~f:(fun rsp -> Response.fold_s f rsp acc) req p
   let iter_s req f p = call ~f:(fun rsp -> Response.iter_s f rsp) req p
 
+  let start = C.start
+  let commit = C.commit
+  let rollback = C.rollback
+  let disconnect = C.disconnect
+  let validate = C.validate
+  let check = C.check
+
 end

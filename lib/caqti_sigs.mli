@@ -274,4 +274,5 @@ module type CAQTI = sig
     Caqti_connection_sig.S with type 'a io := 'a io
 
   val connect_v2 : Uri.t -> (module CONNECTION_V2) io
+  val connect_pool_v2 : ?max_size: int -> Uri.t -> (module CONNECTION_V2) Pool.t
 end

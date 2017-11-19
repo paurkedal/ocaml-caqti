@@ -81,4 +81,11 @@ module Make (System : Caqti_system_sig.S) = struct
           let module C = (val c) in
           (module Caqti_compat.Connection_v2_of_v1 (System) (C) : CONNECTION_V2)
         with xc -> fail xc)
+
+  let connect_pool_v2 ?max_size uri : (module CONNECTION_V2) Pool.t =
+    let connect () = connect_v2 uri in
+    let disconnect (module Db : CONNECTION_V2) = Db.disconnect () in
+    let validate (module Db : CONNECTION_V2) = Db.validate () in
+    let check (module Db : CONNECTION_V2) = Db.check in
+    Pool.create ?max_size ~validate ~check connect disconnect
 end

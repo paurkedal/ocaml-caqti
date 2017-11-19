@@ -23,7 +23,7 @@ type _ field +=
   | Int64 : int64 field
   | Float : float field
   | String : string field
-  | Pdate : int field
+  | Pday : int field
   | Ptime : Ptime.t field
 
 module Field = struct
@@ -36,7 +36,7 @@ module Field = struct
     decode: 'b -> 'a;
   } -> 'a coding
 
-  type get_coding = {get_coding: 'a. 'a t -> 'a coding option}
+  type get_coding = {get_coding: 'a. 'a t -> 'a coding}
 
   let coding_ht : (extension_constructor, get_coding) Hashtbl.t =
     Hashtbl.create 11
@@ -47,7 +47,7 @@ module Field = struct
 
   let coding ft =
     let ec = Obj.extension_constructor ft in
-    try (Hashtbl.find coding_ht ec).get_coding ft with Not_found -> None
+    try Some ((Hashtbl.find coding_ht ec).get_coding ft) with Not_found -> None
 
   let to_string : type a. a field -> string = function
    | Bool -> "bool"
@@ -56,7 +56,7 @@ module Field = struct
    | Int64 -> "int64"
    | Float -> "float"
    | String -> "string"
-   | Pdate -> "pdate"
+   | Pday -> "pday"
    | Ptime -> "ptime"
    | ft -> Obj.extension_name (Obj.extension_constructor ft)
 end
@@ -134,5 +134,5 @@ let int32 = Field Int32
 let int64 = Field Int64
 let float = Field Float
 let string = Field String
-let pdate = Field Pdate
+let pday = Field Pday
 let ptime = Field Ptime

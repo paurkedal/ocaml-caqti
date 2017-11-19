@@ -1,0 +1,8 @@
+(jbuild_version 1)
+
+(library
+ ((name caqti_type_calendar)
+  (public_name caqti-type-calendar)
+  (wrapped false)
+  (modules (Caqti_type_calendar))
+  (libraries (caqti calendar))))

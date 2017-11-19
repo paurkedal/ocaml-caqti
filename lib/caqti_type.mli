@@ -27,7 +27,7 @@ module Field : sig
     decode: 'b -> 'a;
   } -> 'a coding
 
-  type get_coding = {get_coding: 'a. 'a t -> 'a coding option}
+  type get_coding = {get_coding: 'a. 'a t -> 'a coding}
 
   val define_coding : 'a field -> get_coding -> unit
 
@@ -43,7 +43,7 @@ type _ field +=
   | Int64 : int64 field
   | Float : float field
   | String : string field
-  | Pdate : int field
+  | Pday : int field
   | Ptime : Ptime.t field
 
 type _ t =
@@ -77,5 +77,5 @@ val int32 : int32 t
 val int64 : int64 t
 val float : float t
 val string : string t
-val pdate : int t
+val pday : int t
 val ptime : Ptime.t t

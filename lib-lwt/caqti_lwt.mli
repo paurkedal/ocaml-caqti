@@ -19,6 +19,6 @@
     This module contains the signature and connect function specialized for use
     with Lwt. *)
 
-open Caqti_sigs
-
-include CAQTI with type 'a io := 'a Lwt.t
+module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Lwt.t
+module V2 : Caqti_connect_sig.S with type 'a io := 'a Lwt.t
+include Caqti_sigs.CAQTI with type 'a io := 'a Lwt.t

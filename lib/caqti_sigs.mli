@@ -213,7 +213,7 @@ end
 module type CAQTI = sig
   type 'a io
 
-  module Pool : Caqti_pool_sig.S with type 'a io := 'a io
+  module Pool : Caqti_pool_sig.V1 with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
   module type CONNECTION = CONNECTION with type 'a io = 'a io
@@ -225,13 +225,4 @@ module type CAQTI = sig
   val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
   (** Create a pool of connections which can be shared among multiple
       cooperative threads run from the main system thread. *)
-
-  module type CONNECTION_V2 =
-    Caqti_connection_sig.S with type 'a io := 'a io
-
-  val connect_v2 : Uri.t ->
-    ((module CONNECTION_V2), [> Caqti_error.connect]) result io
-
-  val connect_pool_v2 : ?max_size: int -> Uri.t ->
-    ((module CONNECTION_V2) Pool.t, [> Caqti_error.connect_pool]) result
 end

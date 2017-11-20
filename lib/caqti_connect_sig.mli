@@ -14,17 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connection functor and backend registration. *)
+(** Signature for establishing database connections. *)
 
-val register_scheme : string -> (module Caqti_driver_sig.F) -> unit
-(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
-    [scheme].  This call must be done by a backend installed with findlib name
-    caqti-driver-{i scheme} as part of its initialization. *)
+module type S = sig
+  type 'a io
 
-module Make_v1 (System : Caqti_system_sig.S) : Caqti_sigs.CAQTI
-  with type 'a io := 'a System.io
+  module Pool : Caqti_pool_sig.V2 with type 'a io := 'a io
 
-module Make = Make_v1 [@@ocaml.deprecated "Renamed to Make_v1."]
+  module type CONNECTION = Caqti_connection_sig.S with type 'a io := 'a io
+  type connection = (module CONNECTION)
 
-module Make_v2 (System : Caqti_system_sig.S) : Caqti_connect_sig.S
-  with type 'a io := 'a System.io
+  val connect : Uri.t ->
+    (connection, [> Caqti_error.load_or_connect]) result io
+
+  val connect_pool : ?max_size: int -> Uri.t ->
+    ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
+end

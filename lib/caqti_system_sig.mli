@@ -22,7 +22,7 @@ open Caqti_query
     extended or changed due requirements of new backends. *)
 module type S = sig
 
-  type 'a io
+  type +'a io
   val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
   val (>|=) : 'a io -> ('a -> 'b) -> 'b io
   val return : 'a -> 'a io

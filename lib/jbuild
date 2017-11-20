@@ -6,6 +6,7 @@
   (wrapped false)
   (modules
    (Caqti_connect
+    Caqti_connect_sig
     Caqti_connection_sig
     Caqti_describe
     Caqti_driver_info
@@ -34,6 +35,11 @@
     (per_module
       ((pps (ppx_optcomp ppx_driver.runner)) (Caqti_plugin))))
   (libraries (findlib.dynload calendar ptime uri))))
+
+(rule
+ ((targets (caqti_connect_sig.ml))
+  (deps (caqti_connect_sig.mli))
+  (action (copy ${<} ${@}))))
 
 (rule
  ((targets (caqti_connection_sig.ml))

@@ -28,10 +28,8 @@ let () =
    | _ -> assert false in
   Caqti_error.define_driver_msg ~pp [%extension_constructor Driver_msg]
 
-module Make (System : Caqti_system_sig.S) = struct
+module Make_v1 (System : Caqti_system_sig.S) = struct
   open System
-
-  module System = System
 
   module type DRIVER = Caqti_driver_sig.S with type 'a io := 'a System.io
 
@@ -65,7 +63,7 @@ module Make (System : Caqti_system_sig.S) = struct
       return (module Client : CONNECTION)
     with xc -> fail xc
 
-  module Pool = Caqti_pool.Make (System)
+  module Pool = Caqti_pool.Make_v1 (System)
 
   let connect_pool ?max_size uri : (module CONNECTION) Pool.t =
     let connect () = connect uri in
@@ -73,20 +71,31 @@ module Make (System : Caqti_system_sig.S) = struct
     let validate (module Conn : CONNECTION) = Conn.validate () in
     let check (module Conn : CONNECTION) = Conn.check in
     Pool.create ?max_size ~validate ~check connect disconnect
+end
 
-  module type CONNECTION_V2 =
+module Make_v2 (System : Caqti_system_sig.S) = struct
+  open System
+
+  module V1 = Make_v1 (System)
+  open V1
+
+  module type CONNECTION =
     Caqti_connection_sig.S with type 'a io := 'a System.io
+
+  type connection = (module CONNECTION)
 
   let catch_load_issue uri f =
     try Ok (f ()) with
      | Failure msg ->
-        Error (Caqti_error.connect_unavailable ~uri msg)
+        Error (Caqti_error.load_rejected ~uri msg)
      | Plugin_missing (pkg, msg) ->
-        let msg = "Missing driver " ^ pkg ^ ": " ^ msg in
-        Error (Caqti_error.connect_unavailable ~uri msg)
+        let msg = "Missing driver " ^ pkg
+                ^ (if msg = "" then "" else ": " ^ msg) in
+        Error (Caqti_error.load_failed ~uri msg)
      | Plugin_invalid (pkg, msg) ->
-        let msg = "Invalid driver " ^ pkg ^ ": " ^ msg in
-        Error (Caqti_error.connect_unavailable ~uri msg)
+        let msg = "Invalid driver " ^ pkg
+                ^ (if msg = "" then "" else ": " ^ msg) in
+        Error (Caqti_error.load_failed ~uri msg)
 
   let catch_connect_issue f =
     catch (fun () -> f () >|= fun y -> Ok y)
@@ -96,39 +105,33 @@ module Make (System : Caqti_system_sig.S) = struct
        | exn ->
           fail exn)
 
-  let catch_connect_issue_exn f =
-    catch f
-      (function
-       | Caqti_errors.Connect_failed (uri, msg) ->
-          let err = Caqti_error.connect_failed ~uri (Driver_msg msg) in
-          fail (Caqti_error.Exn err)
-       | exn ->
-          fail exn)
-
-  let connect_v2 uri : ((module CONNECTION_V2), _) result io =
+  let connect uri : ((module CONNECTION), _) result io =
     (match catch_load_issue uri @@ fun () -> load_driver_for uri with
      | Ok driver ->
         let module Driver = (val driver) in
         catch_connect_issue @@ fun () ->
         Driver.connect uri >>= fun v1 ->
-        let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (val v1) in
-        return (module V2 : CONNECTION_V2)
+        let module V1 = (val v1) in
+        let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (V1) in
+        return (module V2 : CONNECTION)
      | Error err ->
         return (Error err))
 
-  let connect_pool_v2 ?max_size uri
-      : ((module CONNECTION_V2) Pool.t, _) result =
+  module Pool = Caqti_pool.Make_v2 (System)
+
+  let connect_pool ?max_size uri =
     catch_load_issue uri @@ fun () ->
     let driver = load_driver_for uri in
     let module Driver = (val driver) in
     let connect () =
-      catch_connect_issue_exn @@ fun () ->
+      catch_connect_issue @@ fun () ->
       Driver.connect uri >>= fun v1 ->
-      let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (val v1) in
-      return (module V2 : CONNECTION_V2) in
-    let disconnect (module Db : CONNECTION_V2) = Db.disconnect () in
-    let validate (module Db : CONNECTION_V2) = Db.validate () in
-    let check (module Db : CONNECTION_V2) = Db.check in
+      let module V1 = (val v1) in
+      let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (V1) in
+      return (module V2 : CONNECTION) in
+    let disconnect (module Db : CONNECTION) = Db.disconnect () in
+    let validate (module Db : CONNECTION) = Db.validate () in
+    let check (module Db : CONNECTION) = Db.check in
     let di = Driver.driver_info in
     let max_size =
       if not (Caqti_driver_info.(can_concur di && can_pool di))
@@ -136,3 +139,5 @@ module Make (System : Caqti_system_sig.S) = struct
       else max_size in
     Pool.create ?max_size ~validate ~check connect disconnect
 end
+
+module Make = Make_v1

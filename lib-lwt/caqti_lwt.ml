@@ -16,7 +16,7 @@
 
 open Caqti_prereq
 
-include Caqti_connect.Make (struct
+module System = struct
 
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)
@@ -97,4 +97,8 @@ include Caqti_connect.Make (struct
 
   module Preemptive = Lwt_preemptive
 
-end)
+end
+
+module V1 = Caqti_connect.Make_v1 (System)
+module V2 = Caqti_connect.Make_v2 (System)
+include V1

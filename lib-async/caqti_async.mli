@@ -17,6 +17,8 @@
 (** Connector for Async. *)
 
 open Async
-open Caqti_sigs
 
-include CAQTI with type 'a io := 'a Deferred.Or_error.t
+module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
+module V2 : Caqti_connect_sig.S with type 'a io := 'a Deferred.Or_error.t
+
+include Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t

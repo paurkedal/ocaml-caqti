@@ -21,7 +21,7 @@
     {!Caqti_pool} which is used to provide [connect_pool] functions.
 
     This interface is based on [Lwt_pool]. *)
-module type S = sig
+module type V1 = sig
 
   type 'a io
 
@@ -57,6 +57,50 @@ module type S = sig
         The default priority is [0.0]. *)
 
   val drain : 'a t -> unit io
+  (** [drain pool] closes all resources in [pool]. The pool is still usable, as
+      new resources will be created on demand. *)
+
+end
+module type S = V1 [@@ocaml.deprecated "Renamed to V1."]
+
+module type V2 = sig
+
+  type 'a io
+
+  type ('a, +'e) t
+
+  val create :
+    ?max_size: int ->
+    ?check: ('a -> (bool -> unit) -> unit) ->
+    ?validate: ('a -> bool io) ->
+    (unit -> ('a, 'e) result io) -> ('a -> unit io) -> ('a, 'e) t
+  (** Semi-internal: [create alloc free] is a pool of resources allocated by
+      [alloc] and freed by [free]. This is primarily indented for implementing
+      the [connect_pool] functions.
+
+      @param max_size
+        Maximum number of resources to allocate at any given time.
+
+      @param check
+        A function used to check a resource after use.
+
+      @param validate
+        A function to check before use that a resource is still valid. *)
+
+  val size : ('a, 'e) t -> int
+  (** [size pool] is the current number of open resources in [pool]. *)
+
+  val use :
+    ?priority: float ->
+    ('a -> ('b, 'e) result io) -> ('a, 'e) t -> ('b, 'e) result io
+  (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
+      resource to the pool when [f] exits.
+
+      @param priority
+        Requests for the resource are handled in decreasing order of priority.
+        The default priority is [0.0]. *)
+
+  val drain : ('a, 'e) t -> unit io
   (** [drain pool] closes all resources in [pool]. The pool is still usable, as
       new resources will be created on demand. *)
 

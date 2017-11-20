@@ -16,5 +16,10 @@
 
 (** Semi-internal: Resource pool. *)
 
-module Make (System : Caqti_system_sig.S) :
-  Caqti_pool_sig.S with type 'a io := 'a System.io
+module Make_v1 (System : Caqti_system_sig.S) :
+  Caqti_pool_sig.V1 with type 'a io := 'a System.io
+
+module Make_v2 (System : Caqti_system_sig.S) :
+  Caqti_pool_sig.V2 with type 'a io := 'a System.io
+
+module Make = Make_v1 [@@ocaml.deprecated "Renamed to Make_v1."]

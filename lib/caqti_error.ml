@@ -31,34 +31,37 @@ let pp_driver_msg ppf driver_msg =
       (Obj.extension_name c)
 
 
-type preconnect_msg = {
+type load_msg = {
   uri : Uri.t;
   msg : string;
 }
-let pp_preconnect_msg ppf err =
-  Format.fprintf ppf "Failed to connect to %a, " Uri.pp_hum err.uri;
+let pp_load_msg ppf ~fmt err =
+  Format.fprintf ppf fmt Uri.pp_hum err.uri;
+  Format.pp_print_string ppf ": ";
   Format.pp_print_string ppf err.msg
 
-let connect_unavailable ~uri msg =
-  `Connect_unavailable {uri; msg}
+let load_rejected ~uri msg = `Load_rejected {uri; msg}
+let load_failed ~uri msg = `Load_failed {uri; msg}
+
+type load =
+  [ `Load_rejected of load_msg
+  | `Load_failed of load_msg ]
+
 
 type connect_msg = {
   uri : Uri.t;
   msg : driver_msg;
 }
 let pp_connect_msg ppf err =
-  Format.fprintf ppf "Failed to connect to %a, " Uri.pp_hum err.uri;
+  Format.fprintf ppf "Failed to connect to %a: " Uri.pp_hum err.uri;
   pp_driver_msg ppf err.msg;
   Format.pp_print_char ppf '.'
 
 let connect_failed ~uri msg =
   `Connect_failed {uri; msg}
 
-type connect_pool =
-  [ `Connect_unavailable of preconnect_msg ]
 type connect =
-  [ `Connect_unavailable of preconnect_msg
-  | `Connect_failed of connect_msg ]
+  [ `Connect_failed of connect_msg ]
 
 
 type request_msg = {
@@ -96,27 +99,25 @@ let pp_response_msg ppf err =
   Format.fprintf ppf "Unexpected result from %a, %s."
     Uri.pp_hum err.uri err.msg;
 
-type t = [ connect | request | response ]
-type request_or_response = [ request | response ]
+type t = [load | connect | request | response]
+type request_or_response = [request | response]
+type load_or_connect = [load | connect]
 
 let uri = function
- | `Connect_unavailable ({uri; _} : preconnect_msg) -> uri
+ | `Load_rejected ({uri; _} : load_msg) -> uri
+ | `Load_failed ({uri; _} : load_msg) -> uri
  | `Connect_failed ({uri; _} : connect_msg) -> uri
  | `Request_rejected ({uri; _} : request_msg) -> uri
  | `Request_failed ({uri; _} : request_msg) -> uri
  | `Response_rejected ({uri; _} : response_msg) -> uri
 
 let pp_hum ppf = function
- | `Connect_unavailable err ->
-    pp_preconnect_msg ppf err
- | `Connect_failed err ->
-    pp_connect_msg ppf err
- | `Request_rejected err ->
-    pp_request_msg ppf ~fmt:"Request rejected by %a" err
- | `Request_failed err ->
-    pp_request_msg ppf ~fmt:"Request to %a failed" err
- | `Response_rejected err ->
-    pp_response_msg ppf err
+ | `Load_rejected err -> pp_load_msg ppf ~fmt:"Cannot load \"%a\"" err
+ | `Load_failed err -> pp_load_msg ppf ~fmt:"Failed to load \"%a\"" err
+ | `Connect_failed err -> pp_connect_msg ppf err
+ | `Request_rejected err -> pp_request_msg ppf ~fmt:"Request rejected by %a" err
+ | `Request_failed err -> pp_request_msg ppf ~fmt:"Request to %a failed" err
+ | `Response_rejected err -> pp_response_msg ppf err
 
 let to_string_hum err =
   let buf = Buffer.create 128 in
@@ -124,5 +125,3 @@ let to_string_hum err =
   pp_hum ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
-
-exception Exn of t

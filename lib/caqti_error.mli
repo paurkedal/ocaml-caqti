@@ -34,27 +34,36 @@ val define_driver_msg :
 val pp_driver_msg : Format.formatter -> driver_msg -> unit
 
 
-(** {2 Errors during Connect} *)
+(** {2 Errors during Driver Loading} *)
 
-type preconnect_msg = private {
+type load_msg = private {
   uri: Uri.t;
   msg: string;
 }
+type load =
+  [ `Load_rejected of load_msg
+  | `Load_failed of load_msg ]
+
+val load_rejected :
+  uri: Uri.t -> string ->
+  [> `Load_rejected of load_msg]
+(** [load_rejected ~uri msg] indicates that the driver to load could not be
+    identified from [uri]. *)
+
+val load_failed :
+  uri: Uri.t -> string ->
+  [> `Load_failed of load_msg]
+(** [load_failed ~uri msg] indicates that a driver for [uri] could not be
+    loaded. *)
+
+(** {2 Errors during Connect} *)
+
 type connect_msg = private {
   uri: Uri.t;
   msg: driver_msg;
 }
-type connect_pool =
-  [ `Connect_unavailable of preconnect_msg ]
 type connect =
-  [ `Connect_unavailable of preconnect_msg
-  | `Connect_failed of connect_msg ]
-
-val connect_unavailable :
-  uri: Uri.t -> string ->
-  [> `Connect_unavailable of preconnect_msg]
-(** [connect_unavailable ~uri msg] indicates that the driver could not be
-    identified from [uri] or that the identified driver could not be loaded. *)
+  [ `Connect_failed of connect_msg ]
 
 val connect_failed :
   uri: Uri.t -> driver_msg ->
@@ -111,14 +120,12 @@ val response_rejected :
 
 (** {2 Union and Common Operations} *)
 
-type t = [connect | request | response]
+type t = [load | connect | request | response]
 type request_or_response = [request | response]
+type load_or_connect = [load | connect]
 
 val uri : [< t] -> Uri.t
 
 val pp_hum : Format.formatter -> [< t] -> unit
 
 val to_string_hum : [< t] -> string
-
-exception Exn of t
-(** Exception raised by [_exn] variants of functions. *)

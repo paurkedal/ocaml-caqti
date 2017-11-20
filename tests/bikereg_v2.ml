@@ -89,20 +89,20 @@ end
 
 (* Db.exec runs a statement which must not return any rows.  Errors are
  * reported as exceptions. *)
-let create_bikereg (module Db : Caqti_lwt.CONNECTION_V2) =
+let create_bikereg (module Db : Caqti_lwt.V2.CONNECTION) =
   Db.exec Q.create_bikereg ()
-let reg_bike (module Db : Caqti_lwt.CONNECTION_V2) frameno owner =
+let reg_bike (module Db : Caqti_lwt.V2.CONNECTION) frameno owner =
   Db.exec Q.reg_bike (frameno, owner)
-let report_stolen (module Db : Caqti_lwt.CONNECTION_V2) frameno =
+let report_stolen (module Db : Caqti_lwt.V2.CONNECTION) frameno =
   Db.exec Q.report_stolen frameno
 
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
-let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION_V2) =
+let find_bike_owner frameno (module Db : Caqti_lwt.V2.CONNECTION) =
   Db.find_opt Q.select_frameno frameno
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
-let iter_s_stolen (module Db : Caqti_lwt.CONNECTION_V2) f =
+let iter_s_stolen (module Db : Caqti_lwt.V2.CONNECTION) f =
   Db.iter_s Q.select_stolen f ()
 
 (* There is also a Db.iter_p for parallel processing, and Db.fold and
@@ -152,4 +152,4 @@ let report_error = function
 let () =
   let uri =
     Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
-  Lwt_main.run (Caqti_lwt.connect_v2 uri >>=? test >>= report_error)
+  Lwt_main.run (Caqti_lwt.V2.connect uri >>=? test >>= report_error)

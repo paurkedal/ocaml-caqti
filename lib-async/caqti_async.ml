@@ -19,7 +19,7 @@
 open Core
 open Async
 
-include Caqti_connect.Make (struct
+module System = struct
   type 'a io = 'a Deferred.Or_error.t
   let (>>=) m f = Deferred.Or_error.bind m ~f
   let (>|=) = Deferred.Or_error.(>>|)
@@ -107,4 +107,8 @@ include Caqti_connect.Make (struct
     let detach f x = In_thread.run (fun () -> Or_error.try_with (fun () -> f x))
     let run_in_main f = Or_error.ok_exn (Thread_safe.block_on_async_exn f)
   end
-end)
+end
+
+module V1 = Caqti_connect.Make_v1 (System)
+module V2 = Caqti_connect.Make_v2 (System)
+include V1

@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Only for internal use, and to be removed. *)
+(** (internal) Transitional code. *)
 
 open Caqti_sigs
 

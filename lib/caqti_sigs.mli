@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Signatures. *)
+(** (v1) Signatures. *)
 
 open Caqti_describe
 open Caqti_query

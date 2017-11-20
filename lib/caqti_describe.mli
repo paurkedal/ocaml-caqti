@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Types and utility functions for query descriptions. *)
+(** (v1) Types and utility functions for query descriptions. *)
 
 (** Identification of a remote type.  These correspond to the types described
     in {!Caqti_sigs.CONNECTION.Param}.  [`Other s] represents an

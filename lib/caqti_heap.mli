@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Internal: Min-heap.
+(** (internal) Min-heap.
 
     This is a very simple implementation deemed sufficient for {!Caqti_pool}.
     There are more optimal algorithms if you need the best performance on larger

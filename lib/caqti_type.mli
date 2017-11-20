@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Type descriptor for a span of database columns. *)
+(** (v2) Type descriptors for fields and tuples. *)
 
 type 'a field = ..
 

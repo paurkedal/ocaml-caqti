@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Exceptions. *)
+(** (v1) Exceptions. *)
 
 open Caqti_query
 

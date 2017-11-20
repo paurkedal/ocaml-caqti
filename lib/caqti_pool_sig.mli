@@ -32,7 +32,7 @@ module type V1 = sig
         ?check: ('a -> (bool -> unit) -> unit) ->
         ?validate: ('a -> bool io) ->
         (unit -> 'a io) -> ('a -> unit io) -> 'a t
-  (** Semi-internal: [create alloc free] is a pool of resources allocated by
+  (** (internal) [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily indented for implementing
       the [connect_pool] functions.
 
@@ -74,7 +74,7 @@ module type V2 = sig
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool io) ->
     (unit -> ('a, 'e) result io) -> ('a -> unit io) -> ('a, 'e) t
-  (** Semi-internal: [create alloc free] is a pool of resources allocated by
+  (** (internal) [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily indented for implementing
       the [connect_pool] functions.
 

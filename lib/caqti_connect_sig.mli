@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Signature for establishing database connections. *)
+(** (v2) Signature for establishing database connections. *)
 
 module type S = sig
   type 'a io

@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Error descriptors. *)
+(** (v2) Error descriptors. *)
 
 
 (** {2 Driver-Specific Error Messages} *)

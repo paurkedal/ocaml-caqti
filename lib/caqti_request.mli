@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Request specification. *)
+(** (v2) Request specification. *)
 
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 

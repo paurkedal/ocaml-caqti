@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Semi-internal: System Interface *)
+(** (internal) System Interface *)
 
 open Caqti_query
 

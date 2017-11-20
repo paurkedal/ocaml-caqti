@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Semi-internal: Resource pool. *)
+(** (internal) Resource pool. *)
 
 module Make_v1 (System : Caqti_system_sig.S) :
   Caqti_pool_sig.V1 with type 'a io := 'a System.io

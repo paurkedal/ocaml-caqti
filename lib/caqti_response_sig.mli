@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Signature of a response from a database. *)
+(** (v2) Signature of a response from a database. *)
 
 module type S = sig
   type 'b io

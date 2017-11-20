@@ -65,18 +65,12 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let float x = `Float x
     let string x = `String x
     let bytes x = `Bytes x
-    let sub_bytes x i n = `Bytes (Bytes.sub x i n)
     let date_cl x = `Time (Time.utc_timestamp (Caldate.to_unixfloat x))
     let date_tuple (year, month, day) = `Time (Time.date ~year ~month ~day)
     let date_string s = date_cl (Caldate_format.from_fstring "%F" s)
     let utc_cl x = `Time (Time.utc_timestamp (Caltime.to_unixfloat x))
     let utc_float t = `Time (Time.utc_timestamp t)
     let utc_string s = utc_cl (Caltime_format.from_fstring "%FT%T" s)
-
-    (* deprecated *)
-    let date = date_cl
-    let utc = utc_cl
-    let other = string
   end
 
   module Tuple = struct
@@ -138,11 +132,6 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
       Caltime.to_unixfloat (utc_cl i a)
     let utc_string i a =
       Caltime_format.sprint "%FT%T" (utc_cl i a)
-
-    (* deprecated *)
-    let date = date_cl
-    let utc = utc_cl
-    let other i a = Field.string a.(i)
   end
 
   open System

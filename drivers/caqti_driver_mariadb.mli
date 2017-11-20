@@ -14,11 +14,12 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Caqti date and time field type based on the calendar package. *)
+(** Caqti driver for MariaDB (bindings).
 
-type _ Caqti_type.Field.t +=
-  | Date : CalendarLib.Date.t Caqti_type.Field.t
-  | Time : CalendarLib.Calendar.t Caqti_type.Field.t
+    This driver is implement in terms of the mariadb OPAM package.
+    It handles URIs of the form
 
-val date : CalendarLib.Date.t Caqti_type.t
-val time : CalendarLib.Calendar.t Caqti_type.t
+      {[mariadb://<user>:<password>@<host>:<port>/?socket=<socket>]}
+
+    where components are optional and present ones are passed on to the
+    correspondingly named arguments to the [connect] function of MariaDB. *)

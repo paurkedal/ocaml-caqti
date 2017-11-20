@@ -14,11 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Caqti date and time field type based on the calendar package. *)
+(** PostgreSQL driver for Caqti (bindings).
 
-type _ Caqti_type.Field.t +=
-  | Date : CalendarLib.Date.t Caqti_type.Field.t
-  | Time : CalendarLib.Calendar.t Caqti_type.Field.t
+    This driver is implemented in terms of the postgrsql OPAM package which
+    provides bindings for the PostgreSQL C client library.
 
-val date : CalendarLib.Date.t Caqti_type.t
-val time : CalendarLib.Calendar.t Caqti_type.t
+    It handles URIs of the form
+
+      {[postgresql://<user>:<password>@<host>:<port>/<rest>]}
+
+    which are passed verbatim to {!Postgresql.connection}, and URIs of the form
+    [postgresq:/<query>] which are first split into [<key> = '<value>'] form. *)

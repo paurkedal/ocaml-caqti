@@ -14,8 +14,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.  This module contains the signature and connect
-    function specialized for use with Lwt. *)
+(** Connecting with Lwt.
+
+    This module contains the signature and connect function specialized for use
+    with Lwt. *)
 
 open Caqti_sigs
 

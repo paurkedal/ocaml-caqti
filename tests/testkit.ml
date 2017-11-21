@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,6 +25,12 @@ let common_uri () =
   | None -> Uri.of_string (try Unix.getenv "CAQTI_URI"
                            with Not_found -> "sqlite3::memory:")
   | Some uri -> uri
+
+let parse_common_args () =
+  Arg.parse common_args
+    (fun _ -> raise (Arg.Bad "No positional arguments expected."))
+    Sys.argv.(0);
+  common_uri ()
 
 let () =
   Random.self_init ();

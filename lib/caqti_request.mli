@@ -16,17 +16,21 @@
 
 (** (v2) Request specification. *)
 
+type template =
+  | L of string
+  | P of int
+  | S of template list
+
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 
 val create :
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
+  (Caqti_driver_info.t -> template) -> ('a, 'b, 'm) t
 
 val create_p :
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  ?env: (Caqti_driver_info.t -> string -> string) ->
   (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
 
 val params_type : ('a, _, _) t -> 'a Caqti_type.t
@@ -34,4 +38,4 @@ val row_type : (_, 'b, _) t -> 'b Caqti_type.t
 val row_mult : (_, _, 'm) t -> 'm Caqti_mult.t
 
 val query_id : ('a, 'b, 'm) t -> int option
-val query_string : ('a, 'b, 'm) t -> Caqti_driver_info.t -> string
+val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> template

@@ -76,6 +76,16 @@
   (modules (Test_sql_lwt))
   (libraries (caqti caqti_lwt testkit))))
 
+(alias
+ ((name runtest)
+  (package caqti-lwt)
+  (deps (test_param.exe (alias drivers)))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_param)
+  (modules (Test_param))
+  (libraries (caqti caqti_lwt testkit))))
+
 ; Fake META Files
 
 (alias

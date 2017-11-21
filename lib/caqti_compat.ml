@@ -28,6 +28,33 @@ let () =
    | _ -> assert false in
   Caqti_error.define_driver_msg ~pp [%extension_constructor Driver_msg]
 
+let template_param_order templ di =
+  let open Caqti_request in
+  let rec loop = function
+   | L _ | S [] -> fun acc -> acc
+   | P i -> fun acc -> i :: acc
+   | S (frag :: templ) -> fun acc -> acc |> loop frag |> loop (S templ) in
+  (match Caqti_driver_info.parameter_style di with
+   | `Indexed _ -> None
+   | `Linear _ -> Some (Array.of_list (List.rev (loop templ [])))
+   | `None -> assert false)
+
+let template_query_string templ di =
+  let pstyle = Caqti_driver_info.parameter_style di in
+  let buf = Buffer.create 64 in
+  let open Caqti_request in
+  let rec loop = function
+   | L s -> Buffer.add_string buf s
+   | P i ->
+      Buffer.add_string buf
+        (match pstyle with
+         | `Indexed f -> f i
+         | `Linear s -> s
+         | `None -> assert false)
+   | S frags -> List.iter loop frags in
+  loop templ;
+  Buffer.contents buf
+
 module Connection_v2_of_v1
     (System : Caqti_system_sig.S)
     (C : CONNECTION with type 'a io = 'a System.io) =
@@ -230,6 +257,11 @@ struct
 
   let driver_info = C.driver_info
 
+  type cache_entry = {
+    query: query;
+    param_order: int array option;
+  }
+
   let cache = Hashtbl.create 19
 
   let call ~(f : ('b, 'm) Response.t -> ('c, 'e) result io) req x =
@@ -237,21 +269,30 @@ struct
     let ps = Array.make (Type.length pt) C.Param.null in
     let _ = encode pt x ps 0 in
     let rt = Caqti_request.row_type req in
-    let qs _ = Caqti_request.query_string req driver_info in
     catch
       (fun () ->
-        (match Caqti_request.query_id req with
-         | None ->
-            f (Caqti_query.oneshot_full qs, ps, rt)
-         | Some id ->
-            let query =
+        let {query; param_order} =
+          (match Caqti_request.query_id req with
+           | None ->
+              let templ = Caqti_request.query_template req driver_info in
+              let query =
+                Caqti_query.oneshot_full (template_query_string templ) in
+              let param_order = template_param_order templ driver_info in
+              {query; param_order}
+           | Some id ->
               (try Hashtbl.find cache id with
                | Not_found ->
-                  let query = Caqti_query.prepare_full qs in
-                  Hashtbl.add cache id query;
-                  query)
-            in
-            f (query, ps, rt)))
+                  let templ = Caqti_request.query_template req driver_info in
+                  let query =
+                    Caqti_query.prepare_full (template_query_string templ) in
+                  let param_order = template_param_order templ driver_info in
+                  Hashtbl.add cache id {query; param_order};
+                  {query; param_order})) in
+        let ps =
+          (match param_order with
+           | None -> ps
+           | Some param_order -> Array.map (fun i -> ps.(i)) param_order) in
+        f (query, ps, rt))
       (function
        | Prepare_failed (uri, qi, msg) ->
           return (Error (prepare_failed uri qi msg))

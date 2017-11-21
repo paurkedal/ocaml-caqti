@@ -14,49 +14,51 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let format_query di ?env sql =
-  let n = String.length sql in
-  let buf = Buffer.create n in
-  let add_parameter =
-    (match Caqti_driver_info.parameter_style di with
-     | `None -> invalid_arg "Caqti_request.format_query: \
-                             The driver does not support parameters."
-     | `Linear s -> fun _ -> Buffer.add_string buf s
-     | `Indexed f -> fun p -> Buffer.add_string buf (f p)) in
-  let add_substring =
-    (match env with
-     | None -> Buffer.add_substring buf sql
-     | Some env ->
-        fun i n -> Buffer.add_substitute buf (env di) (String.sub sql i n)) in
+open Printf
+
+type template =
+  | L of string
+  | P of int
+  | S of template list
+
+let format_query qs =
+
+  let n = String.length qs in
+
   let rec skip_quoted j =
-    if j = n then invalid_arg ("format_query: Unmatched quote: " ^ sql) else
-    if sql.[j] = '\'' then
-      if j + 1 < n && sql.[j + 1] = '\'' then
+    if j = n then
+      ksprintf invalid_arg "Caqti_request.create_p: Unmatched quote in %S" qs
+    else if qs.[j] = '\'' then
+      if j + 1 < n && qs.[j + 1] = '\'' then
         skip_quoted (j + 2)
       else
         j + 1
     else
       skip_quoted (j + 1) in
-  let rec loop p i j =
-    if j = n then add_substring i (j - i) else
-    (match sql.[j] with
+
+  let rec loop p i j acc = (* acc is reversed *)
+    if j = n then L (String.sub qs i (j - i)) :: acc else
+    (match qs.[j] with
      | '\'' ->
-        add_substring i (j - i);
         let k = skip_quoted (j + 1) in
-        Buffer.add_substring buf sql j (k - j);
         loop p k k
+          (L (String.sub qs j (k - j)) ::
+           L (String.sub qs i (j - i)) :: acc)
      | '?' ->
-        add_substring i (j - i);
-        add_parameter p;
         loop (p + 1) (j + 1) (j + 1)
+          (P p ::
+           L (String.sub qs i (j - i)) :: acc)
      | _ ->
-        loop p i (j + 1)) in
-  loop 0 0 0;
-  Buffer.contents buf
+        loop p i (j + 1) acc) in
+
+  (match loop 0 0 0 [] with
+   | [] -> invalid_arg "Caqti_request.create_p: Empty query string."
+   | [frag] -> frag
+   | rev_frags -> S (List.rev rev_frags))
 
 type ('a, 'b, +'m) t = {
   id: int option;
-  query_string: Caqti_driver_info.t -> string;
+  template: Caqti_driver_info.t -> template;
   params_type: 'a Caqti_type.t;
   row_type: 'b Caqti_type.t;
   row_mult: 'm Caqti_mult.t;
@@ -64,17 +66,24 @@ type ('a, 'b, +'m) t = {
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) params_type row_type row_mult query_string =
+let create ?(oneshot = false) params_type row_type row_mult template =
   let id = if oneshot then None else (incr last_id; Some !last_id) in
-  {id; query_string; params_type; row_type; row_mult}
+  {id; template; params_type; row_type; row_mult}
 
-let create_p ?oneshot params_type row_type row_mult ?env query_string =
+let create_p ?oneshot params_type row_type row_mult qs =
   create ?oneshot params_type row_type row_mult
-    (fun di -> format_query di ?env (query_string di))
+    (fun di ->
+      (match Caqti_driver_info.parameter_style di with
+       | `None ->
+          ksprintf invalid_arg
+            "The %s driver does not support query parameters."
+            (Caqti_driver_info.uri_scheme di)
+       | `Linear "?" -> L (qs di)
+       | _ -> format_query (qs di)))
 
 let params_type request = request.params_type
 let row_type request = request.row_type
 let row_mult request = request.row_mult
 
 let query_id request = request.id
-let query_string request = request.query_string
+let query_template request = request.template

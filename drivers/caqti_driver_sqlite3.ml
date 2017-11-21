@@ -114,6 +114,7 @@ module Tuple = struct
   let float i stmt =
     match Sqlite3.column stmt i with
     | FLOAT x -> x
+    | INT x -> Int64.to_float x
     | _ -> invalid_decode "float" i stmt
   let string i stmt =
     match Sqlite3.column stmt i with

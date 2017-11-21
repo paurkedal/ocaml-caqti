@@ -85,6 +85,10 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
     let int i a =
       (match Field.value a.(i) with
        | `Int i -> i
+       | `Float x when fst (modf x) = 0.0 ->
+          (* Arithmetic involving integers with at least one parameter gives
+           * float, e.g. `1 + ?`, so let's accept it as long as it's exact. *)
+          int_of_float x
        | `String s ->
           (* An expression like `sum(1)` comes back as a string, presumably as
            * originally as decimal from MariaDB. *)
@@ -92,8 +96,23 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
            failwith_f "Cannot convert %s = %S to int." (Field.name a.(i)) s)
        | _ -> failwith_f "%s is not an integer." (Field.name a.(i)))
 
-    let int32 i a = Int32.of_int (int i a)
-    let int64 i a = Int64.of_int (int i a)
+    let int32 i a =
+      (match Field.value a.(i) with
+       | `Int i -> Int32.of_int i
+       | `Float x when fst (modf x) = 0.0 -> Int32.of_float x
+       | `String s ->
+          (try Int32.of_string s with Failure _ ->
+           failwith_f "Cannot convert %s = %S to int." (Field.name a.(i)) s)
+       | _ -> failwith_f "%s is not an integer." (Field.name a.(i)))
+
+    let int64 i a =
+      (match Field.value a.(i) with
+       | `Int i -> Int64.of_int i
+       | `Float x when fst (modf x) = 0.0 -> Int64.of_float x
+       | `String s ->
+          (try Int64.of_string s with Failure _ ->
+           failwith_f "Cannot convert %s = %S to int." (Field.name a.(i)) s)
+       | _ -> failwith_f "%s is not an integer." (Field.name a.(i)))
 
     let float i a =
       (match Field.value a.(i) with

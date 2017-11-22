@@ -67,16 +67,16 @@ end
 
 (* Db.exec runs a statement which must not return any rows.  Errors are
  * reported as exceptions. *)
-let create_bikereg (module Db : Caqti_lwt.CONNECTION) =
+let create_bikereg (module Db : Caqti_lwt.V1.CONNECTION) =
   Db.exec Q.create_bikereg [||]
-let reg_bike (module Db : Caqti_lwt.CONNECTION) frameno owner =
+let reg_bike (module Db : Caqti_lwt.V1.CONNECTION) frameno owner =
   Db.exec Q.reg_bike Db.Param.([|string frameno; string owner|])
-let report_stolen (module Db : Caqti_lwt.CONNECTION) frameno =
+let report_stolen (module Db : Caqti_lwt.V1.CONNECTION) frameno =
   Db.exec Q.report_stolen Db.Param.([|string frameno|])
 
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
-let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
+let find_bike_owner frameno (module Db : Caqti_lwt.V1.CONNECTION) =
   Db.find_opt Q.select_frameno Db.Tuple.(string 1) Db.Param.([|string frameno|])
 
 (* As a helper for iterators, [wrap db f] accepts a raw tuple and passes its
@@ -84,7 +84,7 @@ let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
  * brilliant, though they sometimes requires us to elaborate type
  * dependencies.  *)
 let wrap (type tuple)
-         (module Db : Caqti_lwt.CONNECTION with type Tuple.t = tuple)
+         (module Db : Caqti_lwt.V1.CONNECTION with type Tuple.t = tuple)
          f (t : tuple) =
   let open Db.Tuple in
   (* You might prefer to pass the result as a tuple or record depending on the
@@ -92,7 +92,7 @@ let wrap (type tuple)
   f ~frameno:(string 0 t) ~owner:(string 1 t) ?stolen:(option utc_cl 2 t) ()
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
-let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =
+let iter_s_stolen (module Db : Caqti_lwt.V1.CONNECTION) f =
   Db.iter_s Q.select_stolen (wrap (module Db) f) [||]
 
 (* There is also a Db.iter_p for parallel processing, and Db.fold and
@@ -132,4 +132,4 @@ let test db =
 let () =
   let uri =
     Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
-  Lwt_main.run (Caqti_lwt.connect uri >>= test)
+  Lwt_main.run (Caqti_lwt.V1.connect uri >>= test)

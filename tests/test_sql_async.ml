@@ -42,7 +42,7 @@ module Q = struct
     | _ -> failwith "Unimplemented."
 end
 
-let test (module Db : Caqti_async.CONNECTION) =
+let test (module Db : Caqti_async.V1.CONNECTION) =
   let open Deferred.Or_error in
 
   (* Create, insert, select *)
@@ -70,13 +70,13 @@ let test (module Db : Caqti_async.CONNECTION) =
   (* Drop *)
   Db.exec Q.drop_tmp [||]
 
-let test_pool = Caqti_async.Pool.use test
+let test_pool = Caqti_async.V1.Pool.use test
 
 let main uri () =
   Shutdown.don't_finish_before begin
     Deferred.Or_error.(
-      Caqti_async.connect uri >>= test >>= fun () ->
-      test_pool (Caqti_async.connect_pool uri)
+      Caqti_async.V1.connect uri >>= test >>= fun () ->
+      test_pool (Caqti_async.V1.connect_pool uri)
     ) >>| Or_error.ok_exn
   end;
   Shutdown.shutdown 0

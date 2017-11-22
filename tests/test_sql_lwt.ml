@@ -93,7 +93,7 @@ let repeat n f =
     f i >>= fun () -> loop (i + 1) in
   loop 0
 
-let test_expr (module Db : Caqti_lwt.CONNECTION) =
+let test_expr (module Db : Caqti_lwt.V1.CONNECTION) =
 
   (* Non-prepared. *)
   repeat 200 (fun i ->
@@ -190,7 +190,7 @@ let dump_querydesc qn qd =
     (String.concat " * " (Array.to_list pns))
     (String.concat "; " (Array.to_list fns))
 
-let test_table (module Db : Caqti_lwt.CONNECTION) =
+let test_table (module Db : Caqti_lwt.V1.CONNECTION) =
 
   (* Create, insert, select *)
   Db.exec Q.create_tmp [||] >>= fun () ->
@@ -225,19 +225,19 @@ let test_table (module Db : Caqti_lwt.CONNECTION) =
         assert (qd.querydesc_fields = [|"i", `Int; "s", `String|]);
       Lwt.return_unit)
 
-let test (module Db : Caqti_lwt.CONNECTION) =
+let test (module Db : Caqti_lwt.V1.CONNECTION) =
   test_expr (module Db) >>= fun () ->
   test_table (module Db) >>= fun () ->
   Db.disconnect ()
 
 let test_pool pool =
-  Caqti_lwt.Pool.use
-    begin fun (module Db : Caqti_lwt.CONNECTION) ->
+  Caqti_lwt.V1.Pool.use
+    begin fun (module Db : Caqti_lwt.V1.CONNECTION) ->
       test_expr (module Db) >>= fun () ->
       test_table (module Db)
     end
     pool >>= fun () ->
-  Caqti_lwt.Pool.drain pool
+  Caqti_lwt.V1.Pool.drain pool
 
 let () =
   Arg.parse
@@ -246,6 +246,6 @@ let () =
     Sys.argv.(0);
   let uri = common_uri () in
   Lwt_main.run begin
-    Caqti_lwt.connect uri >>= test >>= fun () ->
-    test_pool (Caqti_lwt.connect_pool uri)
+    Caqti_lwt.V1.connect uri >>= test >>= fun () ->
+    test_pool (Caqti_lwt.V1.connect_pool uri)
   end

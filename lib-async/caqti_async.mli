@@ -21,4 +21,15 @@ open Async
 module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
 module V2 : Caqti_connect_sig.S with type 'a io := 'a Deferred.Or_error.t
 
-include Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
+(**/**)
+
+[@@@ocaml.warning "-3"]
+module Pool : Caqti_pool_sig.V1 with type 'a io := 'a Deferred.Or_error.t
+[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+module type CONNECTION = Caqti_sigs.CONNECTION
+  with type 'a io = 'a Deferred.Or_error.t
+[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+val connect : Uri.t -> (module CONNECTION) Deferred.Or_error.t
+[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
+[@@ocaml.deprecated "Moved to Caqti_async.V1."]

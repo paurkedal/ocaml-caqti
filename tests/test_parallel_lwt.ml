@@ -31,7 +31,7 @@ let select_2_q = prepare_sql_p
 let random_int () = Random.int (1 + Random.int 16)
 
 let do_query =
-  Caqti_lwt.Pool.use @@ fun (module C : Caqti_lwt.CONNECTION) ->
+  Caqti_lwt.V1.Pool.use @@ fun (module C : Caqti_lwt.V1.CONNECTION) ->
   (match Random.int 4 with
    | 0 ->
       C.exec insert_q C.Param.[|int (random_int ()); int (random_int ())|] >>= fun () ->
@@ -81,15 +81,15 @@ let () =
   let uri = common_uri () in
   Lwt_main.run begin
     let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
-    let pool = Caqti_lwt.connect_pool ~max_size uri in
-    Caqti_lwt.Pool.use
-      (fun (module C : Caqti_lwt.CONNECTION) ->
+    let pool = Caqti_lwt.V1.connect_pool ~max_size uri in
+    Caqti_lwt.V1.Pool.use
+      (fun (module C : Caqti_lwt.V1.CONNECTION) ->
         C.exec drop_q [||] >>= fun () ->
         C.exec create_q [||])
       pool >>= fun () ->
     (test2 pool !n_r >|= ignore) >>= fun () ->
-    Caqti_lwt.Pool.use
-      (fun (module C : Caqti_lwt.CONNECTION) ->
+    Caqti_lwt.V1.Pool.use
+      (fun (module C : Caqti_lwt.V1.CONNECTION) ->
         C.exec drop_q [||])
       pool
   end

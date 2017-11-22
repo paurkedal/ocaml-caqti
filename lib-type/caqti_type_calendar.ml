@@ -37,5 +37,5 @@ let () =
   define_coding Date {get_coding};
   define_coding Time {get_coding}
 
-let date = Caqti_type.Field Date
-let time = Caqti_type.Field Time
+let date = Caqti_type.field Date
+let time = Caqti_type.field Time

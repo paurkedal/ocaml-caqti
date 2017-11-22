@@ -30,7 +30,7 @@ module Bike = struct
     let encode {frameno; owner; stolen} = (frameno, owner, stolen) in
     let decode (frameno, owner, stolen) = {frameno; owner; stolen} in
     let rep = Caqti_type.(tup3 string string (option ptime)) in
-    Caqti_type.Custom {rep; encode; decode}
+    Caqti_type.custom ~encode ~decode rep
 end
 
 (* Query Strings

@@ -46,7 +46,7 @@ type _ field +=
   | Pday : int field
   | Ptime : Ptime.t field
 
-type _ t =
+type _ t = private
   | Unit : unit t
   | Field : 'a field -> 'a t
   | Option : 'a t -> 'a option t
@@ -66,10 +66,12 @@ val pp_hum : Format.formatter -> 'a t -> unit
 val to_string_hum : 'a t -> string
 
 val unit : unit t
+val field : 'a field -> 'a t
 val option : 'a t -> 'a option t
 val tup2 : 'a t -> 'b t -> ('a * 'b) t
 val tup3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
 val tup4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
+val custom : encode: ('a -> 'b) -> decode: ('b -> 'a) -> 'b t -> 'a t
 
 val bool : bool t
 val int : int t

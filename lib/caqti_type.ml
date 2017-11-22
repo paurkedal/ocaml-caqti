@@ -123,10 +123,12 @@ let to_string_hum t =
   Buffer.contents buf
 
 let unit = Unit
+let field ft = Field ft
 let option t = Option t
 let tup2 t0 t1 = Tup2 (t0, t1)
 let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
 let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
+let custom ~encode ~decode rep = Custom {rep; encode; decode}
 
 let bool = Field Bool
 let int = Field Int

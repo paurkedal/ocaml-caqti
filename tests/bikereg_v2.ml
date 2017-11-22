@@ -53,8 +53,8 @@ module Q = struct
 
   let create_ign_p pt rt rm s = Caqti_request.create_p pt rt rm (fun _ -> s)
 
-  let create_bikereg = create_ign_p
-    Caqti_type.unit Caqti_type.unit Caqti_mult.zero
+  let create_bikereg =
+    Caqti_request.exec Caqti_type.unit Caqti_type.unit
     {eos|
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
@@ -63,20 +63,20 @@ module Q = struct
       )
     |eos}
 
-  let reg_bike = create_ign_p
-    Caqti_type.(tup2 string string) Caqti_type.unit Caqti_mult.zero
+  let reg_bike = Caqti_request.exec
+    Caqti_type.(tup2 string string) Caqti_type.unit
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
-  let report_stolen = create_ign_p
-    Caqti_type.string Caqti_type.unit Caqti_mult.zero
+  let report_stolen = Caqti_request.exec
+    Caqti_type.string Caqti_type.unit
     "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
 
-  let select_stolen = create_ign_p
-    Caqti_type.unit Bike.t Caqti_mult.many
+  let select_stolen = Caqti_request.collect
+    Caqti_type.unit Bike.t
     "SELECT * FROM bikereg WHERE stolen IS NOT NULL"
 
-  let select_frameno = create_ign_p
-    Caqti_type.string Caqti_type.string Caqti_mult.zero_or_one
+  let select_frameno = Caqti_request.find_opt
+    Caqti_type.string Caqti_type.string
     "SELECT frameno FROM bikereg WHERE frameno = ?"
 end
 

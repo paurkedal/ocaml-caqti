@@ -21,6 +21,29 @@ type template =
   | P of int
   | S of template list
 
+type ('a, 'b, +'m) t = {
+  id: int option;
+  template: Caqti_driver_info.t -> template;
+  params_type: 'a Caqti_type.t;
+  row_type: 'b Caqti_type.t;
+  row_mult: 'm Caqti_mult.t;
+} constraint 'm = [< `Zero | `One | `Many]
+
+let last_id = ref (-1)
+
+let create ?(oneshot = false) params_type row_type row_mult template =
+  let id = if oneshot then None else (incr last_id; Some !last_id) in
+  {id; template; params_type; row_type; row_mult}
+
+let params_type request = request.params_type
+let row_type request = request.row_type
+let row_mult request = request.row_mult
+
+let query_id request = request.id
+let query_template request = request.template
+
+(* Convenience *)
+
 let format_query qs =
 
   let n = String.length qs in
@@ -56,20 +79,6 @@ let format_query qs =
    | [frag] -> frag
    | rev_frags -> S (List.rev rev_frags))
 
-type ('a, 'b, +'m) t = {
-  id: int option;
-  template: Caqti_driver_info.t -> template;
-  params_type: 'a Caqti_type.t;
-  row_type: 'b Caqti_type.t;
-  row_mult: 'm Caqti_mult.t;
-} constraint 'm = [< `Zero | `One | `Many]
-
-let last_id = ref (-1)
-
-let create ?(oneshot = false) params_type row_type row_mult template =
-  let id = if oneshot then None else (incr last_id; Some !last_id) in
-  {id; template; params_type; row_type; row_mult}
-
 let create_p ?oneshot params_type row_type row_mult qs =
   create ?oneshot params_type row_type row_mult
     (fun di ->
@@ -81,9 +90,11 @@ let create_p ?oneshot params_type row_type row_mult qs =
        | `Linear "?" -> L (qs di)
        | _ -> format_query (qs di)))
 
-let params_type request = request.params_type
-let row_type request = request.row_type
-let row_mult request = request.row_mult
-
-let query_id request = request.id
-let query_template request = request.template
+let exec ?oneshot pt rt qs =
+  create_p ?oneshot pt rt Caqti_mult.zero (fun _ -> qs)
+let find ?oneshot pt rt qs =
+  create_p ?oneshot pt rt Caqti_mult.one (fun _ -> qs)
+let find_opt ?oneshot pt rt qs =
+  create_p ?oneshot pt rt Caqti_mult.zero_or_one (fun _ -> qs)
+let collect ?oneshot pt rt qs =
+  create_p ?oneshot pt rt Caqti_mult.many (fun _ -> qs)

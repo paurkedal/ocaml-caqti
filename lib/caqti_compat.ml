@@ -265,7 +265,7 @@ struct
   let cache = Hashtbl.create 19
 
   let call ~(f : ('b, 'm) Response.t -> ('c, 'e) result io) req x =
-    let pt = Caqti_request.params_type req in
+    let pt = Caqti_request.param_type req in
     let ps = Array.make (Type.length pt) C.Param.null in
     let _ = encode pt x ps 0 in
     let rt = Caqti_request.row_type req in

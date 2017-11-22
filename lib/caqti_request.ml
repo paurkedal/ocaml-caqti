@@ -24,18 +24,18 @@ type template =
 type ('a, 'b, +'m) t = {
   id: int option;
   template: Caqti_driver_info.t -> template;
-  params_type: 'a Caqti_type.t;
+  param_type: 'a Caqti_type.t;
   row_type: 'b Caqti_type.t;
   row_mult: 'm Caqti_mult.t;
 } constraint 'm = [< `Zero | `One | `Many]
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) params_type row_type row_mult template =
+let create ?(oneshot = false) param_type row_type row_mult template =
   let id = if oneshot then None else (incr last_id; Some !last_id) in
-  {id; template; params_type; row_type; row_mult}
+  {id; template; param_type; row_type; row_mult}
 
-let params_type request = request.params_type
+let param_type request = request.param_type
 let row_type request = request.row_type
 let row_mult request = request.row_mult
 
@@ -79,8 +79,8 @@ let format_query qs =
    | [frag] -> frag
    | rev_frags -> S (List.rev rev_frags))
 
-let create_p ?oneshot params_type row_type row_mult qs =
-  create ?oneshot params_type row_type row_mult
+let create_p ?oneshot param_type row_type row_mult qs =
+  create ?oneshot param_type row_type row_mult
     (fun di ->
       (match Caqti_driver_info.parameter_style di with
        | `None ->

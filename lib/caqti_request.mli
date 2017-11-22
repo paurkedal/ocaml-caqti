@@ -57,8 +57,8 @@ val create :
     driver is responsible for turning parameter references into a form accepted
     by the database, while other differences must be handled by [f]. *)
 
-val params_type : ('a, _, _) t -> 'a Caqti_type.t
-(** [params_type req] is the type of parameter bundles expected by [req]. *)
+val param_type : ('a, _, _) t -> 'a Caqti_type.t
+(** [param_type req] is the type of parameter bundles expected by [req]. *)
 
 val row_type : (_, 'b, _) t -> 'b Caqti_type.t
 (** [row_type req] is the type of rows returned by [req]. *)

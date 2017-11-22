@@ -32,7 +32,10 @@ module type S = sig
       invoking [f] to process the result. *)
 
 
-  (** {2 Query Convenience} *)
+  (** {2 Retrieval Convenience}
+
+      These are shortcuts for {!call} combined with retrieval functions from
+      {!Caqti_response_sig.S}. *)
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->

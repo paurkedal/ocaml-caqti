@@ -26,7 +26,12 @@ module type S = sig
 
   val connect : Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result io
+  (** [connect uri] locates and loads a driver which can handle [uri], passes
+      [uri] to the driver, which establish a connection and returns a
+      first-class module implementing {!Caqti_connection_sig.S}. *)
 
   val connect_pool : ?max_size: int -> Uri.t ->
     ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
+  (** [connect_pool uri] is a pool of database connections constructed by
+      [connect uri]. *)
 end

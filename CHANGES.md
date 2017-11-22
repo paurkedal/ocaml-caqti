@@ -1,5 +1,19 @@
 # Change Log
 
+## unreleased
+
+- Remove most deprecations.
+- Add new "v2" API.
+
+The main difference of the new API compared to the old is:
+
+- It uses typed parameters and rows with an extensible variant for field
+  type and a custom definable compound type.
+- The connection has a `call` method which gives access to a result object
+  before iterating over the returned rows.
+- Error handling is done with the `result` type, using a collection of error
+  types formed as polymorphic variants of records.
+
 ## [0.7.0] - 2017-11-03
 
 - Remove WRAPPER and REPORT functionality.

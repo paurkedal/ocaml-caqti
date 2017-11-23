@@ -162,7 +162,7 @@ end
 
 let yield = Thread.yield
 
-module Connect_functor (System : Caqti_system_sig.S) = struct
+module Connect_functor (System : Caqti_system_sig.V1) = struct
   open System
 
   module type CONNECTION = CONNECTION with type 'a io = 'a System.io
@@ -389,4 +389,4 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
 end
 
-let () = Caqti_connect.register_scheme "sqlite3" (module Connect_functor)
+let () = Caqti_connect.define_driver_v1 "sqlite3" (module Connect_functor)

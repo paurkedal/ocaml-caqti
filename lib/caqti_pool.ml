@@ -17,7 +17,7 @@
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
-module Make_v1 (System : Caqti_system_sig.S) = struct
+module Make_v1 (System : Caqti_system_sig.V1) = struct
   open System
 
   module Task = struct
@@ -97,7 +97,7 @@ module Make_v1 (System : Caqti_system_sig.S) = struct
 end
 module Make = Make_v1
 
-module Make_v2 (System : Caqti_system_sig.S) = struct
+module Make_v2 (System : Caqti_system_sig.V2) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
@@ -146,10 +146,14 @@ module Make_v2 (System : Caqti_system_sig.S) = struct
       else (wait ~priority p >>= fun () -> acquire ~priority p)
     end else begin
       let e = Queue.take p.p_pool in
-      catch (fun () -> p.p_validate e)
-            (fun xc -> Queue.add e p.p_pool; fail xc) >>= fun ok ->
-      if ok then return (Ok e) else
-      catch p.p_create (fun xc -> p.p_cur_size <- p.p_cur_size - 1; fail xc)
+      p.p_validate e >>= fun ok ->
+      if ok then
+        return (Ok e)
+      else
+        p.p_create () >|=
+        (function
+         | Ok e -> Ok e
+         | Error err -> p.p_cur_size <- p.p_cur_size - 1; Error err)
     end
 
   let release p e =
@@ -163,11 +167,10 @@ module Make_v2 (System : Caqti_system_sig.S) = struct
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
-    catch
-      (fun () -> f e >>= function
-       | Ok y -> release p e; return (Ok y)
-       | Error err -> release p e; return (Error err))
-      (fun xc -> release p e; fail xc)
+    f e >>=
+    (function
+     | Ok y -> release p e; return (Ok y)
+     | Error err -> release p e; return (Error err))
 
   let dispose p e =
     p.p_free e >>= fun () -> p.p_cur_size <- p.p_cur_size - 1; return ()

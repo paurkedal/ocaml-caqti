@@ -56,7 +56,7 @@ let template_query_string templ di =
   Buffer.contents buf
 
 module Connection_v2_of_v1
-    (System : Caqti_system_sig.S)
+    (System : Caqti_system_sig.V1)
     (C : CONNECTION with type 'a io = 'a System.io) =
 struct
   open System

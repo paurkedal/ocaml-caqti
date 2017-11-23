@@ -19,7 +19,11 @@
 open Async
 
 module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
+
 module V2 : Caqti_connect_sig.S with type 'a io := 'a Deferred.Or_error.t
+(** {b Warning:} This interface is preliminary. The final version will use ['a
+    io := Deferred.t], but that requires rewriting the drivers to not use
+    exceptions. *)
 
 (**/**)
 

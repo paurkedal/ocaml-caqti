@@ -18,16 +18,14 @@
 
     This interface is unstable. *)
 
-open Caqti_sigs
-
 (** The part of {!CAQTI} which is implemented by backends. *)
-module type S = sig
+module type V1 = sig
   type 'a io
-  module type CONNECTION = CONNECTION with type 'a io = 'a io
+  module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a io
   val driver_info : Caqti_driver_info.t
   val connect : Uri.t -> (module CONNECTION) io
 end
 
 (** Abstraction of the connect function over the concurrency monad. *)
-module type F =
-  functor (System : Caqti_system_sig.S) -> S with type 'a io := 'a System.io
+module type V1_FUNCTOR =
+  functor (System : Caqti_system_sig.V1) -> V1 with type 'a io := 'a System.io

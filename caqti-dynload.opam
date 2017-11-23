@@ -1,5 +1,5 @@
 opam-version: "1.2"
-name: "caqti"
+name: "caqti-dynload"
 authors: ["Petter A. Urkedal"]
 maintainer: "paurkedal@gmail.com"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
@@ -11,12 +11,7 @@ build: [["jbuilder" "build" "-p" name "-j" jobs]]
 build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
-  "jbuilder" {build}
-  "topkg" {build}
-  "topkg-jbuilder" {build}
-  "calendar"
-  "ocamlfind" {build}
-  "ppx_optcomp" {build}
-  "uri"
+  "caqti"
+  "ocamlfind"
 ]
-available: [ocaml-version >= "4.03.0"]
+conflicts: ["caqti" {<"0.6.0"}]

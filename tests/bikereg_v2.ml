@@ -147,7 +147,8 @@ let test db =
 
 let report_error = function
  | Ok () -> Lwt.return_unit
- | Error err -> Lwt_io.eprintl (Caqti_error.to_string_hum err)
+ | Error err ->
+    Lwt_io.eprintl (Caqti_error.to_string_hum err) >|= fun () -> exit 69
 
 let () =
   let uri =

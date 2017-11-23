@@ -1,0 +1,12 @@
+(jbuild_version 1)
+
+(library
+ ((name caqti_dynload)
+  (public_name caqti-dynload)
+  (wrapped false)
+  (modules (Caqti_dynload))
+  (library_flags (-linkall))
+  (preprocess
+    (per_module
+      ((pps (ppx_optcomp ppx_driver.runner)) (Caqti_dynload))))
+  (libraries (caqti findlib.dynload))))

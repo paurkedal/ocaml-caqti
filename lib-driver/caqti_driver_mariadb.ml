@@ -26,7 +26,7 @@ module Caltime_format = CalendarLib.Printer.Calendar
 
 let failwith_f fmt = ksprintf failwith fmt
 
-module Caqtus_functor (System : Caqti_system_sig.S) = struct
+module Caqtus_functor (System : Caqti_system_sig.V1) = struct
 
   module Mdb = Mariadb.Nonblocking.Make
     (struct
@@ -383,4 +383,4 @@ module Caqtus_functor (System : Caqti_system_sig.S) = struct
         raise (Connect_failed (uri, sprintf "Error %d, %s" code msg)))
 end
 
-let () = Caqti_connect.register_scheme "mariadb" (module Caqtus_functor)
+let () = Caqti_connect.define_driver_v1 "mariadb" (module Caqtus_functor)

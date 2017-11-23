@@ -14,20 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) System Interface *)
+(** (internal) System Interface
+
+    The system utilities used by drivers.  This signature will likely be
+    extended or changed due requirements of new backends. *)
 
 open Caqti_query
 
-(** The system utilities used by drivers.  This signature will likely be
-    extended or changed due requirements of new backends. *)
-module type S = sig
+module type V2 = sig
 
   type +'a io
   val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
   val (>|=) : 'a io -> ('a -> 'b) -> 'b io
   val return : 'a -> 'a io
-  val fail : exn -> 'a io
-  val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
   val join : unit io list -> unit io
 
   module Mvar : sig
@@ -61,3 +60,12 @@ module type S = sig
   end
 
 end
+
+module type V1 = sig
+  include V2
+
+  val fail : exn -> 'a io
+  val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
+end
+
+module type S = V1 [@@ocaml.deprecated "Renamed to V1."]

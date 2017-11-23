@@ -14,11 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Transitional code. *)
+(** Dynamic linker for database drivers.
 
-open Caqti_sigs
-
-module Connection_v2_of_v1
-    (System : Caqti_system_sig.V1)
-    (Conn : CONNECTION with type 'a io = 'a System.io) :
-  Caqti_connection_sig.S with type 'a io := 'a System.io
+    This module registers a dynamic linker for loading database drivers. *)

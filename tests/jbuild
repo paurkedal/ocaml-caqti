@@ -34,7 +34,7 @@
 (executable
  ((name bikereg)
   (modules (Bikereg))
-  (libraries (caqti caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
 
 (alias
  ((name runtest)
@@ -44,7 +44,7 @@
 (executable
  ((name bikereg_v2)
   (modules (Bikereg_v2))
-  (libraries (caqti caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
 
 (alias
  ((name runtest)
@@ -54,7 +54,7 @@
 (executable
  ((name test_sql_async)
   (modules (Test_sql_async))
-  (libraries (caqti caqti_async testkit))))
+  (libraries (caqti caqti-dynload caqti_async testkit))))
 
 (alias
  ((name runtest)
@@ -64,7 +64,7 @@
 (executable
  ((name test_parallel_lwt)
   (modules (Test_parallel_lwt))
-  (libraries (caqti caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
 
 (alias
  ((name runtest)
@@ -74,7 +74,7 @@
 (executable
  ((name test_sql_lwt)
   (modules (Test_sql_lwt))
-  (libraries (caqti caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
 
 (alias
  ((name runtest)
@@ -84,7 +84,7 @@
 (executable
  ((name test_param)
   (modules (Test_param))
-  (libraries (caqti caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
 
 ; Fake META Files
 

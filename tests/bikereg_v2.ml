@@ -59,7 +59,7 @@ module Q = struct
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
         owner text NOT NULL,
-        stolen timestamp
+        stolen timestamp NULL
       )
     |eos}
 
@@ -73,7 +73,7 @@ module Q = struct
 
   let select_stolen = Caqti_request.collect
     Caqti_type.unit Bike.t
-    "SELECT * FROM bikereg WHERE stolen IS NOT NULL"
+    "SELECT * FROM bikereg WHERE NOT stolen IS NULL"
 
   let select_frameno = Caqti_request.find_opt
     Caqti_type.string Caqti_type.string

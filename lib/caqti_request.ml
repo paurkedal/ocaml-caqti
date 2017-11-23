@@ -87,7 +87,6 @@ let create_p ?oneshot param_type row_type row_mult qs =
           ksprintf invalid_arg
             "The %s driver does not support query parameters."
             (Caqti_driver_info.uri_scheme di)
-       | `Linear "?" -> L (qs di)
        | _ -> format_query (qs di)))
 
 let exec ?oneshot pt rt qs =

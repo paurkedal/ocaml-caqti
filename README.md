@@ -13,9 +13,9 @@ functor for instantiating over other IO monads.
 
 ## Status
 
-A revised API has is mostly ready, pending a final evaluation.  If you
-compile the documentation, you will see that modules are marked with "(v1)"
-or "(v2)" indicating which revision of the interface they belong to.
+A revised API is mostly ready, pending a final evaluation.  If you generate
+the documentation, you will see that module titles are marked with "(v1)"
+or "(v2)", indicating which revision of the interface they belong to.
 Unmarked module are used by both revisions.  If all goes well, "(v1)" will
 be deprecated in favour of "(v2)".
 
@@ -48,6 +48,10 @@ The following drivers are available.
     - Supports describe, but without type information for parameters.
     - Does not pool connections or cache statements.
 
+Drivers are loaded dynamically based on the URI, but if dynamic loading is
+unavailable, you can statically link the `caqti-driver-*` libraries which
+you expect to use into your application.
+
 ## Documentation
 
 As the main entry point, you would normally use either of
@@ -55,7 +59,7 @@ As the main entry point, you would normally use either of
     Caqti_lwt.V2 : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
     Caqti_async.V2 : Caqti_connection_sig.S with type 'a io = 'a Deferred.Or_error.t
 
-which is provided by `caqti.lwt` or `caqti.async`, respectively.  These
+which is provided by `caqti-lwt` or `caqti-async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate
 driver, and returns a connection as a first-class module containing query
 functionality for the database.

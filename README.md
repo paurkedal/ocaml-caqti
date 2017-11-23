@@ -13,8 +13,18 @@ functor for instantiating over other IO monads.
 
 ## Status
 
-The library is under development; expect backwards incompatible API changes.
-Backends are implemented for
+A revised API has is mostly ready, pending a final evaluation.  If you
+compile the documentation, you will see that modules are marked with "(v1)"
+or "(v2)" indicating which revision of the interface they belong to.
+Unmarked module are used by both revisions.  If all goes well, "(v1)" will
+be deprecated in favour of "(v2)".
+
+Drivers are currently implemented for v1, with a compatibility layer
+providing v2 support.
+
+## Drivers
+
+The following drivers are available.
 
   - MariaDB (`mariadb://`)
     - Implemented in terms of
@@ -42,21 +52,26 @@ Backends are implemented for
 
 As the main entry point, you would normally use either of
 
-    Caqti_lwt : Caqti_sigs.CAQTI with type 'a io = 'a Lwt.t
-    Caqti_async : Caqti_sigs.CAQTI with type 'a io = 'a Deferred.Or_error.t
+    Caqti_lwt.V2 : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
+    Caqti_async.V2 : Caqti_connection_sig.S with type 'a io = 'a Deferred.Or_error.t
 
 which is provided by `caqti.lwt` or `caqti.async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate
-backend, and returns a connection as a first-class module containing query
+driver, and returns a connection as a first-class module containing query
 functionality for the database.
 
 The best place to start may be with a [documented example][bikereg].  The
-main documentation is the [API Reference][apiref].  Apart from the above
-connectors, the most important modules to know are:
+API reference is currently not online, but can be generated with `topkg doc`
+from the source code or with [odig](http://erratique.ch/software/odig) from
+an OPAM installation.
 
-  - `Caqti_query` is used for constructing query strings.
-  - `Caqti_sigs.CAQTI.CONNECTION` is the interface to a connected database.
+The most important modules to know about are:
 
+  - `Caqti_type` and `Caqti_request` for constructing prepared or one-shot
+    queries.
+  - `Caqti_lwt.V2` and `Caqti_async.V2` for connecting to the database and
+    obtaining a first class module implementing `Caqti_connection_sig.S`.
+  - `Caqti_connection_sig.S` and `Caqti_response_sig.S` for executing
+    queries.
 
-[apiref]: http://paurkedal.github.io/ocaml-caqti/
-[bikereg]: tests/bikereg.ml
+[bikereg]: tests/bikereg_v2.ml

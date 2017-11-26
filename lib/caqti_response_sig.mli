@@ -28,34 +28,34 @@ module type S = sig
   (** {2 Result inspection} *)
 
   val returned_count :
-    ('b, 'm) t -> (int, [Caqti_error.retrieve | `Unsupported]) result io
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result io
   (** [returned_count resp] is the number of rows returned by [resp].  This
       function may not be available for all databases. *)
 
   val affected_count :
-    ('b, 'm) t -> (int, [Caqti_error.retrieve | `Unsupported]) result io
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result io
   (** [affected_count resp] is the number of rows affected by the updated the
       produced [resp].  This function may not be available for all databases. *)
 
   (** {2 Result retrieval} *)
 
   val exec :
-    (unit, [< `Zero]) t -> (unit, Caqti_error.retrieve) result io
+    (unit, [< `Zero]) t -> (unit, [> Caqti_error.retrieve]) result io
   (** [exec resp] checks that [resp] succeeded with no result rows. *)
 
   val find :
-    ('b, [< `One]) t -> ('b, Caqti_error.retrieve) result io
+    ('b, [< `One]) t -> ('b, [> Caqti_error.retrieve]) result io
   (** [find resp] checks that [resp] succeeded with a single row, and returns
       the decoded row. *)
 
   val find_opt :
-    ('b, [< `Zero | `One]) t -> ('b option, Caqti_error.retrieve) result io
+    ('b, [< `Zero | `One]) t -> ('b option, [> Caqti_error.retrieve]) result io
   (** [find_opt resp] checks that [resp] succeeded with at most one row, and
       returns the row if any. *)
 
   val fold :
     ('b -> 'c -> 'c) ->
-    ('b, 'm) t -> 'c -> ('c, Caqti_error.retrieve) result io
+    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve]) result io
   (** [fold f resp] folds [f] over the decoded rows returned in [resp]. *)
 
   val fold_s :

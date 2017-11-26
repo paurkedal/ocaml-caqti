@@ -120,6 +120,7 @@ struct
      | Type.Int64 -> fun (tup, i) -> (C.Tuple.int64 i tup, i + 1)
      | Type.Float -> fun (tup, i) -> (C.Tuple.float i tup, i + 1)
      | Type.String -> fun (tup, i) -> (C.Tuple.string i tup, i + 1)
+     | Type.Octets -> fun (tup, i) -> (C.Tuple.string i tup, i + 1)
      | Type.Pday -> fun (tup, i) -> (tuple_pdate i tup, i + 1)
      | Type.Ptime -> fun (tup, i) -> (tuple_ptime i tup, i + 1)
      | ft -> fun (tup, i) ->
@@ -214,6 +215,7 @@ struct
      | Type.Int64 -> a.(i) <- C.Param.int64 x; i + 1
      | Type.Float -> a.(i) <- C.Param.float x; i + 1
      | Type.String -> a.(i) <- C.Param.string x; i + 1
+     | Type.Octets -> a.(i) <- C.Param.string x; i + 1
      | Type.Pday -> a.(i) <- param_pdate x; i + 1
      | Type.Ptime -> a.(i) <- param_ptime x; i + 1
      | ft ->

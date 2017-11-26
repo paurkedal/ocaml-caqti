@@ -31,7 +31,7 @@ let csv_quoted s =
   Buffer.add_char buf '"';
   Buffer.contents buf;
 
-module Connection_utils (C : CONNECTION) = struct
+module Connection_utils (C : V1.CONNECTION) = struct
   let show_field qd i r =
     match snd qd.querydesc_fields.(i) with
     | `Bool -> if C.Tuple.bool i r then "true" else "false"
@@ -47,7 +47,7 @@ end
 
 let main do_describe uri qs =
   let q = Caqti_query.prepare_any qs in
-  Caqti_lwt.connect uri >>= fun connection ->
+  Caqti_lwt.V1.connect uri >>= fun connection ->
   let module C = (val connection) in
   let module U = Connection_utils (C) in
   let describe =

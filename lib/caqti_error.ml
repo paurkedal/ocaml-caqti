@@ -64,15 +64,37 @@ type connect =
   [ `Connect_failed of connect_msg ]
 
 
+type coding_msg = {
+  uri : Uri.t;
+  field_type : Caqti_type.Field.ex;
+  msg : string option;
+}
+let pp_coding_msg ppf ~fmt err =
+  let Caqti_type.Field.Ex field_type = err.field_type in
+  Format.fprintf ppf fmt (Caqti_type.Field.to_string field_type);
+  Format.fprintf ppf " for %a" Uri.pp_hum err.uri;
+  (match err.msg with
+   | None -> Format.pp_print_char ppf '.'
+   | Some msg ->
+      Format.pp_print_string ppf ": ";
+      Format.pp_print_string ppf msg)
+
 type request_msg = {
   uri : Uri.t;
   query_string : string;
   msg : driver_msg;
 }
-type request =
-  [ `Request_rejected of request_msg
+type call =
+  [ `Encode_missing of coding_msg
+  | `Encode_rejected of coding_msg
+  | `Request_rejected of request_msg
   | `Request_failed of request_msg ]
 
+let encode_missing ~uri ~field_type () =
+  `Encode_missing {uri; field_type = Caqti_type.Field.Ex field_type; msg = None}
+let encode_rejected ~uri ~field_type msg =
+  let msg = Some msg in
+  `Encode_rejected {uri; field_type = Caqti_type.Field.Ex field_type; msg}
 let request_rejected ~uri ~query_string msg =
   `Request_rejected {uri; query_string; msg}
 let request_failed ~uri ~query_string msg =
@@ -90,8 +112,16 @@ type response_msg = {
   query_string : string;
   msg : string;
 }
-type response = [ `Response_rejected of response_msg ]
+type retrieve =
+  [ `Decode_missing of coding_msg
+  | `Decode_rejected of coding_msg
+  | `Response_rejected of response_msg ]
 
+let decode_missing ~uri ~field_type () =
+  `Decode_missing {uri; field_type = Caqti_type.Field.Ex field_type; msg = None}
+let decode_rejected ~uri ~field_type msg =
+  let msg = Some msg in
+  `Decode_rejected {uri; field_type = Caqti_type.Field.Ex field_type; msg}
 let response_rejected ~uri ~query_string msg =
   `Response_rejected {uri; query_string; msg}
 
@@ -99,22 +129,30 @@ let pp_response_msg ppf err =
   Format.fprintf ppf "Unexpected result from %a, %s."
     Uri.pp_hum err.uri err.msg;
 
-type t = [load | connect | request | response]
-type request_or_response = [request | response]
+type t = [load | connect | call | retrieve]
+type call_or_retrieve = [call | retrieve]
 type load_or_connect = [load | connect]
 
 let uri = function
  | `Load_rejected ({uri; _} : load_msg) -> uri
  | `Load_failed ({uri; _} : load_msg) -> uri
  | `Connect_failed ({uri; _} : connect_msg) -> uri
+ | `Encode_missing ({uri; _} : coding_msg) -> uri
+ | `Encode_rejected ({uri; _} : coding_msg) -> uri
  | `Request_rejected ({uri; _} : request_msg) -> uri
  | `Request_failed ({uri; _} : request_msg) -> uri
+ | `Decode_missing ({uri; _} : coding_msg) -> uri
+ | `Decode_rejected ({uri; _} : coding_msg) -> uri
  | `Response_rejected ({uri; _} : response_msg) -> uri
 
 let pp_hum ppf = function
  | `Load_rejected err -> pp_load_msg ppf ~fmt:"Cannot load \"%a\"" err
  | `Load_failed err -> pp_load_msg ppf ~fmt:"Failed to load \"%a\"" err
  | `Connect_failed err -> pp_connect_msg ppf err
+ | `Encode_missing err -> pp_coding_msg ppf ~fmt:"Encoder missing for %s" err
+ | `Encode_rejected err -> pp_coding_msg ppf ~fmt:"Failed to encode %s" err
+ | `Decode_missing err -> pp_coding_msg ppf ~fmt:"Decoder missing for %s" err
+ | `Decode_rejected err -> pp_coding_msg ppf ~fmt:"Failed to decode %s" err
  | `Request_rejected err -> pp_request_msg ppf ~fmt:"Request rejected by %a" err
  | `Request_failed err -> pp_request_msg ppf ~fmt:"Request to %a failed" err
  | `Response_rejected err -> pp_response_msg ppf err

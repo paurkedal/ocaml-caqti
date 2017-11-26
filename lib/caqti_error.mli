@@ -74,14 +74,37 @@ val connect_failed :
 
 (** {2 Errors during Request Processing} *)
 
+type coding_msg = private {
+  uri: Uri.t;
+  field_type: Caqti_type.Field.ex;
+  msg: string option;
+}
 type request_msg = private {
   uri: Uri.t;
   query_string: string;
   msg: driver_msg;
 }
-type request =
-  [ `Request_rejected of request_msg
+type call =
+  [ `Encode_missing of coding_msg
+  | `Encode_rejected of coding_msg
+  | `Request_rejected of request_msg
   | `Request_failed of request_msg ]
+
+val encode_missing :
+  uri: Uri.t ->
+  field_type: 'a Caqti_type.field ->
+  unit ->
+  [> `Encode_missing of coding_msg]
+(** [encode_missing ~uri ~field_type ()] indicates that the driver does not
+    support [field_type] and no fallback encoding is avaliable for the type. *)
+
+val encode_rejected :
+  uri: Uri.t ->
+  field_type: 'a Caqti_type.field ->
+  string ->
+  [> `Encode_rejected of coding_msg]
+(** [encode_rejected ~uri ~field_type msg] indicates that encoding a value to
+    [field_type] failed, e.g. due to being out of range. *)
 
 val request_rejected :
   uri: Uri.t ->
@@ -107,8 +130,27 @@ type response_msg = private {
   query_string: string;
   msg: string;
 }
-type response =
-  [ `Response_rejected of response_msg ]
+type retrieve =
+  [ `Decode_missing of coding_msg
+  | `Decode_rejected of coding_msg
+  | `Response_rejected of response_msg ]
+
+val decode_missing :
+  uri: Uri.t ->
+  field_type: 'a Caqti_type.field ->
+  unit ->
+  [> `Decode_missing of coding_msg]
+(** [decode_missing ~uri ~field_type ()] indicates that the driver does not
+    support [field_type] for decoding result rows. *)
+
+val decode_rejected :
+  uri: Uri.t ->
+  field_type: 'a Caqti_type.field ->
+  string ->
+  [> `Decode_rejected of coding_msg]
+(** [decode_rejected ~uri ~field_type msg] indicates that the driver could not
+    decode a field of type [field_type] from the returnd row, e.g. due to an
+    invalid value or limited range of the target type. *)
 
 val response_rejected :
   uri: Uri.t ->
@@ -120,8 +162,8 @@ val response_rejected :
 
 (** {2 Union and Common Operations} *)
 
-type t = [load | connect | request | response]
-type request_or_response = [request | response]
+type t = [load | connect | call | retrieve]
+type call_or_retrieve = [call | retrieve]
 type load_or_connect = [load | connect]
 
 val uri : [< t] -> Uri.t

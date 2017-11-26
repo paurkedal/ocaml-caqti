@@ -30,6 +30,8 @@ module Field = struct
 
   type 'a t = 'a field
 
+  type ex = Ex : 'a t -> ex
+
   type _ coding = Coding : {
     rep: 'b t;
     encode: 'a -> 'b;

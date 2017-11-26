@@ -89,8 +89,8 @@ let create_p ?oneshot param_type row_type row_mult qs =
             (Caqti_driver_info.uri_scheme di)
        | _ -> format_query (qs di)))
 
-let exec ?oneshot pt rt qs =
-  create_p ?oneshot pt rt Caqti_mult.zero (fun _ -> qs)
+let exec ?oneshot pt qs =
+  create_p ?oneshot pt Caqti_type.unit Caqti_mult.zero (fun _ -> qs)
 let find ?oneshot pt rt qs =
   create_p ?oneshot pt rt Caqti_mult.one (fun _ -> qs)
 let find_opt ?oneshot pt rt qs =

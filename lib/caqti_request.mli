@@ -106,9 +106,9 @@ val create_p :
       prepared, which is suitable for requests defined at the module level. *)
 
 val exec :
-  ?oneshot: bool -> 'a Caqti_type.t -> 'b Caqti_type.t ->
-  string -> ('a, 'b, [> `Zero]) t
-(** [exec_p arg_type row_type s] is a shortcut for [create_p arg_type row_type
+  ?oneshot: bool -> 'a Caqti_type.t ->
+  string -> ('a, unit, [> `Zero]) t
+(** [exec_p arg_type s] is a shortcut for [create_p arg_type Caqti_type.unit
     Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :

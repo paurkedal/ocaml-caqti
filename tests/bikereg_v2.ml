@@ -54,7 +54,7 @@ module Q = struct
   let create_ign_p pt rt rm s = Caqti_request.create_p pt rt rm (fun _ -> s)
 
   let create_bikereg =
-    Caqti_request.exec Caqti_type.unit Caqti_type.unit
+    Caqti_request.exec Caqti_type.unit
     {eos|
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
@@ -64,11 +64,11 @@ module Q = struct
     |eos}
 
   let reg_bike = Caqti_request.exec
-    Caqti_type.(tup2 string string) Caqti_type.unit
+    Caqti_type.(tup2 string string)
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
   let report_stolen = Caqti_request.exec
-    Caqti_type.string Caqti_type.unit
+    Caqti_type.string
     "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
 
   let select_stolen = Caqti_request.collect

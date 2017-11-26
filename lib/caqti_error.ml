@@ -74,12 +74,12 @@ let pp_query_msg ppf fmt err =
 
 type coding_error = {
   uri : Uri.t;
-  field_type : Caqti_type.Field.ex;
+  typ : Caqti_type.ex;
   msg : msg;
 }
 let pp_coding_error ppf fmt err =
-  let Caqti_type.Field.Ex field_type = err.field_type in
-  Format.fprintf ppf fmt (Caqti_type.Field.to_string field_type);
+  let Caqti_type.Ex typ = err.typ in
+  Format.fprintf ppf fmt (Caqti_type.to_string_hum typ);
   Format.fprintf ppf " for %a" Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
@@ -116,15 +116,15 @@ type call =
   | `Request_failed of query_error ]
 
 let encode_missing ~uri ~field_type () =
-  let field_type = Caqti_type.Field.Ex field_type in
+  let typ = Caqti_type.Ex (Caqti_type.field field_type) in
   let msg = Msg "Field type not supported and no fallback provided." in
-  `Encode_rejected ({uri; field_type; msg} : coding_error)
-let encode_rejected ~uri ~field_type msg =
-  let field_type = Caqti_type.Field.Ex field_type in
-  `Encode_rejected ({uri; field_type; msg} : coding_error)
-let encode_failed ~uri ~field_type msg =
-  let field_type = Caqti_type.Field.Ex field_type in
-  `Encode_failed ({uri; field_type; msg} : coding_error)
+  `Encode_rejected ({uri; typ; msg} : coding_error)
+let encode_rejected ~uri ~typ msg =
+  let typ = Caqti_type.Ex typ in
+  `Encode_rejected ({uri; typ; msg} : coding_error)
+let encode_failed ~uri ~typ msg =
+  let typ = Caqti_type.Ex typ in
+  `Encode_failed ({uri; typ; msg} : coding_error)
 let request_rejected ~uri ~query msg =
   `Request_rejected ({uri; query; msg} : query_error)
 let request_failed ~uri ~query msg =
@@ -138,12 +138,12 @@ type retrieve =
   | `Response_rejected of query_error ]
 
 let decode_missing ~uri ~field_type () =
-  let field_type = Caqti_type.Field.Ex field_type in
+  let typ = Caqti_type.Ex (Caqti_type.field field_type) in
   let msg = Msg "Field type not supported and no fallback provided." in
-  `Decode_rejected ({uri; field_type; msg} : coding_error)
-let decode_rejected ~uri ~field_type msg =
-  let field_type = Caqti_type.Field.Ex field_type in
-  `Decode_rejected ({uri; field_type; msg} : coding_error)
+  `Decode_rejected ({uri; typ; msg} : coding_error)
+let decode_rejected ~uri ~typ msg =
+  let typ = Caqti_type.Ex typ in
+  `Decode_rejected ({uri; typ; msg} : coding_error)
 let response_failed ~uri ~query msg =
   `Response_failed ({uri; query; msg} : query_error)
 let response_rejected ~uri ~query msg =

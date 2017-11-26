@@ -56,7 +56,7 @@ type query_error = private {
 }
 type coding_error = private {
   uri: Uri.t;
-  field_type: Caqti_type.Field.ex;
+  typ: Caqti_type.ex;
   msg: msg;
 }
 
@@ -108,15 +108,15 @@ val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
 (** [encode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] and no fallback encoding is available for the type. *)
 
-val encode_rejected : uri: Uri.t -> field_type: 'a Caqti_type.field -> msg ->
+val encode_rejected : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
   [> `Encode_rejected of coding_error]
-(** [encode_rejected ~uri ~field_type msg] indicates that encoding a value to
-    [field_type] failed, e.g. due to being out of range. *)
+(** [encode_rejected ~uri ~typ msg] indicates that encoding a value to [typ]
+    failed, e.g. due to being out of range. *)
 
-val encode_failed : uri: Uri.t -> field_type: 'a Caqti_type.field -> msg ->
+val encode_failed : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
   [> `Encode_failed of coding_error]
-(** [encode_failed ~uri ~field_type msg] indicates that a parameter of type
-    [field_type] was not accepted by the database driver. *)
+(** [encode_failed ~uri ~typ msg] indicates that a parameter of type [typ] was
+    not accepted by the database driver. *)
 
 val request_rejected : uri: Uri.t -> query: string -> msg ->
   [> `Request_rejected of query_error]
@@ -143,11 +143,11 @@ val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
 (** [decode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] for decoding result rows. *)
 
-val decode_rejected : uri: Uri.t -> field_type: 'a Caqti_type.field -> msg ->
+val decode_rejected : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
   [> `Decode_rejected of coding_error]
-(** [decode_rejected ~uri ~field_type msg] indicates that the driver could not
-    decode a field of type [field_type] from the returned row, e.g. due to an
-    invalid value or limited range of the target type. *)
+(** [decode_rejected ~uri ~typ msg] indicates that the driver could not decode a
+    field of type [typ] from the returned row, e.g. due to an invalid value or
+    limited range of the target type. *)
 
 val response_failed : uri: Uri.t -> query: string -> msg ->
   [> `Response_failed of query_error]

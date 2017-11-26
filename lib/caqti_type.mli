@@ -62,6 +62,8 @@ type _ t = private
       decode: 'b -> ('a, string) result;
     } -> 'a t
 
+type ex = Ex : 'a t -> ex
+
 val length : 'a t -> int
 
 val pp_hum : Format.formatter -> 'a t -> unit

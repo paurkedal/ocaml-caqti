@@ -78,6 +78,8 @@ type _ t =
       decode: 'b -> ('a, string) result;
     } -> 'a t
 
+type ex = Ex : 'a t -> ex
+
 let rec length : type a. a t -> int = function
  | Unit -> 0
  | Field _ -> 1

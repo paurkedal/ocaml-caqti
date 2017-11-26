@@ -27,8 +27,8 @@ module Bike = struct
     stolen: Ptime.t option;
   }
   let t =
-    let encode {frameno; owner; stolen} = (frameno, owner, stolen) in
-    let decode (frameno, owner, stolen) = {frameno; owner; stolen} in
+    let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
+    let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
     let rep = Caqti_type.(tup3 string string (option ptime)) in
     Caqti_type.custom ~encode ~decode rep
 end

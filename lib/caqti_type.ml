@@ -35,8 +35,8 @@ module Field = struct
 
   type _ coding = Coding : {
     rep: 'b t;
-    encode: 'a -> 'b;
-    decode: 'b -> 'a;
+    encode: 'a -> ('b, string) result;
+    decode: 'b -> ('a, string) result;
   } -> 'a coding
 
   type get_coding = {get_coding: 'a. 'a t -> 'a coding}
@@ -72,7 +72,11 @@ type _ t =
   | Tup2 : 'a0 t * 'a1 t -> ('a0 * 'a1) t
   | Tup3 : 'a0 t * 'a1 t * 'a2 t -> ('a0 * 'a1 * 'a2) t
   | Tup4 : 'a0 t * 'a1 t * 'a2 t * 'a3 t -> ('a0 * 'a1 * 'a2 * 'a3) t
-  | Custom : {rep: 'b t; encode: 'a -> 'b; decode: 'b -> 'a} -> 'a t
+  | Custom : {
+      rep: 'b t;
+      encode: 'a -> ('b, string) result;
+      decode: 'b -> ('a, string) result;
+    } -> 'a t
 
 let rec length : type a. a t -> int = function
  | Unit -> 0

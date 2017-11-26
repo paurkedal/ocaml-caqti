@@ -18,20 +18,23 @@ type _ Caqti_type.field +=
   | Date : CalendarLib.Date.t Caqti_type.field
   | Time : CalendarLib.Calendar.t Caqti_type.field
 
+let conv f x = try Ok (f x) with _ -> Error "Conversion failed."
+
 let () =
   let open Caqti_type.Field in
   let open CalendarLib in
   let get_coding : type a. a t -> a coding = function
    | Date ->
-      let encode date = int_of_float (Date.to_unixfloat date /. 86400.0) in
-      let decode pday = Date.from_unixfloat (float_of_int pday *. 86400.0) in
+      let encode date = conv int_of_float (Date.to_unixfloat date /. 86400.0) in
+      let decode pday = conv Date.from_unixfloat (float_of_int pday *. 86400.0) in
       Coding {rep = Caqti_type.Pday; encode; decode}
    | Time ->
       let encode time =
         (match Ptime.of_float_s (Calendar.to_unixfloat time) with
-         | Some t -> t
-         | None -> failwith "Failed to Calendar.t to Ptime.t") in
-      let decode ptime = Calendar.from_unixfloat (Ptime.to_float_s ptime) in
+         | Some t -> Ok t
+         | None -> Error "Failed to convert Calendar.t to Ptime.t") in
+      let decode ptime =
+        conv Calendar.from_unixfloat (Ptime.to_float_s ptime) in
       Coding {rep = Caqti_type.Ptime; encode; decode}
    | _ -> assert false in
   define_coding Date {get_coding};

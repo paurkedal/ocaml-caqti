@@ -130,7 +130,9 @@ struct
               (Type.Field.to_string ft)
          | Some (Type.Field.Coding coding) ->
             let (y, i) = decode_field' coding.rep (tup, i) in
-            (coding.decode y, i))
+            (match coding.decode y with
+             | Ok z -> (z, i)
+             | Error msg -> failwith msg))
 
     let rec decode' : type a. a Type.t -> _ -> a * int =
       (function
@@ -163,7 +165,11 @@ struct
           let x3, i = decode' t3 (tup, i) in
           (x0, x1, x2, x3), i
        | Type.Custom {rep; decode = g; _} ->
-          fun (tup, i) -> let y, j = decode' rep (tup, i) in (g y, j))
+          fun (tup, i) ->
+          let y, j = decode' rep (tup, i) in
+          (match g y with
+           | Ok z -> (z, j)
+           | Error msg -> failwith msg))
 
     let decode rt tup =
       let y, j = decode' rt (tup, 0) in
@@ -224,8 +230,9 @@ struct
             Printf.ksprintf failwith "Unsupported field type %s."
               (Type.Field.to_string ft)
          | Some (Type.Field.Coding coding) ->
-            let y = coding.encode x in
-            encode_field coding.rep y a i))
+            (match coding.encode x with
+             | Ok y -> encode_field coding.rep y a i
+             | Error msg -> failwith msg)))
 
   let rec encode :
       type a. a Type.t -> a -> C.Param.t array -> int -> int = fun t x a i ->
@@ -247,7 +254,10 @@ struct
         let x0, x1, x2, x3 = x in
         i |> encode t0 x0 a |> encode t1 x1 a
           |> encode t2 x2 a |> encode t3 x3 a
-     | Type.Custom {rep; encode = f; _} -> encode rep (f x) a i)
+     | Type.Custom {rep; encode = f; _} ->
+        (match f x with
+         | Ok y -> encode rep y a i
+         | Error msg -> failwith msg))
 
   let driver_info = C.driver_info
 

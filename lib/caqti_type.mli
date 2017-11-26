@@ -25,8 +25,8 @@ module Field : sig
 
   type _ coding = Coding : {
     rep: 'b t;
-    encode: 'a -> 'b;
-    decode: 'b -> 'a;
+    encode: 'a -> ('b, string) result;
+    decode: 'b -> ('a, string) result;
   } -> 'a coding
 
   type get_coding = {get_coding: 'a. 'a t -> 'a coding}
@@ -58,8 +58,8 @@ type _ t = private
   | Tup4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
   | Custom : {
       rep: 'b t;
-      encode: 'a -> 'b;
-      decode: 'b -> 'a;
+      encode: 'a -> ('b, string) result;
+      decode: 'b -> ('a, string) result;
     } -> 'a t
 
 val length : 'a t -> int
@@ -74,7 +74,10 @@ val option : 'a t -> 'a option t
 val tup2 : 'a t -> 'b t -> ('a * 'b) t
 val tup3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
 val tup4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
-val custom : encode: ('a -> 'b) -> decode: ('b -> 'a) -> 'b t -> 'a t
+val custom :
+  encode: ('a -> ('b, string) result) ->
+  decode: ('b -> ('a, string) result) ->
+  'b t -> 'a t
 
 val bool : bool t
 val int : int t

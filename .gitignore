@@ -3,6 +3,7 @@
 /_test.db
 /caqti.install
 /caqti-async.install
+/caqti-dynload.install
 /caqti-lwt.install
 /caqti-driver-*.install
 /caqti-type-*.install

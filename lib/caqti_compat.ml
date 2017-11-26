@@ -20,14 +20,6 @@ open Caqti_sigs
 
 module Type = Caqti_type
 
-type Caqti_error.driver_msg += Driver_msg of string
-
-let () =
-  let pp ppf = function
-   | Driver_msg msg -> Format.pp_print_string ppf msg
-   | _ -> assert false in
-  Caqti_error.define_driver_msg ~pp [%extension_constructor Driver_msg]
-
 let template_param_order templ di =
   let open Caqti_request in
   let rec loop = function
@@ -83,15 +75,15 @@ struct
 
   let prepare_failed uri qi msg =
     let query = qs_of_qi qi in
-    Caqti_error.request_rejected ~uri ~query (Driver_msg msg)
+    Caqti_error.request_rejected ~uri ~query (Caqti_error.Msg msg)
 
   let execute_failed uri qi msg =
     let query = qs_of_qi qi in
-    Caqti_error.request_failed ~uri ~query (Driver_msg msg)
+    Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)
 
   let miscommunication uri qi msg =
     let query = qs_of_qi qi in
-    Caqti_error.response_rejected ~uri ~query msg
+    Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg)
 
   let catch_response f =
     catch

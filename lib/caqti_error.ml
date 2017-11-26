@@ -16,97 +16,73 @@
 
 (* Driver *)
 
-type driver_msg = ..
+type msg = ..
 
-let driver_msg_pp = Hashtbl.create 7
+let msg_pp = Hashtbl.create 7
 
-let define_driver_msg ~pp ec = Hashtbl.add driver_msg_pp ec pp
+let define_msg ~pp ec = Hashtbl.add msg_pp ec pp
 
-let pp_driver_msg ppf driver_msg =
-  let c = Obj.extension_constructor driver_msg in
+let pp_msg ppf msg =
+  let c = Obj.extension_constructor msg in
   try
-    let pp = Hashtbl.find driver_msg_pp c in
-    pp ppf driver_msg
+    let pp = Hashtbl.find msg_pp c in
+    pp ppf msg
   with Not_found ->
     Format.fprintf ppf
-      "[FIXME: missing printer for (%s _ : Caqti_error.driver_msg)]"
+      "[FIXME: missing printer for (%s _ : Caqti_error.msg)]"
       (Obj.extension_name c)
 
-type driver_msg += Driver_msg : string -> driver_msg
+type msg += Msg : string -> msg
 
 let () =
   let pp ppf = function
-   | Driver_msg s -> Format.pp_print_string ppf s
+   | Msg s -> Format.pp_print_string ppf s
    | _ -> assert false in
-  define_driver_msg ~pp [%extension_constructor Driver_msg]
+  define_msg ~pp [%extension_constructor Msg]
 
 (* Records *)
 
 type load_error = {
   uri : Uri.t;
-  msg : string;
+  msg : msg;
 }
 let pp_load_msg ppf fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
-  Format.pp_print_string ppf err.msg
+  pp_msg ppf err.msg
 
 type connection_error = {
   uri : Uri.t;
-  msg : driver_msg;
+  msg : msg;
 }
 let pp_connection_msg ppf fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
-  pp_driver_msg ppf err.msg;
+  pp_msg ppf err.msg;
   Format.pp_print_char ppf '.'
 
-type local_error = {
+type query_error = {
   uri : Uri.t;
   query : string;
-  msg : string;
+  msg : msg;
 }
-let pp_local_msg ppf err =
-  Format.fprintf ppf "Unexpected result from %a, %s."
-    Uri.pp_hum err.uri err.msg;
-
-type remote_error = {
-  uri : Uri.t;
-  query : string;
-  msg : driver_msg;
-}
-let pp_remote_msg ppf fmt err =
+let pp_query_msg ppf fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
-  Format.pp_print_string ppf ", ";
-  pp_driver_msg ppf err.msg;
-  Format.fprintf ppf ", for query %S." err.query
+  Format.pp_print_string ppf ": ";
+  pp_msg ppf err.msg;
+  Format.fprintf ppf " Query: %S." err.query
 
-type local_coding_error = {
+type coding_error = {
   uri : Uri.t;
   field_type : Caqti_type.Field.ex;
-  msg : string option;
+  msg : msg;
 }
-let pp_local_coding_error ppf fmt err =
-  let Caqti_type.Field.Ex field_type = err.field_type in
-  Format.fprintf ppf fmt (Caqti_type.Field.to_string field_type);
-  Format.fprintf ppf " for %a" Uri.pp_hum err.uri;
-  (match err.msg with
-   | None -> Format.pp_print_char ppf '.'
-   | Some msg ->
-      Format.pp_print_string ppf ": ";
-      Format.pp_print_string ppf msg)
-
-type remote_coding_error = {
-  uri : Uri.t;
-  field_type : Caqti_type.Field.ex;
-  msg : driver_msg;
-}
-let pp_remote_coding_error ppf fmt err =
+let pp_coding_error ppf fmt err =
   let Caqti_type.Field.Ex field_type = err.field_type in
   Format.fprintf ppf fmt (Caqti_type.Field.to_string field_type);
   Format.fprintf ppf " for %a" Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
-  pp_driver_msg ppf err.msg
+  pp_msg ppf err.msg
 
 (* Load *)
 
@@ -134,44 +110,44 @@ type disconnect =
 (* Call *)
 
 type call =
-  [ `Encode_missing of local_coding_error
-  | `Encode_rejected of local_coding_error
-  | `Encode_failed of remote_coding_error
-  | `Request_rejected of remote_error
-  | `Request_failed of remote_error ]
+  [ `Encode_rejected of coding_error
+  | `Encode_failed of coding_error
+  | `Request_rejected of query_error
+  | `Request_failed of query_error ]
 
 let encode_missing ~uri ~field_type () =
   let field_type = Caqti_type.Field.Ex field_type in
-  `Encode_missing ({uri; field_type; msg = None} : local_coding_error)
+  let msg = Msg "Field type not supported and no fallback provided." in
+  `Encode_rejected ({uri; field_type; msg} : coding_error)
 let encode_rejected ~uri ~field_type msg =
   let field_type = Caqti_type.Field.Ex field_type in
-  `Encode_rejected ({uri; field_type; msg = Some msg} : local_coding_error)
+  `Encode_rejected ({uri; field_type; msg} : coding_error)
 let encode_failed ~uri ~field_type msg =
   let field_type = Caqti_type.Field.Ex field_type in
-  `Encode_failed ({uri; field_type; msg} : remote_coding_error)
+  `Encode_failed ({uri; field_type; msg} : coding_error)
 let request_rejected ~uri ~query msg =
-  `Request_rejected ({uri; query; msg} : remote_error)
+  `Request_rejected ({uri; query; msg} : query_error)
 let request_failed ~uri ~query msg =
-  `Request_failed ({uri; query; msg} : remote_error)
+  `Request_failed ({uri; query; msg} : query_error)
 
 (* Retrieve *)
 
 type retrieve =
-  [ `Decode_missing of local_coding_error
-  | `Decode_rejected of local_coding_error
-  | `Response_failed of remote_error
-  | `Response_rejected of local_error ]
+  [ `Decode_rejected of coding_error
+  | `Response_failed of query_error
+  | `Response_rejected of query_error ]
 
 let decode_missing ~uri ~field_type () =
   let field_type = Caqti_type.Field.Ex field_type in
-  `Decode_missing ({uri; field_type; msg = None} : local_coding_error)
+  let msg = Msg "Field type not supported and no fallback provided." in
+  `Decode_rejected ({uri; field_type; msg} : coding_error)
 let decode_rejected ~uri ~field_type msg =
   let field_type = Caqti_type.Field.Ex field_type in
-  `Decode_rejected ({uri; field_type; msg = Some msg} : local_coding_error)
+  `Decode_rejected ({uri; field_type; msg} : coding_error)
 let response_failed ~uri ~query msg =
-  `Response_failed ({uri; query; msg} : remote_error)
+  `Response_failed ({uri; query; msg} : query_error)
 let response_rejected ~uri ~query msg =
-  `Response_rejected ({uri; query; msg} : local_error)
+  `Response_rejected ({uri; query; msg} : query_error)
 
 (* Common *)
 
@@ -185,30 +161,26 @@ let uri = function
  | `Load_failed ({uri; _} : load_error) -> uri
  | `Connect_failed ({uri; _} : connection_error) -> uri
  | `Disconnect_rejected ({uri; _} : connection_error) -> uri
- | `Encode_missing ({uri; _} : local_coding_error) -> uri
- | `Encode_rejected ({uri; _} : local_coding_error) -> uri
- | `Encode_failed ({uri; _} : remote_coding_error) -> uri
- | `Request_rejected ({uri; _} : remote_error) -> uri
- | `Request_failed ({uri; _} : remote_error) -> uri
- | `Decode_missing ({uri; _} : local_coding_error) -> uri
- | `Decode_rejected ({uri; _} : local_coding_error) -> uri
- | `Response_failed ({uri; _} : remote_error) -> uri
- | `Response_rejected ({uri; _} : local_error) -> uri
+ | `Encode_rejected ({uri; _} : coding_error) -> uri
+ | `Encode_failed ({uri; _} : coding_error) -> uri
+ | `Request_rejected ({uri; _} : query_error) -> uri
+ | `Request_failed ({uri; _} : query_error) -> uri
+ | `Decode_rejected ({uri; _} : coding_error) -> uri
+ | `Response_failed ({uri; _} : query_error) -> uri
+ | `Response_rejected ({uri; _} : query_error) -> uri
 
 let pp_hum ppf = function
  | `Load_rejected err -> pp_load_msg ppf "Cannot load <%a>" err
  | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
  | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
- | `Encode_missing err -> pp_local_coding_error ppf "Encoder missing for %s" err
- | `Encode_rejected err -> pp_local_coding_error ppf "Failed to encode %s" err
- | `Encode_failed err -> pp_remote_coding_error ppf "Failed to encode %s" err
- | `Decode_missing err -> pp_local_coding_error ppf "Decoder missing for %s" err
- | `Decode_rejected err -> pp_local_coding_error ppf "Failed to decode %s" err
- | `Request_rejected err -> pp_remote_msg ppf "Request rejected by %a" err
- | `Request_failed err -> pp_remote_msg ppf "Request to %a failed" err
- | `Response_failed err -> pp_remote_msg ppf "Response from %a failed" err
- | `Response_rejected err -> pp_local_msg ppf err
+ | `Encode_rejected err -> pp_coding_error ppf "Failed to encode %s" err
+ | `Encode_failed err -> pp_coding_error ppf "Failed to encode %s" err
+ | `Decode_rejected err -> pp_coding_error ppf "Failed to decode %s" err
+ | `Request_rejected err -> pp_query_msg ppf "Request rejected by <%a>" err
+ | `Request_failed err -> pp_query_msg ppf "Request to <%a> failed" err
+ | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err
+ | `Response_rejected err -> pp_query_msg ppf "Unexpected result from <%a>" err
 
 let to_string_hum err =
   let buf = Buffer.create 128 in

@@ -25,14 +25,6 @@ let define_loader f = dynload_library := f
 let drivers_v1 = Hashtbl.create 11
 let define_driver_v1 scheme p = Hashtbl.add drivers_v1 scheme p
 
-type Caqti_error.driver_msg += Driver_msg of string
-
-let () =
-  let pp ppf = function
-   | Driver_msg s -> Format.pp_print_string ppf s
-   | _ -> assert false in
-  Caqti_error.define_driver_msg ~pp [%extension_constructor Driver_msg]
-
 let load_driver_functor_v1 ~uri scheme =
   (try Ok (Hashtbl.find drivers_v1 scheme) with
    | Not_found ->
@@ -42,8 +34,9 @@ let load_driver_functor_v1 ~uri scheme =
            | Not_found ->
               let msg = sprintf "The driver for %s did not register itself \
                                  after apparently loading." scheme in
-              Error (Caqti_error.load_failed ~uri msg))
-       | Error msg -> Error (Caqti_error.load_failed ~uri msg)))
+              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+       | Error msg ->
+          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
 
 module Make_v1 (System : Caqti_system_sig.V1) = struct
   open System
@@ -55,7 +48,8 @@ module Make_v1 (System : Caqti_system_sig.V1) = struct
   let load_driver uri =
     (match Uri.scheme uri with
      | None ->
-        Error (Caqti_error.load_rejected ~uri "Missing URI scheme.")
+        let msg = "Missing URI scheme." in
+        Error (Caqti_error.load_rejected ~uri (Caqti_error.Msg msg))
      | Some scheme ->
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
@@ -110,7 +104,7 @@ module Make_v2 (System : Caqti_system_sig.V1) = struct
     catch (fun () -> f () >|= fun y -> Ok y)
       (function
        | Caqti_errors.Connect_failed (uri, msg) ->
-          return (Error (Caqti_error.connect_failed ~uri (Driver_msg msg)))
+          return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
        | exn ->
           fail exn)
 

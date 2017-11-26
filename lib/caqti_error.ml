@@ -81,7 +81,7 @@ let pp_coding_msg ppf ~fmt err =
 
 type request_msg = {
   uri : Uri.t;
-  query_string : string;
+  query : string;
   msg : driver_msg;
 }
 type call =
@@ -95,21 +95,21 @@ let encode_missing ~uri ~field_type () =
 let encode_rejected ~uri ~field_type msg =
   let msg = Some msg in
   `Encode_rejected {uri; field_type = Caqti_type.Field.Ex field_type; msg}
-let request_rejected ~uri ~query_string msg =
-  `Request_rejected {uri; query_string; msg}
-let request_failed ~uri ~query_string msg =
-  `Request_failed {uri; query_string; msg}
+let request_rejected ~uri ~query msg =
+  `Request_rejected {uri; query; msg}
+let request_failed ~uri ~query msg =
+  `Request_failed {uri; query; msg}
 
 let pp_request_msg ppf ~fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
   Format.pp_print_string ppf ", ";
   pp_driver_msg ppf err.msg;
-  Format.fprintf ppf ", for query %S." err.query_string
+  Format.fprintf ppf ", for query %S." err.query
 
 
 type response_msg = {
   uri : Uri.t;
-  query_string : string;
+  query : string;
   msg : string;
 }
 type retrieve =
@@ -122,8 +122,8 @@ let decode_missing ~uri ~field_type () =
 let decode_rejected ~uri ~field_type msg =
   let msg = Some msg in
   `Decode_rejected {uri; field_type = Caqti_type.Field.Ex field_type; msg}
-let response_rejected ~uri ~query_string msg =
-  `Response_rejected {uri; query_string; msg}
+let response_rejected ~uri ~query msg =
+  `Response_rejected {uri; query; msg}
 
 let pp_response_msg ppf err =
   Format.fprintf ppf "Unexpected result from %a, %s."

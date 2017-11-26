@@ -82,16 +82,16 @@ struct
    | `Prepared (_, s) -> s
 
   let prepare_failed uri qi msg =
-    let query_string = qs_of_qi qi in
-    Caqti_error.request_rejected ~uri ~query_string (Driver_msg msg)
+    let query = qs_of_qi qi in
+    Caqti_error.request_rejected ~uri ~query (Driver_msg msg)
 
   let execute_failed uri qi msg =
-    let query_string = qs_of_qi qi in
-    Caqti_error.request_failed ~uri ~query_string (Driver_msg msg)
+    let query = qs_of_qi qi in
+    Caqti_error.request_failed ~uri ~query (Driver_msg msg)
 
   let miscommunication uri qi msg =
-    let query_string = qs_of_qi qi in
-    Caqti_error.response_rejected ~uri ~query_string msg
+    let query = qs_of_qi qi in
+    Caqti_error.response_rejected ~uri ~query msg
 
   let catch_response f =
     catch

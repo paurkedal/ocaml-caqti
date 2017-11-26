@@ -44,15 +44,11 @@ type load =
   [ `Load_rejected of load_msg
   | `Load_failed of load_msg ]
 
-val load_rejected :
-  uri: Uri.t -> string ->
-  [> `Load_rejected of load_msg]
+val load_rejected : uri: Uri.t -> string -> [> `Load_rejected of load_msg]
 (** [load_rejected ~uri msg] indicates that the driver to load could not be
     identified from [uri]. *)
 
-val load_failed :
-  uri: Uri.t -> string ->
-  [> `Load_failed of load_msg]
+val load_failed : uri: Uri.t -> string -> [> `Load_failed of load_msg]
 (** [load_failed ~uri msg] indicates that a driver for [uri] could not be
     loaded. *)
 
@@ -65,8 +61,7 @@ type connect_msg = private {
 type connect =
   [ `Connect_failed of connect_msg ]
 
-val connect_failed :
-  uri: Uri.t -> driver_msg ->
+val connect_failed : uri: Uri.t -> driver_msg ->
   [> `Connect_failed of connect_msg]
 (** [connect_failed ~uri msg] indicates that the driver failed to establish a
     connection to the database. *)
@@ -81,7 +76,7 @@ type coding_msg = private {
 }
 type request_msg = private {
   uri: Uri.t;
-  query_string: string;
+  query: string;
   msg: driver_msg;
 }
 type call =
@@ -90,44 +85,34 @@ type call =
   | `Request_rejected of request_msg
   | `Request_failed of request_msg ]
 
-val encode_missing :
-  uri: Uri.t ->
-  field_type: 'a Caqti_type.field ->
-  unit ->
+val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Encode_missing of coding_msg]
 (** [encode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] and no fallback encoding is avaliable for the type. *)
 
-val encode_rejected :
-  uri: Uri.t ->
-  field_type: 'a Caqti_type.field ->
-  string ->
+val encode_rejected : uri: Uri.t -> field_type: 'a Caqti_type.field -> string ->
   [> `Encode_rejected of coding_msg]
 (** [encode_rejected ~uri ~field_type msg] indicates that encoding a value to
     [field_type] failed, e.g. due to being out of range. *)
 
-val request_rejected :
-  uri: Uri.t ->
-  query_string: string -> driver_msg ->
+val request_rejected : uri: Uri.t -> query: string -> driver_msg ->
   [> `Request_rejected of request_msg]
-(** [request_rejected ~uri ~query_string msg] indicates that [query_string]
-    was not accepted by the database or driver. *)
+(** [request_rejected ~uri ~query msg] indicates that [query] was not accepted
+    by the database or driver. *)
 
-val request_failed :
-  uri: Uri.t ->
-  query_string: string -> driver_msg ->
+val request_failed : uri: Uri.t -> query: string -> driver_msg ->
   [> `Request_failed of request_msg]
-(** [request_failed ~uri ~query_string msg] indicates that the request to
-    could not be transmitted to the database, that the database was not ready to
-    process the request, or that something went wrong while the requset was
-    being processed. *)
+(** [request_failed ~uri ~query msg] indicates that the request to could not be
+    transmitted to the database, that the database was not ready to process the
+    request, or that something went wrong while the requset was being
+    processed. *)
 
 
 (** {2 Errors during Response Processing} *)
 
 type response_msg = private {
   uri: Uri.t;
-  query_string: string;
+  query: string;
   msg: string;
 }
 type retrieve =
@@ -135,29 +120,21 @@ type retrieve =
   | `Decode_rejected of coding_msg
   | `Response_rejected of response_msg ]
 
-val decode_missing :
-  uri: Uri.t ->
-  field_type: 'a Caqti_type.field ->
-  unit ->
+val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Decode_missing of coding_msg]
 (** [decode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] for decoding result rows. *)
 
-val decode_rejected :
-  uri: Uri.t ->
-  field_type: 'a Caqti_type.field ->
-  string ->
+val decode_rejected : uri: Uri.t -> field_type: 'a Caqti_type.field -> string ->
   [> `Decode_rejected of coding_msg]
 (** [decode_rejected ~uri ~field_type msg] indicates that the driver could not
     decode a field of type [field_type] from the returnd row, e.g. due to an
     invalid value or limited range of the target type. *)
 
-val response_rejected :
-  uri: Uri.t ->
-  query_string: string -> string ->
+val response_rejected : uri: Uri.t -> query: string -> string ->
   [> `Response_rejected of response_msg]
-(** [response_rejected ~uri ~query_string msg] indicates that the response from
-    the database was rejected due to requirements posed by client code. *)
+(** [response_rejected ~uri ~query msg] indicates that the response from the
+    database was rejected due to requirements posed by client code. *)
 
 
 (** {2 Union and Common Operations} *)

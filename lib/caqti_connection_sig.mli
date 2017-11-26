@@ -82,7 +82,7 @@ module type S = sig
 
   (** {2 Disconnection and Reuse} *)
 
-  val disconnect : unit -> unit io
+  val disconnect : unit -> (unit, [> Caqti_error.disconnect]) result io
   (** Calling [disconnect ()] closes the connection to the database and frees
       up related resources. *)
 

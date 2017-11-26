@@ -313,7 +313,7 @@ struct
   let start () = catch_call (fun () -> C.start () >|= fun y -> Ok y)
   let commit () = catch_call (fun () -> C.commit () >|= fun y -> Ok y)
   let rollback () = catch_call (fun () -> C.rollback () >|= fun y -> Ok y)
-  let disconnect = C.disconnect
+  let disconnect () = C.disconnect () >|= fun y -> Ok y
   let validate = C.validate
   let check = C.check
 

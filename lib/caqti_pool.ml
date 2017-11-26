@@ -112,7 +112,7 @@ module Make_v2 (System : Caqti_system_sig.V2) = struct
 
   type ('a, +'e) t = {
     p_create : unit -> ('a, 'e) result io;
-    p_free : 'a -> unit io;
+    p_free : 'a -> bool io;
     p_check : 'a -> (bool -> unit) -> unit;
     p_validate : 'a -> bool io;
     p_max_size : int;
@@ -172,6 +172,8 @@ module Make_v2 (System : Caqti_system_sig.V2) = struct
      | Ok y -> release p e; return (Ok y)
      | Error err -> release p e; return (Error err))
 
+(* TODO: Revise draining. *)
+(*
   let dispose p e =
     p.p_free e >>= fun () -> p.p_cur_size <- p.p_cur_size - 1; return ()
 
@@ -181,5 +183,6 @@ module Make_v2 (System : Caqti_system_sig.V2) = struct
       then wait ~priority:0.0 p
       else dispose p (Queue.take p.p_pool) ) >>= fun () ->
     drain p
+*)
 
 end

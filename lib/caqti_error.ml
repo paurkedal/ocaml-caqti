@@ -51,12 +51,13 @@ let pp_load_msg ppf fmt err =
   Format.pp_print_string ppf ": ";
   Format.pp_print_string ppf err.msg
 
-type connect_error = {
+type connection_error = {
   uri : Uri.t;
   msg : driver_msg;
 }
-let pp_connect_msg ppf err =
-  Format.fprintf ppf "Failed to connect to %a: " Uri.pp_hum err.uri;
+let pp_connection_msg ppf fmt err =
+  Format.fprintf ppf fmt Uri.pp_hum err.uri;
+  Format.pp_print_string ppf ": ";
   pp_driver_msg ppf err.msg;
   Format.pp_print_char ppf '.'
 
@@ -119,10 +120,16 @@ type load =
 (* Connect *)
 
 let connect_failed ~uri msg =
-  `Connect_failed ({uri; msg} : connect_error)
+  `Connect_failed ({uri; msg} : connection_error)
 
 type connect =
-  [ `Connect_failed of connect_error ]
+  [ `Connect_failed of connection_error ]
+
+let disconnect_rejected ~uri msg =
+  `Disconnect_rejected ({uri; msg} : connection_error)
+
+type disconnect =
+  [ `Disconnect_rejected of connection_error ]
 
 (* Call *)
 
@@ -168,14 +175,16 @@ let response_rejected ~uri ~query msg =
 
 (* Common *)
 
-type t = [load | connect | call | retrieve]
-type call_or_retrieve = [call | retrieve]
+type t = [load | connect | disconnect | call | retrieve]
 type load_or_connect = [load | connect]
+type call_or_retrieve = [call | retrieve]
+type transact = call_or_retrieve
 
 let uri = function
  | `Load_rejected ({uri; _} : load_error) -> uri
  | `Load_failed ({uri; _} : load_error) -> uri
- | `Connect_failed ({uri; _} : connect_error) -> uri
+ | `Connect_failed ({uri; _} : connection_error) -> uri
+ | `Disconnect_rejected ({uri; _} : connection_error) -> uri
  | `Encode_missing ({uri; _} : local_coding_error) -> uri
  | `Encode_rejected ({uri; _} : local_coding_error) -> uri
  | `Encode_failed ({uri; _} : remote_coding_error) -> uri
@@ -187,9 +196,10 @@ let uri = function
  | `Response_rejected ({uri; _} : local_error) -> uri
 
 let pp_hum ppf = function
- | `Load_rejected err -> pp_load_msg ppf "Cannot load \"%a\"" err
- | `Load_failed err -> pp_load_msg ppf "Failed to load \"%a\"" err
- | `Connect_failed err -> pp_connect_msg ppf err
+ | `Load_rejected err -> pp_load_msg ppf "Cannot load <%a>" err
+ | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
+ | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
+ | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
  | `Encode_missing err -> pp_local_coding_error ppf "Encoder missing for %s" err
  | `Encode_rejected err -> pp_local_coding_error ppf "Failed to encode %s" err
  | `Encode_failed err -> pp_remote_coding_error ppf "Failed to encode %s" err

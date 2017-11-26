@@ -45,7 +45,7 @@ type load_error = private {
   uri: Uri.t;
   msg: string;
 }
-type connect_error = private {
+type connection_error = private {
   uri: Uri.t;
   msg: driver_msg;
 }
@@ -89,12 +89,20 @@ val load_failed : uri: Uri.t -> string -> [> `Load_failed of load_error]
 (** {2 Errors during Connect} *)
 
 type connect =
-  [ `Connect_failed of connect_error ]
+  [ `Connect_failed of connection_error ]
 
 val connect_failed : uri: Uri.t -> driver_msg ->
-  [> `Connect_failed of connect_error]
+  [> `Connect_failed of connection_error]
 (** [connect_failed ~uri msg] indicates that the driver failed to establish a
     connection to the database. *)
+
+type disconnect =
+  [ `Disconnect_rejected of connection_error ]
+
+val disconnect_rejected : uri: Uri.t -> driver_msg ->
+  [> `Disconnect_rejected of connection_error ]
+(** [disconnect_failed ~uri msg] indicates that the connection could not be
+    released, typically because it's busy. *)
 
 
 (** {2 Errors during Call} *)
@@ -167,9 +175,10 @@ val response_rejected : uri: Uri.t -> query: string -> string ->
 
 (** {2 Union and Common Operations} *)
 
-type t = [load | connect | call | retrieve]
-type call_or_retrieve = [call | retrieve]
+type t = [load | connect | disconnect | call | retrieve]
 type load_or_connect = [load | connect]
+type call_or_retrieve = [call | retrieve]
+type transact = [call | retrieve] (* TODO: Should be a subset. *)
 
 val uri : [< t] -> Uri.t
 

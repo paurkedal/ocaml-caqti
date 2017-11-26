@@ -264,12 +264,21 @@ struct
 
   let cache = Hashtbl.create 19
 
+  let catch_call f =
+    catch f
+      (function
+       | Prepare_failed (uri, qi, msg) ->
+          return (Error (prepare_failed uri qi msg))
+       | Execute_failed (uri, qi, msg) ->
+          return (Error (execute_failed uri qi msg))
+       | exn -> fail exn)
+
   let call ~(f : ('b, 'm) Response.t -> ('c, 'e) result io) req x =
     let pt = Caqti_request.param_type req in
     let ps = Array.make (Type.length pt) C.Param.null in
     let _ = encode pt x ps 0 in
     let rt = Caqti_request.row_type req in
-    catch
+    catch_call
       (fun () ->
         let {query; param_order} =
           (match Caqti_request.query_id req with
@@ -293,12 +302,6 @@ struct
            | None -> ps
            | Some param_order -> Array.map (fun i -> ps.(i)) param_order) in
         f (query, ps, rt))
-      (function
-       | Prepare_failed (uri, qi, msg) ->
-          return (Error (prepare_failed uri qi msg))
-       | Execute_failed (uri, qi, msg) ->
-          return (Error (execute_failed uri qi msg))
-       | exn -> fail exn)
 
   let exec req p = call ~f:Response.exec req p
   let find req p = call ~f:Response.find req p
@@ -307,9 +310,9 @@ struct
   let fold_s req f p acc = call ~f:(fun rsp -> Response.fold_s f rsp acc) req p
   let iter_s req f p = call ~f:(fun rsp -> Response.iter_s f rsp) req p
 
-  let start = C.start
-  let commit = C.commit
-  let rollback = C.rollback
+  let start () = catch_call (fun () -> C.start () >|= fun y -> Ok y)
+  let commit () = catch_call (fun () -> C.commit () >|= fun y -> Ok y)
+  let rollback () = catch_call (fun () -> C.rollback () >|= fun y -> Ok y)
   let disconnect = C.disconnect
   let validate = C.validate
   let check = C.check

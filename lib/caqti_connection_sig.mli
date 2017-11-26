@@ -67,15 +67,15 @@ module type S = sig
 
   (** {2 Transactions} *)
 
-  val start : unit -> unit io
+  val start : unit -> (unit, [> Caqti_error.call]) result io
   (** Starts a transaction if supported by the underlying database, otherwise
       does nothing. *)
 
-  val commit : unit -> unit io
+  val commit : unit -> (unit, [> Caqti_error.call]) result io
   (** Commits the current transaction if supported by the underlying database,
       otherwise does nothing. *)
 
-  val rollback : unit -> unit io
+  val rollback : unit -> (unit, [> Caqti_error.call]) result io
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
 

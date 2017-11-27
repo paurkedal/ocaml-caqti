@@ -67,6 +67,7 @@ type ex = Ex : 'a t -> ex
 val length : 'a t -> int
 
 val pp_hum : Format.formatter -> 'a t -> unit
+val pp_ex_hum : Format.formatter -> ex -> unit
 
 val to_string_hum : 'a t -> string
 

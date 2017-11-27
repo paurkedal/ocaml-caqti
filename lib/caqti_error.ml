@@ -78,9 +78,7 @@ type coding_error = {
   msg : msg;
 }
 let pp_coding_error ppf fmt err =
-  let Caqti_type.Ex typ = err.typ in
-  Format.fprintf ppf fmt (Caqti_type.to_string_hum typ);
-  Format.fprintf ppf " for %a" Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt Caqti_type.pp_ex_hum err.typ Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 
@@ -175,9 +173,9 @@ let pp_hum ppf = function
  | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
  | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
- | `Encode_rejected err -> pp_coding_error ppf "Failed to encode %s" err
- | `Encode_failed err -> pp_coding_error ppf "Failed to encode %s" err
- | `Decode_rejected err -> pp_coding_error ppf "Failed to decode %s" err
+ | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err
+ | `Encode_failed err -> pp_coding_error ppf "Failed to bind %a for <%a>" err
+ | `Decode_rejected err -> pp_coding_error ppf "Cannot decode %a from <%a>" err
  | `Request_rejected err -> pp_query_msg ppf "Request rejected by <%a>" err
  | `Request_failed err -> pp_query_msg ppf "Request to <%a> failed" err
  | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err

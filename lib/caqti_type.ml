@@ -124,6 +124,7 @@ let rec pp_hum_at : type a. int -> Format.formatter -> a t -> unit =
     Format.pp_print_string ppf "/>"
 
 let pp_hum ppf = pp_hum_at 1 ppf
+let pp_ex_hum ppf (Ex t) = pp_hum_at 1 ppf t
 
 let to_string_hum t =
   let buf = Buffer.create 64 in

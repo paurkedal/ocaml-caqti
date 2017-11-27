@@ -34,3 +34,9 @@ let only_one : [< `One] t -> unit =
   function One -> () | _ -> assert false
 let only_zero_or_one : [< `Zero | `One] t -> unit =
   function Zero | One -> () | _ -> assert false
+
+let expose = function
+ | Zero -> `Zero
+ | One -> `One
+ | Zero_to_one -> `Zero_or_one
+ | Zero_to_many -> `Zero_or_more

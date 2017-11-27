@@ -2,7 +2,7 @@
  ((name caqti_driver_postgresql)
   (public_name caqti-driver-postgresql)
   (wrapped false)
-  (modules (Caqti_driver_postgresql))
+  (modules (Caqti_driver_postgresql Caqti_driver_postgresql_v2))
   (libraries (caqti postgresql))))
 
 (library

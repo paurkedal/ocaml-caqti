@@ -101,7 +101,8 @@ type call =
   [ `Encode_rejected of coding_error
   | `Encode_failed of coding_error
   | `Request_rejected of query_error
-  | `Request_failed of query_error ]
+  | `Request_failed of query_error
+  | `Response_rejected of query_error ]
 
 val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Encode_rejected of coding_error]

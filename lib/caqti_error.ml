@@ -113,7 +113,8 @@ type call =
   [ `Encode_rejected of coding_error
   | `Encode_failed of coding_error
   | `Request_rejected of query_error
-  | `Request_failed of query_error ]
+  | `Request_failed of query_error
+  | `Response_rejected of query_error ]
 
 let encode_missing ~uri ~field_type () =
   let typ = Caqti_type.Ex (Caqti_type.field field_type) in

@@ -19,7 +19,7 @@
 open Core
 open Async
 
-module System = struct
+module System_v1 = struct
   type 'a io = 'a Deferred.Or_error.t
   let (>>=) m f = Deferred.Or_error.bind m ~f
   let (>|=) = Deferred.Or_error.(>>|)
@@ -109,6 +109,86 @@ module System = struct
   end
 end
 
-module V1 = Caqti_connect.Make_v1 (System)
-module V2 = Caqti_connect.Make_v2 (System)
+module System_v2 = struct
+  type 'a io = 'a Deferred.t
+  let (>>=) m f = Deferred.bind m ~f
+  let (>|=) = Deferred.(>>|)
+  let return = Deferred.return
+  let join = Deferred.all_ignore
+
+  module Mvar = struct
+    type 'a t = 'a Ivar.t
+    let create = Ivar.create
+    let store x v = Ivar.fill v x
+    let fetch v = Ivar.read v
+  end
+
+  module Unix = struct
+    type file_descr = Async_unix.Fd.t
+
+    let fdinfo = Info.of_string "Caqti_async file descriptor"
+
+    let wrap_fd f ufd =
+      let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
+      let open Deferred in
+      f fd >>= fun r ->
+      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd >>= fun () ->
+      return r
+
+    let poll ?(read = false) ?(write = false) ?timeout fd =
+      let wait_read =
+        if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
+      let wait_write =
+        if write then Async_unix.Fd.ready_to fd `Write else Deferred.never () in
+      let wait_timeout =
+        (match timeout with
+         | Some t -> Clock.after (Time.Span.of_sec t)
+         | None -> Deferred.never ()) in
+      let did_read, did_write, did_timeout = ref false, ref false, ref false in
+      Deferred.enabled [
+        Deferred.choice wait_read (fun st -> did_read := st = `Ready);
+        Deferred.choice wait_write (fun st -> did_write := st = `Ready);
+        Deferred.choice wait_timeout (fun () -> did_timeout := true);
+      ] >>|
+      (fun f ->
+        ignore (f ());
+        (!did_read, !did_write, !did_timeout))
+  end
+
+  module Log = struct
+    let log_f level fmt =
+      ksprintf
+        (fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
+        fmt
+    let error_f   fmt = log_f `Error fmt
+    let warning_f fmt = log_f `Info  fmt
+    let info_f    fmt = log_f `Info  fmt
+    let debug_f   fmt = log_f `Debug fmt
+
+    (* TODO: Check how log filtering works in async. *)
+    let debug_query_enabled () = false
+    let debug_tuple_enabled () = false
+
+    let debug_query qi params =
+      begin match qi with
+      | `Oneshot qs -> log_f `Debug "Sent query: %s" qs
+      | `Prepared (qn, qs) -> log_f `Debug "Sent query %s: %s" qn qs
+      end >>= fun () ->
+      if params = [] then
+        return ()
+      else
+        log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
+
+    let debug_tuple tuple =
+      log_f `Debug "Received tuple: %s" (String.concat ~sep:", " tuple)
+  end
+
+  module Preemptive = struct
+    let detach f x = In_thread.run (fun () -> f x)
+    let run_in_main f = Thread_safe.block_on_async_exn f
+  end
+end
+
+module V1 = Caqti_connect.Make_v1 (System_v1)
+module V2 = Caqti_connect.Make_v2 (System_v2)
 include V1

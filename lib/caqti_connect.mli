@@ -23,10 +23,15 @@ val define_driver_v1 : string -> (module Caqti_driver_sig.V1_FUNCTOR) -> unit
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
+val define_driver_v2 : string -> (module Caqti_driver_sig.V2_FUNCTOR) -> unit
+(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
+    [scheme].  This call must be done by a backend installed with findlib name
+    caqti-driver-{i scheme} as part of its initialization. *)
+
 module Make_v1 (System : Caqti_system_sig.V1) : Caqti_sigs.CAQTI
   with type 'a io := 'a System.io
 
 module Make = Make_v1 [@@ocaml.deprecated "Renamed to Make_v1."]
 
-module Make_v2 (System : Caqti_system_sig.V1) : Caqti_connect_sig.S
+module Make_v2 (System : Caqti_system_sig.V2) : Caqti_connect_sig.S
   with type 'a io := 'a System.io

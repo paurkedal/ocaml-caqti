@@ -38,6 +38,22 @@ let load_driver_functor_v1 ~uri scheme =
        | Error msg ->
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
 
+let drivers_v2 = Hashtbl.create 11
+let define_driver_v2 scheme p = Hashtbl.add drivers_v2 scheme p
+
+let load_driver_functor_v2 ~uri scheme =
+  (try Ok (Hashtbl.find drivers_v2 scheme) with
+   | Not_found ->
+      (match !dynload_library ("caqti-driver-" ^ scheme) with
+       | Ok () ->
+          (try Ok (Hashtbl.find drivers_v2 scheme) with
+           | Not_found ->
+              let msg = sprintf "The driver for %s did not register itself \
+                                 after apparently loading." scheme in
+              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+       | Error msg ->
+          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
+
 module Make_v1 (System : Caqti_system_sig.V1) = struct
   open System
 
@@ -89,34 +105,45 @@ module Make_v1 (System : Caqti_system_sig.V1) = struct
     Pool.create ?max_size ~validate ~check connect disconnect
 end
 
-module Make_v2 (System : Caqti_system_sig.V1) = struct
+module Make_v2 (System : Caqti_system_sig.V2) = struct
   open System
 
-  module V1 = Make_v1 (System)
-  open V1
+  module type DRIVER = Caqti_driver_sig.V2 with type 'a io := 'a System.io
+
+  let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
+
+  let load_driver uri =
+    (match Uri.scheme uri with
+     | None ->
+        let msg = "Missing URI scheme." in
+        Error (Caqti_error.load_rejected ~uri (Caqti_error.Msg msg))
+     | Some scheme ->
+        (try Ok (Hashtbl.find drivers scheme) with
+         | Not_found ->
+            (match load_driver_functor_v2 ~uri scheme with
+             | Ok v2_functor ->
+                let module F = (val v2_functor : Caqti_driver_sig.V2_FUNCTOR) in
+                let module Driver = F (System) in
+                let driver = (module Driver : DRIVER) in
+                Hashtbl.add drivers scheme driver;
+                Ok driver
+             | Error _ as r -> r)))
 
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a io := 'a System.io
 
   type connection = (module CONNECTION)
 
-  let catch_connect_issue f =
-    catch (fun () -> f () >|= fun y -> Ok y)
-      (function
-       | Caqti_errors.Connect_failed (uri, msg) ->
-          return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
-       | exn ->
-          fail exn)
-
   let connect uri : ((module CONNECTION), _) result io =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        catch_connect_issue @@ fun () ->
-        Driver.connect uri >>= fun v1 ->
-        let module V1 = (val v1) in
-        let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (V1) in
-        return (module V2 : CONNECTION)
+        Driver.connect uri >|=
+        (function
+         | Ok connection ->
+            let module Connection = (val connection) in
+            Ok (module Connection : CONNECTION)
+         | Error err -> Error err)
      | Error err ->
         return (Error err))
 
@@ -127,11 +154,12 @@ module Make_v2 (System : Caqti_system_sig.V1) = struct
      | Ok driver ->
         let module Driver = (val driver) in
         let connect () =
-          catch_connect_issue @@ fun () ->
-          Driver.connect uri >>= fun v1 ->
-          let module V1 = (val v1) in
-          let module V2 = Caqti_compat.Connection_v2_of_v1 (System) (V1) in
-          return (module V2 : CONNECTION) in
+          Driver.connect uri >|=
+          (function
+           | Ok connection ->
+              let module Connection = (val connection) in
+              Ok (module Connection : CONNECTION)
+           | Error err -> Error err) in
         let disconnect (module Db : CONNECTION) = Db.disconnect () in
         let validate (module Db : CONNECTION) = Db.validate () in
         let check (module Db : CONNECTION) = Db.check in

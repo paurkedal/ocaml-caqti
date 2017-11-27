@@ -17,5 +17,5 @@
   (public_name caqti-driver-sqlite3)
   (wrapped false)
   (flags (-thread))
-  (modules (Caqti_driver_sqlite3))
+  (modules (Caqti_driver_sqlite3 Caqti_driver_sqlite3_v2))
   (libraries (caqti sqlite3))))

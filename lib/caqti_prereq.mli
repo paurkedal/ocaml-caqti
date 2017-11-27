@@ -16,12 +16,29 @@
 
 (** (internal) Prerequisites. *)
 
+val (%) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
+val (%>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
+val (%>?) : ('a -> ('b, 'e) result) -> ('b -> ('c, 'e) result) ->
+            'a -> ('c, 'e) result
+val (|>?) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
+
 module Option : sig
   type 'a t = 'a option
   val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b
+end
+
+module List : sig
+  include module type of List
+  val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+  val fold_r : ('a -> 'b -> ('b, 'e) result) -> 'a list -> 'b -> ('b, 'e) result
+  val iter_r : ('a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
 end
 
 val finally : (unit -> unit) -> (unit -> 'a) -> 'a
 
 val datetuple_of_iso8601 : string -> int * int * int
 val iso8601_of_datetuple : int * int * int -> string
+
+val ptime_of_rfc3339_utc : string -> (Ptime.t, string) result
+val pday_of_iso8601 : string -> (int, string) result
+val iso8601_of_pday : int -> (string, string) result

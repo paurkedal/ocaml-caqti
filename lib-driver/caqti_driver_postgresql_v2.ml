@@ -86,7 +86,7 @@ let rec encode_field
     : type a. uri: Uri.t -> a Caqti_type.field -> a -> (string, _) result =
   fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool -> Ok (string_of_bool x)
+   | Caqti_type.Bool -> Ok (Pg_ext.string_of_bool x)
    | Caqti_type.Int -> Ok (string_of_int x)
    | Caqti_type.Int32 -> Ok (Int32.to_string x)
    | Caqti_type.Int64 -> Ok (Int64.to_string x)

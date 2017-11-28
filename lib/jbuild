@@ -27,7 +27,6 @@
     Caqti_type
     Caqti_system_sig
     ; internal
-    Caqti_compat
     Caqti_heap
     Caqti_plugin
     Caqti_prereq))

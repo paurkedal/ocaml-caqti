@@ -15,6 +15,7 @@
  *)
 
 open Caqti_prereq
+open Caqti_driver_lib
 open Printf
 
 let get_uri_bool uri name =
@@ -32,29 +33,6 @@ let get_uri_int uri name =
        | Failure _ ->
           ksprintf invalid_arg "Integer expected for URI parameter %s." name)
    | None -> None)
-
-let rec linear_param_length = function
- | Caqti_request.L _ -> 0
- | Caqti_request.P i -> (i + 1)
- | Caqti_request.S frags -> List.fold (max % linear_param_length) frags 0
-
-let linear_param_order templ =
-  let a = Array.make (linear_param_length templ) [] in
-  let rec loop = function
-   | Caqti_request.L _ -> fun j -> j
-   | Caqti_request.P i -> fun j -> a.(i) <- j :: a.(i); j + 1
-   | Caqti_request.S frags -> List.fold loop frags in
-  let _ = loop templ 0 in
-  Array.to_list a
-
-let linear_query_string templ =
-  let buf = Buffer.create 64 in
-  let rec loop = function
-   | Caqti_request.L s -> Buffer.add_string buf s
-   | Caqti_request.P i -> Buffer.add_char buf '?'
-   | Caqti_request.S frags -> List.iter loop frags in
-  loop templ;
-  Buffer.contents buf
 
 type Caqti_error.msg += Rc : Sqlite3.Rc.t -> Caqti_error.msg
 let () =

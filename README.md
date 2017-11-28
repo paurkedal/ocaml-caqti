@@ -4,12 +4,12 @@ Caqti is an library providing a common API to SQL databases and similar data
 interfaces.  The assumption is that the data service is queried by passing a
 string along with typed parameters, and responds with a sequence of typed
 tuples.
-Caqti may be used directly or to provide multi-database support to
+Caqti may be used directly or to provide multi-database support for
 higher-level solutions, like code generators and syntax extensions.
 
 The interface abstracts over an IO monad to support cooperative threading.
 Async and Lwt instantiations are shipped with the main library, as well as a
-functor for instantiating over other IO monads.
+functor for instantiating over other IO monads and system libraries.
 
 ## Status
 
@@ -18,9 +18,6 @@ the documentation, you will see that module titles are marked with "(v1)"
 or "(v2)", indicating which revision of the interface they belong to.
 Unmarked module are used by both revisions.  If all goes well, "(v1)" will
 be deprecated in favour of "(v2)".
-
-Drivers are currently implemented for v1, with a compatibility layer
-providing v2 support.
 
 ## Drivers
 
@@ -57,7 +54,7 @@ you expect to use into your application.
 As the main entry point, you would normally use either of
 
     Caqti_lwt.V2 : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
-    Caqti_async.V2 : Caqti_connection_sig.S with type 'a io = 'a Deferred.Or_error.t
+    Caqti_async.V2 : Caqti_connection_sig.S with type 'a io = 'a Deferred.t
 
 which is provided by `caqti-lwt` or `caqti-async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate

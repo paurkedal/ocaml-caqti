@@ -22,6 +22,8 @@ val (%>?) : ('a -> ('b, 'e) result) -> ('b -> ('c, 'e) result) ->
             'a -> ('c, 'e) result
 val (|>?) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
 
+val ncompose : int -> ('a -> 'a) -> 'a -> 'a
+
 module Option : sig
   type 'a t = 'a option
   val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b

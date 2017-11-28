@@ -9,7 +9,7 @@
  ((name caqti_driver_mariadb)
   (public_name caqti-driver-mariadb)
   (wrapped false)
-  (modules (Caqti_driver_mariadb))
+  (modules (Caqti_driver_mariadb Caqti_driver_mariadb_v2))
   (libraries (caqti mariadb))))
 
 (library

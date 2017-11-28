@@ -23,6 +23,8 @@ let (%>) f g x = g (f x)
 let (%>?) f g x = match f x with Ok y -> g y | Error _ as r -> r
 let (|>?) r f = match r with Ok x -> f x | Error _ as r -> r
 
+let rec ncompose n f acc = if n = 0 then acc else ncompose (n - 1) f (f acc)
+
 module Option = struct
   type 'a t = 'a option
   let fold f = function None -> ident | Some x -> f x

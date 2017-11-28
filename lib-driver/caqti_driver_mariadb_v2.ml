@@ -283,10 +283,10 @@ module Connect_functor (System : Caqti_system_sig.V2) = struct
        | {res = None; _} ->
           (* This case is currently in use, but ... *)
           return (Ok ())
-       | {res = Some _; query; _} ->
+       | {res = Some res; query; _} ->
           (* ... we need the result to check Mdb.Res.affected_rows. *)
           (match Mdb.Res.num_rows res with
-           | 0 -> Ok ()
+           | 0 -> return (Ok ())
            | n -> return (reject_f ~query "Received %d tuples for exec." n))
 
       let find = function

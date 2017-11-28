@@ -17,7 +17,7 @@
 (** (v2) Error descriptors. *)
 
 
-(** {2 Driver-Specific Error Messages} *)
+(** {2 Error Messages} *)
 
 type msg = ..
 (** In this type, drivers can stash information about an errors in ther own
@@ -32,8 +32,11 @@ val define_msg :
     descriptor.  *)
 
 val pp_msg : Format.formatter -> msg -> unit
+(** [pp_msg ppf msg] formats [msg] on [ppf]. *)
 
 type msg += Msg : string -> msg
+(** The shape of locally generated messages and messages from drivers without
+    dedicated error type. *)
 
 
 (** {2 Error Records}
@@ -63,10 +66,6 @@ type coding_error = private {
 
 (** {2 Errors during Driver Loading} *)
 
-type load =
-  [ `Load_rejected of load_error
-  | `Load_failed of load_error ]
-
 val load_rejected : uri: Uri.t -> msg -> [> `Load_rejected of load_error]
 (** [load_rejected ~uri msg] indicates that the driver to load could not be
     identified from [uri]. *)
@@ -78,10 +77,6 @@ val load_failed : uri: Uri.t -> msg -> [> `Load_failed of load_error]
 
 (** {2 Errors during Connect} *)
 
-type connect =
-  [ `Connect_rejected of connection_error
-  | `Connect_failed of connection_error ]
-
 val connect_rejected : uri: Uri.t -> msg ->
   [> `Connect_rejected of connection_error]
 (** [connect_rejected ~uri msg] indicates that the driver rejected the URI. *)
@@ -91,9 +86,6 @@ val connect_failed : uri: Uri.t -> msg ->
 (** [connect_failed ~uri msg] indicates that the driver failed to establish a
     connection to the database. *)
 
-type disconnect =
-  [ `Disconnect_rejected of connection_error ]
-
 val disconnect_rejected : uri: Uri.t -> msg ->
   [> `Disconnect_rejected of connection_error ]
 (** [disconnect_failed ~uri msg] indicates that the connection could not be
@@ -101,13 +93,6 @@ val disconnect_rejected : uri: Uri.t -> msg ->
 
 
 (** {2 Errors during Call} *)
-
-type call =
-  [ `Encode_rejected of coding_error
-  | `Encode_failed of coding_error
-  | `Request_rejected of query_error
-  | `Request_failed of query_error
-  | `Response_rejected of query_error ]
 
 val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Encode_rejected of coding_error]
@@ -139,11 +124,6 @@ val request_failed : uri: Uri.t -> query: string -> msg ->
 
 (** {2 Errors during Result Retrieval} *)
 
-type retrieve =
-  [ `Decode_rejected of coding_error
-  | `Response_failed of query_error
-  | `Response_rejected of query_error ]
-
 val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Decode_rejected of coding_error]
 (** [decode_missing ~uri ~field_type ()] indicates that the driver does not
@@ -166,12 +146,42 @@ val response_rejected : uri: Uri.t -> query: string -> msg ->
     database was rejected due to requirements posed by client code. *)
 
 
-(** {2 Union and Common Operations} *)
+(** {2 Error Sub-Types} *)
+
+type call =
+  [ `Encode_rejected of coding_error
+  | `Encode_failed of coding_error
+  | `Request_rejected of query_error
+  | `Request_failed of query_error
+  | `Response_rejected of query_error ]
+
+type retrieve =
+  [ `Decode_rejected of coding_error
+  | `Response_failed of query_error
+  | `Response_rejected of query_error ]
+
+type call_or_retrieve = [call | retrieve]
+
+type transact = [call | retrieve] (* TODO: Should be a subset. *)
+
+type load =
+  [ `Load_rejected of load_error
+  | `Load_failed of load_error ]
+
+type connect =
+  [ `Connect_rejected of connection_error
+  | `Connect_failed of connection_error
+  | `Post_connect of call_or_retrieve ]
+
+type disconnect =
+  [ `Disconnect_rejected of connection_error ]
+
+type load_or_connect = [load | connect]
+
+
+(** {2 Error Type and Functions} *)
 
 type t = [load | connect | disconnect | call | retrieve]
-type load_or_connect = [load | connect]
-type call_or_retrieve = [call | retrieve]
-type transact = [call | retrieve] (* TODO: Should be a subset. *)
 
 val uri : [< t] -> Uri.t
 

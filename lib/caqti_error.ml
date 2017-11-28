@@ -87,10 +87,6 @@ let pp_coding_error ppf fmt err =
 let load_rejected ~uri msg = `Load_rejected ({uri; msg} : load_error)
 let load_failed ~uri msg = `Load_failed ({uri; msg} : load_error)
 
-type load =
-  [ `Load_rejected of load_error
-  | `Load_failed of load_error ]
-
 (* Connect *)
 
 let connect_rejected ~uri msg =
@@ -99,24 +95,10 @@ let connect_rejected ~uri msg =
 let connect_failed ~uri msg =
   `Connect_failed ({uri; msg} : connection_error)
 
-type connect =
-  [ `Connect_rejected of connection_error
-  | `Connect_failed of connection_error ]
-
 let disconnect_rejected ~uri msg =
   `Disconnect_rejected ({uri; msg} : connection_error)
 
-type disconnect =
-  [ `Disconnect_rejected of connection_error ]
-
 (* Call *)
-
-type call =
-  [ `Encode_rejected of coding_error
-  | `Encode_failed of coding_error
-  | `Request_rejected of query_error
-  | `Request_failed of query_error
-  | `Response_rejected of query_error ]
 
 let encode_missing ~uri ~field_type () =
   let typ = Caqti_type.Ex (Caqti_type.field field_type) in
@@ -135,11 +117,6 @@ let request_failed ~uri ~query msg =
 
 (* Retrieve *)
 
-type retrieve =
-  [ `Decode_rejected of coding_error
-  | `Response_failed of query_error
-  | `Response_rejected of query_error ]
-
 let decode_missing ~uri ~field_type () =
   let typ = Caqti_type.Ex (Caqti_type.field field_type) in
   let msg = Msg "Field type not supported and no fallback provided." in
@@ -154,16 +131,44 @@ let response_rejected ~uri ~query msg =
 
 (* Common *)
 
-type t = [load | connect | disconnect | call | retrieve]
-type load_or_connect = [load | connect]
+type call =
+  [ `Encode_rejected of coding_error
+  | `Encode_failed of coding_error
+  | `Request_rejected of query_error
+  | `Request_failed of query_error
+  | `Response_rejected of query_error ]
+
+type retrieve =
+  [ `Decode_rejected of coding_error
+  | `Response_failed of query_error
+  | `Response_rejected of query_error ]
+
 type call_or_retrieve = [call | retrieve]
+
 type transact = call_or_retrieve
 
-let uri = function
+type load =
+  [ `Load_rejected of load_error
+  | `Load_failed of load_error ]
+
+type connect =
+  [ `Connect_rejected of connection_error
+  | `Connect_failed of connection_error
+  | `Post_connect of call_or_retrieve ]
+
+type disconnect =
+  [ `Disconnect_rejected of connection_error ]
+
+type load_or_connect = [load | connect]
+
+type t = [load | connect | disconnect | call | retrieve]
+
+let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Load_rejected ({uri; _} : load_error) -> uri
  | `Load_failed ({uri; _} : load_error) -> uri
  | `Connect_rejected ({uri; _} : connection_error) -> uri
  | `Connect_failed ({uri; _} : connection_error) -> uri
+ | `Post_connect err -> uri err
  | `Disconnect_rejected ({uri; _} : connection_error) -> uri
  | `Encode_rejected ({uri; _} : coding_error) -> uri
  | `Encode_failed ({uri; _} : coding_error) -> uri
@@ -173,11 +178,14 @@ let uri = function
  | `Response_failed ({uri; _} : query_error) -> uri
  | `Response_rejected ({uri; _} : query_error) -> uri
 
-let pp_hum ppf = function
+let rec pp_hum : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Load_rejected err -> pp_load_msg ppf "Cannot load <%a>" err
  | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
  | `Connect_rejected err -> pp_connection_msg ppf "Cannot connect to <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
+ | `Post_connect err ->
+    Format.pp_print_string ppf "During post-connect: ";
+    pp_hum ppf err
  | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
  | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err
  | `Encode_failed err -> pp_coding_error ppf "Failed to bind %a for <%a>" err

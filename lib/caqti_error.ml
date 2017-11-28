@@ -93,11 +93,15 @@ type load =
 
 (* Connect *)
 
+let connect_rejected ~uri msg =
+  `Connect_rejected ({uri; msg} : connection_error)
+
 let connect_failed ~uri msg =
   `Connect_failed ({uri; msg} : connection_error)
 
 type connect =
-  [ `Connect_failed of connection_error ]
+  [ `Connect_rejected of connection_error
+  | `Connect_failed of connection_error ]
 
 let disconnect_rejected ~uri msg =
   `Disconnect_rejected ({uri; msg} : connection_error)
@@ -158,6 +162,7 @@ type transact = call_or_retrieve
 let uri = function
  | `Load_rejected ({uri; _} : load_error) -> uri
  | `Load_failed ({uri; _} : load_error) -> uri
+ | `Connect_rejected ({uri; _} : connection_error) -> uri
  | `Connect_failed ({uri; _} : connection_error) -> uri
  | `Disconnect_rejected ({uri; _} : connection_error) -> uri
  | `Encode_rejected ({uri; _} : coding_error) -> uri
@@ -171,6 +176,7 @@ let uri = function
 let pp_hum ppf = function
  | `Load_rejected err -> pp_load_msg ppf "Cannot load <%a>" err
  | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
+ | `Connect_rejected err -> pp_connection_msg ppf "Cannot connect to <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
  | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
  | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err

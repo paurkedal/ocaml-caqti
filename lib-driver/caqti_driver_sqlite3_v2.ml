@@ -474,7 +474,7 @@ module Connect_functor (System : Caqti_system_sig.V2) = struct
       Ok (module Db : CONNECTION)
     with
      | Invalid_argument msg ->
-        return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
+        return (Error (Caqti_error.connect_rejected ~uri (Caqti_error.Msg msg)))
      | Sqlite3.Error msg ->
         return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
 end

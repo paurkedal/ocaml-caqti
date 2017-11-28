@@ -79,7 +79,12 @@ val load_failed : uri: Uri.t -> msg -> [> `Load_failed of load_error]
 (** {2 Errors during Connect} *)
 
 type connect =
-  [ `Connect_failed of connection_error ]
+  [ `Connect_rejected of connection_error
+  | `Connect_failed of connection_error ]
+
+val connect_rejected : uri: Uri.t -> msg ->
+  [> `Connect_rejected of connection_error]
+(** [connect_rejected ~uri msg] indicates that the driver rejected the URI. *)
 
 val connect_failed : uri: Uri.t -> msg ->
   [> `Connect_failed of connection_error]

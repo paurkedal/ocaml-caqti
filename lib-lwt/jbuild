@@ -16,4 +16,4 @@
   (public_name caqti-lwt.v1)
   (wrapped false)
   (modules ())
-  (libraries (caqti_lwt))))
+  (libraries (caqti.v1 caqti_lwt))))

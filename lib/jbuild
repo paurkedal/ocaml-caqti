@@ -68,6 +68,12 @@
   (action (copy ${<} ${@}))))
 
 ; V1
+(library
+ ((name caqti_v1)
+  (public_name caqti.v1)
+  (wrapped false)
+  (modules ())
+  (libraries (caqti))))
 (rule
  ((targets (caqti1_driver_sig.ml))
   (deps (caqti1_driver_sig.mli))

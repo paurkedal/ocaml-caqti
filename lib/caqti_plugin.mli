@@ -23,3 +23,8 @@ exception Plugin_missing of string * string
 exception Plugin_invalid of string * string
 (** [Plugin_invalid (pkg, reason)] is called by {!ensure_plugin} if something
     detailed in [reason] went wrong when loading the findlib package {!pkg}. *)
+
+(**/**)
+
+val ensure_plugin : (unit -> 'a option) -> string -> 'a
+[@@ocaml.deprecated]

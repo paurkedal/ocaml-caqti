@@ -19,3 +19,15 @@ exception Plugin_invalid of string * string
 
 (* Because it lacks a cmxs? *)
 module Really_link_CalendarLib = struct include CalendarLib end
+
+let msg_invalid = "The plugin seemed to load, but did not register."
+let ensure_plugin extract pkg =
+  (match extract () with
+   | Some x -> x
+   | None ->
+      (match !Caqti_connect.dynload_library pkg [@warning "-3"] with
+       | Ok () ->
+          (match extract () with
+           | Some x -> x
+           | None -> raise (Plugin_invalid (pkg, msg_invalid)))
+       | Error msg -> raise (Plugin_missing (pkg, msg))))

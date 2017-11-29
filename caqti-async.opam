@@ -14,5 +14,6 @@ depends: [
   "async"
   "core"
   "caqti"
+  "caqti-dynload"
 ]
 conflicts: ["caqti" {<"0.6.0"}]

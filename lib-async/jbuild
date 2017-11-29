@@ -7,7 +7,9 @@
   (modules
    (Caqti_async Caqti1_async
     Caqti_async_sql_io))
-  (libraries (async caqti core))))
+  (libraries (async caqti caqti-dynload core))))
+; TODO: Remove caqti-dynload.
+; TODO: Move Caqti1_async to caqti-async.v1.
 
 (library
  ((name caqti_async_v1)

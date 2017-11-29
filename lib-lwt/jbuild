@@ -7,7 +7,9 @@
   (modules
    (Caqti_lwt Caqti1_lwt
     Caqti_lwt_sql_io))
-  (libraries (caqti lwt lwt.unix lwt.preemptive))))
+  (libraries (caqti caqti-dynload lwt lwt.unix lwt.preemptive))))
+; TODO: Remove caqti-dynload.
+; TODO: Move Caqti1_lwt to caqti-lwt.v1.
 
 (library
  ((name caqti_lwt_v1)

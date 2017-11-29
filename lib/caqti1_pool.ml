@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,10 +17,8 @@
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
-module Make (System : Caqti_system_sig.S) = struct
+module Make (System : Caqti1_system_sig.S) = struct
   open System
-
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
 
   module Task = struct
     type t = {priority : float; mvar : unit Mvar.t}
@@ -30,9 +28,9 @@ module Make (System : Caqti_system_sig.S) = struct
 
   module Taskq = Caqti_heap.Make (Task)
 
-  type ('a, +'e) t = {
-    p_create : unit -> ('a, 'e) result io;
-    p_free : 'a -> bool io;
+  type 'a t = {
+    p_create : unit -> 'a io;
+    p_free : 'a -> unit io;
     p_check : 'a -> (bool -> unit) -> unit;
     p_validate : 'a -> bool io;
     p_max_size : int;
@@ -66,14 +64,10 @@ module Make (System : Caqti_system_sig.S) = struct
       else (wait ~priority p >>= fun () -> acquire ~priority p)
     end else begin
       let e = Queue.take p.p_pool in
-      p.p_validate e >>= fun ok ->
-      if ok then
-        return (Ok e)
-      else
-        p.p_create () >|=
-        (function
-         | Ok e -> Ok e
-         | Error err -> p.p_cur_size <- p.p_cur_size - 1; Error err)
+      catch (fun () -> p.p_validate e)
+            (fun xc -> Queue.add e p.p_pool; fail xc) >>= fun ok ->
+      if ok then return e else
+      catch p.p_create (fun xc -> p.p_cur_size <- p.p_cur_size - 1; fail xc)
     end
 
   let release p e =
@@ -86,14 +80,10 @@ module Make (System : Caqti_system_sig.S) = struct
       Task.wake task
 
   let use ?(priority = 0.0) f p =
-    acquire ~priority p >>=? fun e ->
-    f e >>=
-    (function
-     | Ok y -> release p e; return (Ok y)
-     | Error err -> release p e; return (Error err))
+    acquire ~priority p >>= fun e ->
+    catch (fun () -> f e >>= fun r -> release p e; return r)
+          (fun xc -> release p e; fail xc)
 
-(* TODO: Revise draining. *)
-(*
   let dispose p e =
     p.p_free e >>= fun () -> p.p_cur_size <- p.p_cur_size - 1; return ()
 
@@ -103,6 +93,5 @@ module Make (System : Caqti_system_sig.S) = struct
       then wait ~priority:0.0 p
       else dispose p (Queue.take p.p_pool) ) >>= fun () ->
     drain p
-*)
 
 end

@@ -229,7 +229,7 @@ let decode_row ~uri resp row_type =
    | Ok (j, y) -> assert (j = Caqti_type.length row_type); Ok y
    | Error _ as r -> r)
 
-module Connect_functor (System : Caqti_system_sig.V2) = struct
+module Connect_functor (System : Caqti_system_sig.S) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
@@ -521,4 +521,4 @@ module Connect_functor (System : Caqti_system_sig.V2) = struct
       return (Error (Caqti_error.connect_failed ~uri (Pg_msg error)))
 end
 
-let () = Caqti_connect.define_driver_v2 "postgresql" (module Connect_functor)
+let () = Caqti_connect.define_driver "postgresql" (module Connect_functor)

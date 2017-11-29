@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,23 +14,31 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(* This is partly based on https://github.com/janestreet/lwt-async *)
-
 open Core
 open Async
 
 module System = struct
-  type 'a io = 'a Deferred.t
-  let (>>=) m f = Deferred.bind m ~f
-  let (>|=) = Deferred.(>>|)
-  let return = Deferred.return
-  let join = Deferred.all_ignore
+  type 'a io = 'a Deferred.Or_error.t
+  let (>>=) m f = Deferred.Or_error.bind m ~f
+  let (>|=) = Deferred.Or_error.(>>|)
+  let return = Deferred.Or_error.return
+  let fail = Deferred.Or_error.of_exn
+  let join = Deferred.Or_error.all_ignore
+
+  let catch f g =
+    let open Deferred in
+    f () >>=
+    function
+    | Error err -> g (Error.to_exn err)
+    | Ok _ as r -> return r
 
   module Mvar = struct
     type 'a t = 'a Ivar.t
     let create = Ivar.create
     let store x v = Ivar.fill v x
-    let fetch v = Ivar.read v
+    let fetch v =
+      let open Deferred in
+      Ivar.read v >>= fun x -> Deferred.Or_error.return x
   end
 
   module Unix = struct
@@ -62,7 +70,7 @@ module System = struct
       ] >>|
       (fun f ->
         ignore (f ());
-        (!did_read, !did_write, !did_timeout))
+        Ok (!did_read, !did_write, !did_timeout))
   end
 
   module Log = struct
@@ -94,10 +102,9 @@ module System = struct
   end
 
   module Preemptive = struct
-    let detach f x = In_thread.run (fun () -> f x)
-    let run_in_main f = Thread_safe.block_on_async_exn f
+    let detach f x = In_thread.run (fun () -> Or_error.try_with (fun () -> f x))
+    let run_in_main f = Or_error.ok_exn (Thread_safe.block_on_async_exn f)
   end
 end
 
-module V2 = Caqti_connect.Make (System)
-include Caqti1_async
+include Caqti1_connect.Make (System)

@@ -15,7 +15,7 @@
  *)
 
 let debug =
-  try bool_of_string (Sys.getenv "CAQTI_DEBUG_PLUGIN")
+  try bool_of_string (Sys.getenv "CAQTI_DEBUG_DYNLOAD")
   with Not_found -> false
 
 #if ocaml_version < (4, 04, 0)
@@ -39,9 +39,9 @@ let init = lazy begin
             (Findlib.package_deep_ancestors ["native"] ["caqti"]);
   if debug then
     Printf.eprintf "\
-        [DEBUG] Caqti_plugin: recorded_predicates = %s\n\
-        [DEBUG] Caqti_plugin: recorded_packages.core = %s\n\
-        [DEBUG] Caqti_plugin: recorded_packages.load = %s\n%!"
+        [DEBUG] Caqti_dynload: recorded_predicates = %s\n\
+        [DEBUG] Caqti_dynload: recorded_packages.core = %s\n\
+        [DEBUG] Caqti_dynload: recorded_packages.load = %s\n%!"
       (String.concat " " (Findlib.recorded_predicates ()))
       (String.concat " " (Findlib.recorded_packages Record_core))
       (String.concat " " (Findlib.recorded_packages Record_load))
@@ -50,7 +50,7 @@ end
 let () = Caqti_connect.define_loader @@ fun pkg ->
   Lazy.force init;
   if debug then
-    Printf.eprintf "[DEBUG] Caqti_plugin: requested package: %s\n" pkg;
+    Printf.eprintf "[DEBUG] Caqti_dynload: requested package: %s\n" pkg;
   (try Ok (Fl_dynload.load_packages ~debug [pkg]) with
    | Dynlink.Error err -> Error (Dynlink.error_message err)
    | Findlib.No_such_package (_pkg, info) -> Error info)

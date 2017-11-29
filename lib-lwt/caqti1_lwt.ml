@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,8 +21,10 @@ module System = struct
   type 'a io = 'a Lwt.t
   let (>>=) = Lwt.(>>=)
   let (>|=) = Lwt.(>|=)
+  let fail = Lwt.fail
   let return = Lwt.return
   let join = Lwt.join
+  let catch = Lwt.catch
 
   module Mvar = struct
     type 'a t = 'a Lwt_mvar.t
@@ -97,5 +99,4 @@ module System = struct
 
 end
 
-module V2 = Caqti_connect.Make (System)
-include Caqti1_lwt
+include Caqti1_connect.Make (System)

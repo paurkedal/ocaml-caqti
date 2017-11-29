@@ -213,7 +213,7 @@ end
 module type CAQTI = sig
   type 'a io
 
-  module Pool : Caqti_pool_sig.V1 with type 'a io := 'a io
+  module Pool : Caqti1_pool_sig.S with type 'a io := 'a io
   (** This is an instantiation of {!Caqti_pool} for the chosen thread monad. *)
 
   module type CONNECTION = CONNECTION with type 'a io = 'a io

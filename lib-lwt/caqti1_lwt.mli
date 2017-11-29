@@ -14,18 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Connection functor and backend registration. *)
+(** (v1) Connector for Lwt. *)
 
-val define_loader : (string -> (unit, string) result) -> unit
-
-val define_driver : string -> (module Caqti_driver_sig.F) -> unit
-(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
-    [scheme].  This call must be done by a backend installed with findlib name
-    caqti-driver-{i scheme} as part of its initialization. *)
-
-module Make (System : Caqti_system_sig.S) : Caqti_connect_sig.S
-  with type 'a io := 'a System.io
-
-(**/**)
-val dynload_library : (string -> (unit, string) result) ref
-[@@ocaml.deprecated "Transient internal use."]
+include Caqti_sigs.CAQTI with type 'a io := 'a Lwt.t

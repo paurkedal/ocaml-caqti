@@ -8,24 +8,30 @@
    (Caqti_connect
     Caqti_connect_sig
     Caqti_connection_sig
-    Caqti_describe
     Caqti_driver_lib
     Caqti_driver_info
     Caqti_error
     Caqti_driver_sig
     Caqti_driver_info
-    Caqti_errors
     Caqti_mult
     Caqti_pool
     Caqti_pool_sig
     Caqti_request
     Caqti_response_sig
     Caqti_query
-    Caqti_sigs
     Caqti_sql
     Caqti_sql_io
-    Caqti_type
     Caqti_system_sig
+    Caqti_type
+    ; V1
+    Caqti1_connect
+    Caqti1_driver_sig
+    Caqti_describe
+    Caqti_errors
+    Caqti1_pool
+    Caqti1_pool_sig
+    Caqti1_system_sig
+    Caqti_sigs
     ; internal
     Caqti_heap
     Caqti_plugin
@@ -59,6 +65,20 @@
 (rule
  ((targets (caqti_system_sig.ml))
   (deps (caqti_system_sig.mli))
+  (action (copy ${<} ${@}))))
+
+; V1
+(rule
+ ((targets (caqti1_driver_sig.ml))
+  (deps (caqti1_driver_sig.mli))
+  (action (copy ${<} ${@}))))
+(rule
+ ((targets (caqti1_pool_sig.ml))
+  (deps (caqti1_pool_sig.mli))
+  (action (copy ${<} ${@}))))
+(rule
+ ((targets (caqti1_system_sig.ml))
+  (deps (caqti1_system_sig.mli))
   (action (copy ${<} ${@}))))
 (rule
  ((targets (caqti_sigs.ml))

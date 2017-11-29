@@ -14,26 +14,23 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connector for Async. *)
+(** (v2) Connector for Async. *)
 
 open Async
 
-module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
-
 module V2 : Caqti_connect_sig.S with type 'a io := 'a Deferred.t
-(** {b Warning:} This interface is preliminary. The final version will use ['a
-    io := Deferred.t], but that requires rewriting the drivers to not use
-    exceptions. *)
+(** You have to use this submodule in this release due to backwards
+    compatibility for v1 API. *)
 
 (**/**)
 
 [@@@ocaml.warning "-3"]
-module Pool : Caqti_pool_sig.V1 with type 'a io := 'a Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+module Pool : Caqti1_pool_sig.S with type 'a io := 'a Deferred.Or_error.t
+[@@ocaml.deprecated "Moved to Caqti1_async."]
 module type CONNECTION = Caqti_sigs.CONNECTION
   with type 'a io = 'a Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+[@@ocaml.deprecated "Moved to Caqti1_async."]
 val connect : Uri.t -> (module CONNECTION) Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+[@@ocaml.deprecated "Moved to Caqti1_async."]
 val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
-[@@ocaml.deprecated "Moved to Caqti_async.V1."]
+[@@ocaml.deprecated "Moved to Caqti1_async."]

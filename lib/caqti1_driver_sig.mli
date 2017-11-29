@@ -14,24 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Signature for establishing database connections. *)
+(** (internal) Signature for driver implementation. *)
 
 module type S = sig
   type 'a io
-
-  module Pool : Caqti_pool_sig.S with type 'a io := 'a io
-
-  module type CONNECTION = Caqti_connection_sig.S with type 'a io := 'a io
-  type connection = (module CONNECTION)
-
-  val connect : Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result io
-  (** [connect uri] locates and loads a driver which can handle [uri], passes
-      [uri] to the driver, which establish a connection and returns a
-      first-class module implementing {!Caqti_connection_sig.S}. *)
-
-  val connect_pool : ?max_size: int -> Uri.t ->
-    ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
-  (** [connect_pool uri] is a pool of database connections constructed by
-      [connect uri]. *)
+  module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a io
+  val driver_info : Caqti_driver_info.t
+  val connect : Uri.t -> (module CONNECTION) io
 end
+
+module type F =
+  functor (System : Caqti1_system_sig.S) -> S with type 'a io := 'a System.io

@@ -21,7 +21,7 @@
 
 open Caqti_query
 
-module type V2 = sig
+module type S = sig
 
   type +'a io
   val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
@@ -60,12 +60,3 @@ module type V2 = sig
   end
 
 end
-
-module type V1 = sig
-  include V2
-
-  val fail : exn -> 'a io
-  val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
-end
-
-module type S = V1 [@@ocaml.deprecated "Renamed to V1."]

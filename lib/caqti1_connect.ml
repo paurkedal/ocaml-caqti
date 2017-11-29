@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,19 +16,16 @@
 
 open Printf
 
-let dynload_library = ref @@ fun lib ->
-  Error (sprintf "Neither %s nor the dynamic linker is linked into the \
-                  application." lib)
-
-let define_loader f = dynload_library := f
-
 let drivers = Hashtbl.create 11
 let define_driver scheme p = Hashtbl.add drivers scheme p
 
 let load_driver_functor ~uri scheme =
   (try Ok (Hashtbl.find drivers scheme) with
    | Not_found ->
-      (match !dynload_library ("caqti-driver-" ^ scheme ^ ".v2") with
+      (match
+        !Caqti_connect.dynload_library ("caqti-driver-" ^ scheme ^ ".v1")
+        [@ocaml.warning "-3"]
+       with
        | Ok () ->
           (try Ok (Hashtbl.find drivers scheme) with
            | Not_found ->
@@ -38,10 +35,10 @@ let load_driver_functor ~uri scheme =
        | Error msg ->
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
 
-module Make (System : Caqti_system_sig.S) = struct
+module Make (System : Caqti1_system_sig.S) = struct
   open System
 
-  module type DRIVER = Caqti_driver_sig.S with type 'a io := 'a System.io
+  module type DRIVER = Caqti1_driver_sig.S with type 'a io := 'a System.io
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -54,56 +51,37 @@ module Make (System : Caqti_system_sig.S) = struct
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
             (match load_driver_functor ~uri scheme with
-             | Ok v2_functor ->
-                let module F = (val v2_functor : Caqti_driver_sig.F) in
+             | Ok v1_functor ->
+                let module F = (val v1_functor : Caqti1_driver_sig.F) in
                 let module Driver = F (System) in
                 let driver = (module Driver : DRIVER) in
                 Hashtbl.add drivers scheme driver;
                 Ok driver
              | Error _ as r -> r)))
 
-  module type CONNECTION =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+  module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a System.io
 
-  type connection = (module CONNECTION)
-
-  let connect uri : ((module CONNECTION), _) result io =
+  let connect uri : (module CONNECTION) System.io =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect uri >|=
-        (function
-         | Ok connection ->
-            let module Connection = (val connection) in
-            Ok (module Connection : CONNECTION)
-         | Error err -> Error err)
+        Driver.connect uri >>= fun client ->
+        let module Client = (val client) in
+        return (module Client : CONNECTION)
      | Error err ->
-        return (Error err))
+        let msg = Caqti_error.to_string_hum err in
+        (match Uri.scheme uri with
+         | None ->
+            fail (Caqti_plugin.Plugin_missing ("?", msg))
+         | Some scheme ->
+            fail (Caqti_plugin.Plugin_missing ("caqti-driver-" ^ scheme ^ ".v1", msg))))
 
-  module Pool = Caqti_pool.Make (System)
+  module Pool = Caqti1_pool.Make (System)
 
-  let connect_pool ?max_size uri =
-    (match load_driver uri with
-     | Ok driver ->
-        let module Driver = (val driver) in
-        let connect () =
-          Driver.connect uri >|=
-          (function
-           | Ok connection ->
-              let module Connection = (val connection) in
-              Ok (module Connection : CONNECTION)
-           | Error err -> Error err) in
-        let disconnect (module Db : CONNECTION) = Db.disconnect () in
-        let validate (module Db : CONNECTION) = Db.validate () in
-        let check (module Db : CONNECTION) = Db.check in
-        let di = Driver.driver_info in
-        let max_size =
-          if not (Caqti_driver_info.(can_concur di && can_pool di))
-          then Some 1
-          else max_size in
-        let free c =
-          disconnect c >|= function Ok () -> true | Error _ -> false in
-        Ok (Pool.create ?max_size ~validate ~check connect free)
-     | Error err ->
-        Error err)
+  let connect_pool ?max_size uri : (module CONNECTION) Pool.t =
+    let connect () = connect uri in
+    let disconnect (module Conn : CONNECTION) = Conn.disconnect () in
+    let validate (module Conn : CONNECTION) = Conn.validate () in
+    let check (module Conn : CONNECTION) = Conn.check in
+    Pool.create ?max_size ~validate ~check connect disconnect
 end

@@ -14,22 +14,22 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Connecting with Lwt.
+(** (v2) Connecting with Lwt.
 
     This module contains the signature and connect function specialized for use
     with Lwt. *)
 
-module V1 : Caqti_sigs.CAQTI with type 'a io := 'a Lwt.t
 module V2 : Caqti_connect_sig.S with type 'a io := 'a Lwt.t
+(** Transient location for v2 API while deprecating v1. *)
 
 (**/**)
 
 [@@@ocaml.warning "-3"]
-module Pool : Caqti_pool_sig.V1 with type 'a io := 'a Lwt.t
-  [@@ocaml.deprecated "Moved to V1."]
+module Pool : Caqti1_pool_sig.S with type 'a io := 'a Lwt.t
+  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
 module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a Lwt.t
-  [@@ocaml.deprecated "Moved to V1."]
+  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
 val connect : Uri.t -> (module CONNECTION) Lwt.t
-  [@@ocaml.deprecated "Moved to V1."]
+  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
 val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
-  [@@ocaml.deprecated "Moved to V1."]
+  [@@ocaml.deprecated "Moved to Caqti1_lwt."]

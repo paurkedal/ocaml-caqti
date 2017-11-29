@@ -142,7 +142,7 @@ let tuple_info (i, r) =
                        loop (j - 1) (debug_quote (r#getvalue i j) :: acc) in
   loop (r#nfields - 1) []
 
-module Caqtus_functor (System : Caqti_system_sig.V1) = struct
+module Caqtus_functor (System : Caqti1_system_sig.S) = struct
 
   open System
 
@@ -500,4 +500,4 @@ module Caqtus_functor (System : Caqti_system_sig.V1) = struct
 
 end
 
-let () = Caqti_connect.define_driver_v1 "postgresql" (module Caqtus_functor)
+let () = Caqti1_connect.define_driver "postgresql" (module Caqtus_functor)

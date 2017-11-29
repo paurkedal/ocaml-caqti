@@ -28,7 +28,7 @@ let define_driver_v1 scheme p = Hashtbl.add drivers_v1 scheme p
 let load_driver_functor_v1 ~uri scheme =
   (try Ok (Hashtbl.find drivers_v1 scheme) with
    | Not_found ->
-      (match !dynload_library ("caqti-driver-" ^ scheme) with
+      (match !dynload_library ("caqti-driver-" ^ scheme ^ ".v1") with
        | Ok () ->
           (try Ok (Hashtbl.find drivers_v1 scheme) with
            | Not_found ->
@@ -44,7 +44,7 @@ let define_driver_v2 scheme p = Hashtbl.add drivers_v2 scheme p
 let load_driver_functor_v2 ~uri scheme =
   (try Ok (Hashtbl.find drivers_v2 scheme) with
    | Not_found ->
-      (match !dynload_library ("caqti-driver-" ^ scheme) with
+      (match !dynload_library ("caqti-driver-" ^ scheme ^ ".v2") with
        | Ok () ->
           (try Ok (Hashtbl.find drivers_v2 scheme) with
            | Not_found ->
@@ -93,7 +93,7 @@ module Make_v1 (System : Caqti_system_sig.V1) = struct
          | None ->
             fail (Caqti_plugin.Plugin_missing ("?", msg))
          | Some scheme ->
-            fail (Caqti_plugin.Plugin_missing ("caqti-driver-" ^ scheme, msg))))
+            fail (Caqti_plugin.Plugin_missing ("caqti-driver-" ^ scheme ^ ".v1", msg))))
 
   module Pool = Caqti_pool.Make_v1 (System)
 

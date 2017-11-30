@@ -23,10 +23,12 @@ let conv f x = try Ok (f x) with _ -> Error "Conversion failed."
 let () =
   let open Caqti_type.Field in
   let open CalendarLib in
-  let get_coding : type a. a t -> a coding = function
+  let get_coding : type a. _ -> a t -> a coding = fun _ -> function
    | Date ->
-      let encode date = conv int_of_float (Date.to_unixfloat date /. 86400.0) in
-      let decode pday = conv Date.from_unixfloat (float_of_int pday *. 86400.0) in
+      let encode date =
+        conv int_of_float (Date.to_unixfloat date /. 86400.0) in
+      let decode pday =
+        conv Date.from_unixfloat (float_of_int pday *. 86400.0) in
       Coding {rep = Caqti_type.Pday; encode; decode}
    | Time ->
       let encode time =

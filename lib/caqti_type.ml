@@ -39,7 +39,7 @@ module Field = struct
     decode: 'b -> ('a, string) result;
   } -> 'a coding
 
-  type get_coding = {get_coding: 'a. 'a t -> 'a coding}
+  type get_coding = {get_coding: 'a. Caqti_driver_info.t -> 'a t -> 'a coding}
 
   let coding_ht : (extension_constructor, get_coding) Hashtbl.t =
     Hashtbl.create 11
@@ -48,9 +48,10 @@ module Field = struct
     let ec = Obj.extension_constructor ft in
     Hashtbl.add coding_ht ec get
 
-  let coding ft =
+  let coding di ft =
     let ec = Obj.extension_constructor ft in
-    try Some ((Hashtbl.find coding_ht ec).get_coding ft) with Not_found -> None
+    try Some ((Hashtbl.find coding_ht ec).get_coding di ft)
+    with Not_found -> None
 
   let to_string : type a. a field -> string = function
    | Bool -> "bool"

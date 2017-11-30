@@ -29,11 +29,11 @@ module Field : sig
     decode: 'b -> ('a, string) result;
   } -> 'a coding
 
-  type get_coding = {get_coding: 'a. 'a t -> 'a coding}
+  type get_coding = {get_coding: 'a. Caqti_driver_info.t -> 'a t -> 'a coding}
 
   val define_coding : 'a field -> get_coding -> unit
 
-  val coding : 'a field -> 'a coding option
+  val coding : Caqti_driver_info.t -> 'a field -> 'a coding option
 
   val to_string : 'a t -> string
 end

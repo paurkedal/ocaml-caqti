@@ -114,7 +114,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
           Ptime.to_date_time ~tz_offset_s:0 x in
         Ok (`Time (Mdb.Time.datetime ~year ~month ~day ~hour ~minute ~second))
      | _ ->
-        (match Caqti_type.Field.coding field_type with
+        (match Caqti_type.Field.coding driver_info field_type with
          | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
          | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
             (match encode x with
@@ -150,7 +150,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
          | None -> failwith "Ptime.of_date_time"
          | Some t -> Ok t)
      | field_type ->
-        (match Caqti_type.Field.coding field_type with
+        (match Caqti_type.Field.coding driver_info field_type with
          | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
          | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
             (match decode_field ~uri rep field with

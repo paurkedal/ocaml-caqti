@@ -18,6 +18,18 @@ open Caqti_prereq
 open Caqti_driver_lib
 open Printf
 
+let driver_info =
+  Caqti_driver_info.create
+    ~uri_scheme:"sqlite3"
+    ~dialect_tag:`Sqlite
+    ~parameter_style:(`Linear "?")
+    ~can_pool:false
+    ~can_concur:false
+    ~can_transact:true
+    ~describe_has_typed_params:false
+    ~describe_has_typed_fields:true
+    ()
+
 let get_uri_bool uri name =
   (match Uri.get_query_param uri name with
    | Some ("true" | "yes") -> Some true
@@ -59,7 +71,7 @@ let rec data_of_value
    | Caqti_type.Ptime ->
       Ok (Sqlite3.Data.TEXT (Ptime.to_rfc3339 ~space:true x))
    | _ ->
-      (match Caqti_type.Field.coding field_type with
+      (match Caqti_type.Field.coding driver_info field_type with
        | None ->
           Error (Caqti_error.encode_missing ~uri ~field_type ())
        | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
@@ -109,7 +121,7 @@ let rec value_of_data
           let typ = Caqti_type.field field_type in
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | field_type, d ->
-      (match Caqti_type.Field.coding field_type with
+      (match Caqti_type.Field.coding driver_info field_type with
        | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
        | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
           (match value_of_data ~uri rep d with
@@ -252,20 +264,10 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
 
+  let driver_info = driver_info
+
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a io := 'a System.io
-
-  let driver_info =
-    Caqti_driver_info.create
-      ~uri_scheme:"sqlite3"
-      ~dialect_tag:`Sqlite
-      ~parameter_style:(`Linear "?")
-      ~can_pool:false
-      ~can_concur:false
-      ~can_transact:true
-      ~describe_has_typed_params:false
-      ~describe_has_typed_fields:true
-      ()
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =

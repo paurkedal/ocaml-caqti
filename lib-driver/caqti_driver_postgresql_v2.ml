@@ -29,6 +29,18 @@ let () =
    | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Pg_msg]
 
+let driver_info =
+  Caqti_driver_info.create
+    ~uri_scheme:"postgresql"
+    ~dialect_tag:`Pgsql
+    ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
+    ~can_pool:true
+    ~can_concur:true
+    ~can_transact:true
+    ~describe_has_typed_params:true
+    ~describe_has_typed_fields:true
+    ()
+
 module Pg_ext = struct
 
   let bool_of_string = function
@@ -99,7 +111,7 @@ let rec encode_field
    | Caqti_type.Ptime ->
       Ok (Ptime.to_rfc3339 ~space:true x)
    | _ ->
-      (match Caqti_type.Field.coding field_type with
+      (match Caqti_type.Field.coding driver_info field_type with
        | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
        | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
           (match encode x with
@@ -141,7 +153,7 @@ let rec decode_field
           let typ = Caqti_type.field field_type in
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | _ ->
-      (match Caqti_type.Field.coding field_type with
+      (match Caqti_type.Field.coding driver_info field_type with
        | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
        | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
           (match decode_field ~uri rep s with
@@ -234,6 +246,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
+
+  let driver_info = driver_info
 
   module Pg_io = struct
 
@@ -349,18 +363,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   end
 
   (* Driver Interface *)
-
-  let driver_info =
-    Caqti_driver_info.create
-      ~uri_scheme:"postgresql"
-      ~dialect_tag:`Pgsql
-      ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
-      ~can_pool:true
-      ~can_concur:true
-      ~can_transact:true
-      ~describe_has_typed_params:true
-      ~describe_has_typed_fields:true
-      ()
 
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a io := 'a System.io

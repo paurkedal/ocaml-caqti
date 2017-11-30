@@ -15,7 +15,6 @@
  *)
 
 open Caqti_query
-open Testkit
 open Lwt.Infix
 
 let create_q = prepare_sql_p "CREATE TABLE test_parallel \
@@ -72,24 +71,19 @@ let rec test2 pool n =
   let xs = List.map (test2 pool) ns in
   merge (+) xs 0
 
-let () =
+let test uri =
   let n_r = ref 1000 in
-  Arg.parse
-    common_args
-    (fun _ -> raise (Arg.Bad "No positional arguments expected."))
-    Sys.argv.(0);
-  let uri = common_uri () in
-  Lwt_main.run begin
-    let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
-    let pool = Caqti1_lwt.connect_pool ~max_size uri in
-    Caqti1_lwt.Pool.use
-      (fun (module C : Caqti1_lwt.CONNECTION) ->
-        C.exec drop_q [||] >>= fun () ->
-        C.exec create_q [||])
-      pool >>= fun () ->
-    (test2 pool !n_r >|= ignore) >>= fun () ->
-    Caqti1_lwt.Pool.use
-      (fun (module C : Caqti1_lwt.CONNECTION) ->
-        C.exec drop_q [||])
-      pool
-  end
+  let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
+  let pool = Caqti1_lwt.connect_pool ~max_size uri in
+  Caqti1_lwt.Pool.use
+    (fun (module C : Caqti1_lwt.CONNECTION) ->
+      C.exec drop_q [||] >>= fun () ->
+      C.exec create_q [||])
+    pool >>= fun () ->
+  (test2 pool !n_r >|= ignore) >>= fun () ->
+  Caqti1_lwt.Pool.use
+    (fun (module C : Caqti1_lwt.CONNECTION) ->
+      C.exec drop_q [||])
+    pool
+
+let () = Lwt_main.run (Lwt_list.iter_s test (Testkit.parse_common_args ()))

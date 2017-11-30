@@ -129,7 +129,8 @@ let test db =
       Lwt_io.printf "\t%s %s %s\n" frameno
                     (CalendarLib.Printer.Calendar.to_string stolen) owner)
 
-let () =
-  let uri =
-    Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
-  Lwt_main.run (Caqti1_lwt.connect uri >>= test)
+let () = Lwt_main.run begin
+  Lwt_list.iter_s
+    (fun uri -> Caqti1_lwt.connect uri >>= test)
+    (Testkit.parse_common_args ())
+end

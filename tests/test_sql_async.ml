@@ -18,7 +18,6 @@ open Core
 open Async
 open Caqti_describe
 open Caqti_query
-open Testkit
 
 module Q = struct
   let create_tmp = prepare_fun @@ function
@@ -70,21 +69,28 @@ let test (module Db : Caqti1_async.CONNECTION) =
   (* Drop *)
   Db.exec Q.drop_tmp [||]
 
-let test_pool = Caqti1_async.Pool.use test
+let report_error = function
+ | Ok () -> ()
+ | Error err -> Error.raise err
 
-let main uri () =
+let test_pool = Caqti1_async.Pool.use test
+let test_and_close (module Db : Caqti1_async.CONNECTION) =
+  test (module Db) >>| report_error >>= fun () -> Db.disconnect ()
+
+let main uris () =
   Shutdown.don't_finish_before begin
     Deferred.Or_error.(
-      Caqti1_async.connect uri >>= test >>= fun () ->
-      test_pool (Caqti1_async.connect_pool uri)
+      let rec loop = function
+       | [] -> return ()
+       | uri :: uris ->
+          Caqti1_async.connect uri >>= test_and_close >>= fun () ->
+          test_pool (Caqti1_async.connect_pool uri) >>= fun () ->
+          loop uris in
+      loop uris
     ) >>| Or_error.ok_exn
   end;
   Shutdown.shutdown 0
 
 let () =
-  Arg.parse
-    common_args
-    (fun _ -> raise (Arg.Bad "No positional arguments expected."))
-    Sys.argv.(0);
-  let uri = common_uri () in
-  never_returns (Scheduler.go_main ~main:(main uri) ())
+  let uris = Testkit.parse_common_args () in
+  never_returns (Scheduler.go_main ~main:(main uris) ())

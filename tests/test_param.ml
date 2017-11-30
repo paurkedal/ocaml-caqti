@@ -43,6 +43,7 @@ let report_error = function
  | Ok () ->
     Lwt.return_unit
 
-let () =
-  let uri = parse_common_args () in
-  Lwt_main.run (Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+let () = Lwt_main.run @@
+  Lwt_list.iter_s
+    (fun uri -> Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+    (parse_common_args ())

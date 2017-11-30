@@ -16,7 +16,6 @@
 
 open Caqti_describe
 open Caqti_query
-open Testkit
 open Printf
 
 let (>>=) = Lwt.(>>=)
@@ -239,13 +238,10 @@ let test_pool pool =
     pool >>= fun () ->
   Caqti1_lwt.Pool.drain pool
 
-let () =
-  Arg.parse
-    common_args
-    (fun _ -> raise (Arg.Bad "No positional arguments expected."))
-    Sys.argv.(0);
-  let uri = common_uri () in
-  Lwt_main.run begin
-    Caqti1_lwt.connect uri >>= test >>= fun () ->
-    test_pool (Caqti1_lwt.connect_pool uri)
-  end
+let () = Lwt_main.run begin
+  Lwt_list.iter_s
+    (fun uri ->
+      Caqti1_lwt.connect uri >>= test >>= fun () ->
+      test_pool (Caqti1_lwt.connect_pool uri))
+    (Testkit.parse_common_args ())
+end

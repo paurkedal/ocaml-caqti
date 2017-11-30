@@ -150,7 +150,8 @@ let report_error = function
  | Error err ->
     Lwt_io.eprintl (Caqti_error.to_string_hum err) >|= fun () -> exit 69
 
-let () =
-  let uri =
-    Uri.of_string (try Sys.getenv "CAQTI_URI" with Not_found -> "sqlite3:") in
-  Lwt_main.run (Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+let () = Lwt_main.run begin
+  Lwt_list.iter_s
+    (fun uri -> Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+    (Testkit.parse_common_args ())
+end

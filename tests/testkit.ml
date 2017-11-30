@@ -26,11 +26,29 @@ let common_uri () =
                            with Not_found -> "sqlite3::memory:")
   | Some uri -> uri
 
+let load_uris () =
+  (match open_in "uris.conf" with
+   | exception Sys_error _ ->
+      failwith "No -u option provided and missing tests/uris.conf."
+   | ic ->
+      let rec loop acc =
+        (match input_line ic with
+         | exception End_of_file -> close_in ic; List.rev acc
+         | ln ->
+            let uri = String.trim ln in
+            if String.length uri = 0 || uri.[0] = '#' then
+              loop acc
+            else
+              loop (Uri.of_string uri :: acc)) in
+      loop [])
+
 let parse_common_args () =
   Arg.parse common_args
     (fun _ -> raise (Arg.Bad "No positional arguments expected."))
     Sys.argv.(0);
-  common_uri ()
+  (match !common_uri_r with
+   | Some uri -> [uri]
+   | None -> load_uris ())
 
 let () =
   Random.self_init ();

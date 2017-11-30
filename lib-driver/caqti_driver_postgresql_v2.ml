@@ -333,33 +333,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
     let check_command_result ~uri ~query result =
       check_query_result ~uri ~query result Caqti_mult.zero
-
-    let prepare ~uri db query_name query =
-      (match db#send_prepare query_name query with
-       | exception Pg.Error err ->
-          let msg = Caqti_error.Msg (Pg.string_of_error err) in
-          return (Error (Caqti_error.request_rejected ~uri ~query msg))
-       | () ->
-          get_result ~uri ~query db >|=
-          (function
-           | Ok result -> check_command_result ~uri ~query result
-           | Error _ as r -> r))
-
-    let query ~uri db ?params ?binary_params query =
-      (match db#send_query ?params ?binary_params query with
-       | exception Pg.Error err ->
-          let msg = Caqti_error.Msg (Pg.string_of_error err) in
-          return (Error (Caqti_error.request_rejected ~uri ~query msg))
-       | () ->
-          get_result ~uri ~query db)
-
-    let query_prepared ~uri ~query db ?params ?binary_params query_name =
-      (match db#send_query_prepared ?params ?binary_params query_name with
-       | exception Pg.Error err ->
-          let msg = Caqti_error.Msg (Pg.string_of_error err) in
-          return (Error (Caqti_error.request_rejected ~uri ~query msg))
-       | () ->
-          get_result ~uri ~query db)
   end
 
   (* Driver Interface *)
@@ -371,6 +344,58 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
     : CONNECTION =
   struct
     open Db
+
+    type pcache_entry = {
+      query: string;
+      param_length: int;
+      binary_params: bool array;
+    }
+    let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 19
+
+    let reset () =
+      try
+        if db#reset_start then begin
+          Hashtbl.clear pcache;
+          Pg_io.communicate db (fun () -> db#reset_poll) >|= fun () ->
+          db#status = Pg.Ok
+        end else
+          return false
+      with Pg.Error _ -> return false
+
+    let rec retry ~query ?(n = 1) f =
+      try return (Ok (f ()))
+      with Postgresql.Error (Connection_failure _ as err) ->
+        if n > 0 then
+          reset () >>= fun reset_ok ->
+          if reset_ok then
+            retry ~query ~n:(n - 1) f
+          else
+            return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg err)))
+        else
+          return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg err)))
+
+    let prepare query_name query =
+      retry ~query (fun () -> db#send_prepare query_name query) >>=
+      (function
+       | Error _ as r -> return r
+       | Ok () ->
+          Pg_io.get_result ~uri ~query db >|=
+          (function
+           | Ok result -> Pg_io.check_command_result ~uri ~query result
+           | Error _ as r -> r))
+
+    let query_oneshot ?params ?binary_params query =
+      retry ~query (fun () -> db#send_query ?params ?binary_params query) >>=
+      (function
+       | Error _ as r -> return r
+       | Ok () -> Pg_io.get_result ~uri ~query db)
+
+    let query_prepared ~query ?params ?binary_params query_name =
+      retry ~query
+        (fun () -> db#send_query_prepared ?params ?binary_params query_name) >>=
+      (function
+       | Error _ as r -> return r
+       | Ok () -> Pg_io.get_result ~uri ~query db)
 
     module Response = struct
       type ('b, 'm) t = {row_type: 'b Caqti_type.t; result: Pg.result}
@@ -422,13 +447,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         loop 0 ()
     end
 
-    type pcache_entry = {
-      query: string;
-      param_length: int;
-      binary_params: bool array;
-    }
-    let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 19
-
     let call ~f req param =
 
       (* Send the query. *)
@@ -445,8 +463,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
           (match encode_param ~uri params param_type param 0 with
            | Ok n ->
               assert (n = param_length);
-              Pg_io.query ~uri db ~params ~binary_params
-                          query >|=? fun result ->
+              query_oneshot ~params ~binary_params query >|=? fun result ->
               Ok (query, result)
            | Error _ as r -> return r)
        | Some query_id ->
@@ -455,7 +472,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
            | Not_found ->
               let templ = Caqti_request.query_template req driver_info in
               let query = Pg_ext.query_string templ in
-              Pg_io.prepare ~uri db query_name query >|=? fun () ->
+              prepare query_name query >|=? fun () ->
               let param_length = Caqti_type.length param_type in
               let binary_params = Array.make param_length false in
               let nbp = set_binary_params binary_params param_type 0 in
@@ -468,8 +485,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
           (match encode_param ~uri params param_type param 0 with
            | Ok n ->
               assert (n = param_length);
-              Pg_io.query_prepared ~uri db ~query ~params ~binary_params
-                                   query_name >|=? fun result ->
+              query_prepared ~query ~params ~binary_params query_name
+                >|=? fun result ->
               Ok (query, result)
            | Error _ as r -> return r))
         >>=? fun (query, result) ->
@@ -487,16 +504,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
     let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
     let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
     let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
-
-    let reset () =
-      try
-        if db#reset_start then begin
-          Hashtbl.clear pcache;
-          Pg_io.communicate db (fun () -> db#reset_poll) >|= fun () ->
-          db#status = Pg.Ok
-        end else
-          return false
-      with Pg.Error _ -> return false
 
     let disconnect () = db#finish; return (Ok ())
     let validate () = if db#status = Pg.Ok then return true else reset ()

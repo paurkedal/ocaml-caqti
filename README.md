@@ -75,4 +75,4 @@ The most important modules to know about are:
   - `Caqti_connection_sig.S` and `Caqti_response_sig.S` for executing
     queries.
 
-[bikereg]: tests/bikereg_v2.ml
+[bikereg]: tests/bikereg.ml

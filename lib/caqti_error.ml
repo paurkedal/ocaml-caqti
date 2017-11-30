@@ -58,8 +58,7 @@ type connection_error = {
 let pp_connection_msg ppf fmt err =
   Format.fprintf ppf fmt Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
-  pp_msg ppf err.msg;
-  Format.pp_print_char ppf '.'
+  pp_msg ppf err.msg
 
 type query_error = {
   uri : Uri.t;
@@ -179,8 +178,8 @@ let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Response_rejected ({uri; _} : query_error) -> uri
 
 let rec pp_hum : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
- | `Load_rejected err -> pp_load_msg ppf "Cannot load <%a>" err
- | `Load_failed err -> pp_load_msg ppf "Failed to load <%a>" err
+ | `Load_rejected err -> pp_load_msg ppf "Cannot load driver for <%a>" err
+ | `Load_failed err -> pp_load_msg ppf "Failed to load driver for <%a>" err
  | `Connect_rejected err -> pp_connection_msg ppf "Cannot connect to <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
  | `Post_connect err ->

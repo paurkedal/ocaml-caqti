@@ -38,7 +38,7 @@ let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
 let report_error = function
  | Ok y -> Lwt.return y
  | Error err ->
-    Lwt_io.eprintf "Test failed: %s\n" (Caqti_error.to_string_hum err) >|= fun () ->
+    Lwt_io.eprintf "Test failed: %s\n" (Caqti_error.show err) >|= fun () ->
     exit 69
 
 let do_query pool =

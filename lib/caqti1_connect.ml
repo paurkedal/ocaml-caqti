@@ -69,7 +69,7 @@ module Make (System : Caqti1_system_sig.S) = struct
         let module Client = (val client) in
         return (module Client : CONNECTION)
      | Error err ->
-        let msg = Caqti_error.to_string_hum err in
+        let msg = Caqti_error.show err in
         (match Uri.scheme uri with
          | None ->
             fail (Caqti_plugin.Plugin_missing ("?", msg))

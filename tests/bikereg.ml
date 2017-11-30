@@ -148,7 +148,7 @@ let test db =
 let report_error = function
  | Ok () -> Lwt.return_unit
  | Error err ->
-    Lwt_io.eprintl (Caqti_error.to_string_hum err) >|= fun () -> exit 69
+    Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
 
 let () = Lwt_main.run begin
   Lwt_list.iter_s

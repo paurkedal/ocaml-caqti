@@ -90,47 +90,47 @@ let rec length : type a. a t -> int = function
  | Tup4 (t0, t1, t2, t3) -> length t0 + length t1 + length t2 + length t3
  | Custom {rep; _} -> length rep
 
-let rec pp_hum_at : type a. int -> Format.formatter -> a t -> unit =
+let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     fun prec ppf -> function
  | Unit -> Format.pp_print_string ppf "unit"
  | Field ft -> Format.pp_print_string ppf (Field.to_string ft)
- | Option t -> pp_hum_at 1 ppf t; Format.pp_print_string ppf " option"
+ | Option t -> pp_at 1 ppf t; Format.pp_print_string ppf " option"
  | Tup2 (t0, t1) ->
     if prec > 0 then Format.pp_print_char ppf '(';
-    pp_hum_at 1 ppf t0;
+    pp_at 1 ppf t0;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t1;
+    pp_at 1 ppf t1;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Tup3 (t0, t1, t2) ->
     if prec > 0 then Format.pp_print_char ppf '(';
-    pp_hum_at 1 ppf t0;
+    pp_at 1 ppf t0;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t1;
+    pp_at 1 ppf t1;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t2;
+    pp_at 1 ppf t2;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Tup4 (t0, t1, t2, t3) ->
     if prec > 0 then Format.pp_print_char ppf '(';
-    pp_hum_at 1 ppf t0;
+    pp_at 1 ppf t0;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t1;
+    pp_at 1 ppf t1;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t2;
+    pp_at 1 ppf t2;
     Format.pp_print_string ppf " × ";
-    pp_hum_at 1 ppf t3;
+    pp_at 1 ppf t3;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Custom {rep; _} ->
     Format.pp_print_string ppf "</";
-    pp_hum_at 0 ppf rep;
+    pp_at 0 ppf rep;
     Format.pp_print_string ppf "/>"
 
-let pp_hum ppf = pp_hum_at 1 ppf
-let pp_ex_hum ppf (Ex t) = pp_hum_at 1 ppf t
+let pp ppf = pp_at 1 ppf
+let pp_ex ppf (Ex t) = pp_at 1 ppf t
 
-let to_string_hum t =
+let show t =
   let buf = Buffer.create 64 in
   let ppf = Format.formatter_of_buffer buf in
-  pp_hum ppf t;
+  pp ppf t;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
 

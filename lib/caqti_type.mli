@@ -66,10 +66,10 @@ type ex = Ex : 'a t -> ex
 
 val length : 'a t -> int
 
-val pp_hum : Format.formatter -> 'a t -> unit
-val pp_ex_hum : Format.formatter -> ex -> unit
+val pp : Format.formatter -> 'a t -> unit
+val pp_ex : Format.formatter -> ex -> unit
 
-val to_string_hum : 'a t -> string
+val show : 'a t -> string
 
 val unit : unit t
 val field : 'a field -> 'a t

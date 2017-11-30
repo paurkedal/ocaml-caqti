@@ -77,7 +77,7 @@ type coding_error = {
   msg : msg;
 }
 let pp_coding_error ppf fmt err =
-  Format.fprintf ppf fmt Caqti_type.pp_ex_hum err.typ Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt Caqti_type.pp_ex err.typ Uri.pp_hum err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 
@@ -177,14 +177,14 @@ let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Response_failed ({uri; _} : query_error) -> uri
  | `Response_rejected ({uri; _} : query_error) -> uri
 
-let rec pp_hum : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
+let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Load_rejected err -> pp_load_msg ppf "Cannot load driver for <%a>" err
  | `Load_failed err -> pp_load_msg ppf "Failed to load driver for <%a>" err
  | `Connect_rejected err -> pp_connection_msg ppf "Cannot connect to <%a>" err
  | `Connect_failed err -> pp_connection_msg ppf "Failed to connect to <%a>" err
  | `Post_connect err ->
     Format.pp_print_string ppf "During post-connect: ";
-    pp_hum ppf err
+    pp ppf err
  | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
  | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err
  | `Encode_failed err -> pp_coding_error ppf "Failed to bind %a for <%a>" err
@@ -194,9 +194,9 @@ let rec pp_hum : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err
  | `Response_rejected err -> pp_query_msg ppf "Unexpected result from <%a>" err
 
-let to_string_hum err =
+let show err =
   let buf = Buffer.create 128 in
   let ppf = Format.formatter_of_buffer buf in
-  pp_hum ppf err;
+  pp ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf

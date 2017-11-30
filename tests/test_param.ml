@@ -39,7 +39,7 @@ let test (module Db : Caqti_lwt.V2.CONNECTION) =
 
 let report_error = function
  | Error err ->
-    Lwt_io.eprintl (Caqti_error.to_string_hum err) >|= fun () -> exit 69
+    Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
  | Ok () ->
     Lwt.return_unit
 

@@ -264,76 +264,57 @@ module Caqtus_functor (System : Caqti1_system_sig.S) = struct
        | Error err -> fail_fetch q err)
 
     let exec q params =
-      with_executed q params @@
-      (function
-       | Some _ -> fail_miss q "Did not expect result from statement."
-       | None -> return ())
+      with_executed q params @@ fun res ->
+      if Mdb.Res.num_rows res > 0 then
+        fail_miss q "Did not expect result from statement."
+      else
+        return ()
 
     let find q f params =
-      with_executed q params
-      (function
-       | None ->
-          fail_miss q "find: Did not receive query result."
-       | Some res ->
-          (match Mdb.Res.num_rows res with
-           | 1 -> fetch1 f q res
-           | n -> ksprintf (fail_miss q) "Received %d tuples, expected 1." n))
+      with_executed q params @@ fun res ->
+      (match Mdb.Res.num_rows res with
+       | 1 -> fetch1 f q res
+       | n -> ksprintf (fail_miss q) "Received %d tuples, expected 1." n)
 
     let find_opt q f params =
-      with_executed q params
-      (function
-       | None ->
-          fail_miss q "find_opt: Did not receive query result."
-       | Some res ->
-          (match Mdb.Res.num_rows res with
-           | 0 -> fetch0 q res >>= fun () -> return None
-           | 1 -> fetch1 f q res >>= fun y -> return (Some y)
-           | n -> ksprintf (fail_miss q)
-                           "Received %d tuples, expected at most one." n))
+      with_executed q params @@ fun res ->
+      (match Mdb.Res.num_rows res with
+       | 0 -> fetch0 q res >>= fun () -> return None
+       | 1 -> fetch1 f q res >>= fun y -> return (Some y)
+       | n -> ksprintf (fail_miss q)
+                       "Received %d tuples, expected at most one." n)
 
     let iter_s q f params =
-      with_executed q params
-      (function
-       | None ->
-          fail_miss q "iter_s or iter_p: Did not receive query result."
-       | Some res ->
-          let rec loop () =
-            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-            (function
-             | Ok None -> return ()
-             | Ok (Some row) -> f row >>= loop
-             | Error err -> fail_fetch q err) in
-          loop ())
+      with_executed q params @@ fun res ->
+      let rec loop () =
+        Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+        (function
+         | Ok None -> return ()
+         | Ok (Some row) -> f row >>= loop
+         | Error err -> fail_fetch q err) in
+      loop ()
 
     let iter_p = iter_s
 
     let fold_s q f params acc =
-      with_executed q params
-      (function
-       | None ->
-          fail_miss q "fold_s: Did not receive query result."
-       | Some res ->
-          let rec loop acc =
-            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-            (function
-             | Ok None -> return acc
-             | Ok (Some row) -> f row acc >>= loop
-             | Error err -> fail_fetch q err) in
-          loop acc)
+      with_executed q params @@ fun res ->
+      let rec loop acc =
+        Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+        (function
+         | Ok None -> return acc
+         | Ok (Some row) -> f row acc >>= loop
+         | Error err -> fail_fetch q err) in
+      loop acc
 
     let fold q f params acc =
-      with_executed q params
-      (function
-       | None ->
-          fail_miss q "fold: Did not receive query result."
-       | Some res ->
-          let rec loop acc =
-            Mdb.Res.fetch (module Mdb.Row.Array) res >>=
-            (function
-             | Ok None -> return acc
-             | Ok (Some row) -> loop (f row acc)
-             | Error err -> fail_fetch q err) in
-          loop acc)
+      with_executed q params @@ fun res ->
+      let rec loop acc =
+        Mdb.Res.fetch (module Mdb.Row.Array) res >>=
+        (function
+         | Ok None -> return acc
+         | Ok (Some row) -> loop (f row acc)
+         | Error err -> fail_fetch q err) in
+      loop acc
 
     let start () =
       Mdb.autocommit dbh false >>=

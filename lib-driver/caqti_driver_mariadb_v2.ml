@@ -251,7 +251,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
     module Response = struct
       type ('b, +'m) t = {
         query: string;
-        res: Mdb.Res.t option;
+        res: Mdb.Res.t;
         row_type: 'b Caqti_type.t;
       }
 
@@ -260,13 +260,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       let reject_f ~query fmt =
         ksprintf (reject ~query) fmt
 
-      let affected_count = function
-       | {res = None; query; _} -> return (reject ~query "Missing result.")
-       | {res = Some res; _} -> return (Ok (Mdb.Res.affected_rows res))
-
-      let returned_count = function
-       | {res = None; query; _} -> return (reject ~query "Missing result.")
-       | {res = Some res; _} -> return (Ok (Mdb.Res.num_rows res))
+      let affected_count {res; _} = return (Ok (Mdb.Res.affected_rows res))
+      let returned_count {res; _} = return (Ok (Mdb.Res.num_rows res))
 
       let decode_next_row ~query res row_type =
         Mdb.Res.fetch (module Mdb.Row.Array) res >|=
@@ -279,70 +274,53 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
          | Error err ->
             Error (Caqti_error.response_failed ~uri ~query (Mdb_msg err)))
 
-      let exec = function
-       | {res = None; _} ->
-          (* This case is currently in use, but ... *)
-          return (Ok ())
-       | {res = Some res; query; _} ->
-          (* ... we need the result to check Mdb.Res.affected_rows. *)
-          (match Mdb.Res.num_rows res with
-           | 0 -> return (Ok ())
-           | n -> return (reject_f ~query "Received %d tuples for exec." n))
+      let exec {res; query; _} =
+        (match Mdb.Res.num_rows res with
+         | 0 -> return (Ok ())
+         | n -> return (reject_f ~query "Received %d tuples for exec." n))
 
-      let find = function
-       | {query; res = None; _} -> return (reject ~query "Missing result.")
-       | {query; res = Some res; row_type} ->
-          (match Mdb.Res.num_rows res with
-           | 1 ->
-              decode_next_row ~query res row_type >|=
-              (function
-               | Ok None -> assert false
-               | Ok (Some y) -> Ok y
-               | Error _ as r -> r)
-           | n -> return (reject_f ~query "Received %d tuples for find." n))
-
-      let find_opt = function
-       | {query; res = None; _} -> return (reject ~query "Missing result.")
-       | {query; res = Some res; row_type} ->
-          (match Mdb.Res.num_rows res with
-           | 0 -> return (Ok None)
-           | 1 -> decode_next_row ~query res row_type
-           | n -> return (reject_f ~query "Received %d tuples for find_opt." n))
-
-      let fold f = function
-       | {query; res = None; _} ->
-          fun _ -> return (reject ~query "Missing result.")
-       | {query; res = Some res; row_type} ->
-          let rec loop acc =
-            decode_next_row ~query res row_type >>=
+      let find {query; res; row_type} =
+        (match Mdb.Res.num_rows res with
+         | 1 ->
+            decode_next_row ~query res row_type >|=
             (function
-             | Ok None -> return (Ok acc)
-             | Ok (Some y) -> loop (f y acc)
-             | Error _ as r -> return r) in
-          loop
+             | Ok None -> assert false
+             | Ok (Some y) -> Ok y
+             | Error _ as r -> r)
+         | n -> return (reject_f ~query "Received %d tuples for find." n))
 
-      let fold_s f = function
-       | {query; res = None; _} ->
-          fun _ -> return (reject ~query "Missing result.")
-       | {query; res = Some res; row_type} ->
-          let rec loop acc =
-            decode_next_row ~query res row_type >>=
-            (function
-             | Ok None -> return (Ok acc)
-             | Ok (Some y) -> f y acc >>=? loop
-             | Error _ as r -> return r) in
-          loop
+      let find_opt {query; res; row_type} =
+        (match Mdb.Res.num_rows res with
+         | 0 -> return (Ok None)
+         | 1 -> decode_next_row ~query res row_type
+         | n -> return (reject_f ~query "Received %d tuples for find_opt." n))
 
-      let iter_s f = function
-       | {query; res = None; _} -> return (reject ~query "Missing result.")
-       | {query; res = Some res; row_type} ->
-          let rec loop () =
-            decode_next_row ~query res row_type >>=
-            (function
-             | Ok None -> return (Ok ())
-             | Ok (Some y) -> f y >>=? loop
-             | Error _ as r -> return r) in
-          loop ()
+      let fold f {query; res; row_type} =
+        let rec loop acc =
+          decode_next_row ~query res row_type >>=
+          (function
+           | Ok None -> return (Ok acc)
+           | Ok (Some y) -> loop (f y acc)
+           | Error _ as r -> return r) in
+        loop
+
+      let fold_s f {query; res; row_type} =
+        let rec loop acc =
+          decode_next_row ~query res row_type >>=
+          (function
+           | Ok None -> return (Ok acc)
+           | Ok (Some y) -> f y acc >>=? loop
+           | Error _ as r -> return r) in
+        loop
+
+      let iter_s f {query; res; row_type} =
+        let rec loop () =
+          decode_next_row ~query res row_type >>=
+          (function
+           | Ok None -> return (Ok ())
+           | Ok (Some y) -> f y >>=? loop
+           | Error _ as r -> return r) in
+        loop ()
     end
 
     type pcache_entry = {

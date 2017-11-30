@@ -17,15 +17,16 @@
 open Caqti_query
 open Lwt.Infix
 
-let create_q = prepare_sql_p "CREATE TABLE test_parallel \
+let create_q = prepare_sql_p "CREATE TABLE test_parallel_v1 \
                                 (x int NOT NULL, y int NOT NULL)"
-let drop_q = prepare_sql_p "DROP TABLE IF EXISTS test_parallel"
-let insert_q = prepare_sql_p "INSERT INTO test_parallel VALUES (?, ?)"
-let delete_q = prepare_sql_p "DELETE FROM test_parallel WHERE x = ?"
-let select_1_q = prepare_sql_p "SELECT y FROM test_parallel WHERE x < ?"
+let drop_q = prepare_sql_p "DROP TABLE IF EXISTS test_parallel_v1"
+let insert_q = prepare_sql_p "INSERT INTO test_parallel_v1 VALUES (?, ?)"
+let delete_q = prepare_sql_p "DELETE FROM test_parallel_v1 WHERE x = ?"
+let select_1_q = prepare_sql_p "SELECT y FROM test_parallel_v1 WHERE x < ?"
 let select_2_q = prepare_sql_p
-  "SELECT sum(a.y*b.y) FROM test_parallel a JOIN test_parallel b ON a.x < b.x \
-    WHERE b.x < ?"
+  "SELECT sum(a.y*b.y) \
+   FROM test_parallel_v1 a JOIN test_parallel_v1 b ON a.x < b.x \
+   WHERE b.x < ?"
 
 let random_int () = Random.int (1 + Random.int 16)
 

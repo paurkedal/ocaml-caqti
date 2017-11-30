@@ -74,6 +74,16 @@
 (alias
  ((name runtest)
   (package caqti-lwt)
+  (deps (test_parallel_lwt.exe (alias drivers) uris.conf))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_parallel_lwt)
+  (modules (Test_parallel_lwt))
+  (libraries (caqti caqti-dynload caqti_lwt testkit))))
+
+(alias
+ ((name runtest)
+  (package caqti-lwt)
   (deps (test_sql_lwt_v1.exe (alias drivers) uris.conf))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable

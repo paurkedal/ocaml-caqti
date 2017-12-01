@@ -22,22 +22,22 @@ open Caqti_query
 module Q = struct
   let create_tmp = prepare_fun @@ function
     | `Pgsql ->
-      "CREATE TEMPORARY TABLE caqti_test \
+      "CREATE TEMPORARY TABLE caqti_sql_async_v1 \
          (id SERIAL NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
     | `Mysql ->
-      "CREATE TEMPORARY TABLE caqti_test \
+      "CREATE TEMPORARY TABLE caqti_sql_async_v1 \
          (id INTEGER NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
     | `Sqlite ->
-      "CREATE TABLE caqti_test \
+      "CREATE TABLE caqti_sql_async_v1 \
          (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
     | _ -> failwith "Unimplemented."
-  let drop_tmp = prepare_sql "DROP TABLE caqti_test"
+  let drop_tmp = prepare_sql "DROP TABLE caqti_sql_async_v1"
   let insert_into_tmp = prepare_fun @@ function
-    | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
-    | `Sqlite | `Mysql -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
+    | `Pgsql -> "INSERT INTO caqti_sql_async_v1 (i, s) VALUES ($1, $2)"
+    | `Sqlite | `Mysql -> "INSERT INTO caqti_sql_async_v1 (i, s) VALUES (?, ?)"
     | _ -> failwith "Unimplemented."
   let select_from_tmp = prepare_fun @@ function
-    | `Pgsql | `Sqlite | `Mysql -> "SELECT i, s FROM caqti_test"
+    | `Pgsql | `Sqlite | `Mysql -> "SELECT i, s FROM caqti_sql_async_v1"
     | _ -> failwith "Unimplemented."
 end
 

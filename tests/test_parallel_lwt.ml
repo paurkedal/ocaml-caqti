@@ -17,18 +17,19 @@
 open Lwt.Infix
 
 let create_q = Caqti_request.exec Caqti_type.unit
-  "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"
+  "CREATE TABLE test_parallel_lwt (x int NOT NULL, y int NOT NULL)"
 let drop_q = Caqti_request.exec Caqti_type.unit
-  "DROP TABLE IF EXISTS test_parallel"
+  "DROP TABLE IF EXISTS test_parallel_lwt"
 let insert_q = Caqti_request.exec Caqti_type.(tup2 int int)
-  "INSERT INTO test_parallel VALUES (?, ?)"
+  "INSERT INTO test_parallel_lwt VALUES (?, ?)"
 let delete_q = Caqti_request.exec Caqti_type.int
-  "DELETE FROM test_parallel WHERE x = ?"
+  "DELETE FROM test_parallel_lwt WHERE x = ?"
 let select_1_q = Caqti_request.collect Caqti_type.int Caqti_type.int
-  "SELECT y FROM test_parallel WHERE x < ?"
+  "SELECT y FROM test_parallel_lwt WHERE x < ?"
 let select_2_q = Caqti_request.find Caqti_type.int Caqti_type.(option int)
-  "SELECT sum(a.y*b.y) FROM test_parallel a JOIN test_parallel b ON a.x < b.x \
-    WHERE b.x < ?"
+  "SELECT sum(a.y*b.y) \
+   FROM test_parallel_lwt a JOIN test_parallel_lwt b ON a.x < b.x \
+   WHERE b.x < ?"
 
 let random_int () = Random.int (1 + Random.int 16)
 

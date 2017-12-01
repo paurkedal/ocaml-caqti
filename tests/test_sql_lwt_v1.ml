@@ -54,22 +54,22 @@ module Q = struct
 
   let create_tmp = prepare_fun @@ function
     | `Mysql | `Pgsql ->
-        "CREATE TEMPORARY TABLE caqti_test \
+        "CREATE TEMPORARY TABLE test_sql_lwt_v1 \
           (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | `Sqlite ->
-        "CREATE TABLE caqti_test \
+        "CREATE TABLE test_sql_lwt_v1 \
           (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL)"
     | _ -> failwith "Unimplemented."
   let insert_into_tmp = prepare_fun @@ function
-    | `Pgsql -> "INSERT INTO caqti_test (i, s) VALUES ($1, $2)"
-    | `Mysql | `Sqlite -> "INSERT INTO caqti_test (i, s) VALUES (?, ?)"
+    | `Pgsql -> "INSERT INTO test_sql_lwt_v1 (i, s) VALUES ($1, $2)"
+    | `Mysql | `Sqlite -> "INSERT INTO test_sql_lwt_v1 (i, s) VALUES (?, ?)"
     | _ -> failwith "Unimplemented."
   let select_from_tmp = prepare_fun @@ function
-    | `Mysql | `Pgsql | `Sqlite -> "SELECT i, s FROM caqti_test"
+    | `Mysql | `Pgsql | `Sqlite -> "SELECT i, s FROM test_sql_lwt_v1"
     | _ -> failwith "Unimplemented."
   let select_from_tmp_where_i_lt = prepare_fun @@ function
-    | `Pgsql -> "SELECT i, s FROM caqti_test WHERE i < $1"
-    | `Mysql | `Sqlite -> "SELECT i, s FROM caqti_test WHERE i < ?"
+    | `Pgsql -> "SELECT i, s FROM test_sql_lwt_v1 WHERE i < $1"
+    | `Mysql | `Sqlite -> "SELECT i, s FROM test_sql_lwt_v1 WHERE i < ?"
     | _ -> failwith "Unimplemented."
 
   let select_current_time = prepare_sql

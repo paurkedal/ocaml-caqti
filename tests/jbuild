@@ -35,6 +35,7 @@
  ((name runtest)
   (package caqti-lwt)
   (deps (bikereg_v1.exe (alias drivers) uris.conf))
+  (locks (/db/bikereg_v1))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name bikereg_v1)
@@ -45,6 +46,7 @@
  ((name runtest)
   (package caqti-lwt)
   (deps (bikereg.exe (alias drivers) uris.conf))
+  (locks (/db/bikereg))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name bikereg)
@@ -55,6 +57,7 @@
  ((name runtest)
   (package caqti-async)
   (deps (test_sql_async_v1.exe (alias drivers) uris.conf))
+  (locks (/db/test_sql_async_v1))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name test_sql_async_v1)
@@ -65,6 +68,7 @@
  ((name runtest)
   (package caqti-lwt)
   (deps (test_parallel_lwt_v1.exe (alias drivers) uris.conf))
+  (locks (/db/test_parallel_lwt_v1))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name test_parallel_lwt_v1)
@@ -75,6 +79,7 @@
  ((name runtest)
   (package caqti-lwt)
   (deps (test_parallel_lwt.exe (alias drivers) uris.conf))
+  (locks (/db/test_parallel_lwt))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name test_parallel_lwt)
@@ -85,6 +90,7 @@
  ((name runtest)
   (package caqti-lwt)
   (deps (test_sql_lwt_v1.exe (alias drivers) uris.conf))
+  (locks (/db/test_sql_lwt_v1))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable
  ((name test_sql_lwt_v1)

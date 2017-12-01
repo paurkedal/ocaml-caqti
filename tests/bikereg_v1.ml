@@ -39,23 +39,23 @@ open Caqti_query
 
 module Q = struct
   let create_bikereg = oneshot_sql
-    "CREATE TEMPORARY TABLE bikereg (\
+    "CREATE TEMPORARY TABLE bikereg_v1 (\
         frameno text NOT NULL, \
         owner text NOT NULL, \
         stolen timestamp\
      )"
 
   let reg_bike = prepare_sql_p
-    "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
+    "INSERT INTO bikereg_v1 (frameno, owner) VALUES (?, ?)"
 
   let report_stolen = prepare_sql_p
-    "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
+    "UPDATE bikereg_v1 SET stolen = current_timestamp WHERE frameno = ?"
 
   let select_stolen = prepare_sql
-    "SELECT frameno, owner, stolen FROM bikereg WHERE stolen IS NOT NULL"
+    "SELECT frameno, owner, stolen FROM bikereg_v1 WHERE stolen IS NOT NULL"
 
   let select_frameno = prepare_sql_p
-    "SELECT * FROM bikereg WHERE frameno = ?"
+    "SELECT * FROM bikereg_v1 WHERE frameno = ?"
 end
 
 (* Wrappers around the Generic Execution Functions

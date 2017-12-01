@@ -19,8 +19,6 @@
     The system utilities used by drivers.  This signature will likely be
     extended or changed due requirements of new backends. *)
 
-open Caqti_query
-
 module type S = sig
 
   type +'a io
@@ -48,10 +46,6 @@ module type S = sig
     val warning_f : ('a, unit, string, unit io) format4 -> 'a
     val info_f : ('a, unit, string, unit io) format4 -> 'a
     val debug_f : ('a, unit, string, unit io) format4 -> 'a
-    val debug_query_enabled : unit -> bool
-    val debug_query : query_info -> string list -> unit io
-    val debug_tuple_enabled : unit -> bool
-    val debug_tuple : string list -> unit io
   end
 
   module Preemptive : sig

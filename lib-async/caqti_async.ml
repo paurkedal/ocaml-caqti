@@ -74,23 +74,6 @@ module System = struct
     let warning_f fmt = log_f `Info  fmt
     let info_f    fmt = log_f `Info  fmt
     let debug_f   fmt = log_f `Debug fmt
-
-    (* TODO: Check how log filtering works in async. *)
-    let debug_query_enabled () = false
-    let debug_tuple_enabled () = false
-
-    let debug_query qi params =
-      begin match qi with
-      | `Oneshot qs -> log_f `Debug "Sent query: %s" qs
-      | `Prepared (qn, qs) -> log_f `Debug "Sent query %s: %s" qn qs
-      end >>= fun () ->
-      if params = [] then
-        return ()
-      else
-        log_f `Debug "with parameters: %s" (String.concat ~sep:", " params)
-
-    let debug_tuple tuple =
-      log_f `Debug "Received tuple: %s" (String.concat ~sep:", " tuple)
   end
 
   module Preemptive = struct

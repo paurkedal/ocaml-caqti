@@ -32,42 +32,12 @@ module System = struct
   end
 
   module Log = struct
-    open Lwt_log
-
     let section = Lwt_log.Section.make "caqti"
-    let qnr_section = Lwt_log.Section.make "caqti.qnr"
 
     let error_f   fmt = Lwt_log.error_f ~section fmt
     let warning_f fmt = Lwt_log.warning_f ~section fmt
     let info_f    fmt = Lwt_log.info_f ~section fmt
     let debug_f   fmt = Lwt_log.debug_f ~section fmt
-
-    let debug_query_enabled () =
-      match Lwt_log.Section.level qnr_section with
-      | Debug | Info -> true
-      | Notice | Warning | Error | Fatal -> false
-
-    let debug_tuple_enabled () =
-      match Lwt_log.Section.level qnr_section with
-      | Debug -> true
-      | Info | Notice | Warning | Error | Fatal -> false
-
-    let debug_query qi params =
-      begin match qi with
-      | `Oneshot qs ->
-        Lwt_log.debug_f ~section:qnr_section "Sent query: %s" qs
-      | `Prepared (qn, qs) ->
-        Lwt_log.debug_f ~section:qnr_section "Sent query %s: %s" qn qs
-      end >>= fun () ->
-      if params = [] then
-        Lwt.return_unit
-      else
-        Lwt_log.debug_f ~section:qnr_section "with parameters: %s"
-                        (String.concat ", " params)
-
-    let debug_tuple tuple =
-      Lwt_log.debug_f ~section:qnr_section "Received tuple: %s"
-                      (String.concat ", " tuple)
   end
 
   module Unix = struct

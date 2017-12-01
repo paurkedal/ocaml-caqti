@@ -17,8 +17,41 @@
 (** (internal) System Interface *)
 
 module type S = sig
-  include Caqti_system_sig.S
-
+  type +'a io
+  val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
+  val (>|=) : 'a io -> ('a -> 'b) -> 'b io
+  val return : 'a -> 'a io
+  val join : unit io list -> unit io
   val fail : exn -> 'a io
   val catch : (unit -> 'a io) -> (exn -> 'a io) -> 'a io
+
+  module Mvar : sig
+    type 'a t
+    val create : unit -> 'a t
+    val store : 'a -> 'a t -> unit
+    val fetch : 'a t -> 'a io
+  end
+
+  module Unix : sig
+    type file_descr
+    val wrap_fd : (file_descr -> 'a io) -> Unix.file_descr -> 'a io
+    val poll : ?read: bool -> ?write: bool -> ?timeout: float ->
+               file_descr -> (bool * bool * bool) io
+  end
+
+  module Log : sig
+    val error_f : ('a, unit, string, unit io) format4 -> 'a
+    val warning_f : ('a, unit, string, unit io) format4 -> 'a
+    val info_f : ('a, unit, string, unit io) format4 -> 'a
+    val debug_f : ('a, unit, string, unit io) format4 -> 'a
+    val debug_query_enabled : unit -> bool
+    val debug_query : Caqti_query.query_info -> string list -> unit io
+    val debug_tuple_enabled : unit -> bool
+    val debug_tuple : string list -> unit io
+  end
+
+  module Preemptive : sig
+    val detach : ('a -> 'b) -> 'a -> 'b io
+    val run_in_main : (unit -> 'a io) -> 'a
+  end
 end

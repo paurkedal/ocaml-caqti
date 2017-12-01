@@ -14,11 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_describe
-open Caqti_errors
+open Caqti1_describe
+open Caqti1_errors
 open Caqti_prereq
-open Caqti_query
-open Caqti_sigs
+open Caqti1_query
+open Caqti1_sigs
 open Postgresql
 open Printf
 
@@ -55,9 +55,9 @@ let utc_of_timestamp s =
   with_utc (fun () -> CL.Printer.Calendar.from_fstring fmt s)
 
 module Q = struct
-  let start = Caqti_query.prepare_sql "BEGIN"
-  let commit = Caqti_query.prepare_sql "COMMIT"
-  let rollback = Caqti_query.prepare_sql "ROLLBACK"
+  let start = Caqti1_query.prepare_sql "BEGIN"
+  let commit = Caqti1_query.prepare_sql "COMMIT"
+  let rollback = Caqti1_query.prepare_sql "ROLLBACK"
 end
 
 module Param = struct

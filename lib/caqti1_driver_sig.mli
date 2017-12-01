@@ -18,7 +18,7 @@
 
 module type S = sig
   type 'a io
-  module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a io
+  module type CONNECTION = Caqti1_sigs.CONNECTION with type 'a io = 'a io
   val driver_info : Caqti_driver_info.t
   val connect : Uri.t -> (module CONNECTION) io
 end

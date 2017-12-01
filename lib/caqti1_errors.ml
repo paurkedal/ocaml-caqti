@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,10 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** @deprecated Moved to Caqti1_errors. *)
+open Caqti1_query
 
-(**/**)
-
-[@@@ocaml.deprecated "Renamed to Caqti1_errors."]
-
-include Caqti1_errors
+exception Connect_failed of Uri.t * string
+exception Prepare_failed of Uri.t * query_info * string
+exception Execute_failed of Uri.t * query_info * string
+exception Miscommunication of Uri.t * query_info * string

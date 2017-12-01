@@ -16,8 +16,8 @@
 
 (** (v1) Signatures. *)
 
-open Caqti_describe
-open Caqti_query
+open Caqti1_describe
+open Caqti1_query
 
 (** Parameter encoding functions. *)
 module type PARAM = sig

@@ -14,8 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_describe
-open Caqti_query
+open Caqti1_describe
+open Caqti1_query
 open Printf
 
 let (>>=) = Lwt.(>>=)
@@ -78,12 +78,12 @@ module Q = struct
     | `Pgsql  -> "SELECT $1::timestamp"
     | `Sqlite -> "SELECT ?"
     | `Mysql  -> "SELECT CAST(? AS datetime)"
-    | _ -> raise Caqti_query.Missing_query_string
+    | _ -> raise Caqti1_query.Missing_query_string
   let compare_to_known_time = prepare_fun @@ function
     | `Pgsql  -> "SELECT $1 = CAST('2017-01-29T12:00:00' AS timestamp)"
     | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00'"
     | `Mysql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS datetime)"
-    | _ -> raise Caqti_query.Missing_query_string
+    | _ -> raise Caqti1_query.Missing_query_string
 end
 
 let repeat n f =

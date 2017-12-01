@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_query
+open Caqti1_query
 open Lwt.Infix
 
 let create_q = prepare_sql_p "CREATE TABLE test_parallel_lwt_v1 \

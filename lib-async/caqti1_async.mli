@@ -17,4 +17,4 @@
 (** (v1) Connector for Async. *)
 
 open Async
-include Caqti_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t
+include Caqti1_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t

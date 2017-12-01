@@ -45,7 +45,7 @@ module type S = sig
     val info_f : ('a, unit, string, unit io) format4 -> 'a
     val debug_f : ('a, unit, string, unit io) format4 -> 'a
     val debug_query_enabled : unit -> bool
-    val debug_query : Caqti_query.query_info -> string list -> unit io
+    val debug_query : Caqti1_query.query_info -> string list -> unit io
     val debug_tuple_enabled : unit -> bool
     val debug_tuple : string list -> unit io
   end

@@ -16,4 +16,4 @@
 
 (** (v1) Connector for Lwt. *)
 
-include Caqti_sigs.CAQTI with type 'a io := 'a Lwt.t
+include Caqti1_sigs.CAQTI with type 'a io := 'a Lwt.t

@@ -21,5 +21,5 @@ val define_driver : string -> (module Caqti1_driver_sig.F) -> unit
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make (System : Caqti1_system_sig.S) : Caqti_sigs.CAQTI
+module Make (System : Caqti1_system_sig.S) : Caqti1_sigs.CAQTI
   with type 'a io := 'a System.io

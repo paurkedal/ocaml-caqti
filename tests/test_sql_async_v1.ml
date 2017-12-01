@@ -16,8 +16,8 @@
 
 open Core
 open Async
-open Caqti_describe
-open Caqti_query
+open Caqti1_describe
+open Caqti1_query
 
 module Q = struct
   let create_tmp = prepare_fun @@ function

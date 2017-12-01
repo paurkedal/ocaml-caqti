@@ -14,10 +14,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** @deprecated Moved to Caqti1_errors. *)
+(** @deprecated Moved to Caqti1_sigs. *)
 
 (**/**)
 
-[@@@ocaml.deprecated "Renamed to Caqti1_errors."]
+[@@@ocaml.deprecated "Renamed to Caqti1_sigs."]
 
-include Caqti1_errors
+include Caqti1_sigs

@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_describe
+open Caqti1_describe
 open Lwt.Infix
 open Printf
 module Cal = CalendarLib
@@ -45,7 +45,7 @@ module Connection_utils (C : Caqti1_lwt.CONNECTION) = struct
 end
 
 let main do_describe uri qs =
-  let q = Caqti_query.prepare_any qs in
+  let q = Caqti1_query.prepare_any qs in
   Caqti1_lwt.connect uri >>= fun connection ->
   let module C = (val connection) in
   let module U = Connection_utils (C) in

@@ -59,7 +59,7 @@ module Make (System : Caqti1_system_sig.S) = struct
                 Ok driver
              | Error _ as r -> r)))
 
-  module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a System.io
+  module type CONNECTION = Caqti1_sigs.CONNECTION with type 'a io = 'a System.io
 
   let connect uri : (module CONNECTION) System.io =
     (match load_driver uri with
@@ -72,9 +72,9 @@ module Make (System : Caqti1_system_sig.S) = struct
         let msg = Caqti_error.show err in
         (match Uri.scheme uri with
          | None ->
-            fail (Caqti_plugin.Plugin_missing ("?", msg))
+            fail (Caqti1_plugin.Plugin_missing ("?", msg))
          | Some scheme ->
-            fail (Caqti_plugin.Plugin_missing ("caqti-driver-" ^ scheme ^ ".v1", msg))))
+            fail (Caqti1_plugin.Plugin_missing ("caqti-driver-" ^ scheme ^ ".v1", msg))))
 
   module Pool = Caqti1_pool.Make (System)
 

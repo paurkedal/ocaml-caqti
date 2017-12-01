@@ -19,7 +19,7 @@
  * code-generators. *)
 
 open Lwt.Infix
-open Caqti_query
+open Caqti1_query
 
 (* Query Strings
  * =============

@@ -16,7 +16,7 @@
 
 (** (v1) Exceptions. *)
 
-open Caqti_query
+open Caqti1_query
 
 exception Connect_failed of Uri.t * string
 (** The exception raised when a backend fails to connect to a resource.  Due

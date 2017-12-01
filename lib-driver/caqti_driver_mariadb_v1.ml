@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_errors
-open Caqti_query
-open Caqti_sigs
+open Caqti1_errors
+open Caqti1_query
+open Caqti1_sigs
 open Printf
 
 module Caldate = CalendarLib.Date
@@ -205,7 +205,7 @@ module Caqtus_functor (System : Caqti1_system_sig.S) = struct
      * currently not bound. *)
     let with_prepared q f =
       match q with
-       | Caqti_query.Oneshot qsf ->
+       | Caqti1_query.Oneshot qsf ->
           prepare dbh (qsf driver_info) >>=
           (function
            | Error err -> prepare_failed uri q err
@@ -218,13 +218,13 @@ module Caqtus_functor (System : Caqti1_system_sig.S) = struct
                 (fun exn ->
                   Mdb.Stmt.close stmt >>= fun _ ->
                   fail exn))
-       | Caqti_query.Prepared pq ->
-          let index = pq.Caqti_query.pq_index in
+       | Caqti1_query.Prepared pq ->
+          let index = pq.Caqti1_query.pq_index in
           (try
             let stmt = Hashtbl.find prepared_queries index in
             return stmt
            with Not_found ->
-            prepare dbh (pq.Caqti_query.pq_encode driver_info) >>=
+            prepare dbh (pq.Caqti1_query.pq_encode driver_info) >>=
             (function
              | Error err -> prepare_failed uri q err
              | Ok stmt ->
@@ -358,7 +358,7 @@ module Caqtus_functor (System : Caqti1_system_sig.S) = struct
         let module C : CONNECTION = (val make_api uri dbh) in
         (* MariaDB returns local times but without time zone, so change it to
          * UTC for Caqti sessions. *)
-        C.exec (Caqti_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
+        C.exec (Caqti1_query.oneshot_sql "SET time_zone = '+00:00'") [||] >|=
         fun () -> (module C : CONNECTION)
      | Error (code, msg) ->
         raise (Connect_failed (uri, sprintf "Error %d, %s" code msg)))

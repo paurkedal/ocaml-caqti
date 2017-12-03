@@ -59,6 +59,13 @@ let format_query qs =
     else
       skip_quoted (j + 1) in
 
+  let rec scan_int i p =
+    if i = n then (i, p) else
+    (match qs.[i] with
+     | '0'..'9' as ch ->
+        scan_int (i + 1) (p * 10 + Char.code ch - Char.code '0')
+     | _ -> (i, p)) in
+
   let rec loop p i j acc = (* acc is reversed *)
     if j = n then L (String.sub qs i (j - i)) :: acc else
     (match qs.[j] with
@@ -67,10 +74,14 @@ let format_query qs =
         loop p k k
           (L (String.sub qs j (k - j)) ::
            L (String.sub qs i (j - i)) :: acc)
+     | '?' when p < 0 -> invalid_arg "Mixed ? and $i style parameters."
+     | '$' when p > 0 -> invalid_arg "Mixed ? and $i style parameters."
      | '?' ->
-        loop (p + 1) (j + 1) (j + 1)
-          (P p ::
-           L (String.sub qs i (j - i)) :: acc)
+        loop (p + 1) (j + 1) (j + 1) (P p :: L (String.sub qs i (j - i)) :: acc)
+     | '$' ->
+        let k, p' = scan_int (j + 1) 0 in
+        if k = j + 1 then invalid_arg "Unterminated $ parameter." else
+        loop (-1) k k (P (p' - 1) :: L (String.sub qs i (j - i)) :: acc)
      | _ ->
         loop p i (j + 1) acc) in
 

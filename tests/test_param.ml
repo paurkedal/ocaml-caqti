@@ -19,12 +19,16 @@ open Testkit
 
 let (>>=?) m mf =
   m >>= (function Ok x -> mf x | Error err -> Lwt.return (Error err))
+let (>|=?) m f =
+  m >|= (function Ok x -> f x | Error err -> Error err)
 
-let nonlin_q =
-  Caqti_request.create
-    Caqti_type.(tup3 int int int) Caqti_type.int
-    Caqti_mult.one @@ fun _ ->
+let nonlin1_q = Caqti_request.create
+  Caqti_type.(tup3 int int int) Caqti_type.int Caqti_mult.one @@ fun _ ->
   S[L"SELECT 2 * "; P 2; L" + "; P 2; L" - 3 * "; P 0; L" + 5 * "; P 1]
+
+let nonlin2_q = Caqti_request.find
+  Caqti_type.(tup3 int int int) Caqti_type.int
+  "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
 let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1
 
@@ -32,8 +36,8 @@ let test (module Db : Caqti_lwt.V2.CONNECTION) =
   let rec loop n =
     if n = 0 then Lwt.return_ok () else
     let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
-    Db.find nonlin_q p >>=? fun y ->
-    assert (y = nonlin p);
+    (Db.find nonlin1_q p >|=? fun y -> Ok (assert (y = nonlin p))) >>=? fun() ->
+    (Db.find nonlin2_q p >|=? fun y -> Ok (assert (y = nonlin p))) >>=? fun() ->
     loop (n - 1) in
   loop 1000
 

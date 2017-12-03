@@ -22,6 +22,10 @@
 module V2 : Caqti_connect_sig.S with type 'a io := 'a Lwt.t
 (** Transient location for v2 API while deprecating v1. *)
 
+val of_result : ('a, Caqti_error.t) result -> 'a Lwt.t
+(** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
+    exception holding the error. *)
+
 (**/**)
 
 [@@@ocaml.warning "-3"]

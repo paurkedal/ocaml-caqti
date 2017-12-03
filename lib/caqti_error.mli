@@ -188,3 +188,5 @@ val uri : [< t] -> Uri.t
 val pp : Format.formatter -> [< t] -> unit
 
 val show : [< t] -> string
+
+exception Exn of t

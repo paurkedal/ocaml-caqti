@@ -68,4 +68,9 @@ module System = struct
 end
 
 module V2 = Caqti_connect.Make (System)
+
+let of_result = function
+ | Ok x -> Lwt.return x
+ | Error err -> Lwt.fail (Caqti_error.Exn err)
+
 include Caqti1_lwt

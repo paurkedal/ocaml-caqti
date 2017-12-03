@@ -200,3 +200,5 @@ let show err =
   pp ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
+
+exception Exn of t

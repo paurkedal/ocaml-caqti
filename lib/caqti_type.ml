@@ -24,7 +24,7 @@ type _ field +=
   | Float : float field
   | String : string field
   | Octets : string field
-  | Pday : int field
+  | Pdate : Ptime.t field
   | Ptime : Ptime.t field
 
 module Field = struct
@@ -61,7 +61,7 @@ module Field = struct
    | Float -> "float"
    | String -> "string"
    | Octets -> "octets"
-   | Pday -> "pday"
+   | Pdate -> "pdate"
    | Ptime -> "ptime"
    | ft -> Obj.extension_name (Obj.extension_constructor ft)
 end
@@ -149,5 +149,5 @@ let int64 = Field Int64
 let float = Field Float
 let string = Field String
 let octets = Field Octets
-let pday = Field Pday
+let pdate = Field Pdate
 let ptime = Field Ptime

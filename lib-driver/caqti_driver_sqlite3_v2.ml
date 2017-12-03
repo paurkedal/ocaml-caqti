@@ -65,9 +65,7 @@ let rec data_of_value
    | Caqti_type.Float  -> Ok (Sqlite3.Data.FLOAT x)
    | Caqti_type.String -> Ok (Sqlite3.Data.TEXT x)
 (* | Caqti_type.Octets -> TODO *)
-   | Caqti_type.Pday ->
-      let (y, m, d) = Ptime.v (x, 0L) |> Ptime.to_date in
-      Ok (Sqlite3.Data.TEXT (sprintf "%04d-%02d-%02d" y m d))
+   | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (iso8601_of_pdate x))
    | Caqti_type.Ptime ->
       Ok (Sqlite3.Data.TEXT (Ptime.to_rfc3339 ~space:true x))
    | _ ->
@@ -104,8 +102,8 @@ let rec value_of_data
    | Caqti_type.Float, Sqlite3.Data.INT y -> Ok (Int64.to_float y)
    | Caqti_type.String, Sqlite3.Data.TEXT y -> Ok y
 (* | Caqti_type.Octets, _ -> TODO *)
-   | Caqti_type.Pday as field_type, Sqlite3.Data.TEXT y ->
-      (match pday_of_iso8601 y with
+   | Caqti_type.Pdate as field_type, Sqlite3.Data.TEXT y ->
+      (match pdate_of_iso8601 y with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in

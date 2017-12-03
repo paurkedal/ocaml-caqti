@@ -46,7 +46,7 @@ type _ field +=
   | Float : float field
   | String : string field
   | Octets : string field
-  | Pday : int field
+  | Pdate : Ptime.t field
   | Ptime : Ptime.t field
 
 type _ t = private
@@ -89,5 +89,5 @@ val int64 : int64 t
 val float : float t
 val string : string t
 val octets : string t
-val pday : int t
+val pdate : Ptime.t t
 val ptime : Ptime.t t

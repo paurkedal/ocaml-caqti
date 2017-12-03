@@ -105,9 +105,7 @@ let rec encode_field
    | Caqti_type.Float -> Ok (sprintf "%.17g" x)
    | Caqti_type.String -> Ok x
    | Caqti_type.Octets -> Ok x
-   | Caqti_type.Pday ->
-      let ymd = Ptime.v (x, 0L) |> Ptime.to_date in
-      Ok (iso8601_of_datetuple ymd)
+   | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
    | Caqti_type.Ptime ->
       Ok (Ptime.to_rfc3339 ~space:true x)
    | _ ->
@@ -137,8 +135,8 @@ let rec decode_field
    | Caqti_type.Float -> conv float_of_string s
    | Caqti_type.String -> Ok s
    | Caqti_type.Octets -> Ok s
-   | Caqti_type.Pday ->
-     (match pday_of_iso8601 s with
+   | Caqti_type.Pdate ->
+     (match pdate_of_iso8601 s with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in

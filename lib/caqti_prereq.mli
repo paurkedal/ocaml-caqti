@@ -42,5 +42,6 @@ val datetuple_of_iso8601 : string -> int * int * int
 val iso8601_of_datetuple : int * int * int -> string
 
 val ptime_of_rfc3339_utc : string -> (Ptime.t, string) result
-val pday_of_iso8601 : string -> (int, string) result
-val iso8601_of_pday : int -> (string, string) result
+
+val pdate_of_iso8601 : string -> (Ptime.t, string) result
+val iso8601_of_pdate : Ptime.t -> string

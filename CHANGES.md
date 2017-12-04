@@ -1,9 +1,11 @@
 # Change Log
 
-## unreleased
+## [0.8.0] - 2017-12-04
 
 - Remove most deprecations.
-- Add new "v2" API.
+- Add new v2 API.
+- Move away most of the v1 API, but keep deprecated aliases for the client
+  API.
 
 The main difference of the new API compared to the old is:
 
@@ -13,6 +15,16 @@ The main difference of the new API compared to the old is:
   before iterating over the returned rows.
 - Error handling is done with the `result` type, using a collection of error
   types formed as polymorphic variants of records.
+
+*Notice:* This version is mostly backwards compatible.  New code should use
+v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
+
+- Fix the new deprecations from this release.
+- Link with `caqti-dynload` to keep using dynamic loading, or link with the
+  needed `caqti-driver-*.v1` driver libraries.
+- Link with `caqti.v1` instead of `caqti`.
+- Link with `caqti-lwt.v1` instead of `caqti-lwt`.
+- Link with `caqti-async.v1` instead of `caqti-async`.
 
 ## [0.7.0] - 2017-11-03
 

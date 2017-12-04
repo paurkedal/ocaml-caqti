@@ -15,14 +15,14 @@
  *)
 
 type _ Caqti_type.field +=
-  | Date : CalendarLib.Date.t Caqti_type.field
-  | Time : CalendarLib.Calendar.t Caqti_type.field
+  | Cdate : CalendarLib.Date.t Caqti_type.field
+  | Ctime : CalendarLib.Calendar.t Caqti_type.field
 
 let () =
   let open Caqti_type.Field in
   let open CalendarLib in
   let get_coding : type a. _ -> a t -> a coding = fun _ -> function
-   | Date ->
+   | Cdate ->
       let encode date =
         (match Ptime.of_float_s (Date.to_unixfloat date) with
          | None -> Error "Ptime rejected POSIX date float from CalendarLib."
@@ -31,7 +31,7 @@ let () =
         (try Ok (Date.from_unixfloat (Ptime.to_float_s pdate)) with
          | _ -> Error "CalendarLib rejected POSIX date float from Ptime.") in
       Coding {rep = Caqti_type.Pdate; encode; decode}
-   | Time ->
+   | Ctime ->
       let encode time =
         (match Ptime.of_float_s (Calendar.to_unixfloat time) with
          | Some t -> Ok t
@@ -42,8 +42,8 @@ let () =
       Coding {rep = Caqti_type.Ptime; encode; decode}
    | _ -> assert false
   in
-  define_coding Date {get_coding};
-  define_coding Time {get_coding}
+  define_coding Cdate {get_coding};
+  define_coding Ctime {get_coding}
 
-let date = Caqti_type.field Date
-let time = Caqti_type.field Time
+let cdate = Caqti_type.field Cdate
+let ctime = Caqti_type.field Ctime

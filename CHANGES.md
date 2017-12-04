@@ -69,6 +69,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
 
+[0.8.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...v0.6.0

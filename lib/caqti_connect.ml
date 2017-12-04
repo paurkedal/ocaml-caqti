@@ -28,7 +28,7 @@ let define_driver scheme p = Hashtbl.add drivers scheme p
 let load_driver_functor ~uri scheme =
   (try Ok (Hashtbl.find drivers scheme) with
    | Not_found ->
-      (match !dynload_library ("caqti-driver-" ^ scheme ^ ".v2") with
+      (match !dynload_library ("caqti-driver-" ^ scheme) with
        | Ok () ->
           (try Ok (Hashtbl.find drivers scheme) with
            | Not_found ->

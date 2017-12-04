@@ -17,6 +17,7 @@ depends: [
   "calendar"
   "ocamlfind" {build}
   "ppx_optcomp" {build}
+  "ptime"
   "uri"
 ]
 available: [ocaml-version >= "4.03.0"]

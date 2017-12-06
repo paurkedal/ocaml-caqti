@@ -43,7 +43,7 @@ let report_error = function
     exit 69
 
 let do_query pool =
-  pool |> Caqti_lwt.V2.Pool.use @@ fun (module C : Caqti_lwt.V2.CONNECTION) ->
+  pool |> Caqti_lwt.Pool.use @@ fun (module C : Caqti_lwt.CONNECTION) ->
   (match Random.int 4 with
    | 0 ->
       C.exec insert_q (random_int (), random_int ()) >>=? fun () ->
@@ -85,15 +85,15 @@ let rec test2 pool n =
 let test uri =
   let n_r = ref 1000 in
   let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
-  Lwt.return (Caqti_lwt.V2.connect_pool ~max_size uri) >>=? fun pool ->
-  Caqti_lwt.V2.Pool.use
-    (fun (module C : Caqti_lwt.V2.CONNECTION) ->
+  Lwt.return (Caqti_lwt.connect_pool ~max_size uri) >>=? fun pool ->
+  Caqti_lwt.Pool.use
+    (fun (module C : Caqti_lwt.CONNECTION) ->
       C.exec drop_q () >>=? fun () ->
       C.exec create_q ())
     pool >>=? fun () ->
   test2 pool !n_r >>=? fun _ ->
-  Caqti_lwt.V2.Pool.use
-    (fun (module C : Caqti_lwt.V2.CONNECTION) -> C.exec drop_q ())
+  Caqti_lwt.Pool.use
+    (fun (module C : Caqti_lwt.CONNECTION) -> C.exec drop_q ())
     pool
 
 let () = Lwt_main.run begin

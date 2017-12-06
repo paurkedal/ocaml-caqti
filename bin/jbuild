@@ -3,9 +3,9 @@
 (executable
  ((name query)
   (modules (query))
-  (libraries (caqti caqti-lwt))))
+  (libraries (caqti_v1 caqti_lwt_v1))))
 
-(install
- ((section bin)
-  (package caqti-lwt)
-  (files ((query.exe as caqtiq)))))
+;(install
+; ((section bin)
+;  (package caqti-lwt)
+;  (files ((query.exe as caqtiq)))))

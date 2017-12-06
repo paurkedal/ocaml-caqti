@@ -19,8 +19,7 @@
     This module contains the signature and connect function specialized for use
     with Lwt. *)
 
-module V2 : Caqti_connect_sig.S with type 'a io := 'a Lwt.t
-(** Transient location for v2 API while deprecating v1. *)
+include Caqti_connect_sig.S with type 'a io := 'a Lwt.t
 
 val of_result : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
@@ -28,12 +27,7 @@ val of_result : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 
 (**/**)
 
-[@@@ocaml.warning "-3"]
-module Pool : Caqti1_pool_sig.S with type 'a io := 'a Lwt.t
-  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
-module type CONNECTION = Caqti_sigs.CONNECTION with type 'a io = 'a Lwt.t
-  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
-val connect : Uri.t -> (module CONNECTION) Lwt.t
-  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
-val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
-  [@@ocaml.deprecated "Moved to Caqti1_lwt."]
+module V2 : Caqti_connect_sig.S
+  with type 'a io := 'a Lwt.t
+   and module Pool = Pool
+[@@deprecated "Moved to Caqti_lwt top level."]

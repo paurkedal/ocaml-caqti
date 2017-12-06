@@ -89,20 +89,20 @@ end
 
 (* Db.exec runs a statement which must not return any rows.  Errors are
  * reported as exceptions. *)
-let create_bikereg (module Db : Caqti_lwt.V2.CONNECTION) =
+let create_bikereg (module Db : Caqti_lwt.CONNECTION) =
   Db.exec Q.create_bikereg ()
-let reg_bike (module Db : Caqti_lwt.V2.CONNECTION) frameno owner =
+let reg_bike (module Db : Caqti_lwt.CONNECTION) frameno owner =
   Db.exec Q.reg_bike (frameno, owner)
-let report_stolen (module Db : Caqti_lwt.V2.CONNECTION) frameno =
+let report_stolen (module Db : Caqti_lwt.CONNECTION) frameno =
   Db.exec Q.report_stolen frameno
 
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
-let find_bike_owner frameno (module Db : Caqti_lwt.V2.CONNECTION) =
+let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
   Db.find_opt Q.select_frameno frameno
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
-let iter_s_stolen (module Db : Caqti_lwt.V2.CONNECTION) f =
+let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =
   Db.iter_s Q.select_stolen f ()
 
 (* There is also a Db.iter_p for parallel processing, and Db.fold and
@@ -152,6 +152,6 @@ let report_error = function
 
 let () = Lwt_main.run begin
   Lwt_list.iter_s
-    (fun uri -> Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+    (fun uri -> Caqti_lwt.connect uri >>=? test >>= report_error)
     (Testkit.parse_common_args ())
 end

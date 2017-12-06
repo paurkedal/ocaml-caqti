@@ -18,19 +18,11 @@
 
 open Async
 
-module V2 : Caqti_connect_sig.S with type 'a io := 'a Deferred.t
-(** You have to use this submodule in this release due to backwards
-    compatibility for v1 API. *)
+include Caqti_connect_sig.S with type 'a io := 'a Deferred.t
 
 (**/**)
 
-[@@@ocaml.warning "-3"]
-module Pool : Caqti1_pool_sig.S with type 'a io := 'a Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti1_async."]
-module type CONNECTION = Caqti_sigs.CONNECTION
-  with type 'a io = 'a Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti1_async."]
-val connect : Uri.t -> (module CONNECTION) Deferred.Or_error.t
-[@@ocaml.deprecated "Moved to Caqti1_async."]
-val connect_pool : ?max_size: int -> Uri.t -> (module CONNECTION) Pool.t
-[@@ocaml.deprecated "Moved to Caqti1_async."]
+module V2 : Caqti_connect_sig.S
+  with type 'a io := 'a Deferred.t
+   and module Pool = Pool
+[@@deprecated "Now moved to the Caqti_async top level."]

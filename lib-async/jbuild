@@ -4,16 +4,12 @@
  ((name caqti_async)
   (public_name caqti-async)
   (wrapped false)
-  (modules
-   (Caqti_async Caqti1_async
-    Caqti_async_sql_io))
-  (libraries (async caqti caqti-dynload core))))
-; TODO: Remove caqti-dynload.
-; TODO: Move Caqti1_async to caqti-async.v1.
+  (modules (Caqti_async Caqti_async_sql_io))
+  (libraries (async caqti caqti_dynload core))))
 
 (library
  ((name caqti_async_v1)
   (public_name caqti-async.v1)
   (wrapped false)
-  (modules ())
-  (libraries (caqti.v1 caqti_async))))
+  (modules (Caqti1_async))
+  (libraries (caqti_v1 caqti_async))))

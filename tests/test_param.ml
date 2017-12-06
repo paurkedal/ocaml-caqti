@@ -32,7 +32,7 @@ let nonlin2_q = Caqti_request.find
 
 let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1
 
-let test (module Db : Caqti_lwt.V2.CONNECTION) =
+let test (module Db : Caqti_lwt.CONNECTION) =
   let rec loop n =
     if n = 0 then Lwt.return_ok () else
     let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
@@ -49,5 +49,5 @@ let report_error = function
 
 let () = Lwt_main.run @@
   Lwt_list.iter_s
-    (fun uri -> Caqti_lwt.V2.connect uri >>=? test >>= report_error)
+    (fun uri -> Caqti_lwt.connect uri >>=? test >>= report_error)
     (parse_common_args ())

@@ -4,16 +4,12 @@
  ((name caqti_lwt)
   (public_name caqti-lwt)
   (wrapped false)
-  (modules
-   (Caqti_lwt Caqti1_lwt
-    Caqti_lwt_sql_io))
-  (libraries (caqti caqti-dynload lwt lwt.unix lwt.preemptive))))
-; TODO: Remove caqti-dynload.
-; TODO: Move Caqti1_lwt to caqti-lwt.v1.
+  (modules (Caqti_lwt Caqti_lwt_sql_io))
+  (libraries (caqti lwt lwt.unix lwt.preemptive))))
 
 (library
  ((name caqti_lwt_v1)
   (public_name caqti-lwt.v1)
   (wrapped false)
-  (modules ())
-  (libraries (caqti.v1 caqti_lwt))))
+  (modules (Caqti1_lwt))
+  (libraries (caqti_v1 caqti_lwt))))

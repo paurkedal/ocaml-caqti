@@ -47,8 +47,17 @@ let init = lazy begin
       (String.concat " " (Findlib.recorded_packages Record_load))
 end
 
+let init_v1 = lazy begin
+  List.iter (Findlib.record_package Record_core)
+            (Findlib.package_deep_ancestors ["native"] ["caqti.v1"])
+end
+
 let () = Caqti_connect.define_loader @@ fun pkg ->
   Lazy.force init;
+  let is_v1 =
+    let n = String.length pkg in
+    n > 3 && String.sub pkg (n - 3) 3 = ".v1" in
+  if is_v1 then Lazy.force init_v1;
   if debug then
     Printf.eprintf "[DEBUG] Caqti_dynload: requested package: %s\n" pkg;
   (try Ok (Fl_dynload.load_packages ~debug [pkg]) with

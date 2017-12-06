@@ -83,4 +83,4 @@ module System = struct
 end
 
 module V2 = Caqti_connect.Make (System)
-include Caqti1_async
+include V2

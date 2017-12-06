@@ -22,22 +22,11 @@
     Caqti_sql_io
     Caqti_system_sig
     Caqti_type
-    ; V1
-    Caqti1_connect
-    Caqti1_driver_sig
-    Caqti1_describe Caqti_describe
-    Caqti1_errors Caqti_errors
-    Caqti1_pool
-    Caqti1_pool_sig
-    Caqti1_query Caqti_query
-    Caqti1_system_sig
-    Caqti1_sigs Caqti_sigs
     ; internal
     Caqti_heap
-    Caqti1_plugin Caqti_plugin
     Caqti_prereq))
   (library_flags (-linkall))
-  (libraries (calendar ptime uri))))
+  (libraries (ptime uri))))
 
 (rule
  ((targets (caqti_connect_sig.ml))
@@ -67,13 +56,25 @@
   (deps (caqti_system_sig.mli))
   (action (copy ${<} ${@}))))
 
-; V1
+; API v1. Not to be used for new code.
 (library
  ((name caqti_v1)
   (public_name caqti.v1)
   (wrapped false)
-  (modules ())
-  (libraries (caqti))))
+  (modules
+   (Caqti1_connect
+    Caqti1_driver_sig
+    Caqti1_describe
+    Caqti1_errors
+    Caqti1_pool
+    Caqti1_pool_sig
+    Caqti1_query
+    Caqti1_system_sig
+    Caqti1_sigs
+    ; internal
+    Caqti1_plugin))
+  (library_flags (-linkall))
+  (libraries (calendar caqti))))
 (rule
  ((targets (caqti1_driver_sig.ml))
   (deps (caqti1_driver_sig.mli))

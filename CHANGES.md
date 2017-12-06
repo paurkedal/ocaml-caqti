@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.8.1] - 2017-12-06
+
+- Fix `start` transaction for PostgreSQL v2.
+- Fix dependency on ptime in `caqti.opam` in distribution.
+
 ## [0.8.0] - 2017-12-04
 
 - Remove most deprecations.
@@ -69,6 +74,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
 
+[0.8.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.0...v0.6.1

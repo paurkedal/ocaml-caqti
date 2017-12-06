@@ -18,7 +18,7 @@ open Caqti_prereq
 open Printf
 module Pg = Postgresql
 
-let start_req = Caqti_request.exec Caqti_type.unit "START"
+let start_req = Caqti_request.exec Caqti_type.unit "BEGIN"
 let commit_req = Caqti_request.exec Caqti_type.unit "COMMIT"
 let rollback_req = Caqti_request.exec Caqti_type.unit "ROLLBACK"
 

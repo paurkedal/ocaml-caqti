@@ -16,13 +16,22 @@
 
 open Caqti_prereq
 
-let rec linear_param_length = function
- | Caqti_request.L _ -> 0
- | Caqti_request.P i -> (i + 1)
- | Caqti_request.S frags -> List.fold (max % linear_param_length) frags 0
+let linear_param_length templ =
+  let rec loop = function
+   | Caqti_request.L _ -> ident
+   | Caqti_request.P _ -> succ
+   | Caqti_request.S frags -> List.fold loop frags in
+  loop templ 0
+
+let nonlinear_param_length templ =
+  let rec loop = function
+   | Caqti_request.L _ -> ident
+   | Caqti_request.P n -> max (n + 1)
+   | Caqti_request.S frags -> List.fold loop frags in
+  loop templ 0
 
 let linear_param_order templ =
-  let a = Array.make (linear_param_length templ) [] in
+  let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
    | Caqti_request.L _ -> fun j -> j
    | Caqti_request.P i -> fun j -> a.(i) <- j :: a.(i); j + 1

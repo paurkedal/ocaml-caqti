@@ -124,15 +124,27 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
                 let typ = Caqti_type.field field_type in
                 Error (Caqti_error.encode_rejected ~uri ~typ msg))))
 
+  (* Lax conversion since:
+   * - Arithmetic involving integers like `1 + ?` with at least one parameter
+   *   comes back as a float.
+   * - An expression like `sum(1)` comes back as a string, presumably as
+   *   originally decimal from MariaDB. *)
+  let decode_int field =
+    (match Mdb.Field.value field with
+     | `Int i -> i
+     | `Float x when fst (modf x) = 0.0 -> int_of_float x
+     | `String s -> int_of_string s
+     | _ -> failwith "decode_int")
+
   let rec decode_field
       : type b. uri: Uri.t -> b Caqti_type.field ->
         Mdb.Field.t -> (b, _) result =
     fun ~uri field_type field ->
     try match field_type with
      | Caqti_type.Bool -> Ok (Mdb.Field.int field <> 0)
-     | Caqti_type.Int -> Ok (Mdb.Field.int field)
-     | Caqti_type.Int32 -> Ok (Int32.of_int (Mdb.Field.int field))
-     | Caqti_type.Int64 -> Ok (Int64.of_int (Mdb.Field.int field))
+     | Caqti_type.Int -> Ok (decode_int field)
+     | Caqti_type.Int32 -> Ok (Int32.of_int (decode_int field))
+     | Caqti_type.Int64 -> Ok (Int64.of_int (decode_int field))
      | Caqti_type.Float -> Ok (Mdb.Field.float field)
      | Caqti_type.String -> Ok (Mdb_ext.Field.string field)
   (* | Caqti_type.Octets -> TODO *)

@@ -77,22 +77,31 @@ val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> template
 
 (** {2 Convenience}
 
-    In the following functions, queries are specified as plain strings using
-    linear parameters in the style of Sqlite3 and MySQL.  That is, occurrences
-    of "[?]" are bound to successive parameters independent of the parameter
-    style used by the database.  For PostgreSQL "[$1]", "[$2]", ... are
-    substituted for "[?]".
+    In the following functions, queries are written out as plain strings with
+    the following syntax, which is parsed by Caqti into a {!template} before
+    being passed to the drivers.
 
-    To aid in substituting configurable database schemas or other static parts
-    of the query strings, the following substitions are available when provided
-    by the [?env] argument of the functions below:
+    {b Parameters} are specified as either
+
+    - ["?"] for linear substitutions (like Sqlite and MariaDB), or
+    - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
+
+    Mixing the two styles in the same query is not permitted.  Note than
+    numbering of non-linear parameters is offset by one compared to the query
+    templates defined in the previous section, in order to be consistent with
+    PostgreSQL.
+
+    {b Static references} of the form
 
     - ["$(<var>)"] is substituted by [env driver_info "<var>"].
     - ["$."] is a shortcut for ["$(.)"].
 
-    The latter is suggested for qualifying tables, sequences, etc. with the main
-    database schema.  It should expand to a schema name followed by a dot, or
-    empty if the database does not support schemas or the schema is unset.
+    are replaced by query fragments returned by the [?env] argument of the
+    functions below, and aids in substituting configurable fragments, like
+    database schemas or table names.  The latter form is suggested for
+    qualifying tables, sequences, etc.  with the main database schema.  It
+    should expand to a schema name followed by a dot, or empty if the database
+    does not support schemas or the schema is unset.
 
     Apart from the more generic {!create_p}, these function match up with
     retrieval functions of {!Caqti_connection_sig.S} and {!Caqti_response_sig.S}

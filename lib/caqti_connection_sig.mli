@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Signature of connection handles. *)
+(** Signature of connection handles. *)
 
 module type S = sig
   type 'a io

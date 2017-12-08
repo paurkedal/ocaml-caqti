@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Row multiplicity. *)
+(** Row multiplicity. *)
 
 type +'m t constraint 'm = [< `Zero | `One | `Many]
 

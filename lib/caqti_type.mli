@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Type descriptors for fields and tuples. *)
+(** Type descriptors for fields and tuples. *)
 
 type 'a field = ..
 

@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Error descriptors. *)
+(** Error descriptors. *)
 
 
 (** {2 Error Messages} *)

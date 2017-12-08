@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Connection functor and backend registration. *)
+(** Connection functor and backend registration. *)
 
 val define_loader : (string -> (unit, string) result) -> unit
 

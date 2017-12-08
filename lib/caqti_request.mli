@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v2) Request specification.
+(** Request specification.
 
     A Caqti request is a function to generate a query string from information
     about the driver, along with type descriptors to encode parameters and

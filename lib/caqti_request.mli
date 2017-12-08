@@ -83,11 +83,23 @@ val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> template
     style used by the database.  For PostgreSQL "[$1]", "[$2]", ... are
     substituted for "[?]".
 
+    To aid in substituting configurable database schemas or other static parts
+    of the query strings, the following substitions are available when provided
+    by the [?env] argument of the functions below:
+
+    - ["$(<var>)"] is substituted by [env driver_info "<var>"].
+    - ["$."] is a shortcut for ["$(.)"].
+
+    The latter is suggested for qualifying tables, sequences, etc. with the main
+    database schema.  It should expand to a schema name followed by a dot, or
+    empty if the database does not support schemas or the schema is unset.
+
     Apart from the more generic {!create_p}, these function match up with
     retrieval functions of {!Caqti_connection_sig.S} and {!Caqti_response_sig.S}
     according to the multiplicity parameter of their types. *)
 
 val create_p :
+  ?env: (Caqti_driver_info.t -> string -> template) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
   (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
@@ -103,28 +115,42 @@ val create_p :
     @param oneshot
       For queries generated on-demand or which are otherwise executed only once,
       pass [true] do make the query non-prepared.  By default queries are
-      prepared, which is suitable for requests defined at the module level. *)
+      prepared, which is suitable for requests defined at the module level.
+
+    @param env
+      [env driver_info key] shall provide the value to substitute for a
+      reference to [key] in the query string, or raise [Not_found] to indicate
+      the reference to [key] is invalid.  [Not_found] will be re-raised as
+      [Invalid_argument] with additional information to help locate the bug. *)
 
 val exec :
-  ?oneshot: bool -> 'a Caqti_type.t ->
+  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?oneshot: bool ->
+  'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
 (** [exec_p arg_type s] is a shortcut for [create_p arg_type Caqti_type.unit
     Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :
-  ?oneshot: bool -> 'a Caqti_type.t -> 'b Caqti_type.t ->
+  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?oneshot: bool ->
+  'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
 (** [find_p arg_type row_type s] is a shortcut for [create_p arg_type row_type
     Caqti_mult.one (fun _ -> s)]. *)
 
 val find_opt :
-  ?oneshot: bool -> 'a Caqti_type.t -> 'b Caqti_type.t ->
+  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?oneshot: bool ->
+  'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
 (** [find_opt_p arg_type row_type s] is a shortcut for [create_p arg_type
     row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
 
 val collect :
-  ?oneshot: bool -> 'a Caqti_type.t -> 'b Caqti_type.t ->
+  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?oneshot: bool ->
+  'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
 (** [collect_p arg_type row_type s] is a shortcut for [create_p arg_type
     row_type Caqti_mult.many (fun _ -> s)]. *)

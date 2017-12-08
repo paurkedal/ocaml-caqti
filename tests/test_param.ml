@@ -32,7 +32,7 @@ let nonlin2_q = Caqti_request.find
 
 let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1
 
-let test (module Db : Caqti_lwt.CONNECTION) =
+let test_nonlin (module Db : Caqti_lwt.CONNECTION) =
   let rec loop n =
     if n = 0 then Lwt.return_ok () else
     let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
@@ -40,6 +40,20 @@ let test (module Db : Caqti_lwt.CONNECTION) =
     (Db.find nonlin2_q p >|=? fun y -> Ok (assert (y = nonlin p))) >>=? fun() ->
     loop (n - 1) in
   loop 1000
+
+let env1_q =
+  let env _ = function
+   | "." -> Caqti_request.L"100"
+   | "fourty" -> Caqti_request.L"40"
+   | _ -> raise Not_found in
+  Caqti_request.find ~env Caqti_type.unit Caqti_type.int "SELECT $. - $(fourty)"
+
+let test_env (module Db : Caqti_lwt.CONNECTION) =
+  Db.find env1_q () >|=? fun y -> Ok (assert (y = 60))
+
+let test db =
+  test_nonlin db >>=? fun () ->
+  test_env db
 
 let report_error = function
  | Error err ->

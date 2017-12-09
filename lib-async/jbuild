@@ -12,4 +12,4 @@
   (public_name caqti-async.v1)
   (wrapped false)
   (modules (Caqti1_async))
-  (libraries (caqti_v1 caqti_async))))
+  (libraries (caqti.v1 caqti_async))))

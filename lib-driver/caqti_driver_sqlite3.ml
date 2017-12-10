@@ -265,7 +265,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   let driver_info = driver_info
 
   module type CONNECTION =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a io := 'a System.io
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =
@@ -422,16 +422,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       (try f resp >>= fun r -> cleanup (); return r
        with exn -> cleanup (); raise exn)
 
-    let exec req param = call ~f:Response.exec req param
-    let find req param = call ~f:Response.find req param
-    let find_opt req param = call ~f:Response.find_opt req param
-    let fold req f param acc =
-      call ~f:(fun resp -> Response.fold f resp acc) req param
-    let fold_s req f param acc =
-      call ~f:(fun resp -> Response.fold_s f resp acc) req param
-    let iter_s req f param =
-      call ~f:(fun resp -> Response.iter_s f resp) req param
-
     let disconnect = Preemptive.detach @@ fun () ->
       if Sqlite3.db_close db then Ok ()
       else
@@ -441,6 +431,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
     let validate () = return true
     let check f = f true
 
+    let exec q p = call ~f:Response.exec q p
     let start () = exec Q.start ()
     let commit () = exec Q.commit ()
     let rollback () = exec Q.rollback ()

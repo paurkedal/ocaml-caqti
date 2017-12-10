@@ -21,7 +21,7 @@
 module type S = sig
   type 'a io
 
-  module type CONNECTION = Caqti_connection_sig.S with type 'a io := 'a io
+  module type CONNECTION = Caqti_connection_sig.Base with type 'a io := 'a io
 
   val driver_info : Caqti_driver_info.t
 

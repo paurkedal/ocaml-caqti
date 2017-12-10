@@ -62,10 +62,40 @@ module Make (System : Caqti_system_sig.S) = struct
                 Ok driver
              | Error _ as r -> r)))
 
+  module type CONNECTION_BASE =
+    Caqti_connection_sig.Base with type 'a io := 'a System.io
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a io := 'a System.io
 
   type connection = (module CONNECTION)
+
+  module Connection_of_base (C : CONNECTION_BASE) : CONNECTION = struct
+
+    module Response = C.Response
+
+    let in_use = ref false
+
+    let use f =
+      if !in_use then failwith "Concurrent access to the same DB connection.";
+      in_use := true;
+      f () >|= fun r -> in_use := false; r
+
+    let call ~f req param = use (fun () -> C.call ~f req param)
+
+    let exec q p = call ~f:Response.exec q p
+    let find q p = call ~f:Response.find q p
+    let find_opt q p = call ~f:Response.find_opt q p
+    let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
+    let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
+    let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
+
+    let start () = use C.start
+    let commit () = use C.commit
+    let rollback () = use C.rollback
+    let disconnect () = use C.disconnect
+    let validate () = use C.validate
+    let check = C.check
+  end
 
   let connect uri : ((module CONNECTION), _) result io =
     (match load_driver uri with
@@ -75,6 +105,7 @@ module Make (System : Caqti_system_sig.S) = struct
         (function
          | Ok connection ->
             let module Connection = (val connection) in
+            let module Connection = Connection_of_base (Connection) in
             Ok (module Connection : CONNECTION)
          | Error err -> Error err)
      | Error err ->
@@ -91,6 +122,7 @@ module Make (System : Caqti_system_sig.S) = struct
           (function
            | Ok connection ->
               let module Connection = (val connection) in
+              let module Connection = Connection_of_base (Connection) in
               Ok (module Connection : CONNECTION)
            | Error err -> Error err) in
         let disconnect (module Db : CONNECTION) = Db.disconnect () in

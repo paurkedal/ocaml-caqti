@@ -336,7 +336,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   (* Driver Interface *)
 
   module type CONNECTION =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a io := 'a System.io
 
   module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
     : CONNECTION =
@@ -496,17 +496,11 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
 
-    let exec q p = call ~f:Response.exec q p
-    let find q p = call ~f:Response.find q p
-    let find_opt q p = call ~f:Response.find_opt q p
-    let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
-    let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
-    let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
-
     let disconnect () = db#finish; return (Ok ())
     let validate () = if db#status = Pg.Ok then return true else reset ()
     let check f = f (try db#status = Pg.Ok with Pg.Error _ -> false)
 
+    let exec q p = call ~f:Response.exec q p
     let start () = exec start_req ()
     let commit () = exec commit_req ()
     let rollback () = exec rollback_req ()

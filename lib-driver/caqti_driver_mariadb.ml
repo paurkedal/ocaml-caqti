@@ -80,7 +80,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   end
 
   module type CONNECTION =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a io := 'a System.io
 
   let driver_info =
     Caqti_driver_info.create
@@ -398,13 +398,6 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
            | Error _ -> Hashtbl.remove pcache id (* TODO: Log *));
           process_result)
 
-    let exec q p = call ~f:Response.exec q p
-    let find q p = call ~f:Response.find q p
-    let find_opt q p = call ~f:Response.find_opt q p
-    let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
-    let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
-    let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
-
     let disconnect () = Mdb.close db >|= fun () -> Ok ()
     let validate () = return true (* FIXME *)
     let check f = f true (* FIXME *)
@@ -465,7 +458,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         let module C = Connection (struct let uri = uri let db = db end) in
         (* MariaDB returns local times but without time zone, so change it to
          * UTC for Caqti sessions. *)
-        C.exec set_utc_req () >|=
+        C.call ~f:(fun resp -> C.Response.exec resp) set_utc_req () >|=
         (function
          | Ok () -> Ok (module C : CONNECTION)
          | Error err -> Error (`Post_connect err))

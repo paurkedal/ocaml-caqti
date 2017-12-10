@@ -18,13 +18,22 @@
 
 type +'m t constraint 'm = [< `Zero | `One | `Many]
 
+type zero = [`Zero]
+type one = [`One]
+type zero_or_one = [`Zero | `One]
+type zero_or_more = [`Zero | `One | `Many]
+
 val zero : [> `Zero] t
 val one : [> `One] t
 val zero_or_one : [> `Zero | `One] t
-val many : ([> `Zero | `One | `Many] as 'a) t
+val zero_or_more : [> `Zero | `One | `Many] t
 
 val only_zero : [< `Zero] t -> unit
 val only_one : [< `One] t -> unit
 val only_zero_or_one : [< `Zero | `One] t -> unit
 
 val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more]
+
+(**/**)
+
+val many : [> `Zero | `One | `Many] t [@@deprecated "Renamed to zero_or_more."]

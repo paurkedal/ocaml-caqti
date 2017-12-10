@@ -137,4 +137,4 @@ let find ?env ?oneshot pt rt qs =
 let find_opt ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_one (fun _ -> qs)
 let collect ?env ?oneshot pt rt qs =
-  create_p ?env ?oneshot pt rt Caqti_mult.many (fun _ -> qs)
+  create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)

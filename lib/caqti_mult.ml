@@ -19,14 +19,19 @@
 type +'m t = (* not GADT due to variance *)
  | Zero
  | One
- | Zero_to_one
- | Zero_to_many
+ | Zero_or_one
+ | Zero_or_more
 constraint 'm = [< `Zero | `One | `Many]
+
+type zero = [`Zero]
+type one = [`One]
+type zero_or_one = [`Zero | `One]
+type zero_or_more = [`Zero | `One | `Many]
 
 let zero : [> `Zero] t = Zero
 let one : [> `One] t = One
-let zero_or_one : [> `Zero | `One] t = Zero_to_one
-let many : ([> `Zero | `One | `Many] as 'a) t = Zero_to_many
+let zero_or_one : [> `Zero | `One] t = Zero_or_one
+let zero_or_more : ([> `Zero | `One | `Many] as 'a) t = Zero_or_more
 
 let only_zero : [< `Zero] t -> unit =
   function Zero -> () | _ -> assert false
@@ -38,5 +43,9 @@ let only_zero_or_one : [< `Zero | `One] t -> unit =
 let expose = function
  | Zero -> `Zero
  | One -> `One
- | Zero_to_one -> `Zero_or_one
- | Zero_to_many -> `Zero_or_more
+ | Zero_or_one -> `Zero_or_one
+ | Zero_or_more -> `Zero_or_more
+
+(**/**)
+
+let many = zero_or_more

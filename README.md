@@ -13,11 +13,9 @@ functor for instantiating over other IO monads and system libraries.
 
 ## Status
 
-A revised API is mostly ready, pending a final evaluation.  If you generate
-the documentation, you will see that module titles are marked with "(v1)"
-or "(v2)", indicating which revision of the interface they belong to.
-Unmarked module are used by both revisions.  If all goes well, "(v1)" will
-be deprecated in favour of "(v2)".
+A new API is finished, and version 0.9.0 will be a first evaluation release
+of it.  The old API has been moved into the [.v1] sublibraries and should
+not be used for new code.
 
 ## Drivers
 
@@ -53,8 +51,8 @@ you expect to use into your application.
 
 As the main entry point, you would normally use either of
 
-    Caqti_lwt.V2 : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
-    Caqti_async.V2 : Caqti_connection_sig.S with type 'a io = 'a Deferred.t
+    Caqti_lwt : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
+    Caqti_async : Caqti_connection_sig.S with type 'a io = 'a Deferred.t
 
 which is provided by `caqti-lwt` or `caqti-async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate
@@ -70,7 +68,7 @@ The most important modules to know about are:
 
   - `Caqti_type` and `Caqti_request` for constructing prepared or one-shot
     queries.
-  - `Caqti_lwt.V2` and `Caqti_async.V2` for connecting to the database and
+  - `Caqti_lwt` and `Caqti_async` for connecting to the database and
     obtaining a first class module implementing `Caqti_connection_sig.S`.
   - `Caqti_connection_sig.S` and `Caqti_response_sig.S` for executing
     queries.

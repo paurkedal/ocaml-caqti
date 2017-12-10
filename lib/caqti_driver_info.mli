@@ -83,5 +83,8 @@ val can_concur : t -> bool
 val can_transact : t -> bool
 (** Whether the database and driver supports transactions. *)
 
+(**/**)
+
+(* Don't use these for new code yet, since the v2 API doesn't have describe. *)
 val describe_has_typed_params : t -> bool
 val describe_has_typed_fields : t -> bool

@@ -26,7 +26,7 @@ module type S = sig
     ?max_size: int ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool io) ->
-    (unit -> ('a, 'e) result io) -> ('a -> bool io) -> ('a, 'e) t
+    (unit -> ('a, 'e) result io) -> ('a -> unit io) -> ('a, 'e) t
   (** (internal) [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily indented for implementing
       the [connect_pool] functions.
@@ -53,7 +53,7 @@ module type S = sig
         Requests for the resource are handled in decreasing order of priority.
         The default priority is [0.0]. *)
 
-  (* val drain : ('a, 'e) t -> (unit, 'e) result io *)
+  val drain : ('a, 'e) t -> unit io
   (** [drain pool] closes all resources in [pool]. The pool is still usable, as
       new resources will be created on demand. *)
 

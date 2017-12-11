@@ -133,9 +133,7 @@ module Make (System : Caqti_system_sig.S) = struct
           if not (Caqti_driver_info.(can_concur di && can_pool di))
           then Some 1
           else max_size in
-        let free c =
-          disconnect c >|= function Ok () -> true | Error _ -> false in
-        Ok (Pool.create ?max_size ~validate ~check connect free)
+        Ok (Pool.create ?max_size ~validate ~check connect disconnect)
      | Error err ->
         Error err)
 end

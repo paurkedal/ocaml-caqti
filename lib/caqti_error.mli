@@ -86,11 +86,6 @@ val connect_failed : uri: Uri.t -> msg ->
 (** [connect_failed ~uri msg] indicates that the driver failed to establish a
     connection to the database. *)
 
-val disconnect_rejected : uri: Uri.t -> msg ->
-  [> `Disconnect_rejected of connection_error ]
-(** [disconnect_failed ~uri msg] indicates that the connection could not be
-    released, typically because it's busy. *)
-
 
 (** {2 Errors during Call} *)
 
@@ -173,15 +168,12 @@ type connect =
   | `Connect_failed of connection_error
   | `Post_connect of call_or_retrieve ]
 
-type disconnect =
-  [ `Disconnect_rejected of connection_error ]
-
 type load_or_connect = [load | connect]
 
 
 (** {2 Error Type and Functions} *)
 
-type t = [load | connect | disconnect | call | retrieve]
+type t = [load | connect | call | retrieve]
 
 val uri : [< t] -> Uri.t
 

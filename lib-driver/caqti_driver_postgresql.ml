@@ -496,7 +496,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
 
-    let disconnect () = db#finish; return (Ok ())
+    let disconnect () = db#finish; return ()
     let validate () = if db#status = Pg.Ok then return true else reset ()
     let check f = f (try db#status = Pg.Ok with Pg.Error _ -> false)
 

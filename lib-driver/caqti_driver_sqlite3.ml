@@ -423,10 +423,10 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        with exn -> cleanup (); raise exn)
 
     let disconnect = Preemptive.detach @@ fun () ->
-      if Sqlite3.db_close db then Ok ()
-      else
-        let msg = Caqti_error.Msg "Database busy." in
-        Error (Caqti_error.disconnect_rejected ~uri msg)
+      let not_busy = Sqlite3.db_close db in
+      (* If this assertion fails, it means we missed an Sqlite3.finalize or
+       * other cleanup action, so this should not happen. *)
+      assert not_busy
 
     let validate () = return true
     let check f = f true

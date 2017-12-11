@@ -16,38 +16,34 @@
 
 open Lwt.Infix
 
-module Pool = Caqti1_lwt.Pool
+module Pool = Caqti_lwt.Pool
 
 module Resource = struct
   let ht = Hashtbl.create 17
   let c = ref 0
-  let create () = c := succ !c; Hashtbl.add ht !c (); Lwt.return !c
+  let create () = c := succ !c; Hashtbl.add ht !c (); Lwt.return_ok !c
   let free i = assert (Hashtbl.mem ht i); Hashtbl.remove ht i; Lwt.return_unit
 end
 
 let test n =
   let pool = Pool.create Resource.create Resource.free in
-  let a = Array.make n None in
+  let wakers = Array.make n None in
   let wait_count = ref 0 in
-  let wake j u = Lwt.wakeup u (); a.(j) <- None in
-  for _ = 0 to n - 1 do
+  let wake j u = Lwt.wakeup u (); wakers.(j) <- None in
+  for _ = 0 to 3 * n - 1 do
     let j = Random.int n in
     assert (Pool.size pool = Hashtbl.length Resource.ht);
-    (match a.(j) with
+    (match wakers.(j) with
      | None ->
         let waiter, waker = Lwt.wait () in
-        wait_count := succ !wait_count;
-        Lwt.async
-          (fun () ->
-            Pool.use
-              (fun _ -> waiter >>= fun () ->
-                        wait_count := pred !wait_count; Lwt.return_unit)
-              pool);
-        a.(j) <- Some waker
+        incr wait_count;
+        let task _ = waiter >|= fun () -> decr wait_count; Ok () in
+        Lwt.async (fun () -> Pool.use task pool);
+        wakers.(j) <- Some waker
      | Some u -> wake j u)
   done;
   for j = 0 to n - 1 do
-    (match a.(j) with
+    (match wakers.(j) with
      | None -> ()
      | Some u -> wake j u)
   done;
@@ -66,5 +62,6 @@ let () =
     test 16 >>= fun () ->
     test 64 >>= fun () ->
     test 128 >>= fun () ->
-    test 1024
+    test 1024 >>= fun () ->
+    test 10240
   end

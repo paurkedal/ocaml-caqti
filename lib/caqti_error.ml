@@ -94,9 +94,6 @@ let connect_rejected ~uri msg =
 let connect_failed ~uri msg =
   `Connect_failed ({uri; msg} : connection_error)
 
-let disconnect_rejected ~uri msg =
-  `Disconnect_rejected ({uri; msg} : connection_error)
-
 (* Call *)
 
 let encode_missing ~uri ~field_type () =
@@ -155,12 +152,9 @@ type connect =
   | `Connect_failed of connection_error
   | `Post_connect of call_or_retrieve ]
 
-type disconnect =
-  [ `Disconnect_rejected of connection_error ]
-
 type load_or_connect = [load | connect]
 
-type t = [load | connect | disconnect | call | retrieve]
+type t = [load | connect | call | retrieve]
 
 let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Load_rejected ({uri; _} : load_error) -> uri
@@ -168,7 +162,6 @@ let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Connect_rejected ({uri; _} : connection_error) -> uri
  | `Connect_failed ({uri; _} : connection_error) -> uri
  | `Post_connect err -> uri err
- | `Disconnect_rejected ({uri; _} : connection_error) -> uri
  | `Encode_rejected ({uri; _} : coding_error) -> uri
  | `Encode_failed ({uri; _} : coding_error) -> uri
  | `Request_rejected ({uri; _} : query_error) -> uri
@@ -185,7 +178,6 @@ let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Post_connect err ->
     Format.pp_print_string ppf "During post-connect: ";
     pp ppf err
- | `Disconnect_rejected err ->pp_connection_msg ppf "Cannot disconnect <%a>" err
  | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err
  | `Encode_failed err -> pp_coding_error ppf "Failed to bind %a for <%a>" err
  | `Decode_rejected err -> pp_coding_error ppf "Cannot decode %a from <%a>" err

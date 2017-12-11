@@ -32,7 +32,7 @@ module Make (System : Caqti_system_sig.S) = struct
 
   type ('a, +'e) t = {
     p_create : unit -> ('a, 'e) result io;
-    p_free : 'a -> bool io;
+    p_free : 'a -> unit io;
     p_check : 'a -> (bool -> unit) -> unit;
     p_validate : 'a -> bool io;
     p_max_size : int;
@@ -87,22 +87,21 @@ module Make (System : Caqti_system_sig.S) = struct
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
-    f e >>=
-    (function
-     | Ok y -> release p e; return (Ok y)
-     | Error err -> release p e; return (Error err))
+    try
+      f e >>=
+      (function
+       | Ok y -> release p e; return (Ok y)
+       | Error err -> release p e; return (Error err))
+    with exn ->
+      release p e; raise exn
 
-(* TODO: Revise draining. *)
-(*
-  let dispose p e =
-    p.p_free e >>= fun () -> p.p_cur_size <- p.p_cur_size - 1; return ()
+  let dispose p e = p.p_free e >|= fun () -> p.p_cur_size <- p.p_cur_size - 1
 
   let rec drain p =
     if p.p_cur_size = 0 then return () else
-    ( if Queue.is_empty p.p_pool
-      then wait ~priority:0.0 p
-      else dispose p (Queue.take p.p_pool) ) >>= fun () ->
+    (if Queue.is_empty p.p_pool
+     then wait ~priority:0.0 p
+     else dispose p (Queue.take p.p_pool)) >>= fun () ->
     drain p
-*)
 
 end

@@ -144,7 +144,7 @@ let rec decode_field
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | Caqti_type.Ptime ->
       (* TODO: Improve parsing. *)
-      (match ptime_of_rfc3339_utc (s ^ "Z") with
+      (match ptime_of_rfc3339_utc s with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in

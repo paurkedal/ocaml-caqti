@@ -58,7 +58,7 @@ let rec data_of_value
       (Sqlite3.Data.t, _) result =
   fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool   -> Ok (Sqlite3.Data.INT (if x then 0L else 1L))
+   | Caqti_type.Bool   -> Ok (Sqlite3.Data.INT (if x then 1L else 0L))
    | Caqti_type.Int    -> Ok (Sqlite3.Data.INT (Int64.of_int x))
    | Caqti_type.Int32  -> Ok (Sqlite3.Data.INT (Int64.of_int32 x))
    | Caqti_type.Int64  -> Ok (Sqlite3.Data.INT x)
@@ -67,7 +67,10 @@ let rec data_of_value
 (* | Caqti_type.Octets -> TODO *)
    | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (iso8601_of_pdate x))
    | Caqti_type.Ptime ->
-      Ok (Sqlite3.Data.TEXT (Ptime.to_rfc3339 ~space:true x))
+      (* This is consistent with the current_timestamp function of Sqlite3,
+       * which prints UTC time without "T" and no time zone. *)
+      let s = Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 x in
+      Ok (Sqlite3.Data.TEXT (String.sub s 0 19))
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
@@ -79,14 +82,6 @@ let rec data_of_value
               let msg = Caqti_error.Msg msg in
               let typ = Caqti_type.field field_type in
               Error (Caqti_error.encode_rejected ~uri ~typ msg))))
-
-let string_of_rfc3339_error ~input err =
-  let buf = Buffer.create 64 in
-  let ppf = Format.formatter_of_buffer buf in
-  Ptime.pp_rfc3339_error ppf err;
-  Format.fprintf ppf " in value %S." input;
-  Format.pp_print_flush ppf ();
-  Buffer.contents buf
 
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
 let rec value_of_data
@@ -111,7 +106,6 @@ let rec value_of_data
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | Caqti_type.Ptime as field_type, Sqlite3.Data.TEXT y ->
       (* TODO: Improve parsing. *)
-      let y = if String.length y < 20 then y ^ "Z" else y in
       (match ptime_of_rfc3339_utc y with
        | Ok _ as r -> r
        | Error msg ->

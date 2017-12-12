@@ -70,6 +70,13 @@ let string_of_rfc3339_error ~input err =
   Buffer.contents buf
 
 let ptime_of_rfc3339_utc s =
+  let n = String.length s in
+  let s =
+    if n < 13 then s else
+    if s.[n - 1] = 'Z' then s else
+    if s.[n - 3] = '+' || s.[n - 3] = '-' then s ^ ":00" else
+    if s.[n - 6] = '+' || s.[n - 6] = '-' then s else
+    s ^ "Z" in
   (match Ptime.of_rfc3339 s with
    | Ok (t, (None | Some 0), _) -> Ok t
    | Ok (_, Some _, _) ->

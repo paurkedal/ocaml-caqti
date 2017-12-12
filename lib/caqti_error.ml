@@ -194,3 +194,6 @@ let show err =
   Buffer.contents buf
 
 exception Exn of t
+
+let () =
+  Printexc.register_printer (function Exn err -> Some (show err) | _ -> None)

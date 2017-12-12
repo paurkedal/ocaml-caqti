@@ -100,6 +100,17 @@
 (alias
  ((name runtest)
   (package caqti-lwt)
+  (deps (test_sql_lwt.exe (alias drivers) uris.conf))
+  (locks (/db/test_sql_lwt))
+  (action (setenv OCAMLPATH . (run ${<})))))
+(executable
+ ((name test_sql_lwt)
+  (modules (Test_sql_lwt))
+  (libraries (caqti caqti_dynload caqti_lwt ptime.clock.os testkit))))
+
+(alias
+ ((name runtest)
+  (package caqti-lwt)
   (deps (test_param.exe (alias drivers) uris.conf))
   (action (setenv OCAMLPATH . (run ${<})))))
 (executable

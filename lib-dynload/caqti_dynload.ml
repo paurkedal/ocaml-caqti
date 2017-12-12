@@ -33,10 +33,11 @@ let backend_predicates () =
 #endif
 
 let init = lazy begin
+  let predicates = backend_predicates () in
   Findlib.init ();
-  Findlib.record_package_predicates (backend_predicates ());
+  Findlib.record_package_predicates predicates;
   List.iter (Findlib.record_package Record_core)
-            (Findlib.package_deep_ancestors ["native"] ["caqti"]);
+            (Findlib.package_deep_ancestors predicates ["caqti"]);
   if debug then
     Printf.eprintf "\
         [DEBUG] Caqti_dynload: recorded_predicates = %s\n\
@@ -48,8 +49,9 @@ let init = lazy begin
 end
 
 let init_v1 = lazy begin
+  let predicates = backend_predicates () in
   List.iter (Findlib.record_package Record_core)
-            (Findlib.package_deep_ancestors ["native"] ["caqti.v1"])
+            (Findlib.package_deep_ancestors predicates ["caqti.v1"])
 end
 
 let () = Caqti_connect.define_loader @@ fun pkg ->

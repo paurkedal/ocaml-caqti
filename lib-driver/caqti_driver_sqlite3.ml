@@ -423,6 +423,11 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        with exn -> cleanup (); raise exn)
 
     let disconnect = Preemptive.detach @@ fun () ->
+      let uncache _ (stmt, _, _) =
+        (match Sqlite3.finalize stmt with
+         | Sqlite3.Rc.OK -> ()
+         | _ -> (* TODO: log *) ()) in
+      Hashtbl.iter uncache pcache;
       let not_busy = Sqlite3.db_close db in
       (* If this assertion fails, it means we missed an Sqlite3.finalize or
        * other cleanup action, so this should not happen. *)

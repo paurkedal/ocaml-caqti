@@ -69,7 +69,9 @@ module Make (System : Caqti_system_sig.S) = struct
 
   type connection = (module CONNECTION)
 
-  module Connection_of_base (C : CONNECTION_BASE) : CONNECTION = struct
+  module Connection_of_base (D : DRIVER) (C : CONNECTION_BASE) : CONNECTION =
+  struct
+    let driver_info = D.driver_info
 
     module Response = C.Response
 
@@ -105,7 +107,7 @@ module Make (System : Caqti_system_sig.S) = struct
         (function
          | Ok connection ->
             let module Connection = (val connection) in
-            let module Connection = Connection_of_base (Connection) in
+            let module Connection = Connection_of_base (Driver) (Connection) in
             Ok (module Connection : CONNECTION)
          | Error err -> Error err)
      | Error err ->
@@ -122,7 +124,7 @@ module Make (System : Caqti_system_sig.S) = struct
           (function
            | Ok connection ->
               let module Connection = (val connection) in
-              let module Connection = Connection_of_base (Connection) in
+              let module Connection = Connection_of_base (Driver) (Connection) in
               Ok (module Connection : CONNECTION)
            | Error err -> Error err) in
         let disconnect (module Db : CONNECTION) = Db.disconnect () in

@@ -69,6 +69,8 @@ end
 module type S = sig
   include Base
 
+  val driver_info : Caqti_driver_info.t
+
 
   (** {2 Retrieval Convenience}
 

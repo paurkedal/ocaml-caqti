@@ -5,7 +5,7 @@
   (public_name caqti-async)
   (wrapped false)
   (modules (Caqti_async Caqti_async_sql_io))
-  (libraries (async caqti caqti_dynload core))))
+  (libraries (async caqti core))))
 
 (library
  ((name caqti_async_v1)

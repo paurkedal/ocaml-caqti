@@ -398,7 +398,16 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
            | Error _ -> Hashtbl.remove pcache id (* TODO: Log *));
           process_result)
 
-    let disconnect () = Mdb.close db
+    let disconnect () =
+      let close_stmt _ pcache_entry prologue =
+        prologue >>= fun () ->
+        Mdb.Stmt.close pcache_entry.stmt >|=
+        (function
+         | Ok () -> ()
+         | Error _ -> (* TODO: Log *) ()) in
+      Hashtbl.fold close_stmt pcache (return ()) >>= fun () ->
+      Mdb.close db
+
     let validate () = return true (* FIXME *)
     let check f = f true (* FIXME *)
 

@@ -1,21 +1,28 @@
 ## Synopsis
 
-Caqti is an library providing a common API to SQL databases and similar data
-interfaces.  The assumption is that the data service is queried by passing a
-string along with typed parameters, and responds with a sequence of typed
-tuples.
-Caqti may be used directly or to provide multi-database support for
-higher-level solutions, like code generators and syntax extensions.
+Caqti provides a monadic cooperative-threaded OCaml connector API for
+relational databases.
 
-The interface abstracts over an IO monad to support cooperative threading.
-Async and Lwt instantiations are shipped with the main library, as well as a
-functor for instantiating over other IO monads and system libraries.
+The purpose of Caqti is further to help make applications independent of a
+particular database system.  This is achieved by defining a common
+signature, which is implemented by the database drivers.  Connection
+parameters are specified as an URI, which is typically provided at run-time.
+Caqti then loads a driver which can handle the URI, and provides a
+first-class module which includes the driver API with additional convenience
+functionality.
+
+Caqti does not make assumption about the structure of the query language,
+and only provides the type information needed at the edges of communication
+between the OCaml code and the database; that is for encoding parameters and
+decoding returned tuples.  It is hoped that this agnostic choice makes it a
+suitable target for higher level interfaces and code generators.
 
 ## Status
 
-A new API is finished, and version 0.9.0 will be a first evaluation release
-of it.  The old API has been moved into the [.v1] sublibraries and should
-not be used for new code.
+Large parts of Caqti was rewritten for 0.8 and 0.9, the latter being the
+first release targeted for to the official OPAM repository.  The old API is
+still available in findlib libraries under the suffix [.v1].  I need to keep
+these for the time being, but do not use them for new code.
 
 ## Drivers
 
@@ -26,26 +33,24 @@ The following drivers are available.
       [ocaml-mariadb](https://github.com/andrenth/ocaml-mariadb)
       using asynchronous calls.
     - Supports transactions.
-    - Does not currently support describe.
     - Pools connections and caches statements.
   - PostgreSQL (`postgresql://`)
     - Implemented in terms of
       [postgresql-ocaml](https://mmottl.github.io/postgresql-ocaml/)
       using asynchronous calls.
     - Supports transactions.
-    - Supports describe.
     - Pools connections and caches statements.
   - SQLite3 (`sqlite3://`)
     - Implemented in terms of
       [sqlite3-ocaml](https://github.com/mmottl/sqlite3-ocaml)
       using preemtive threading for non-blocking operation.
     - Supports transactions.
-    - Supports describe, but without type information for parameters.
     - Does not pool connections or cache statements.
 
-Drivers are loaded dynamically based on the URI, but if dynamic loading is
-unavailable, you can statically link the `caqti-driver-*` libraries which
-you expect to use into your application.
+If you link against `caqti-dynload`, then drivers are loaded dynamically
+based on the URI.  If dynamic loading is unavailable on your platform, you
+may instead statically link against the `caqti-driver-*` libraries which you
+expect to use.
 
 ## Documentation
 

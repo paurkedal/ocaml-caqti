@@ -40,6 +40,12 @@ let () =
    | _ -> assert false in
   define_msg ~pp [%extension_constructor Msg]
 
+(* We don't want to expose any DB password in error messages. *)
+let pp_uri ppf uri =
+  (match Uri.password uri with
+   | None -> Uri.pp_hum ppf uri
+   | Some _ -> Uri.pp_hum ppf (Uri.with_password uri (Some "_")))
+
 (* Records *)
 
 type load_error = {
@@ -47,7 +53,7 @@ type load_error = {
   msg : msg;
 }
 let pp_load_msg ppf fmt err =
-  Format.fprintf ppf fmt Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt pp_uri err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 
@@ -56,7 +62,7 @@ type connection_error = {
   msg : msg;
 }
 let pp_connection_msg ppf fmt err =
-  Format.fprintf ppf fmt Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt pp_uri err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 
@@ -66,7 +72,7 @@ type query_error = {
   msg : msg;
 }
 let pp_query_msg ppf fmt err =
-  Format.fprintf ppf fmt Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt pp_uri err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg;
   Format.fprintf ppf " Query: %S." err.query
@@ -77,7 +83,7 @@ type coding_error = {
   msg : msg;
 }
 let pp_coding_error ppf fmt err =
-  Format.fprintf ppf fmt Caqti_type.pp_ex err.typ Uri.pp_hum err.uri;
+  Format.fprintf ppf fmt Caqti_type.pp_ex err.typ pp_uri err.uri;
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 

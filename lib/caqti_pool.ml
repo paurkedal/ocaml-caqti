@@ -61,8 +61,7 @@ module Make (System : Caqti_system_sig.S) = struct
   let rec acquire ~priority p =
     if Queue.is_empty p.p_pool then begin
       if p.p_cur_size < p.p_max_size
-      then (p.p_create () >>= fun e ->
-            p.p_cur_size <- p.p_cur_size + 1; return e)
+      then (p.p_cur_size <- p.p_cur_size + 1; p.p_create ())
       else (wait ~priority p >>= fun () -> acquire ~priority p)
     end else begin
       let e = Queue.take p.p_pool in

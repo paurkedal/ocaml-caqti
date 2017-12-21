@@ -21,12 +21,9 @@ module Q = struct
   let create_tmp =
     Caqti_request.create_p Caqti_type.unit Caqti_type.unit Caqti_mult.zero @@
     (function di -> match Caqti_driver_info.dialect_tag di with
-     | `Pgsql ->
+     | `Mysql | `Pgsql ->
         "CREATE TEMPORARY TABLE caqti_sql_async \
            (id SERIAL NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
-     | `Mysql ->
-        "CREATE TEMPORARY TABLE caqti_sql_async \
-           (id INTEGER NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
      | `Sqlite ->
         "CREATE TABLE caqti_sql_async \
            (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"

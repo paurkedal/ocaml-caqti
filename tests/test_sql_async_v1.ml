@@ -21,12 +21,9 @@ open Caqti1_query
 
 module Q = struct
   let create_tmp = prepare_fun @@ function
-    | `Pgsql ->
+    | `Mysql | `Pgsql ->
       "CREATE TEMPORARY TABLE caqti_sql_async_v1 \
          (id SERIAL NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
-    | `Mysql ->
-      "CREATE TEMPORARY TABLE caqti_sql_async_v1 \
-         (id INTEGER NOT NULL, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"
     | `Sqlite ->
       "CREATE TABLE caqti_sql_async_v1 \
          (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s VARCHAR(80) NOT NULL)"

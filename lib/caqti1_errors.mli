@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Exceptions. *)
+(** (v1) Exceptions.
+    @deprecated Don't use this in new code. *)
 
 open Caqti1_query
 

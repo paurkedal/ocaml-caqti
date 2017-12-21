@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Connector for Async. *)
+(** (v1) Connector for Async.
+    @deprecated Don't use this in new code. *)
 
 open Async
 include Caqti1_sigs.CAQTI with type 'a io := 'a Deferred.Or_error.t

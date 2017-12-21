@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Helper for loading plugins. *)
+(** (v1) Helper for loading plugins.
+    @deprecated Don't use this in new code. *)
 
 exception Plugin_missing of string * string
 (** [Plugin_missing pkgs] if {!ensure_plugin} fails to find any of the findlib

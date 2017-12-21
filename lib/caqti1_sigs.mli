@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Signatures. *)
+(** (v1) Signatures.
+    @deprecated Don't use this in new code. *)
 
 open Caqti1_describe
 open Caqti1_query

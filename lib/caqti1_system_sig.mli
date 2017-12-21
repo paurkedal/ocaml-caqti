@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) System Interface *)
+(** (internal) System Interface.
+    @deprecated Don't use this in new code. *)
 
 module type S = sig
   type +'a io

@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Connector for Lwt. *)
+(** (v1) Connector for Lwt.
+    @deprecated Don't use this in new code. *)
 
 include Caqti1_sigs.CAQTI with type 'a io := 'a Lwt.t

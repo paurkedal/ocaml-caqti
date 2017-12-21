@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) One-shot and prepared queries. *)
+(** (v1) One-shot and prepared queries.
+    @deprecated Don't use this in new code. *)
 
 exception Missing_query_string
 (** The exception to raise in a callback passed to the various query functions

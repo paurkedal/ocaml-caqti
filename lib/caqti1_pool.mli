@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Resource pool. *)
+(** (internal) Resource pool.
+    @deprecated Don't use this in new code. *)
 
 module Make (System : Caqti1_system_sig.S) :
   Caqti1_pool_sig.S with type 'a io := 'a System.io

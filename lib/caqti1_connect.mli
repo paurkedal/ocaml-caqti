@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (v1) Connection functor and backend registration. *)
+(** (v1) Connection functor and backend registration.
+    @deprecated Don't use this in new code. *)
 
 val define_driver : string -> (module Caqti1_driver_sig.F) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme

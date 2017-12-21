@@ -21,7 +21,7 @@ suitable target for higher level interfaces and code generators.
 
 Large parts of Caqti was rewritten for 0.8 and 0.9, the latter being the
 first release targeted for to the official OPAM repository.  The old API is
-still available in findlib libraries under the suffix [.v1].  I need to keep
+still available in findlib libraries under the suffix `.v1`.  I need to keep
 these for the time being, but do not use them for new code.
 
 ## Drivers

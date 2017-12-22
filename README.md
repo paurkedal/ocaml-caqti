@@ -8,12 +8,12 @@ particular database system.  This is achieved by defining a common
 signature, which is implemented by the database drivers.  Connection
 parameters are specified as an URI, which is typically provided at run-time.
 Caqti then loads a driver which can handle the URI, and provides a
-first-class module which includes the driver API with additional convenience
-functionality.
+first-class module which implements the driver API and additional
+convenience functionality.
 
-Caqti does not make assumption about the structure of the query language,
+Caqti does not make assumptions about the structure of the query language,
 and only provides the type information needed at the edges of communication
-between the OCaml code and the database; that is for encoding parameters and
+between the OCaml code and the database; i.e. for encoding parameters and
 decoding returned tuples.  It is hoped that this agnostic choice makes it a
 suitable target for higher level interfaces and code generators.
 
@@ -64,8 +64,8 @@ provide a connect functions which receives an URI, loads the appropriate
 driver, and returns a connection as a first-class module containing query
 functionality for the database.
 
-The best place to start may be with a [documented example][bikereg].  The
-API reference is currently not online, but can be generated with `topkg doc`
+A good place to start is with the [documented example][bikereg].  The API
+reference is currently not online, but can be generated with `topkg doc`
 from the source code or with [odig](http://erratique.ch/software/odig) from
 an OPAM installation.
 

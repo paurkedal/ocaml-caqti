@@ -51,8 +51,6 @@ end
 
 module Q = struct
 
-  let create_ign_p pt rt rm s = Caqti_request.create_p pt rt rm (fun _ -> s)
-
   let create_bikereg =
     Caqti_request.exec Caqti_type.unit
     {eos|

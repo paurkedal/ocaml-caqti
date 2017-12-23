@@ -87,7 +87,7 @@ let repeat n f =
     f i >>= fun () -> loop (i + 1) in
   loop 0
 
-let or_fail = Caqti_lwt.of_result
+let or_fail = Caqti_lwt.or_fail
 
 let test_expr (module Db : Caqti_lwt.CONNECTION) =
 

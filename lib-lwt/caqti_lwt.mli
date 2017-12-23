@@ -21,7 +21,7 @@
 
 include Caqti_connect_sig.S with type 'a io := 'a Lwt.t
 
-val of_result : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
+val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
     exception holding the error. *)
 
@@ -31,3 +31,6 @@ module V2 : Caqti_connect_sig.S
   with type 'a io := 'a Lwt.t
    and module Pool = Pool
 [@@deprecated "Moved to Caqti_lwt top level."]
+
+val of_result : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
+[@@deprecated "Renamed to or_fail."]

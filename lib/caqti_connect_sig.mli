@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,12 +17,18 @@
 (** Signature for establishing database connections. *)
 
 module type S = sig
+
   type 'a io
+  (** The type of a deferred value of type ['a]. *)
 
   module Pool : Caqti_pool_sig.S with type 'a io := 'a io
+  (** A pool implementation for the current concurrency library. *)
 
   module type CONNECTION = Caqti_connection_sig.S with type 'a io := 'a io
+  (** The connection API specialized for the current concurrency library. *)
+
   type connection = (module CONNECTION)
+  (** Shortcut for the connection API passed as a value. *)
 
   val connect : Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result io

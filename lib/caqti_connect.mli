@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,9 @@
 (** Connection functor and backend registration. *)
 
 val define_loader : (string -> (unit, string) result) -> unit
+(** Defines the function used to dynamically load driver libraries. This is
+    normally only called once during initialization of the [caqti-dynload]
+    library, if linked. *)
 
 val define_driver : string -> (module Caqti_driver_sig.F) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme
@@ -25,6 +28,8 @@ val define_driver : string -> (module Caqti_driver_sig.F) -> unit
 
 module Make (System : Caqti_system_sig.S) : Caqti_connect_sig.S
   with type 'a io := 'a System.io
+(** Constructs the main module used to connect to a database for the given
+    concurrency model. *)
 
 (**/**)
 val dynload_library : (string -> (unit, string) result) ref

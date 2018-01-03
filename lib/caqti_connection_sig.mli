@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -70,37 +70,44 @@ module type S = sig
   include Base
 
   val driver_info : Caqti_driver_info.t
+  (** Information about the driver providing this connection module. *)
 
 
   (** {2 Retrieval Convenience}
 
       These are shortcuts for {!call} combined with retrieval functions from
-      {!Caqti_response_sig.S}. *)
+      {!Caqti_response_sig.S} of the same name. *)
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
     (unit, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.exec}. *)
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
     ('b, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.find}. *)
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
     ('b option, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.find_opt}. *)
 
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.fold}. *)
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> ('c, 'e) result io) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.fold_s}. *)
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> (unit, 'e) result io) ->
     'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result io
+  (** Combines {!call} with {!Response.iter_s}. *)
 end

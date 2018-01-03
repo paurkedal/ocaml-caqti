@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -174,11 +174,18 @@ type load_or_connect = [load | connect]
 (** {2 Error Type and Functions} *)
 
 type t = [load | connect | call | retrieve]
+(** The full union of errors used by Caqti. *)
 
 val uri : [< t] -> Uri.t
+(** [uri error] is the URI of the connection used where [error] occurred. *)
 
 val pp : Format.formatter -> [< t] -> unit
+(** [pp ppf error] prints an explanation of [error] on [ppf]. *)
 
 val show : [< t] -> string
+(** [show error] is an explanation of [error]. *)
 
 exception Exn of t
+(** [Exn error] can be used when an exception is preferred over explicit error
+    handling.  The core Caqti API never raises exceptions which originate from
+    runtime errors. *)

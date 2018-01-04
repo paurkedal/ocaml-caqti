@@ -18,20 +18,21 @@
 
 module type S = sig
 
-  type 'a io
+  type 'a future
   (** The type of a deferred value of type ['a]. *)
 
-  module Pool : Caqti_pool_sig.S with type 'a io := 'a io
+  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
   (** A pool implementation for the current concurrency library. *)
 
-  module type CONNECTION = Caqti_connection_sig.S with type 'a io := 'a io
+  module type CONNECTION =
+    Caqti_connection_sig.S with type 'a future := 'a future
   (** The connection API specialized for the current concurrency library. *)
 
   type connection = (module CONNECTION)
   (** Shortcut for the connection API passed as a value. *)
 
   val connect : Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result io
+    (connection, [> Caqti_error.load_or_connect]) result future
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
       first-class module implementing {!Caqti_connection_sig.S}. *)

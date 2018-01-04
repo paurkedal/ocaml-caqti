@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,8 +21,10 @@ module type MONAD = sig
 end
 
 module type S = sig
-  type 'a io
-  val read_sql_statement : ('a -> char option io) -> 'a -> string option io
+  type 'a future
+
+  val read_sql_statement :
+    ('a -> char option future) -> 'a -> string option future
 end
 
 module Make (Io : MONAD) = struct

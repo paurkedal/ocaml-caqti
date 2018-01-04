@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,15 +18,15 @@
 
 module type S = sig
 
-  type 'a io
+  type 'a future
 
   type ('a, +'e) t
 
   val create :
     ?max_size: int ->
     ?check: ('a -> (bool -> unit) -> unit) ->
-    ?validate: ('a -> bool io) ->
-    (unit -> ('a, 'e) result io) -> ('a -> unit io) -> ('a, 'e) t
+    ?validate: ('a -> bool future) ->
+    (unit -> ('a, 'e) result future) -> ('a -> unit future) -> ('a, 'e) t
   (** (internal) [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily indented for implementing
       the [connect_pool] functions.
@@ -45,7 +45,7 @@ module type S = sig
 
   val use :
     ?priority: float ->
-    ('a -> ('b, 'e) result io) -> ('a, 'e) t -> ('b, 'e) result io
+    ('a -> ('b, 'e) result future) -> ('a, 'e) t -> ('b, 'e) result future
   (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
       resource to the pool when [f] exits.
 
@@ -53,7 +53,7 @@ module type S = sig
         Requests for the resource are handled in decreasing order of priority.
         The default priority is [0.0]. *)
 
-  val drain : ('a, 'e) t -> unit io
+  val drain : ('a, 'e) t -> unit future
   (** [drain pool] closes all resources in [pool]. The pool is still usable, as
       new resources will be created on demand. *)
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -336,7 +336,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   (* Driver Interface *)
 
   module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a future := 'a System.future
 
   module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
     : CONNECTION =

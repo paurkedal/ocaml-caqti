@@ -27,7 +27,7 @@ val define_driver : string -> (module Caqti_driver_sig.F) -> unit
     caqti-driver-{i scheme} as part of its initialization. *)
 
 module Make (System : Caqti_system_sig.S) : Caqti_connect_sig.S
-  with type 'a io := 'a System.io
+  with type 'a future := 'a System.future
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)
 

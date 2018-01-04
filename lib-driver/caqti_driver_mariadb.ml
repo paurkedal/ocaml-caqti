@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,7 +38,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       open System
 
       module IO = struct
-        type 'a future = 'a System.io
+        type 'a future = 'a System.future
         let (>>=) = System.(>>=)
         let return = System.return
       end
@@ -80,7 +80,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
   end
 
   module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a future := 'a System.future
 
   let driver_info =
     Caqti_driver_info.create

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@ open Core
 open Async
 
 module System = struct
-  type 'a io = 'a Deferred.t
+  type 'a future = 'a Deferred.t
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return

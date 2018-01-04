@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,36 +21,38 @@
 
 module type S = sig
 
-  type +'a io
-  val (>>=) : 'a io -> ('a -> 'b io) -> 'b io
-  val (>|=) : 'a io -> ('a -> 'b) -> 'b io
-  val return : 'a -> 'a io
-  val join : unit io list -> unit io
+  type +'a future
+
+  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+  val return : 'a -> 'a future
+  val join : unit future list -> unit future
 
   module Mvar : sig
     type 'a t
     val create : unit -> 'a t
     val store : 'a -> 'a t -> unit
-    val fetch : 'a t -> 'a io
+    val fetch : 'a t -> 'a future
   end
 
   module Unix : sig
     type file_descr
-    val wrap_fd : (file_descr -> 'a io) -> Unix.file_descr -> 'a io
-    val poll : ?read: bool -> ?write: bool -> ?timeout: float ->
-               file_descr -> (bool * bool * bool) io
+    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
+    val poll :
+      ?read: bool -> ?write: bool -> ?timeout: float ->
+      file_descr -> (bool * bool * bool) future
   end
 
   module Log : sig
-    val error_f : ('a, unit, string, unit io) format4 -> 'a
-    val warning_f : ('a, unit, string, unit io) format4 -> 'a
-    val info_f : ('a, unit, string, unit io) format4 -> 'a
-    val debug_f : ('a, unit, string, unit io) format4 -> 'a
+    val error_f : ('a, unit, string, unit future) format4 -> 'a
+    val warning_f : ('a, unit, string, unit future) format4 -> 'a
+    val info_f : ('a, unit, string, unit future) format4 -> 'a
+    val debug_f : ('a, unit, string, unit future) format4 -> 'a
   end
 
   module Preemptive : sig
-    val detach : ('a -> 'b) -> 'a -> 'b io
-    val run_in_main : (unit -> 'a io) -> 'a
+    val detach : ('a -> 'b) -> 'a -> 'b future
+    val run_in_main : (unit -> 'a future) -> 'a
   end
 
 end

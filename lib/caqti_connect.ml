@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,7 +41,8 @@ let load_driver_functor ~uri scheme =
 module Make (System : Caqti_system_sig.S) = struct
   open System
 
-  module type DRIVER = Caqti_driver_sig.S with type 'a io := 'a System.io
+  module type DRIVER =
+    Caqti_driver_sig.S with type 'a future := 'a System.future
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -63,9 +64,9 @@ module Make (System : Caqti_system_sig.S) = struct
              | Error _ as r -> r)))
 
   module type CONNECTION_BASE =
-    Caqti_connection_sig.Base with type 'a io := 'a System.io
+    Caqti_connection_sig.Base with type 'a future := 'a System.future
   module type CONNECTION =
-    Caqti_connection_sig.S with type 'a io := 'a System.io
+    Caqti_connection_sig.S with type 'a future := 'a System.future
 
   type connection = (module CONNECTION)
 
@@ -99,7 +100,7 @@ module Make (System : Caqti_system_sig.S) = struct
     let check = C.check
   end
 
-  let connect uri : ((module CONNECTION), _) result io =
+  let connect uri : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in

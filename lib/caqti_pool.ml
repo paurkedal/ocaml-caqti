@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,10 +31,10 @@ module Make (System : Caqti_system_sig.S) = struct
   module Taskq = Caqti_heap.Make (Task)
 
   type ('a, +'e) t = {
-    p_create : unit -> ('a, 'e) result io;
-    p_free : 'a -> unit io;
+    p_create : unit -> ('a, 'e) result future;
+    p_free : 'a -> unit future;
     p_check : 'a -> (bool -> unit) -> unit;
-    p_validate : 'a -> bool io;
+    p_validate : 'a -> bool future;
     p_max_size : int;
     mutable p_cur_size : int;
     p_pool : 'a Queue.t;

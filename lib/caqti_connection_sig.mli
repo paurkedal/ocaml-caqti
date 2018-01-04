@@ -18,43 +18,43 @@
 
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
-  type 'a io
+  type 'a future
 
 
   (** {2 Query} *)
 
-  module Response : Caqti_response_sig.S with type 'a io := 'a io
+  module Response : Caqti_response_sig.S with type 'a future := 'a future
 
   val call :
-    f: (('b, 'm) Response.t -> ('c, 'e) result io) ->
+    f: (('b, 'm) Response.t -> ('c, 'e) result future) ->
     ('a, 'b, 'm) Caqti_request.t -> 'a ->
-    ('c, [> Caqti_error.call] as 'e) result io
+    ('c, [> Caqti_error.call] as 'e) result future
   (** [call ~f request params] performs [request] with parameters [params]
       invoking [f] to process the result. *)
 
 
   (** {2 Transactions} *)
 
-  val start : unit -> (unit, [> Caqti_error.transact]) result io
+  val start : unit -> (unit, [> Caqti_error.transact]) result future
   (** Starts a transaction if supported by the underlying database, otherwise
       does nothing. *)
 
-  val commit : unit -> (unit, [> Caqti_error.transact]) result io
+  val commit : unit -> (unit, [> Caqti_error.transact]) result future
   (** Commits the current transaction if supported by the underlying database,
       otherwise does nothing. *)
 
-  val rollback : unit -> (unit, [> Caqti_error.transact]) result io
+  val rollback : unit -> (unit, [> Caqti_error.transact]) result future
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
 
 
   (** {2 Disconnection and Reuse} *)
 
-  val disconnect : unit -> unit io
+  val disconnect : unit -> unit future
   (** Calling [disconnect ()] closes the connection to the database and frees
       up related resources. *)
 
-  val validate : unit -> bool io
+  val validate : unit -> bool future
   (** For internal use by {!Caqti_pool}.  Tries to ensure the validity of the
       connection and must return [false] if unsuccessful. *)
 
@@ -80,34 +80,34 @@ module type S = sig
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (unit, [> Caqti_error.call_or_retrieve] as 'e) result io
+    (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.exec}. *)
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
-    ('b, [> Caqti_error.call_or_retrieve] as 'e) result io
+    ('b, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.find}. *)
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
-    ('b option, [> Caqti_error.call_or_retrieve] as 'e) result io
+    ('b option, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.find_opt}. *)
 
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
-    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result io
+    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.fold}. *)
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
-    ('b -> 'c -> ('c, 'e) result io) ->
-    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result io
+    ('b -> 'c -> ('c, 'e) result future) ->
+    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.fold_s}. *)
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
-    ('b -> (unit, 'e) result io) ->
-    'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result io
+    ('b -> (unit, 'e) result future) ->
+    'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combines {!call} with {!Response.iter_s}. *)
 end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
     This module contains the signature and connect function specialized for use
     with Lwt. *)
 
-include Caqti_connect_sig.S with type 'a io := 'a Lwt.t
+include Caqti_connect_sig.S with type 'a future := 'a Lwt.t
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
@@ -28,7 +28,7 @@ val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (**/**)
 
 module V2 : Caqti_connect_sig.S
-  with type 'a io := 'a Lwt.t
+  with type 'a future := 'a Lwt.t
    and module Pool = Pool
 [@@deprecated "Moved to Caqti_lwt top level."]
 

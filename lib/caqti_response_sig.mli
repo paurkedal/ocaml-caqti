@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 (** Signature of a response from a database. *)
 
 module type S = sig
-  type 'b io
+  type 'b future
 
   type ('b, +'m) t
   (** The type describing the response and containing returned data from a
@@ -28,45 +28,46 @@ module type S = sig
   (** {2 Result inspection} *)
 
   val returned_count :
-    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result io
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result future
   (** [returned_count resp] is the number of rows returned by [resp].  This
       function may not be available for all databases. *)
 
   val affected_count :
-    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result io
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result future
   (** [affected_count resp] is the number of rows affected by the updated the
       produced [resp].  This function may not be available for all databases. *)
 
   (** {2 Result retrieval} *)
 
   val exec :
-    (unit, [< `Zero]) t -> (unit, [> Caqti_error.retrieve]) result io
+    (unit, [< `Zero]) t -> (unit, [> Caqti_error.retrieve]) result future
   (** [exec resp] checks that [resp] succeeded with no result rows. *)
 
   val find :
-    ('b, [< `One]) t -> ('b, [> Caqti_error.retrieve]) result io
+    ('b, [< `One]) t -> ('b, [> Caqti_error.retrieve]) result future
   (** [find resp] checks that [resp] succeeded with a single row, and returns
       the decoded row. *)
 
   val find_opt :
-    ('b, [< `Zero | `One]) t -> ('b option, [> Caqti_error.retrieve]) result io
+    ('b, [< `Zero | `One]) t ->
+    ('b option, [> Caqti_error.retrieve]) result future
   (** [find_opt resp] checks that [resp] succeeded with at most one row, and
       returns the row if any. *)
 
   val fold :
     ('b -> 'c -> 'c) ->
-    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve]) result io
+    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve]) result future
   (** [fold f resp] folds [f] over the decoded rows returned in [resp]. *)
 
   val fold_s :
-    ('b -> 'c -> ('c, 'e) result io) ->
-    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve] as 'e) result io
+    ('b -> 'c -> ('c, 'e) result future) ->
+    ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve] as 'e) result future
   (** [fold_s f resp] folds [f] over the decoded rows returned by [resp] within
       the IO and result monad. *)
 
   val iter_s :
-    ('b -> (unit, 'e) result io) ->
-    ('b, 'm) t -> (unit, [> Caqti_error.retrieve] as 'e) result io
+    ('b -> (unit, 'e) result future) ->
+    ('b, 'm) t -> (unit, [> Caqti_error.retrieve] as 'e) result future
   (** [iter_s f resp] iterates [f] over the decoded rows returned by [resp]
       within the IO and result monad. *)
 end

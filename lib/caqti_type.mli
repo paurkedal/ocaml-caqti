@@ -39,6 +39,7 @@ type _ field +=
   | Octets : string field
   | Pdate : Ptime.t field
   | Ptime : Ptime.t field
+  | Ptime_span : Ptime.span field
 
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
@@ -159,3 +160,7 @@ val pdate : Ptime.t t
 val ptime : Ptime.t t
 (** An absolute time with driver-dependent precision. This corresponds to an SQL
     [timestamp] type with UTC time zone. *)
+
+val ptime_span : Ptime.span t
+(** A period of time. If the database lacks a dedicated representation, the
+    integer number of seconds is used. *)

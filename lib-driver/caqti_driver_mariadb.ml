@@ -150,6 +150,8 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         let (year, month, day), ((hour, minute, second), _) =
           Ptime.to_date_time ~tz_offset_s:0 x in
         Ok (`Time (Mdb.Time.datetime ~year ~month ~day ~hour ~minute ~second))
+     | Caqti_type.Ptime_span ->
+        Ok (`Float (Ptime.Span.to_float_s x))
      | _ ->
         (match Caqti_type.Field.coding driver_info field_type with
          | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
@@ -185,6 +187,11 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         let time = Mdb.Time.(hour t, minute t, second t) in
         (match Ptime.of_date_time (date, (time, 0)) with
          | None -> failwith "Ptime.of_date_time"
+         | Some t -> Ok t)
+     | Caqti_type.Ptime_span ->
+        let t = Mdb_ext.Field.float field in
+        (match Ptime.Span.of_float_s t with
+         | None -> failwith "Ptime.Span.of_float_s"
          | Some t -> Ok t)
      | field_type ->
         (match Caqti_type.Field.coding driver_info field_type with

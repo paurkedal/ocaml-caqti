@@ -1,4 +1,4 @@
-Abstraction over relational database libraries
+Unified interface to relational database libraries
 
 Caqti provides a monadic cooperative-threaded OCaml connector API for
 relational databases.

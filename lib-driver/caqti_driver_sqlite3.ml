@@ -71,6 +71,8 @@ let rec data_of_value
        * which prints UTC time without "T" and no time zone. *)
       let s = Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 x in
       Ok (Sqlite3.Data.TEXT (String.sub s 0 19))
+   | Caqti_type.Ptime_span ->
+      Ok (Sqlite3.Data.INT (Int64.of_float (Ptime.Span.to_float_s x)))
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
@@ -110,6 +112,13 @@ let rec value_of_data
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Error (Caqti_error.decode_rejected ~uri ~typ msg))
+   | Caqti_type.Ptime_span as field_type, Sqlite3.Data.INT x ->
+      (match Ptime.Span.of_float_s (Int64.to_float x) with
+       | Some t -> Ok t
+       | None ->
+          let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
           let typ = Caqti_type.field field_type in
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | field_type, d ->

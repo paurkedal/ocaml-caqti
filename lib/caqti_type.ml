@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,7 @@ type _ field +=
   | Octets : string field
   | Pdate : Ptime.t field
   | Ptime : Ptime.t field
+  | Ptime_span : Ptime.span field
 
 module Field = struct
 
@@ -63,6 +64,7 @@ module Field = struct
    | Octets -> "octets"
    | Pdate -> "pdate"
    | Ptime -> "ptime"
+   | Ptime_span -> "ptime_span"
    | ft -> Obj.extension_name (Obj.extension_constructor ft)
 end
 
@@ -151,3 +153,4 @@ let string = Field String
 let octets = Field Octets
 let pdate = Field Pdate
 let ptime = Field Ptime
+let ptime_span = Field Ptime_span

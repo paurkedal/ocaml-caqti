@@ -70,6 +70,43 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
          | `Bytes _ -> "bytes"
          | `Time _ -> "time")
 
+      let bool field =
+        (match Mdb.Field.value field with
+         | `Int i -> i <> 0
+         | _ -> failwith "Mdb_ext.Field.float")
+
+      (* Lax conversion from float and string since:
+       * - Arithmetic involving integers like `1 + ?` with at least one
+       *   parameter comes back as float.
+       * - An expression like `sum(1)` comes back as a string here, presumably
+       *   as decimal from MariaDB. *)
+      let int field =
+        (match Mdb.Field.value field with
+         | `Int i -> i
+         | `Float x when fst (modf x) = 0.0 -> int_of_float x
+         | `String s -> int_of_string s
+         | _ -> failwith "Mdb_ext.Field.int")
+
+      let int32 field =
+        (match Mdb.Field.value field with
+         | `Int i -> Int32.of_int i
+         | `Float x -> Int32.of_float x   (* cf. int *)
+         | `String s -> Int32.of_string s (* cf. int *)
+         | _ -> failwith "Mdb_ext.Field.int32")
+
+      let int64 field =
+        (match Mdb.Field.value field with
+         | `Int i -> Int64.of_int i
+         | `Float x -> Int64.of_float x   (* cf. int *)
+         | `String s -> Int64.of_string s (* cf. int *)
+         | _ -> failwith "Mdb_ext.Field.int64")
+
+      let float field =
+        (match Mdb.Field.value field with
+         | `Int i -> float_of_int i
+         | `Float x -> x
+         | _ -> failwith "Mdb_ext.Field.float")
+
       let string field =
         (match Mdb.Field.value field with
          | `String s -> s
@@ -124,27 +161,15 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
                 let typ = Caqti_type.field field_type in
                 Error (Caqti_error.encode_rejected ~uri ~typ msg))))
 
-  (* Lax conversion since:
-   * - Arithmetic involving integers like `1 + ?` with at least one parameter
-   *   comes back as a float.
-   * - An expression like `sum(1)` comes back as a string, presumably as
-   *   originally decimal from MariaDB. *)
-  let decode_int field =
-    (match Mdb.Field.value field with
-     | `Int i -> i
-     | `Float x when fst (modf x) = 0.0 -> int_of_float x
-     | `String s -> int_of_string s
-     | _ -> failwith "decode_int")
-
   let rec decode_field
       : type b. uri: Uri.t -> b Caqti_type.field ->
         Mdb.Field.t -> (b, _) result =
     fun ~uri field_type field ->
     try match field_type with
-     | Caqti_type.Bool -> Ok (Mdb.Field.int field <> 0)
-     | Caqti_type.Int -> Ok (decode_int field)
-     | Caqti_type.Int32 -> Ok (Int32.of_int (decode_int field))
-     | Caqti_type.Int64 -> Ok (Int64.of_int (decode_int field))
+     | Caqti_type.Bool -> Ok (Mdb_ext.Field.bool field)
+     | Caqti_type.Int -> Ok (Mdb_ext.Field.int field)
+     | Caqti_type.Int32 -> Ok (Mdb_ext.Field.int32 field)
+     | Caqti_type.Int64 -> Ok (Mdb_ext.Field.int64 field)
      | Caqti_type.Float -> Ok (Mdb.Field.float field)
      | Caqti_type.String -> Ok (Mdb_ext.Field.string field)
   (* | Caqti_type.Octets -> TODO *)

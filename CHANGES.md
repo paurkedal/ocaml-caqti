@@ -52,7 +52,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 ## [0.6.1] - 2017-10-26
 
 - Fixed support for lwt >= 3, but keep supporting 2.7 as well for now.
-- Fixed preparation of query after reconnect to PostgrSQL.
+- Fixed preparation of query after reconnect to PostgreSQL.
 - Fixed support for ocaml 4.03.x.
 - Added `Tuple.length`.
 - Deprecated `Param.sub_types`.

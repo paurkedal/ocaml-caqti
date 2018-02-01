@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,9 @@
 
 open Lwt.Infix
 
+(* This is an example of a custom type, but it is experimental for now.  The
+ * alternative is to use plain tuples, as the other queries below, and coverting
+ * in client code. *)
 module Bike = struct
   type t = {
     frameno: string;

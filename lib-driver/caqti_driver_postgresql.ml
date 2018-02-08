@@ -532,7 +532,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
       let param_type = Caqti_request.param_type req in
       (match Caqti_request.query_id req with
        | None ->
-          let templ = Caqti_request.query_template req driver_info in
+          let templ = Caqti_request.query req driver_info in
           let query = Pg_ext.query_string templ in
           let param_length = Caqti_type.length param_type in
           let binary_params = Array.make param_length false in
@@ -549,7 +549,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
           let query_name = sprintf "_caq%d" query_id in
           (try return (Ok (Hashtbl.find pcache query_id)) with
            | Not_found ->
-              let templ = Caqti_request.query_template req driver_info in
+              let templ = Caqti_request.query req driver_info in
               let query = Pg_ext.query_string templ in
               prepare query_name query >|=? fun () ->
               let param_length = Caqti_type.length param_type in

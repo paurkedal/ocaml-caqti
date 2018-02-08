@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,14 +16,14 @@
 
 open Printf
 
-type template =
+type query =
   | L of string
   | P of int
-  | S of template list
+  | S of query list
 
 type ('a, 'b, +'m) t = {
   id: int option;
-  template: Caqti_driver_info.t -> template;
+  query: Caqti_driver_info.t -> query;
   param_type: 'a Caqti_type.t;
   row_type: 'b Caqti_type.t;
   row_mult: 'm Caqti_mult.t;
@@ -31,16 +31,16 @@ type ('a, 'b, +'m) t = {
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) param_type row_type row_mult template =
+let create ?(oneshot = false) param_type row_type row_mult query =
   let id = if oneshot then None else (incr last_id; Some !last_id) in
-  {id; template; param_type; row_type; row_mult}
+  {id; query; param_type; row_type; row_mult}
 
 let param_type request = request.param_type
 let row_type request = request.row_type
 let row_mult request = request.row_mult
 
 let query_id request = request.id
-let query_template request = request.template
+let query request = request.query
 
 (* Convenience *)
 
@@ -138,3 +138,7 @@ let find_opt ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_one (fun _ -> qs)
 let collect ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)
+
+(**/**)
+type template = query
+let query_template = query

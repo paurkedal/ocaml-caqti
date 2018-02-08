@@ -386,7 +386,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
           Error (Caqti_error.request_failed ~uri ~query msg) in
 
       let prepare () =
-        let templ = Caqti_request.query_template req driver_info in
+        let templ = Caqti_request.query req driver_info in
         let query = linear_query_string templ in
         let os = linear_param_order templ in
         Preemptive.detach prepare_helper query >|=? fun stmt ->

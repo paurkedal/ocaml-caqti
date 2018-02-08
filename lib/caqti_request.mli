@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,10 +29,10 @@
 
 (** {2 Primitives} *)
 
-type template =
+type query =
   | L of string  (** Literal code. May contain incomplete fragments. *)
   | P of int     (** [P i] refers to parameter number [i], counting from 0. *)
-  | S of template list (** [S frags] is the concatenation of [frags]. *)
+  | S of query list (** [S frags] is the concatenation of [frags]. *)
 (** A representation of a query string to send to a database, abstracting over
     parameter references and providing nested concatenation to simplify
     generation.  For databases which only support linear parameters (typically
@@ -49,10 +49,10 @@ type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 val create :
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> template) -> ('a, 'b, 'm) t
+  (Caqti_driver_info.t -> query) -> ('a, 'b, 'm) t
 (** [create arg_type row_type row_mult f] is a request which takes parameters of
     type [arg_type], returns rows of type [row_type] with multiplicity
-    [row_mult], and which sends query strings generated from the template [f
+    [row_mult], and which sends query strings generated from the query [f
     di], where [di] is the {!Caqti_driver_info.t} of the target driver.  The
     driver is responsible for turning parameter references into a form accepted
     by the database, while other differences must be handled by [f]. *)
@@ -71,25 +71,25 @@ val query_id : ('a, 'b, 'm) t -> int option
 (** If [req] is a prepared query, then [query_id req] is [Some id] for some [id]
     which uniquely identifies [req], otherwise it is [None]. *)
 
-val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> template
-(** [query_template req] is the function which generates the query template for
-    a driver for this request. *)
+val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
+(** [query req] is the function which generates the query of this request
+    possibly tailored for the given driver. *)
 
 (** {2 Convenience}
 
     In the following functions, queries are written out as plain strings with
-    the following syntax, which is parsed by Caqti into a {!template} before
-    being passed to the drivers.
+    the following syntax, which is parsed by Caqti into a {!query} object before
+    being passed to drivers.
 
     {b Parameters} are specified as either
 
     - ["?"] for linear substitutions (like Sqlite and MariaDB), or
     - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
 
-    Mixing the two styles in the same query is not permitted.  Note than
-    numbering of non-linear parameters is offset by one compared to the query
-    templates defined in the previous section, in order to be consistent with
-    PostgreSQL.
+    Mixing the two styles in the same query string is not permitted.  Note that
+    numbering of non-linear parameters is offset by one compared to the {!P}
+    parameters of the query objects defined in the previous section, in order to
+    be consistent with PostgreSQL conventions.
 
     {b Static references} of the form
 
@@ -108,7 +108,7 @@ val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> template
     according to the multiplicity parameter of their types. *)
 
 val create_p :
-  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
   (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
@@ -116,10 +116,8 @@ val create_p :
     of type [arg_type], returns rows of type [row_type] with multiplicity
     [row_mult], and which sends a query string based on a preliminary form given
     by [f di], where [di] is the {!Caqti_driver_info.t} of the target driver.
-    The preliminary query string may contain occurrences of "[?]", which are
-    replaced by successive parameter references.  This is implemented as [create
-    arg_type row_type (parse % f)] where [parse] parses a string into a
-    template.
+    The preliminary query string may contain parameter and static references as
+    described in the introduction of this section.
 
     @param oneshot
       For queries generated on-demand or which are otherwise executed only once,
@@ -128,12 +126,13 @@ val create_p :
 
     @param env
       [env driver_info key] shall provide the value to substitute for a
-      reference to [key] in the query string, or raise [Not_found] to indicate
-      the reference to [key] is invalid.  [Not_found] will be re-raised as
-      [Invalid_argument] with additional information to help locate the bug. *)
+      reference to [key] in the preliminary query string, or raise [Not_found]
+      to indicate the reference to [key] is invalid.  [Not_found] will be
+      re-raised as [Invalid_argument] with additional information to help locate
+      the bug. *)
 
 val exec :
-  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
@@ -141,7 +140,7 @@ val exec :
     Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :
-  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
@@ -149,7 +148,7 @@ val find :
     Caqti_mult.one (fun _ -> s)]. *)
 
 val find_opt :
-  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
@@ -157,9 +156,15 @@ val find_opt :
     row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
 
 val collect :
-  ?env: (Caqti_driver_info.t -> string -> template) ->
+  ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
 (** [collect_p arg_type row_type s] is a shortcut for [create_p arg_type
     row_type Caqti_mult.many (fun _ -> s)]. *)
+
+(**/**)
+type template = query
+  [@@ocaml.deprecated "Renamed to query."]
+val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
+  [@@ocaml.deprecated "Renamed to query."]

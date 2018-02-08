@@ -396,7 +396,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
 
       (match Caqti_request.query_id req with
        | None ->
-          let templ = Caqti_request.query_template req driver_info in
+          let templ = Caqti_request.query req driver_info in
           let query = linear_query_string templ in
           Mdb.prepare db query >>=
           (function
@@ -411,7 +411,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
        | Some id ->
           (try return (Ok (Hashtbl.find pcache id)) with
            | Not_found ->
-              let templ = Caqti_request.query_template req driver_info in
+              let templ = Caqti_request.query req driver_info in
               let query = linear_query_string templ in
               Mdb.prepare db query >|=
               (function

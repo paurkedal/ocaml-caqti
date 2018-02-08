@@ -49,8 +49,8 @@ The following drivers are available.
 
 If you link against `caqti-dynload`, then drivers are loaded dynamically
 based on the URI.  If dynamic loading is unavailable on your platform, you
-may instead statically link against the `caqti-driver-*` libraries which you
-expect to use.
+may instead link against the `caqti-driver-*` libraries which you expect to
+use.
 
 ## Documentation
 

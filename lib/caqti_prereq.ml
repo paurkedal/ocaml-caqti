@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,10 @@ let rec ncompose n f acc = if n = 0 then acc else ncompose (n - 1) f (f acc)
 module Option = struct
   type 'a t = 'a option
   let fold f = function None -> ident | Some x -> f x
+end
+
+module Result = struct
+  let map f = function Ok x -> Ok (f x) | Error e -> Error e
 end
 
 module List = struct

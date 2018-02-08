@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_prereq
 open Printf
 
 let dynload_library = ref @@ fun lib ->
@@ -91,6 +92,12 @@ module Make (System : Caqti_system_sig.S) = struct
     let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
     let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
     let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
+    let collect_list q p =
+      let f resp = Response.fold List.cons resp [] >|= Result.map List.rev in
+      call ~f q p
+    let collect_list_rev q p =
+      let f resp = Response.fold List.cons resp [] in
+      call ~f q p
 
     let start () = use C.start
     let commit () = use C.commit

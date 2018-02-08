@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,10 @@ val ncompose : int -> ('a -> 'a) -> 'a -> 'a
 module Option : sig
   type 'a t = 'a option
   val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b
+end
+
+module Result : sig
+  val map : ('a -> 'b) -> ('a, 'c) result -> ('b, 'c) result
 end
 
 module List : sig

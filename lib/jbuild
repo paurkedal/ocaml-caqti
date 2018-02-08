@@ -25,7 +25,7 @@
     ; internal
     Caqti_heap
     Caqti_prereq))
-  (library_flags (-linkall))
+  (library_flags (:standard -linkall))
   (libraries (ptime uri))))
 
 (rule
@@ -73,7 +73,7 @@
     Caqti1_sigs
     ; internal
     Caqti1_plugin))
-  (library_flags (-linkall))
+  (library_flags (:standard -linkall))
   (libraries (calendar caqti))))
 (rule
  ((targets (caqti1_driver_sig.ml))

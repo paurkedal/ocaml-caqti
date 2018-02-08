@@ -12,6 +12,7 @@ build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "caqti"
+  "jbuilder" {build}
   "ocamlfind"
   "ppx_driver"
 ]

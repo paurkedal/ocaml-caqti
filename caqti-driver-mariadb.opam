@@ -12,6 +12,7 @@ build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "caqti"
+  "jbuilder" {build}
   "mariadb" {>= "0.10"}
 ]
 conflicts: ["caqti" {<"0.6.0"}]

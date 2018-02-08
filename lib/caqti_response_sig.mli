@@ -63,11 +63,20 @@ module type S = sig
     ('b -> 'c -> ('c, 'e) result future) ->
     ('b, 'm) t -> 'c -> ('c, [> Caqti_error.retrieve] as 'e) result future
   (** [fold_s f resp] folds [f] over the decoded rows returned by [resp] within
-      the IO and result monad. *)
+      the IO and result monad.
+
+      {b Note.} Do not make nested queries in the callback to this function.  If
+      you use the same connection, it may lead to data corruption.  If you pull
+      a different connection from the same pool, it may deadlock if the pool
+      runs out of connections.  Also, some drivers may not support simpltaneous
+      connections. *)
 
   val iter_s :
     ('b -> (unit, 'e) result future) ->
     ('b, 'm) t -> (unit, [> Caqti_error.retrieve] as 'e) result future
   (** [iter_s f resp] iterates [f] over the decoded rows returned by [resp]
-      within the IO and result monad. *)
+      within the IO and result monad.
+
+      {b Note.} Do not make nested queries in the callback to this function.
+      Cf. {!fold_s}. *)
 end

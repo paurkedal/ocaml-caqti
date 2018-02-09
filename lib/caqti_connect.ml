@@ -95,7 +95,7 @@ module Make (System : Caqti_system_sig.S) = struct
     let collect_list q p =
       let f resp = Response.fold List.cons resp [] >|= Result.map List.rev in
       call ~f q p
-    let collect_list_rev q p =
+    let rev_collect_list q p =
       let f resp = Response.fold List.cons resp [] in
       call ~f q p
 

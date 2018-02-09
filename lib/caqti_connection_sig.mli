@@ -114,13 +114,13 @@ module type S = sig
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
     ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** [collect_list request param] performs a {!call} on {!request}, extracting
+  (** [collect_list request param] performs a {!call} on [request], extracting
       the result as a list. *)
 
-  val collect_list_rev :
+  val rev_collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
     ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** [collect_list_rev request param] performs a {!call} on {!request},
+  (** [rev_collect_list request param] performs a {!call} on [request],
       extracting the result as a reversed list.  This is more efficient than
       {!find_list} and fits well with a subsequent {!List.rev_map}, though it
       may not matter much in practise. *)

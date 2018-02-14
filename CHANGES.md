@@ -1,6 +1,16 @@
 # Change Log
 
-## [0.9.0] - 2017-01-04
+## [0.10.0] - 2018-02-14
+
+- Added `-linkall` flags to driver libraries to fix direct linking (#9).
+- Added convenience functions `collect_list` and `rev_collect_list` (#8).
+- Renamed `template` to `query` and related function, leaving deprecated
+  aliases.
+- Added `ptime_span` field type mapping to SQL intervals.
+- Be more permissive about types of data returned from MariaDB when
+  expecting numerical results.
+
+## [0.9.0] - 2018-01-04
 
 - Move v1 into findlib sublibraries and announce deprecation.
 - Port remaining tests to v2 and fix issues in MariaDB and Sqlite3 drivers.

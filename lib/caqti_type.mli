@@ -97,7 +97,10 @@ val pp_ex : Format.formatter -> ex -> unit
 val show : 'a t -> string
 (** [show t] is a human presentation of [t]. *)
 
-(** {3 Composite} *)
+(** {3 Composite}
+
+    The following provides constructors for narrow tuple types; to describe
+    wider tuple types, use nested application. *)
 
 val option : 'a t -> 'a option t
 

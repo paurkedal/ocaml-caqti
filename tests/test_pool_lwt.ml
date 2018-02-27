@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,13 @@ module Pool = Caqti_lwt.Pool
 module Resource = struct
   let ht = Hashtbl.create 17
   let c = ref 0
-  let create () = c := succ !c; Hashtbl.add ht !c (); Lwt.return_ok !c
+  let create () =
+    if Random.int 4 = 0 then Lwt.return_error () else
+    begin
+      c := succ !c;
+      Hashtbl.add ht !c ();
+      Lwt.return_ok !c
+    end
   let free i = assert (Hashtbl.mem ht i); Hashtbl.remove ht i; Lwt.return_unit
 end
 
@@ -38,7 +44,12 @@ let test n =
         let waiter, waker = Lwt.wait () in
         incr wait_count;
         let task _ = waiter >|= fun () -> decr wait_count; Ok () in
-        Lwt.async (fun () -> Pool.use task pool);
+        Lwt.async begin fun () ->
+          Pool.use task pool >>=
+          (function
+           | Ok () -> Lwt.return_unit
+           | Error () -> waiter >|= fun () -> decr wait_count)
+        end;
         wakers.(j) <- Some waker
      | Some u -> wake j u)
   done;

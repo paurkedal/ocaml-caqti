@@ -22,7 +22,7 @@
 (executable
  ((name test_pool_lwt)
   (modules (Test_pool_lwt))
-  (libraries (caqti_lwt_v1 testkit))))
+  (libraries (caqti-lwt testkit))))
 
 ; Tests Using DBs
 
@@ -40,7 +40,7 @@
 (executable
  ((name bikereg_v1)
   (modules (Bikereg_v1))
-  (libraries (caqti_v1 caqti_dynload caqti_lwt_v1 testkit))))
+  (libraries (caqti.v1 caqti-dynload caqti-lwt.v1 testkit))))
 
 (alias
  ((name runtest)
@@ -51,7 +51,7 @@
 (executable
  ((name bikereg)
   (modules (Bikereg))
-  (libraries (caqti caqti_dynload caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti-lwt testkit))))
 
 (alias
  ((name runtest)
@@ -62,7 +62,7 @@
 (executable
  ((name test_sql_async_v1)
   (modules (Test_sql_async_v1))
-  (libraries (caqti_v1 caqti_dynload caqti_async_v1 testkit))))
+  (libraries (caqti.v1 caqti-dynload caqti-async.v1 testkit))))
 
 (alias
  ((name runtest)
@@ -73,7 +73,7 @@
 (executable
  ((name test_sql_async)
   (modules (Test_sql_async))
-  (libraries (caqti caqti_dynload caqti_async testkit))))
+  (libraries (caqti caqti-dynload caqti-async testkit))))
 
 (alias
  ((name runtest)
@@ -84,7 +84,7 @@
 (executable
  ((name test_parallel_lwt_v1)
   (modules (Test_parallel_lwt_v1))
-  (libraries (caqti_v1 caqti_dynload caqti_lwt_v1 testkit))))
+  (libraries (caqti.v1 caqti-dynload caqti-lwt.v1 testkit))))
 
 (alias
  ((name runtest)
@@ -95,7 +95,7 @@
 (executable
  ((name test_parallel_lwt)
   (modules (Test_parallel_lwt))
-  (libraries (caqti caqti_dynload caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti-lwt testkit))))
 
 (alias
  ((name runtest)
@@ -106,7 +106,7 @@
 (executable
  ((name test_sql_lwt_v1)
   (modules (Test_sql_lwt_v1))
-  (libraries (caqti_v1 caqti_dynload caqti_lwt_v1 testkit))))
+  (libraries (caqti.v1 caqti-dynload caqti-lwt.v1 testkit))))
 
 (alias
  ((name runtest)
@@ -117,7 +117,7 @@
 (executable
  ((name test_sql_lwt)
   (modules (Test_sql_lwt))
-  (libraries (caqti caqti_dynload caqti_lwt ptime.clock.os testkit))))
+  (libraries (caqti caqti-dynload caqti-lwt ptime.clock.os testkit))))
 
 (alias
  ((name runtest)
@@ -127,12 +127,15 @@
 (executable
  ((name test_param)
   (modules (Test_param))
-  (libraries (caqti caqti_dynload caqti_lwt testkit))))
+  (libraries (caqti caqti-dynload caqti-lwt testkit))))
 
 ; Fake META Files
 
+(alias ((name drivers)))
+
 (alias
  ((name drivers)
+  (package caqti)
   (deps (META.caqti
          ../lib/caqti.cma
          ../lib/caqti.cmxs

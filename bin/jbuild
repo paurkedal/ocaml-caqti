@@ -3,7 +3,7 @@
 (executable
  ((name query)
   (modules (query))
-  (libraries (caqti_v1 caqti_lwt_v1))))
+  (libraries (caqti.v1 caqti-lwt.v1))))
 
 ;(install
 ; ((section bin)

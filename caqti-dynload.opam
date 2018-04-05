@@ -16,3 +16,4 @@ depends: [
   "ocamlfind"
   "ppx_driver"
 ]
+available: [ocaml-version >= "4.04.0"]

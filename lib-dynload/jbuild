@@ -6,7 +6,4 @@
   (wrapped false)
   (modules (Caqti_dynload))
   (library_flags (-linkall))
-  (preprocess
-    (per_module
-      ((pps (ppx_optcomp ppx_driver.runner)) (Caqti_dynload))))
   (libraries (caqti findlib.dynload))))

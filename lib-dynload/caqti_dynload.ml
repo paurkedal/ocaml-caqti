@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,19 +18,11 @@ let debug =
   try bool_of_string (Sys.getenv "CAQTI_DEBUG_DYNLOAD")
   with Not_found -> false
 
-#if ocaml_version < (4, 04, 0)
-let backend_predicates () =
-  let ic = open_in Sys.executable_name in
-  let is_byte = input_char ic = '#' in
-  close_in ic;
-  if is_byte then ["byte"] else ["native"]
-#else
 let backend_predicates () =
   (match Sys.backend_type with
    | Sys.Native -> ["native"]
    | Sys.Bytecode -> ["byte"]
    | Sys.Other _ -> [])
-#endif
 
 let init = lazy begin
   let predicates = backend_predicates () in

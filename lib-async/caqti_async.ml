@@ -24,7 +24,7 @@ module System = struct
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
-  let join = Deferred.all_ignore
+  let join = Deferred.all_unit
 
   module Mvar = struct
     type 'a t = 'a Ivar.t

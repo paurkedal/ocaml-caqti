@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ module System = struct
   let (>|=) = Deferred.Or_error.(>>|)
   let return = Deferred.Or_error.return
   let fail = Deferred.Or_error.of_exn
-  let join = Deferred.Or_error.all_ignore
+  let join = Deferred.Or_error.all_unit
 
   let catch f g =
     let open Deferred in

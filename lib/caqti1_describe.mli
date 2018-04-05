@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,8 @@
 
 (** (v1) Types and utility functions for query descriptions.
     @deprecated Don't use this in new code. *)
+
+[@@@ocaml.deprecated]
 
 (** Identification of a remote type.  These correspond to the types described
     in {!Caqti_sigs.CONNECTION.Param}.  [`Other s] represents an

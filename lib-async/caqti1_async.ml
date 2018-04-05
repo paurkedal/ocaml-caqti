@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+[@@@ocaml.warning "-3"]
+
 open Core
 open Async
 

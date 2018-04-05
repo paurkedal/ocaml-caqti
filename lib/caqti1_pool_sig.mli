@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,8 @@
  *)
 
 (** (v1) Resource pool signature. *)
+
+[@@@ocaml.deprecated]
 
 (** The signature of pools of reusable resources.  We use it to keep pools of
     open database connections.  A generic implementation is found in

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,9 @@
 
 (** (internal) System Interface.
     @deprecated Don't use this in new code. *)
+
+[@@@ocaml.deprecated]
+[@@@ocaml.warning "-3"]
 
 module type S = sig
   type +'a io

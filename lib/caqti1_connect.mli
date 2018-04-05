@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,9 @@
 
 (** (v1) Connection functor and backend registration.
     @deprecated Don't use this in new code. *)
+
+[@@@ocaml.deprecated]
+[@@@ocaml.warning "-3"]
 
 val define_driver : string -> (module Caqti1_driver_sig.F) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme

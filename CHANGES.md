@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.10.2] - 2018-04-05
+
+- Fix incompatibility with `ppx_optcomp` v0.11.0 by dropping it, since the
+  conditionals where no longer needed.
+- Restore test during opam build.
+- The v1 API is now fully `[@@@deprecated]` and will be removed in the next
+  major release.
+
 ## [0.10.1] - 2018-02-27
 
 - Fix a pool size counting bug when resource allocation fails.  This can

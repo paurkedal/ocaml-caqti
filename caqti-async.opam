@@ -12,9 +12,9 @@ build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "async" {>= "v0.10.0"}
-  "caqti" {>= "0.10.1"}
-  "caqti-dynload" {test & >= "0.10.1"}
-  "caqti-driver-sqlite3" {test & >= "0.10.1"}
+  "caqti" {>= "0.10.2"}
+  "caqti-dynload" {test & >= "0.10.2"}
+  "caqti-driver-sqlite3" {test & >= "0.10.2"}
   "core"
-  "jbuilder" {build}
+  "jbuilder" {build & >= "1.0+beta19"}
 ]

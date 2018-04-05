@@ -11,10 +11,9 @@ build: [["jbuilder" "build" "-p" name "-j" jobs]]
 build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
-  "jbuilder" {build}
+  "jbuilder" {build & >= "1.0+beta19"}
   "calendar"
   "ocamlfind" {build}
-  "ppx_optcomp" {build}
   "ptime"
   "uri" {>= "1.9.0"}
 ]

@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/paurkedal/ocaml-caqti.svg?style=svg)](https://circleci.com/gh/paurkedal/ocaml-caqti)
+
 ## Synopsis
 
 Caqti provides a monadic cooperative-threaded OCaml connector API for

@@ -1,0 +1,37 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ocaml/opam:debian-9_ocaml-4.04.2
+        environment:
+          TERM: xterm
+    steps:
+      - checkout
+      - run:
+          name: Update apt-get
+          command: sudo apt-get update
+      - run:
+          name: Update opam package list
+          # This Docker image defaults to coming with its own opam repo built
+          # in, but we want to actually update with the real upstream opam
+          command: |
+            opam remote remove default
+            opam remote add default https://opam.ocaml.org
+      - run:
+          name: Pin packages
+          command: |
+            for f in *.opam; do
+              opam pin add -yn "$f" .
+            done
+      - run:
+          name: Install system dependencies
+          command: opam depext -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+      - run:
+          name: Install OCaml dependencies
+          command: opam install --deps-only -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+      - run:
+          name: Build
+          command: opam config exec -- jbuilder build @install
+      - run:
+          name: Test
+          command: opam config exec -- jbuilder runtest

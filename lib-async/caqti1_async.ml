@@ -25,7 +25,7 @@ module System = struct
   let (>|=) = Deferred.Or_error.(>>|)
   let return = Deferred.Or_error.return
   let fail = Deferred.Or_error.of_exn
-  let join = Deferred.Or_error.all_unit
+  let join = Deferred.Or_error.all_ignore
 
   let catch f g =
     let open Deferred in

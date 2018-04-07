@@ -5,6 +5,12 @@ jobs:
       - image: ocaml/opam:debian-9_ocaml-4.04.2
         environment:
           TERM: xterm
+      - image: circleci/postgres:alpine-ram
+        environment:
+          POSTGRES_USER: test
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: ""
+
     steps:
       - checkout
       - run:
@@ -34,4 +40,9 @@ jobs:
           command: opam config exec -- jbuilder build @install
       - run:
           name: Test
-          command: opam config exec -- jbuilder runtest
+          command: |
+            echo "
+                sqlite3::memory:
+                postgresql://test@localhost/test
+            " > tests/uris.conf
+            opam config exec -- jbuilder runtest

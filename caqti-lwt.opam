@@ -15,5 +15,6 @@ depends: [
   "caqti-dynload" {test & >= "0.10.2"}
   "caqti-driver-sqlite3" {test & >= "0.10.2"}
   "jbuilder" {build & >= "1.0+beta19"}
-  "lwt"
+  "lwt" {>= "3.2.0"}
+  "lwt_log"
 ]

@@ -5,7 +5,7 @@
   (public_name caqti-lwt)
   (wrapped false)
   (modules (Caqti_lwt Caqti_lwt_sql_io))
-  (libraries (caqti lwt lwt.unix lwt.preemptive))))
+  (libraries (caqti lwt lwt.unix lwt_log))))
 
 (library
  ((name caqti_lwt_v1)

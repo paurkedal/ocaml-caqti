@@ -66,14 +66,31 @@ module System = struct
   end
 
   module Log = struct
-    let log_f level fmt =
-      ksprintf
-        (fun s -> Log.string ~level (Lazy.force Log.Global.log) s; return ())
-        fmt
-    let error_f   fmt = log_f `Error fmt
-    let warning_f fmt = log_f `Info  fmt
-    let info_f    fmt = log_f `Info  fmt
-    let debug_f   fmt = log_f `Debug fmt
+    type 'a log = ('a, unit Deferred.t) Logs.msgf -> unit Deferred.t
+
+    (* Based on Logs_lwt.kmsg. *)
+    let kmsg ?(src = Logs.default) level msgf =
+      let count_it () =
+        (match level with
+         | Logs.Error -> Logs.incr_err_count ()
+         | Logs.Warning -> Logs.incr_warn_count ()
+         | _ -> ()) in
+      (match Logs.Src.level src with
+       | None -> return ()
+       | Some level' when level > level' ->
+          count_it ();
+          return ()
+       | Some _ ->
+          count_it ();
+          let ivar = Ivar.create () in
+          let k () = Ivar.read ivar in
+          let over () = Ivar.fill ivar () in
+          Logs.report src level ~over k msgf)
+
+    let err   ?src msgf = kmsg ?src Logs.Error   msgf
+    let warn  ?src msgf = kmsg ?src Logs.Warning msgf
+    let info  ?src msgf = kmsg ?src Logs.Info    msgf
+    let debug ?src msgf = kmsg ?src Logs.Debug   msgf
   end
 
   module Preemptive = struct

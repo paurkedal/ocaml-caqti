@@ -12,6 +12,7 @@ build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "jbuilder" {build & >= "1.0+beta19"}
+  "logs"
   "ocamlfind" {build}
   "ptime"
   "uri" {>= "1.9.0"}

@@ -32,12 +32,12 @@ module System = struct
   end
 
   module Log = struct
-    let section = Lwt_log.Section.make "caqti"
+    type 'a log = 'a Logs_lwt.log
 
-    let error_f   fmt = Lwt_log.error_f ~section fmt
-    let warning_f fmt = Lwt_log.warning_f ~section fmt
-    let info_f    fmt = Lwt_log.info_f ~section fmt
-    let debug_f   fmt = Lwt_log.debug_f ~section fmt
+    let err = Logs_lwt.err
+    let warn = Logs_lwt.warn
+    let info = Logs_lwt.info
+    let debug = Logs_lwt.debug
   end
 
   module Unix = struct

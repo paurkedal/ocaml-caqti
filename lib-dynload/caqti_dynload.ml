@@ -47,3 +47,5 @@ let () = Caqti_connect.define_loader @@ fun pkg ->
   (try Ok (Fl_dynload.load_packages ~debug [pkg]) with
    | Dynlink.Error err -> Error (Dynlink.error_message err)
    | Findlib.No_such_package (_pkg, info) -> Error info)
+
+module Weak_ = struct include Weak end (* for caqti-driver-mariadb *)

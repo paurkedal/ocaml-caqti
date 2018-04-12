@@ -26,7 +26,7 @@
     Caqti_heap
     Caqti_prereq))
   (library_flags (:standard -linkall))
-  (libraries (ptime uri))))
+  (libraries (logs ptime uri))))
 
 (rule
  ((targets (caqti_connect_sig.ml))

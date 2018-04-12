@@ -44,10 +44,11 @@ module type S = sig
   end
 
   module Log : sig
-    val error_f : ('a, unit, string, unit future) format4 -> 'a
-    val warning_f : ('a, unit, string, unit future) format4 -> 'a
-    val info_f : ('a, unit, string, unit future) format4 -> 'a
-    val debug_f : ('a, unit, string, unit future) format4 -> 'a
+    type 'a log = ('a, unit future) Logs.msgf -> unit future
+    val err : ?src: Logs.src -> 'a log
+    val warn : ?src: Logs.src -> 'a log
+    val info : ?src: Logs.src -> 'a log
+    val debug : ?src: Logs.src -> 'a log
   end
 
   module Preemptive : sig

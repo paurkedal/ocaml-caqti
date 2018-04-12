@@ -19,10 +19,3 @@
 open Async
 
 include Caqti_connect_sig.S with type 'a future := 'a Deferred.t
-
-(**/**)
-
-module V2 : Caqti_connect_sig.S
-  with type 'a future := 'a Deferred.t
-   and module Pool = Pool
-[@@deprecated "Now moved to the Caqti_async top level."]

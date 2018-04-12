@@ -55,39 +55,3 @@
  ((targets (caqti_system_sig.ml))
   (deps (caqti_system_sig.mli))
   (action (copy ${<} ${@}))))
-
-; API v1. Not to be used for new code.
-(library
- ((name caqti_v1)
-  (public_name caqti.v1)
-  (wrapped false)
-  (modules
-   (Caqti1_connect
-    Caqti1_driver_sig
-    Caqti1_describe
-    Caqti1_errors
-    Caqti1_pool
-    Caqti1_pool_sig
-    Caqti1_query
-    Caqti1_system_sig
-    Caqti1_sigs
-    ; internal
-    Caqti1_plugin))
-  (library_flags (:standard -linkall))
-  (libraries (calendar caqti))))
-(rule
- ((targets (caqti1_driver_sig.ml))
-  (deps (caqti1_driver_sig.mli))
-  (action (copy ${<} ${@}))))
-(rule
- ((targets (caqti1_pool_sig.ml))
-  (deps (caqti1_pool_sig.mli))
-  (action (copy ${<} ${@}))))
-(rule
- ((targets (caqti1_sigs.ml))
-  (deps (caqti1_sigs.mli))
-  (action (copy ${<} ${@}))))
-(rule
- ((targets (caqti1_system_sig.ml))
-  (deps (caqti1_system_sig.mli))
-  (action (copy ${<} ${@}))))

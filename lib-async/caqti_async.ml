@@ -82,5 +82,4 @@ module System = struct
   end
 end
 
-module V2 = Caqti_connect.Make (System)
-include V2
+include Caqti_connect.Make (System)

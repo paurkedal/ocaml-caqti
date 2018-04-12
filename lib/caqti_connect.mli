@@ -30,7 +30,3 @@ module Make (System : Caqti_system_sig.S) : Caqti_connect_sig.S
   with type 'a future := 'a System.future
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)
-
-(**/**)
-val dynload_library : (string -> (unit, string) result) ref
-[@@ocaml.deprecated "Transient internal use."]

@@ -67,11 +67,8 @@ module System = struct
 
 end
 
-module V2 = Caqti_connect.Make (System)
-include V2
+include Caqti_connect.Make (System)
 
 let or_fail = function
  | Ok x -> Lwt.return x
  | Error (#Caqti_error.t as err) -> Lwt.fail (Caqti_error.Exn err)
-
-let of_result = or_fail

@@ -6,10 +6,3 @@
   (wrapped false)
   (modules (Caqti_lwt Caqti_lwt_sql_io))
   (libraries (caqti lwt lwt.unix lwt_log))))
-
-(library
- ((name caqti_lwt_v1)
-  (public_name caqti-lwt.v1)
-  (wrapped false)
-  (modules (Caqti1_lwt))
-  (libraries (caqti.v1 caqti-lwt))))

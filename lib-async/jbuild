@@ -6,10 +6,3 @@
   (wrapped false)
   (modules (Caqti_async Caqti_async_sql_io))
   (libraries (async caqti core))))
-
-(library
- ((name caqti_async_v1)
-  (public_name caqti-async.v1)
-  (wrapped false)
-  (modules (Caqti1_async))
-  (libraries (caqti.v1 caqti-async))))

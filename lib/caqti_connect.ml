@@ -77,12 +77,15 @@ module Make (System : Caqti_system_sig.S) = struct
 
     module Response = C.Response
 
-    let in_use = ref false
+    let use_count = ref 0
 
     let use f =
-      if !in_use then failwith "Concurrent access to the same DB connection.";
-      in_use := true;
-      f () >|= fun r -> in_use := false; r
+      if !use_count <> 0 then failwith "Concurrent access to DB connection.";
+      incr use_count;
+      if !use_count <> 1 then failwith "Concurrent access to DB connection.";
+      f () >|= fun r ->
+      decr use_count;
+      r
 
     let call ~f req param = use (fun () -> C.call ~f req param)
 

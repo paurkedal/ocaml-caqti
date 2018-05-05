@@ -99,7 +99,7 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
     are replaced by query fragments returned by the [?env] argument of the
     functions below, and aids in substituting configurable fragments, like
     database schemas or table names.  The latter form is suggested for
-    qualifying tables, sequences, etc.  with the main database schema.  It
+    qualifying tables, sequences, etc. with the main database schema.  It
     should expand to a schema name followed by a dot, or empty if the database
     does not support schemas or the schema is unset.
 
@@ -177,12 +177,22 @@ module Dynparam = struct
   let add t x (Pack (t', x')) = Pack (Caqti_type.tup2 t' t, (x', x))
 end
     ]}
+    Now, given a [param : Dynparam.t] and a corresponding query string [qs], one
+    can construct a request and execute it:
+    {[
+let Dynparam.Pack (pt, pv) = param in
+let req = Caqti_request.exec ~oneshot:true pt qs in
+C.exec req pv
+    ]}
+    Note that dynamically constructed requests should have [~oneshot:true]
+    unless they are memoized.  Also note that it is natural to use {!create} for
+    dynamically constructed queries, since it accepts the easily composible
+    {!query} type instead of plain strings.
+
     This scheme can be specialized for particular use cases, including
     generation of fragments of the [query], which reduces the risk of wrongly
     matching up parameters with their uses in the query string.
-
-    Remember that dynamically constructed requests should have [~oneshot:true]
-    unless they are memoized. *)
+    *)
 
 (**/**)
 type template = query

@@ -179,7 +179,10 @@ end
     ]}
     This scheme can be specialized for particular use cases, including
     generation of fragments of the [query], which reduces the risk of wrongly
-    matching up parameters with their uses in the query string. *)
+    matching up parameters with their uses in the query string.
+
+    Remember that dynamically constructed requests should have [~oneshot:true]
+    unless they are memoized. *)
 
 (**/**)
 type template = query

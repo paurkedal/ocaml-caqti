@@ -50,3 +50,5 @@ val ptime_of_rfc3339_utc : string -> (Ptime.t, string) result
 
 val pdate_of_iso8601 : string -> (Ptime.t, string) result
 val iso8601_of_pdate : Ptime.t -> string
+
+val default_log_src : Logs.Src.t

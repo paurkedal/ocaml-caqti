@@ -16,6 +16,7 @@
 
 (* This is partly based on https://github.com/janestreet/lwt-async *)
 
+open Caqti_prereq
 open Core
 open Async
 
@@ -87,10 +88,10 @@ module System = struct
           let over () = Ivar.fill ivar () in
           Logs.report src level ~over k msgf)
 
-    let err   ?src msgf = kmsg ?src Logs.Error   msgf
-    let warn  ?src msgf = kmsg ?src Logs.Warning msgf
-    let info  ?src msgf = kmsg ?src Logs.Info    msgf
-    let debug ?src msgf = kmsg ?src Logs.Debug   msgf
+    let err   ?(src = default_log_src) msgf = kmsg ~src Logs.Error   msgf
+    let warn  ?(src = default_log_src) msgf = kmsg ~src Logs.Warning msgf
+    let info  ?(src = default_log_src) msgf = kmsg ~src Logs.Info    msgf
+    let debug ?(src = default_log_src) msgf = kmsg ~src Logs.Debug   msgf
   end
 
   module Preemptive = struct

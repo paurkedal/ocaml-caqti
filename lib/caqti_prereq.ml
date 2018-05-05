@@ -97,3 +97,5 @@ let pdate_of_iso8601 s =
    | Some pdate -> Ok pdate)
 
 let iso8601_of_pdate x = iso8601_of_datetuple (Ptime.to_date x)
+
+let default_log_src = Logs.Src.create "caqti"

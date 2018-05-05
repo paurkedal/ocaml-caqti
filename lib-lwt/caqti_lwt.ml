@@ -33,11 +33,10 @@ module System = struct
 
   module Log = struct
     type 'a log = 'a Logs_lwt.log
-
-    let err = Logs_lwt.err
-    let warn = Logs_lwt.warn
-    let info = Logs_lwt.info
-    let debug = Logs_lwt.debug
+    let err ?(src = default_log_src) = Logs_lwt.err ~src
+    let warn ?(src = default_log_src) = Logs_lwt.warn ~src
+    let info ?(src = default_log_src) = Logs_lwt.info ~src
+    let debug ?(src = default_log_src) = Logs_lwt.debug ~src
   end
 
   module Unix = struct

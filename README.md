@@ -19,13 +19,6 @@ between the OCaml code and the database; i.e. for encoding parameters and
 decoding returned tuples.  It is hoped that this agnostic choice makes it a
 suitable target for higher level interfaces and code generators.
 
-## Status
-
-Large parts of Caqti was rewritten for 0.8 and 0.9, the latter being the
-first release targeted for to the official OPAM repository.  The old API is
-still available in findlib libraries under the suffix `.v1`.  I need to keep
-these for the time being, but do not use them for new code.
-
 ## Drivers
 
 The following drivers are available.

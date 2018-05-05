@@ -93,7 +93,7 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
 
     {b Static references} of the form
 
-    - ["$(<var>)"] is substituted by [env driver_info "<var>"].
+    - ["$(<var>)"] is substituted with [env driver_info "<var>"].
     - ["$."] is a shortcut for ["$(.)"].
 
     are replaced by query fragments returned by the [?env] argument of the
@@ -162,6 +162,24 @@ val collect :
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
 (** [collect_p arg_type row_type s] is a shortcut for [create_p arg_type
     row_type Caqti_mult.many (fun _ -> s)]. *)
+
+(** {2 How to Dynamically Assemble Queries and Parameters}
+
+    In some cases, queries are constructed dynamically, e.g. when translating an
+    expression for searching a database into SQL.  In such cases the number of
+    parameters and their types will typically vary, as well.  A helper like the
+    following can be used to existentially pack the parameter types along with
+    the corresponding parameter values to allow collecing them incrementally:
+    {[
+module Dynparam = struct
+  type t = Pack : 'a Caqti_type.t * 'a -> t
+  let empty = Pack (Caqti_type.unit, ())
+  let add t x (Pack (t', x')) = Pack (Caqti_type.tup2 t' t, (x', x))
+end
+    ]}
+    This scheme can be specialized for particular use cases, including
+    generation of fragments of the [query], which reduces the risk of wrongly
+    matching up parameters with their uses in the query string. *)
 
 (**/**)
 type template = query

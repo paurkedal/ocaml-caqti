@@ -179,7 +179,7 @@ let rec encode_field
    | Caqti_type.Octets -> Ok x
    | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
    | Caqti_type.Ptime ->
-      Ok (Ptime.to_rfc3339 ~space:true x)
+      Ok (Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 ~frac_s:6 x)
    | Caqti_type.Ptime_span ->
       Ok (Pg_ext.string_of_ptime_span x)
    | _ ->

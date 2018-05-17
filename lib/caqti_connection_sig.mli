@@ -14,7 +14,38 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** Signature of connection handles. *)
+(** Signature of connection handles.
+
+    You can obtain a connection handle from {!Caqti_lwt} or {!Caqti_async},
+    which both implement the {!Caqti_connect_sig} interface.
+
+    While {!Caqti_request.t} objects hold SQL code to be sent to the database,
+    connection handles defined here provide the means to execute them with
+    actual parameters on an RDBMS.  So, there is a separation between
+    preparation and execution.  This is motivated by the common support for
+    prepared queries in database client libraries, and by the desire to keep the
+    possibly deeply nested data-processing code uncluttered by strings of SQL
+    code.  For this separation to be reasonably safe, the request declares the
+    types of parameters and result, and these type declarations are placed right
+    next to the SQL code, so that we can rely on OCaml's powers of refactoring
+    large code bases safely.
+
+    The result type of {!Caqti_request.t} only describes how to decode {e
+    individual rows}, leaving the decision of how to process multiple rows to
+    the execution interface.  That is, the request does not detail how to fold
+    over rows, and for this reason, the separation into request constructors and
+    executors entails a collection of pairwise compatible convenience functions
+    across multiplicities between the APIs.  E.g. when there are like-named
+    {!Caqti_request.find_opt} and {!S.find_opt} functions, the first declares
+    the row multiplicity, while the latter implements a way to fold rows into an
+    OCaml datatype for that multiplicity.
+
+    Though a request object stipulates the expected multiplicity, there is
+    still choice left for how to fold rows.  E.g., a request constructed by
+    {!Caqti_request.collect}, or in fact any request, can be processed with
+    {!S.fold}, {!S.fold_s}, {!S.iter_s}, or {!S.collect_list}.  The two
+    functions {!Caqti_request.create} and {!S.fold} can construct and process
+    any supported SQL query. *)
 
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
@@ -83,35 +114,49 @@ module type S = sig
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
     (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.exec}. *)
+  (** Combining {!call} with {!Response.exec}, this sends a request to the
+      database and checks that no rows are returned. *)
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
     ('b, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.find}. *)
+  (** Combining {!call} with {!Response.find}, this sends a request to the
+      database, checks that a single row is returned, and extracts it. *)
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
     ('b option, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.find_opt}. *)
+  (** Combining {!call} with {!Response.find_opt}, this sends a request to the
+      database, checks that at most one row is returned, and extracts it if
+      present. *)
 
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.fold}. *)
+  (** Combining {!call} with {!Response.fold}, this sends a request to the
+      database and folds over the result rows. *)
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> ('c, 'e) result future) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.fold_s}. *)
+  (** Combining {!call} with {!Response.fold_s}, this sends a request to the
+      database and folds concurrently over the result rows.
+
+      Please be aware of possible deadlocks when using resources from the
+      callback.  In particular, if the same connection pool is invoked as the
+      one used to obtain the current connection, it will deadlock if the pool
+      has just run out of connections.  An alternative is to collect the rows
+      first e.g. with {!fold} and do the nested queries after exiting. *)
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> (unit, 'e) result future) ->
     'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combines {!call} with {!Response.iter_s}. *)
+  (** Combining {!call} with {!Response.iter_s}, this sends a request to the
+      database and iterates concurrently over the result rows.  Please see the
+      warning in {!fold_s} about resource usage in the callback. *)
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->

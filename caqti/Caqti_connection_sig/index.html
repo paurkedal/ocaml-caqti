@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Caqti_connection_sig (caqti.Caqti_connection_sig)</title><link rel="stylesheet" href="../../odoc.css"/><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><meta name="generator" content="doc-ock-html v1.0.0-1-g1fc9bf0"/></head><body><nav id="top"><a href="../index.html">Up</a> &mdash; <span class="package">package <a href="../index.html">caqti</a></span></nav><header><h1><span class="keyword">Module</span> <span class="module-path">Caqti_connection_sig</span></h1></header><p>Signature of connection handles.</p><p>You can obtain a connection handle from Caqti_lwt or Caqti_async,
+which both implement the <a href="../Caqti_connect_sig/index.html">Caqti_connect_sig</a> interface.</p><p>While <a href="../Caqti_request/index.html#type-t">Caqti_request.t</a> objects hold SQL code to be sent to the database,
+connection handles defined here provide the means to execute them with
+actual parameters on an RDBMS. So, there is a separation between
+preparation and execution. This is motivated by the common support for
+prepared queries in database client libraries, and by the desire to keep the
+possibly deeply nested data-processing code uncluttered by strings of SQL
+code. For this separation to be reasonably safe, the request declares the
+types of parameters and result, and these type declarations are placed right
+next to the SQL code, so that we can rely on OCaml's powers of refactoring
+large code bases safely.</p><p>The result type of <a href="../Caqti_request/index.html#type-t">Caqti_request.t</a> only describes how to decode <em>individual rows</em>, leaving the decision of how to process multiple rows to
+the execution interface. That is, the request does not detail how to fold
+over rows, and for this reason, the separation into request constructors and
+executors entails a collection of pairwise compatible convenience functions
+across multiplicities between the APIs. E.g. when there are like-named
+<a href="../Caqti_request/index.html#val-find_opt">Caqti_request.find_opt</a> and <a href="module-type-S/index.html#val-find_opt">S.find_opt</a> functions, the first declares
+the row multiplicity, while the latter implements a way to fold rows into an
+OCaml datatype for that multiplicity.</p><p>Though a request object stipulates the expected multiplicity, there is
+still choice left for how to fold rows. E.g., a request constructed by
+<a href="../Caqti_request/index.html#val-collect">Caqti_request.collect</a>, or in fact any request, can be processed with
+<a href="module-type-S/index.html#val-fold">S.fold</a>, <a href="module-type-S/index.html#val-fold_s">S.fold_s</a>, <a href="module-type-S/index.html#val-iter_s">S.iter_s</a>, or <a href="module-type-S/index.html#val-collect_list">S.collect_list</a>. The two
+functions <a href="../Caqti_request/index.html#val-create">Caqti_request.create</a> and <a href="module-type-S/index.html#val-fold">S.fold</a> can construct and process
+any supported SQL query.</p><div class="spec module-type" id="module-type-Base"><a href="#module-type-Base" class="anchor"></a><div class="def module-type"><code><span class="keyword">module type </span><a href="module-type-Base/index.html">Base</a> : <span class="keyword">sig</span> ... <span class="keyword">end</span></code></div><div class="doc"><p>Essential connection signature implemented by drivers.</p></div></div><div class="spec module-type" id="module-type-S"><a href="#module-type-S" class="anchor"></a><div class="def module-type"><code><span class="keyword">module type </span><a href="module-type-S/index.html">S</a> : <span class="keyword">sig</span> ... <span class="keyword">end</span></code></div><div class="doc"><p>Full connection signature available to users.</p></div></div></body></html>

@@ -59,10 +59,12 @@ provide a connect functions which receives an URI, loads the appropriate
 driver, and returns a connection as a first-class module containing query
 functionality for the database.
 
-A good place to start is with the [documented example][bikereg].  The API
-reference is currently not online, but can be generated with `topkg doc`
-from the source code or with [odig](http://erratique.ch/software/odig) from
-an OPAM installation.
+To get a quick idea of how to use Caqti, look at the [documented
+example][bikereg].  A resent rendering of the full API reference is
+[avaliable online](http://paurkedal.github.io/ocaml-caqti/index.html).
+You can generate the API reference matching your installed version using
+[odig](http://erratique.ch/software/odig).  Finally, `topkg doc` builds the
+reference for a Git checkout.
 
 The most important modules to know about are:
 

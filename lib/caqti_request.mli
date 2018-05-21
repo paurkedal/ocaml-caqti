@@ -91,17 +91,18 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
     parameters of the query objects defined in the previous section, in order to
     be consistent with PostgreSQL conventions.
 
-    {b Static references} of the form
+    {b Static references} are references to the [?env] argument of the functions
+    below, and thus fixed once the query has been constructed.  The query parser
+    accepts two forms:
 
-    - ["$(<var>)"] is substituted with [env driver_info "<var>"].
+    - ["$(<var>)"] is substituted by [env driver_info "<var>"].
     - ["$."] is a shortcut for ["$(.)"].
 
-    are replaced by query fragments returned by the [?env] argument of the
-    functions below, and aids in substituting configurable fragments, like
-    database schemas or table names.  The latter form is suggested for
-    qualifying tables, sequences, etc. with the main database schema.  It
-    should expand to a schema name followed by a dot, or empty if the database
-    does not support schemas or the schema is unset.
+    These aid in substituting configurable fragments, like database schemas or
+    table names.  The latter form is suggested for qualifying tables, sequences,
+    etc. with the main database schema.  It should expand to a schema name
+    followed by a dot, so that the empty string can be returned if the database
+    does not support schemas or no schema is requested by the user.
 
     Apart from the more generic {!create_p}, these function match up with
     retrieval functions of {!Caqti_connection_sig.S} and {!Caqti_response_sig.S}

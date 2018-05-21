@@ -62,7 +62,7 @@ module type Base = sig
     ('c, [> Caqti_error.call] as 'e) result future
   (** [call ~f request params] performs [request] with parameters [params]
       invoking [f] to process the result.  The argument of [f] is only valid
-      during the call to [f], and must to be returned or operated on by other
+      during the call to [f], and must not be returned or operated on by other
       threads. *)
 
 

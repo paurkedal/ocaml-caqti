@@ -16,16 +16,29 @@
 
 (** SQL IO utility functions. *)
 
+(** The concurrency monad assumed by {!Make}. *)
 module type MONAD = sig
   type 'a t
   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
   val return : 'a -> 'a t
 end
 
+(** The interface implemented by {!Make}. *)
 module type S = sig
   type 'a future
+
   val read_sql_statement :
     ('a -> char option future) -> 'a -> string option future
+  (** [read_sql_statement read_char chan] reads the next semicolon-terminated
+      SQL statement from [chan], taking care to skip over quoted semicolons.
+      [read_char chan] shall return the next character from [chan], or [None]
+      when the end of file has been reached.  A final semicolon is optional and
+      any trailing white space after it will be ignored.
+
+      This can be used e.g. to read in SQL schemas or schema updates from a file
+      for automatic initialization and updates of tables, sequences, functions,
+      views, etc. *)
 end
 
+(** The implementation. *)
 module Make (Io : MONAD) : S with type 'a future := 'a Io.t

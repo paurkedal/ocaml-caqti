@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Resource pool. *)
+(** {b Internal:} Resource pool. *)
 
 module Make (System : Caqti_system_sig.S) :
   Caqti_pool_sig.S with type 'a future := 'a System.future

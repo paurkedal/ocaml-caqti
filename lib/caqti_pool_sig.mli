@@ -27,7 +27,7 @@ module type S = sig
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool future) ->
     (unit -> ('a, 'e) result future) -> ('a -> unit future) -> ('a, 'e) t
-  (** (internal) [create alloc free] is a pool of resources allocated by
+  (** {b Internal:} [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily indented for implementing
       the [connect_pool] functions.
 

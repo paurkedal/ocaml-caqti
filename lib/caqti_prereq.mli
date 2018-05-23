@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Prerequisites. *)
+(** {b Internal:} Prerequisites. *)
 
 val (%) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
 val (%>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c

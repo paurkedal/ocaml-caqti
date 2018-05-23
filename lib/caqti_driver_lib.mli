@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Library for Drivers *)
+(** {b Internal:} Library for Drivers *)
 
 val linear_param_length : Caqti_request.query -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a

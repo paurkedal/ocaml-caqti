@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) Signature for driver implementation.
+(** {b Internal:} Signature for driver implementation.
 
     This interface is unstable. *)
 

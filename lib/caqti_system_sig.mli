@@ -14,10 +14,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** (internal) System Interface
+(** {b Internal:} System Interface
 
     The system utilities used by drivers.  This signature will likely be
-    extended or changed due requirements of new backends. *)
+    extended or changed due requirements of new backends and architectures. *)
 
 module type S = sig
 

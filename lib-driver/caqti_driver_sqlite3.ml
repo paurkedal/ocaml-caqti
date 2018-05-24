@@ -67,12 +67,13 @@ let rec data_of_value
 (* | Caqti_type.Octets -> TODO *)
    | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (iso8601_of_pdate x))
    | Caqti_type.Ptime ->
-      (* This is consistent with the current_timestamp function of Sqlite3,
-       * which prints UTC time without "T" and no time zone. *)
-      let s = Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 x in
-      Ok (Sqlite3.Data.TEXT (String.sub s 0 19))
+      (* This is the suggested time representation according to
+         https://sqlite.org/lang_datefunc.html, and is consistent with
+         current_timestamp.  Three subsecond digits are significant. *)
+      let s = Ptime.to_rfc3339 ~space:true ~frac_s:3 ~tz_offset_s:0 x in
+      Ok (Sqlite3.Data.TEXT (String.sub s 0 23))
    | Caqti_type.Ptime_span ->
-      Ok (Sqlite3.Data.INT (Int64.of_float (Ptime.Span.to_float_s x)))
+      Ok (Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x))
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
@@ -90,6 +91,13 @@ let rec value_of_data
     : type a. uri: Uri.t ->
       a Caqti_type.field -> Sqlite3.Data.t -> (a, _) result =
   fun ~uri field_type data ->
+  let to_ptime_span x =
+    (match Ptime.Span.of_float_s x with
+     | Some t -> Ok t
+     | None ->
+        let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
+        let typ = Caqti_type.field field_type in
+        Error (Caqti_error.decode_rejected ~uri ~typ msg)) in
   (match field_type, data with
    | Caqti_type.Bool, Sqlite3.Data.INT y -> Ok (y <> 0L)
    | Caqti_type.Int, Sqlite3.Data.INT y -> Ok (Int64.to_int y)
@@ -114,13 +122,10 @@ let rec value_of_data
           let msg = Caqti_error.Msg msg in
           let typ = Caqti_type.field field_type in
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
-   | Caqti_type.Ptime_span as field_type, Sqlite3.Data.INT x ->
-      (match Ptime.Span.of_float_s (Int64.to_float x) with
-       | Some t -> Ok t
-       | None ->
-          let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
-          let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
+   | Caqti_type.Ptime_span, Sqlite3.Data.FLOAT x ->
+      to_ptime_span x
+   | Caqti_type.Ptime_span, Sqlite3.Data.INT x ->
+      to_ptime_span (Int64.to_float x)
    | field_type, d ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())

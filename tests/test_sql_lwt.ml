@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -76,7 +76,7 @@ module Q = struct
     | _ -> failwith "Unimplemented."
   let compare_to_known_time = (ptime --> bool) @@ function
     | `Pgsql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS timestamp)"
-    | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00'"
+    | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.000'"
     | `Mysql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS datetime)"
     | _ -> failwith "Unimplemented."
 end

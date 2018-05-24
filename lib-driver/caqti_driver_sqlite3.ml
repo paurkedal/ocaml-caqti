@@ -420,26 +420,40 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         (match Caqti_request.query_id req with
          | None ->
             (match Sqlite3.finalize stmt with
-             | Sqlite3.Rc.OK -> ()
-             | _ -> (* TODO: log *) ())
+             | Sqlite3.Rc.OK -> return ()
+             | _ ->
+                Log.warn (fun p ->
+                  p "Ignoring error when finalizing statement."))
          | Some id ->
             (match Sqlite3.reset stmt with
-             | Sqlite3.Rc.OK -> ()
-             | _ -> (* TODO: log *) Hashtbl.remove pcache id)) in
+             | Sqlite3.Rc.OK -> return ()
+             | _ ->
+                Log.warn (fun p ->
+                  p "Dropping cache statement due to error.") >|= fun () ->
+                Hashtbl.remove pcache id)) in
 
-      (try f resp >>= fun r -> cleanup (); return r
-       with exn -> cleanup (); raise exn)
+      (try f resp >>= fun r -> cleanup () >|= fun () -> r
+       with exn -> cleanup () >|= fun () -> raise exn (* should not happen *))
 
-    let disconnect = Preemptive.detach @@ fun () ->
-      let uncache _ (stmt, _, _) =
-        (match Sqlite3.finalize stmt with
-         | Sqlite3.Rc.OK -> ()
-         | _ -> (* TODO: log *) ()) in
-      Hashtbl.iter uncache pcache;
-      let not_busy = Sqlite3.db_close db in
-      (* If this assertion fails, it means we missed an Sqlite3.finalize or
-       * other cleanup action, so this should not happen. *)
-      assert not_busy
+    let disconnect () =
+      let finalize_error_count = ref 0 in
+      let not_busy = ref false in
+      Preemptive.detach begin fun () ->
+        let uncache _ (stmt, _, _) =
+          (match Sqlite3.finalize stmt with
+           | Sqlite3.Rc.OK -> ()
+           | _ -> finalize_error_count := !finalize_error_count + 1) in
+        Hashtbl.iter uncache pcache;
+        not_busy := Sqlite3.db_close db
+        (* If this reports busy, it means we missed an Sqlite3.finalize or other
+         * cleanup action, so this should not happen. *)
+      end () >>= fun () ->
+      (if !finalize_error_count = 0 then return () else
+        Log.warn (fun p ->
+          p "Finalization of %d during disconnect return error."
+            !finalize_error_count)) >>= fun () ->
+      (if !not_busy then return () else
+        Log.warn (fun p -> p "Sqlite reported still busy when closing handle."))
 
     let validate () = return true
     let check f = f true

@@ -406,7 +406,12 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
               let param_order = linear_param_order templ in
               let pcache_entry = {query; stmt; param_length; param_order} in
               process pcache_entry >>= fun process_result ->
-              Mdb.Stmt.close stmt >|= fun _close_result -> (* TODO: Log *)
+              Mdb.Stmt.close stmt >>=
+              (function
+               | Error (code, msg) ->
+                  Log.warn (fun p ->
+                    p "Ignoring error while closing statement: %d %s" code msg)
+               | Ok () -> return ()) >|= fun () ->
               process_result)
        | Some id ->
           (try return (Ok (Hashtbl.find pcache id)) with
@@ -424,19 +429,25 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
                   Ok pcache_entry))
             >>=? fun pcache_entry ->
           process pcache_entry >>= fun process_result ->
-          Mdb.Stmt.reset pcache_entry.stmt >|= fun reset_result ->
+          Mdb.Stmt.reset pcache_entry.stmt >>= fun reset_result ->
           (match reset_result with
-           | Ok () -> ()
-           | Error _ -> Hashtbl.remove pcache id (* TODO: Log *));
+           | Ok () -> return ()
+           | Error (code, msg) ->
+              Log.warn (fun p ->
+                p "Removing statement from cache due to failed reset: %d %s"
+                  code msg) >|= fun () ->
+              Hashtbl.remove pcache id) >|= fun () ->
           process_result)
 
     let disconnect () =
       let close_stmt _ pcache_entry prologue =
         prologue >>= fun () ->
-        Mdb.Stmt.close pcache_entry.stmt >|=
+        Mdb.Stmt.close pcache_entry.stmt >>=
         (function
-         | Ok () -> ()
-         | Error _ -> (* TODO: Log *) ()) in
+         | Ok () -> return ()
+         | Error (code, msg) ->
+            Log.warn (fun p ->
+              p "Ignoring failure during disconnect: %d %s" code msg)) in
       Hashtbl.fold close_stmt pcache (return ()) >>= fun () ->
       Mdb.close db
 

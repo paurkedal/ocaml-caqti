@@ -64,7 +64,7 @@ let rec data_of_value
    | Caqti_type.Int64  -> Ok (Sqlite3.Data.INT x)
    | Caqti_type.Float  -> Ok (Sqlite3.Data.FLOAT x)
    | Caqti_type.String -> Ok (Sqlite3.Data.TEXT x)
-(* | Caqti_type.Octets -> TODO *)
+   | Caqti_type.Octets -> Ok (Sqlite3.Data.BLOB x)
    | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (iso8601_of_pdate x))
    | Caqti_type.Ptime ->
       (* This is the suggested time representation according to
@@ -106,7 +106,7 @@ let rec value_of_data
    | Caqti_type.Float, Sqlite3.Data.FLOAT y -> Ok y
    | Caqti_type.Float, Sqlite3.Data.INT y -> Ok (Int64.to_float y)
    | Caqti_type.String, Sqlite3.Data.TEXT y -> Ok y
-(* | Caqti_type.Octets, _ -> TODO *)
+   | Caqti_type.Octets, Sqlite3.Data.BLOB y -> Ok y
    | Caqti_type.Pdate as field_type, Sqlite3.Data.TEXT y ->
       (match pdate_of_iso8601 y with
        | Ok _ as r -> r

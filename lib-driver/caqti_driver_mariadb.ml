@@ -142,7 +142,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
      | Caqti_type.Int64 -> Ok (`Int (Int64.to_int x))
      | Caqti_type.Float -> Ok (`Float x)
      | Caqti_type.String -> Ok (`String x)
-  (* | Caqti_type.Octets -> TODO *)
+     | Caqti_type.Octets -> Ok (`Bytes (Bytes.of_string x))
      | Caqti_type.Pdate ->
         let year, month, day = Ptime.to_date x in
         Ok (`Time (Mdb.Time.date ~year ~month ~day))
@@ -174,7 +174,7 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
      | Caqti_type.Int64 -> Ok (Mdb_ext.Field.int64 field)
      | Caqti_type.Float -> Ok (Mdb.Field.float field)
      | Caqti_type.String -> Ok (Mdb_ext.Field.string field)
-  (* | Caqti_type.Octets -> TODO *)
+     | Caqti_type.Octets -> Ok (Mdb_ext.Field.string field)
      | Caqti_type.Pdate ->
         let t = Mdb.Field.time field in
         let date = Mdb.Time.(year t, month t, day t) in

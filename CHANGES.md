@@ -1,5 +1,27 @@
 # Change Log
 
+## [0.11.0] - 2018-05-25
+
+Added and improved:
+
+- Compliance with Lwt 4.0 contributed by Brendan Long.
+- Switched to the logs library for logging.
+- Strengthen detection of concurrent use of connection.
+- Support microsecond precision for timestamps for PostgreSQL and
+  millisecond for Sqlite3.
+- Use float for time spans in Sqlite3.
+- Map the `octets` type to BLOBs for MariaDB and Sqlite3.
+- Log recoverable errors for MariaDB and Sqlite3.
+
+Removed:
+
+- The v1 API is now removed.
+
+Ecosystem:
+
+- CI setup contributed by Brendan Long.
+- Various documentation updates.
+
 ## [0.10.2] - 2018-04-05
 
 - Fix incompatibility with `ppx_optcomp` v0.11.0 by dropping it, since the
@@ -108,6 +130,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Fixed VARCHAR for SQLite3 describe.
 
 
+[0.11.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.9.0...v0.10.0

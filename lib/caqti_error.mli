@@ -59,7 +59,7 @@ type query_error = private {
 }
 type coding_error = private {
   uri: Uri.t;
-  typ: Caqti_type.ex;
+  typ: Caqti_type.any;
   msg: msg;
 }
 

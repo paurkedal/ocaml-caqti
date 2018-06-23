@@ -81,6 +81,7 @@ type _ t =
       decode: 'b -> ('a, string) result;
     } -> 'a t
 
+type any = Any : 'a t -> any
 type ex = Ex : 'a t -> ex
 
 let rec length : type a. a t -> int = function
@@ -127,6 +128,7 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     Format.pp_print_string ppf "/>"
 
 let pp ppf = pp_at 1 ppf
+let pp_any ppf (Any t) = pp_at 1 ppf t
 let pp_ex ppf (Ex t) = pp_at 1 ppf t
 
 let show t =

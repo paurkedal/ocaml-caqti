@@ -46,6 +46,8 @@ module Field : sig
   type 'a t = 'a field
 
   type ex = Ex : 'a t -> ex
+  [@@ocaml.deprecated "Not used by this library, define your own if needed."]
+  [@@ocaml.warning "-3"]
 
   type _ coding = Coding : {
     rep: 'b t;
@@ -83,7 +85,9 @@ type _ t = private
     } -> 'a t
 
 (** {!t} with existentially wrapped static type. *)
-type ex = Ex : 'a t -> ex
+type any = Any : 'a t -> any
+
+type ex = Ex : 'a t -> ex [@@ocaml.deprecated "Use any."] [@@ocaml.warning "-3"]
 
 val length : 'a t -> int
 (** [length t] is the number of fields used to represent [t]. *)
@@ -91,8 +95,11 @@ val length : 'a t -> int
 val pp : Format.formatter -> 'a t -> unit
 (** [pp ppf t] prints a human presentation of [t] on [ppf]. *)
 
+val pp_any : Format.formatter -> any -> unit
+(** [pp_any ppf t] prints a human presentation of [t] on [ppf]. *)
+
 val pp_ex : Format.formatter -> ex -> unit
-(** [pp_ex ppf t] prints a human presentation of [t] on [ppf]. *)
+[@@ocaml.deprecated "Use pp_any."] [@@ocaml.warning "-3"]
 
 val show : 'a t -> string
 (** [show t] is a human presentation of [t]. *)

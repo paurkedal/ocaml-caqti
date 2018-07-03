@@ -49,6 +49,15 @@ use.
 
 ## Documentation
 
+For a gentle introduction I recommend reading [Interfacing OCaml and
+PostgreSQL with Caqti][BP-2018] by Bobby Priambodo.  There is also a
+[documented example][bikereg] in this repository.
+
+A resent rendering of the [full API reference][API] is available online.
+You can also generate the API reference matching your installed version
+using [odig][].  Finally, `topkg doc` builds the reference from a Git
+checkout using [topkg-care][].
+
 As the main entry point, you would normally use either of
 
     Caqti_lwt : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
@@ -58,13 +67,6 @@ which is provided by `caqti-lwt` or `caqti-async`, respectively.  These
 provide a connect functions which receives an URI, loads the appropriate
 driver, and returns a connection as a first-class module containing query
 functionality for the database.
-
-To get a quick idea of how to use Caqti, look at the [documented
-example][bikereg].  A resent rendering of the full API reference is
-[avaliable online](http://paurkedal.github.io/ocaml-caqti/index.html).
-You can generate the API reference matching your installed version using
-[odig](http://erratique.ch/software/odig).  Finally, `topkg doc` builds the
-reference for a Git checkout.
 
 The most important modules to know about are:
 
@@ -97,4 +99,8 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t = 
 - : (int, [> Caqti_error.call_or_retrieve ]) result = Ok 20
 ```
 
+[API]: http://paurkedal.github.io/ocaml-caqti/index.html
+[BP-2018]: https://medium.com/@bobbypriambodo/interfacing-ocaml-and-postgresql-with-caqti-a92515bdaa11
 [bikereg]: tests/bikereg.ml
+[odig]: http://erratique.ch/software/odig
+[topkg-care]: http://erratique.ch/software/topkg

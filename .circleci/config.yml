@@ -31,7 +31,9 @@ jobs:
             done
       - run:
           name: Install system dependencies
-          command: opam depext -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+          command: |
+            opam depext -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+            apt-get install -y libmariadb-dev
       - run:
           name: Install OCaml dependencies
           command: opam install --deps-only -y $(ls -1 *.opam | sed -e 's/\.opam$//')

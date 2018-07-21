@@ -145,11 +145,15 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
      | Caqti_type.Octets -> Ok (`Bytes (Bytes.of_string x))
      | Caqti_type.Pdate ->
         let year, month, day = Ptime.to_date x in
-        Ok (`Time (Mdb.Time.date ~year ~month ~day))
+        Ok (`Time (Mdb.Time.date ~year ~month ~day ()))
      | Caqti_type.Ptime ->
         let (year, month, day), ((hour, minute, second), _) =
           Ptime.to_date_time ~tz_offset_s:0 x in
-        Ok (`Time (Mdb.Time.datetime ~year ~month ~day ~hour ~minute ~second))
+        let ps = snd (Ptime.Span.to_d_ps (Ptime.to_span x)) in
+        let tss = Int64.rem ps 1_000_000_000_000L in
+        let microsecond = Int64.to_int (Int64.div tss 1_000_000L) in
+        Ok (`Time (Mdb.Time.datetime ~year ~month ~day
+                                     ~hour ~minute ~second ~microsecond ()))
      | Caqti_type.Ptime_span ->
         Ok (`Float (Ptime.Span.to_float_s x))
      | _ ->
@@ -185,9 +189,14 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         let t = Mdb.Field.time field in
         let date = Mdb.Time.(year t, month t, day t) in
         let time = Mdb.Time.(hour t, minute t, second t) in
-        (match Ptime.of_date_time (date, (time, 0)) with
-         | None -> failwith "Ptime.of_date_time"
-         | Some t -> Ok t)
+        let us = Mdb.Time.microsecond t in
+        (match Ptime.of_date_time (date, (time, 0)),
+               Ptime.Span.of_d_ps (0, Int64.(mul (of_int us) 1_000_000L)) with
+         | None, _ | _, None -> failwith "Ptime.of_date_time"
+         | Some t, Some tss ->
+            (match Ptime.add_span t tss with
+             | None -> failwith "Ptime.of_date_time: Overflow."
+             | Some t' -> Ok t'))
      | Caqti_type.Ptime_span ->
         let t = Mdb_ext.Field.float field in
         (match Ptime.Span.of_float_s t with

@@ -75,9 +75,10 @@ module Q = struct
     | `Mysql  -> "SELECT CAST(? AS datetime)"
     | _ -> failwith "Unimplemented."
   let compare_to_known_time = (ptime --> bool) @@ function
-    | `Pgsql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS timestamp)"
-    | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.000'"
-    | `Mysql  -> "SELECT ? = CAST('2017-01-29T12:00:00' AS datetime)"
+    | `Pgsql  -> "SELECT ? = CAST('2017-01-29T12:00:00.001002' AS timestamp)"
+    | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.001'"
+    | `Mysql  -> "SELECT CAST(? AS datetime) \
+                       = CAST('2017-01-29T12:00:00.001002' AS datetime)"
     | _ -> failwith "Unimplemented."
 end
 
@@ -164,7 +165,7 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
             Ptime.to_float_s t <= Ptime.to_float_s t1 +. 1.1);
     Db.find Q.select_given_time t >>= or_fail >>= fun t' ->
     assert (Ptime.Span.to_float_s (Ptime.Span.abs (Ptime.diff t t')) < 1.1);
-    Db.find Q.compare_to_known_time (Ptime.v (17195, 43200_000_000_000_000L))
+    Db.find Q.compare_to_known_time (Ptime.v (17195, 43200_001_002_000_000L))
              >>= or_fail >>= fun r ->
     Lwt.return (assert r)
   end

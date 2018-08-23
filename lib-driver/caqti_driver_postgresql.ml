@@ -75,7 +75,7 @@ module Pg_ext = struct
     String.concat " " (List.flatten (List.map mkparams (Uri.query uri)))
 
   let string_of_ptime_span t =
-    let is_neg = Ptime.Span.compare t Ptime.Span.zero >= 0 in
+    let is_neg = Ptime.Span.compare t Ptime.Span.zero < 0 in
     let d, ps = Ptime.Span.(to_d_ps (abs t ))in
     let buf = Buffer.create 32 in
     if d <> 0 then bprintf buf "%d days " (if is_neg then -d else d);

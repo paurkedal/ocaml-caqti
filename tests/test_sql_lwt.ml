@@ -80,6 +80,11 @@ module Q = struct
     | `Mysql  -> "SELECT CAST(? AS datetime) \
                        = CAST('2017-01-29T12:00:00.001002' AS datetime)"
     | _ -> failwith "Unimplemented."
+  let select_interval = (ptime_span --> ptime_span) @@ function
+    | `Pgsql -> "SELECT CAST(? AS interval)"
+    | `Sqlite -> "SELECT ?"
+    | `Mysql -> "SELECT CAST(? AS double)"
+    | _ -> failwith "Unimplemented"
 end
 
 let repeat n f =
@@ -167,7 +172,17 @@ let test_expr (module Db : Caqti_lwt.CONNECTION) =
     assert (Ptime.Span.to_float_s (Ptime.Span.abs (Ptime.diff t t')) < 1.1);
     Db.find Q.compare_to_known_time (Ptime.v (17195, 43200_001_002_000_000L))
              >>= or_fail >>= fun r ->
-    Lwt.return (assert r)
+    assert r;
+    [0.0; -1.2e-5; 1.23e-3; -1.001; 1.23e2; -1.23e5] |> Lwt_list.iter_s
+      begin fun tf ->
+        let t =
+          (match Ptime.Span.of_float_s tf with
+           | Some t -> t
+           | None -> assert false) in
+        Db.find Q.select_interval t >>= or_fail >>= fun t' ->
+        assert Ptime.Span.(equal (round ~frac_s:6 t) (round ~frac_s:6 t'));
+        Lwt.return_unit
+      end
   end
 
 (*

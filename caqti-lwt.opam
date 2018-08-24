@@ -7,14 +7,14 @@ bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 dev-repo: "https://github.com/paurkedal/ocaml-caqti.git"
 license: "LGPL-3 with OCaml linking exception"
 
-build: [["jbuilder" "build" "-p" name "-j" jobs]]
-build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
+build: [["dune" "build" "-p" name "-j" jobs]]
+build-test: [["dune" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "caqti"
   "caqti-dynload" {test & >= "0.11.0"}
   "caqti-driver-sqlite3" {test & >= "0.11.0"}
-  "jbuilder" {build & >= "1.0+beta19"}
+  "dune"
   "logs"
   "lwt" {>= "3.2.0"}
 ]

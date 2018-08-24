@@ -1,24 +1,24 @@
 (library
- ((name caqti_driver_postgresql)
+  (name caqti_driver_postgresql)
   (public_name caqti-driver-postgresql)
   (wrapped false)
-  (modules (Caqti_driver_postgresql))
+  (modules Caqti_driver_postgresql)
   (library_flags (:standard -linkall))
-  (libraries (caqti postgresql))))
+  (libraries caqti postgresql))
 
 (library
- ((name caqti_driver_mariadb)
+  (name caqti_driver_mariadb)
   (public_name caqti-driver-mariadb)
   (wrapped false)
-  (modules (Caqti_driver_mariadb))
+  (modules Caqti_driver_mariadb)
   (library_flags (:standard -linkall))
-  (libraries (caqti mariadb))))
+  (libraries caqti mariadb))
 
 (library
- ((name caqti_driver_sqlite3)
+  (name caqti_driver_sqlite3)
   (public_name caqti-driver-sqlite3)
   (wrapped false)
   (flags (-thread))
-  (modules (Caqti_driver_sqlite3))
+  (modules Caqti_driver_sqlite3)
   (library_flags (:standard -linkall))
-  (libraries (caqti sqlite3))))
+  (libraries caqti sqlite3))

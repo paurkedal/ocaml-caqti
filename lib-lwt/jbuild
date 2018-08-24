@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name caqti_lwt)
-  (public_name caqti-lwt)
-  (wrapped false)
-  (modules (Caqti_lwt Caqti_lwt_sql_io))
-  (libraries (caqti logs logs.lwt lwt lwt.unix))))

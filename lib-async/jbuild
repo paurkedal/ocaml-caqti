@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name caqti_async)
-  (public_name caqti-async)
-  (wrapped false)
-  (modules (Caqti_async Caqti_async_sql_io))
-  (libraries (async caqti core logs))))

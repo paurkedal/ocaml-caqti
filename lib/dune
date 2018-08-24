@@ -1,0 +1,34 @@
+(library
+  (name caqti)
+  (public_name caqti)
+  (wrapped false)
+  (modules
+    Caqti_connect
+    Caqti_connect_sig
+    Caqti_connection_sig
+    Caqti_driver_lib
+    Caqti_driver_info
+    Caqti_error
+    Caqti_driver_sig
+    Caqti_driver_info
+    Caqti_mult
+    Caqti_pool
+    Caqti_pool_sig
+    Caqti_request
+    Caqti_response_sig
+    Caqti_sql
+    Caqti_sql_io
+    Caqti_system_sig
+    Caqti_type
+    ; internal
+    Caqti_heap
+    Caqti_prereq)
+  (modules_without_implementation
+    Caqti_connect_sig
+    Caqti_connection_sig
+    Caqti_response_sig
+    Caqti_driver_sig
+    Caqti_pool_sig
+    Caqti_system_sig)
+  (library_flags (:standard -linkall))
+  (libraries logs ptime uri))

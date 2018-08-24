@@ -76,9 +76,9 @@ module Q = struct
     Caqti_type.unit Bike.t
     "SELECT * FROM bikereg WHERE NOT stolen IS NULL"
 
-  let select_frameno = Caqti_request.find_opt
+  let select_owner = Caqti_request.find_opt
     Caqti_type.string Caqti_type.string
-    "SELECT frameno FROM bikereg WHERE frameno = ?"
+    "SELECT owner FROM bikereg WHERE frameno = ?"
 end
 
 (* Wrappers around the Generic Execution Functions
@@ -100,7 +100,7 @@ let report_stolen (module Db : Caqti_lwt.CONNECTION) frameno =
 (* Db.find runs a query which must return at most one row.  The result is a
  * option, since it's common to seach for entries which don't exist. *)
 let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
-  Db.find_opt Q.select_frameno frameno
+  Db.find_opt Q.select_owner frameno
 
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
 let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =

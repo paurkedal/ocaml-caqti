@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,3 @@ let expose = function
  | One -> `One
  | Zero_or_one -> `Zero_or_one
  | Zero_or_more -> `Zero_or_more
-
-(**/**)
-
-let many = zero_or_more

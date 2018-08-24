@@ -32,8 +32,6 @@ module Field = struct
 
   type 'a t = 'a field
 
-  type ex = Ex : 'a t -> ex
-
   type _ coding = Coding : {
     rep: 'b t;
     encode: 'a -> ('b, string) result;
@@ -82,7 +80,6 @@ type _ t =
     } -> 'a t
 
 type any = Any : 'a t -> any
-type ex = Ex : 'a t -> ex
 
 let rec length : type a. a t -> int = function
  | Unit -> 0
@@ -129,7 +126,6 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
 
 let pp ppf = pp_at 1 ppf
 let pp_any ppf (Any t) = pp_at 1 ppf t
-let pp_ex ppf (Ex t) = pp_at 1 ppf t
 
 let show t =
   let buf = Buffer.create 64 in

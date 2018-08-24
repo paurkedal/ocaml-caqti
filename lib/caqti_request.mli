@@ -194,9 +194,3 @@ C.exec req pv
     generation of fragments of the [query], which reduces the risk of wrongly
     matching up parameters with their uses in the query string.
     *)
-
-(**/**)
-type template = query
-  [@@ocaml.deprecated "Renamed to query."]
-val query_template : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
-  [@@ocaml.deprecated "Renamed to query."]

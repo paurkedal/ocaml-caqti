@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,7 +33,3 @@ val only_one : [< `One] t -> unit
 val only_zero_or_one : [< `Zero | `One] t -> unit
 
 val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more]
-
-(**/**)
-
-val many : [> `Zero | `One | `Many] t [@@deprecated "Renamed to zero_or_more."]

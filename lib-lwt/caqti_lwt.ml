@@ -66,7 +66,7 @@ module System = struct
 
 end
 
-include Caqti_connect.Make (System)
+include Caqti_connect.Make_unix (System)
 
 let or_fail = function
  | Ok x -> Lwt.return x

@@ -100,4 +100,4 @@ module System = struct
   end
 end
 
-include Caqti_connect.Make (System)
+include Caqti_connect.Make_unix (System)

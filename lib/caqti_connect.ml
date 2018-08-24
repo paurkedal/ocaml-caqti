@@ -24,7 +24,7 @@ let dynload_library = ref @@ fun lib ->
 let define_loader f = dynload_library := f
 
 let drivers = Hashtbl.create 11
-let define_driver scheme p = Hashtbl.add drivers scheme p
+let define_unix_driver scheme p = Hashtbl.add drivers scheme p
 
 let load_driver_functor ~uri scheme =
   (try Ok (Hashtbl.find drivers scheme) with
@@ -39,7 +39,7 @@ let load_driver_functor ~uri scheme =
        | Error msg ->
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
 
-module Make (System : Caqti_system_sig.S) = struct
+module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   open System
 
   module type DRIVER =
@@ -56,9 +56,10 @@ module Make (System : Caqti_system_sig.S) = struct
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
             (match load_driver_functor ~uri scheme with
-             | Ok v2_functor ->
-                let module F = (val v2_functor : Caqti_driver_sig.F) in
-                let module Driver = F (System) in
+             | Ok make_driver ->
+                let module Make_driver =
+                  (val make_driver : Caqti_driver_sig.Of_system_unix) in
+                let module Driver = Make_driver (System) in
                 let driver = (module Driver : DRIVER) in
                 Hashtbl.add drivers scheme driver;
                 Ok driver

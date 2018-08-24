@@ -264,7 +264,7 @@ module Q = struct
   let rollback = Caqti_request.exec Caqti_type.unit "ROLLBACK"
 end
 
-module Connect_functor (System : Caqti_system_sig.S) = struct
+module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
@@ -497,4 +497,4 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
         return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
 end
 
-let () = Caqti_connect.define_driver "sqlite3" (module Connect_functor)
+let () = Caqti_connect.define_unix_driver "sqlite3" (module Connect_functor)

@@ -16,7 +16,52 @@
 
 (** {b Internal:} Signature for driver implementation.
 
-    This interface is unstable. *)
+    This interface is unstable and may change between minor versions.  If you
+    are developing an external driver, please open an issue to sort out
+    requirements and to announce you need for a stable driver API. *)
+
+module type System_common = sig
+
+  type +'a future
+
+  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+  val return : 'a -> 'a future
+  val join : unit future list -> unit future
+
+  module Mvar : sig
+    type 'a t
+    val create : unit -> 'a t
+    val store : 'a -> 'a t -> unit
+    val fetch : 'a t -> 'a future
+  end
+
+  module Log : sig
+    type 'a log = ('a, unit future) Logs.msgf -> unit future
+    val err : ?src: Logs.src -> 'a log
+    val warn : ?src: Logs.src -> 'a log
+    val info : ?src: Logs.src -> 'a log
+    val debug : ?src: Logs.src -> 'a log
+  end
+end
+
+module type System_unix = sig
+  include System_common
+
+  module Unix : sig
+    type file_descr
+    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
+    val poll :
+      ?read: bool -> ?write: bool -> ?timeout: float ->
+      file_descr -> (bool * bool * bool) future
+  end
+
+  module Preemptive : sig
+    val detach : ('a -> 'b) -> 'a -> 'b future
+    val run_in_main : (unit -> 'a future) -> 'a
+  end
+
+end
 
 module type S = sig
   type 'a future
@@ -30,6 +75,6 @@ module type S = sig
     Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
 end
 
-module type F =
-  functor (System : Caqti_system_sig.S) ->
-    S with type 'a future := 'a System.future
+module type Of_system_unix =
+  functor (System : System_unix) ->
+  S with type 'a future := 'a System.future

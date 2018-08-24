@@ -21,12 +21,13 @@ val define_loader : (string -> (unit, string) result) -> unit
     normally only called once during initialization of the [caqti-dynload]
     library, if linked. *)
 
-val define_driver : string -> (module Caqti_driver_sig.F) -> unit
+val define_unix_driver :
+  string -> (module Caqti_driver_sig.Of_system_unix) -> unit
 (** [register_scheme scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make (System : Caqti_system_sig.S) : Caqti_connect_sig.S
-  with type 'a future := 'a System.future
+module Make_unix (System : Caqti_driver_sig.System_unix) :
+  Caqti_connect_sig.S with type 'a future := 'a System.future
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

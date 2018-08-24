@@ -28,7 +28,7 @@ let () =
 let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"
 
-module Connect_functor (System : Caqti_system_sig.S) = struct
+module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
@@ -532,4 +532,4 @@ module Connect_functor (System : Caqti_system_sig.S) = struct
      | Ok conninfo -> connect_prim ~uri conninfo)
 end
 
-let () = Caqti_connect.define_driver "mariadb" (module Connect_functor)
+let () = Caqti_connect.define_unix_driver "mariadb" (module Connect_functor)

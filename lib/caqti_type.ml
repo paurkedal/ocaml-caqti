@@ -134,21 +134,25 @@ let show t =
   Format.pp_print_flush ppf ();
   Buffer.contents buf
 
-let unit = Unit
 let field ft = Field ft
-let option t = Option t
-let tup2 t0 t1 = Tup2 (t0, t1)
-let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
-let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
-let custom ~encode ~decode rep = Custom {rep; encode; decode}
 
-let bool = Field Bool
-let int = Field Int
-let int32 = Field Int32
-let int64 = Field Int64
-let float = Field Float
-let string = Field String
-let octets = Field Octets
-let pdate = Field Pdate
-let ptime = Field Ptime
-let ptime_span = Field Ptime_span
+module Std = struct
+  let unit = Unit
+  let option t = Option t
+  let tup2 t0 t1 = Tup2 (t0, t1)
+  let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
+  let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
+  let custom ~encode ~decode rep = Custom {rep; encode; decode}
+
+  let bool = Field Bool
+  let int = Field Int
+  let int32 = Field Int32
+  let int64 = Field Int64
+  let float = Field Float
+  let string = Field String
+  let octets = Field Octets
+  let pdate = Field Pdate
+  let ptime = Field Ptime
+  let ptime_span = Field Ptime_span
+end
+include Std

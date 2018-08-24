@@ -20,6 +20,7 @@
     Caqti_sql_io
     Caqti_system_sig
     Caqti_type
+    Caqti_type_sig
     ; internal
     Caqti_heap
     Caqti_prereq)
@@ -29,6 +30,7 @@
     Caqti_response_sig
     Caqti_driver_sig
     Caqti_pool_sig
-    Caqti_system_sig)
+    Caqti_system_sig
+    Caqti_type_sig)
   (library_flags (:standard -linkall))
   (libraries logs ptime uri))

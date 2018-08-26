@@ -1,5 +1,3 @@
-# Change Log
-
 ## [1.0.0] - 2018-08-26
 
 - Added `Caqti_type.Std : Caqti_type_sig.Std`, containing type descriptors

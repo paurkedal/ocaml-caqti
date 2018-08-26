@@ -26,8 +26,9 @@ jobs:
       - run:
           name: Pin packages
           command: |
+            version=`egrep ^## CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
             for f in *.opam; do
-              opam pin add -yn "$f" .
+              opam pin add -yn "${f%.opam}.${version}" .
             done
       - run:
           name: Install system dependencies

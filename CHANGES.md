@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.0.0] - 2018-08-26
+
+- Added `Caqti_type.Std : Caqti_type_sig.Std`, containing type descriptors
+  needed for building requests, for easy inclusion in custom modules.
+- Fix ptime to string conversion for PostgreSQL (monstasat).
+- Support microsecond precision for MariaDB.
+- Removed `Caqti_type.Field.ex` and renamed `Caqti_type.ex` to
+  `Caqti_type.any` and related functions.
+- Removed other deprecated definitions.
+- Moved `Caqti_system_sig` into `Caqti_driver` and split up the signature to
+  make room for future drivers on alternative platforms.
+
 ## [0.11.0] - 2018-05-25
 
 Added and improved:
@@ -130,6 +142,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Fixed VARCHAR for SQLite3 describe.
 
 
+[1.0.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.11.0...v1.0.0
 [0.11.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.0...v0.10.1

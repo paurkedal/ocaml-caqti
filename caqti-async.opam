@@ -2,19 +2,20 @@ opam-version: "1.2"
 name: "caqti-async"
 author: "Petter A. Urkedal <paurkedal@gmail.com>"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 dev-repo: "https://github.com/paurkedal/ocaml-caqti.git"
-license: "LGPL-3 with OCaml linking exception"
+doc: "http://paurkedal.github.io/ocaml-caqti/index.html"
 
 build: [["dune" "build" "-p" name "-j" jobs]]
 build-test: [["dune" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "async" {>= "v0.11.0"}
-  "caqti"
-  "caqti-dynload" {test & >= "0.11.0"}
-  "caqti-driver-sqlite3" {test & >= "0.11.0"}
+  "caqti" {>= "1.0.0" & < "2.0.0~"}
+  "caqti-dynload" {test & >= "1.0.0" & < "2.0.0~"}
+  "caqti-driver-sqlite3" {test & >= "1.0.0" & < "2.0.0~"}
   "core"
   "dune"
 ]

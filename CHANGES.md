@@ -1,4 +1,4 @@
-## [1.0.0] - 2018-08-26
+## 1.0.0 - 2018-08-26
 
 - Added `Caqti_type.Std : Caqti_type_sig.Std`, containing type descriptors
   needed for building requests, for easy inclusion in custom modules.
@@ -10,7 +10,7 @@
 - Moved `Caqti_system_sig` into `Caqti_driver` and split up the signature to
   make room for future drivers on alternative platforms.
 
-## [0.11.0] - 2018-05-25
+## 0.11.0 - 2018-05-25
 
 Added and improved:
 
@@ -32,7 +32,7 @@ Ecosystem:
 - CI setup contributed by Brendan Long.
 - Various documentation updates.
 
-## [0.10.2] - 2018-04-05
+## 0.10.2 - 2018-04-05
 
 - Fix incompatibility with `ppx_optcomp` v0.11.0 by dropping it, since the
   conditionals where no longer needed.
@@ -40,12 +40,12 @@ Ecosystem:
 - The v1 API is now fully `[@@@deprecated]` and will be removed in the next
   major release.
 
-## [0.10.1] - 2018-02-27
+## 0.10.1 - 2018-02-27
 
 - Fix a pool size counting bug when resource allocation fails.  This can
   cause deadlock due to pool exhaustion.
 
-## [0.10.0] - 2018-02-14
+## 0.10.0 - 2018-02-14
 
 - Added `-linkall` flags to driver libraries to fix direct linking (#9).
 - Added convenience functions `collect_list` and `rev_collect_list` (#8).
@@ -55,7 +55,7 @@ Ecosystem:
 - Be more permissive about types of data returned from MariaDB when
   expecting numerical results.
 
-## [0.9.0] - 2018-01-04
+## 0.9.0 - 2018-01-04
 
 - Move v1 into findlib sublibraries and announce deprecation.
 - Port remaining tests to v2 and fix issues in MariaDB and Sqlite3 drivers.
@@ -65,12 +65,12 @@ Ecosystem:
 - Drop error on disconnect.
 - Support substitutions in request convenience functions.
 
-## [0.8.1] - 2017-12-06
+## 0.8.1 - 2017-12-06
 
 - Fix `start` transaction for PostgreSQL v2.
 - Fix dependency on ptime in `caqti.opam` in distribution.
 
-## [0.8.0] - 2017-12-04
+## 0.8.0 - 2017-12-04
 
 - Remove most deprecations.
 - Add new v2 API.
@@ -96,7 +96,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Link with `caqti-lwt.v1` instead of `caqti-lwt`.
 - Link with `caqti-async.v1` instead of `caqti-async`.
 
-## [0.7.0] - 2017-11-03
+## 0.7.0 - 2017-11-03
 
 - Remove WRAPPER and REPORT functionality.
 - Remove deprecated findlib aliases.
@@ -104,7 +104,7 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Deprecate `Caqti_metadata` in favour of the new `Caqti_driver_info`.
 - Move various signature to separate files, leaving deprecated aliases.
 
-## [0.6.1] - 2017-10-26
+## 0.6.1 - 2017-10-26
 
 - Fixed support for lwt >= 3, but keep supporting 2.7 as well for now.
 - Fixed preparation of query after reconnect to PostgreSQL.
@@ -113,45 +113,28 @@ v2, but v1 will be kept for now.  To keep using the v1 in upcoming releases:
 - Deprecated `Param.sub_types`.
 - Deprecated `Param.other` and `Tuple.other`.
 
-## [0.6.0] - 2017-06-05
+## 0.6.0 - 2017-06-05
 
 - Split into separate packages to avoid depopts and rename findlib names
   accordingly.
 - Use findlib to load DB drivers, and use `-linkall`. This hopefully solves
   loading issues.
 
-## [0.5.3] - 2017-05-22
+## 0.5.3 - 2017-05-22
 
 - Fix handling of spaces in Sqlite3 URIs and allow setting mode.
 - Split `Caqti` (now deprecated) into `Caqti_errors` and `Caqti_connect`.
 - Update to async 0.9.0.
 
-## [0.5.2] - 2017-02-25
+## 0.5.2 - 2017-02-25
 
 - Fix plugin loader to handle modernised `META`.
 
-## [0.5.1] - 2017-02-25 retracted
+## 0.5.1 - 2017-02-25 retracted
 
 - Rename libraries to match `META`.
 
-## [0.5.0] - 2017-02-25 retracted
+## 0.5.0 - 2017-02-25 retracted
 
 - Added MariaDB backend.
 - Fixed VARCHAR for SQLite3 describe.
-
-
-[1.0.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.11.0...v1.0.0
-[0.11.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.2...v0.11.0
-[0.10.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.1...v0.10.2
-[0.10.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.10.0...v0.10.1
-[0.10.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.8.1...v0.9.0
-[0.8.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.1...v0.7.0
-[0.6.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.3...v0.6.0
-[0.5.3]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.2...v0.5.3
-[0.5.2]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/paurkedal/ocaml-caqti/compare/v0.5.0...v0.5.1
-[0.5.0]: https://github.com/paurkedal/ocaml-caqti/compare/v0.4.0...v0.5.0

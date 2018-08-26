@@ -39,7 +39,7 @@ jobs:
           command: opam install --deps-only -y $(ls -1 *.opam | sed -e 's/\.opam$//')
       - run:
           name: Build
-          command: opam config exec -- jbuilder build @install
+          command: opam config exec -- dune build @install
       - run:
           name: Test
           command: |
@@ -47,4 +47,4 @@ jobs:
                 sqlite3::memory:
                 postgresql://test@localhost/test
             " > tests/uris.conf
-            opam config exec -- jbuilder runtest
+            opam config exec -- dune runtest

@@ -1,21 +1,23 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "caqti-async"
-author: "Petter A. Urkedal <paurkedal@gmail.com>"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: "Petter A. Urkedal <paurkedal@gmail.com>"
 license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
-bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
-dev-repo: "https://github.com/paurkedal/ocaml-caqti.git"
 doc: "http://paurkedal.github.io/ocaml-caqti/index.html"
-
-build: [["dune" "build" "-p" name "-j" jobs]]
-build-test: [["dune" "runtest" "-p" name "-j" jobs]]
-
+bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
+  "ocaml"
   "async" {>= "v0.11.0"}
   "caqti" {>= "1.0.0" & < "2.0.0~"}
-  "caqti-dynload" {test & >= "1.0.0" & < "2.0.0~"}
-  "caqti-driver-sqlite3" {test & >= "1.0.0" & < "2.0.0~"}
+  "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
+  "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
   "core"
   "dune" {build}
 ]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
+synopsis: "Async support for Caqti"

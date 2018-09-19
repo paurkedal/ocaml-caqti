@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ocaml/opam2:debian-9_ocaml-4.04
+      - image: ocaml/opam2:debian-9-ocaml-4.04
         environment:
           TERM: xterm
       - image: circleci/postgres:alpine-ram

@@ -17,5 +17,5 @@ depends: [
   "caqti-dynload" {test & >= "1.0.0" & < "2.0.0~"}
   "caqti-driver-sqlite3" {test & >= "1.0.0" & < "2.0.0~"}
   "core"
-  "dune"
+  "dune" {build}
 ]

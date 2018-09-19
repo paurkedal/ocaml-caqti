@@ -13,6 +13,6 @@ build-test: [["dune" "runtest" "-p" name "-j" jobs]]
 
 depends: [
   "caqti" {>= "1.0.0" & < "1.1.0~"}
-  "dune"
+  "dune" {build}
   "sqlite3"
 ]

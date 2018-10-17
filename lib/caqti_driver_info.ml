@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,6 +56,11 @@ let create
     can_pool;
     can_concur;
   }
+
+let dummy = create
+  ~uri_scheme:"dummy"
+  ~can_pool:false ~can_concur:false ~can_transact:false
+  ~describe_has_typed_params:false ~describe_has_typed_fields:false ()
 
 let uri_scheme di = di.uri_scheme
 let dialect_tag di = di.dialect_tag

@@ -164,6 +164,10 @@ val collect :
 (** [collect_p arg_type row_type s] is a shortcut for [create_p arg_type
     row_type Caqti_mult.many (fun _ -> s)]. *)
 
+val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
+(** [pp ppf req] prints [req] on [ppf] in a form suitable for human
+    inspection. *)
+
 (** {2 How to Dynamically Assemble Queries and Parameters}
 
     In some cases, queries are constructed dynamically, e.g. when translating an

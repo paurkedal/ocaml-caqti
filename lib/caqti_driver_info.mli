@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -54,6 +54,9 @@ val create :
   unit -> t
 (** The function used by drivers to construct a description of themselves.  For
     an explanation of the parameters, see the corresponding projections. *)
+
+val dummy : t
+(** A dummy driver info, useful for instantiating queries for inspection. *)
 
 val uri_scheme : t -> string
 (** The URI scheme this backend binds to. *)

@@ -21,6 +21,11 @@ type query =
   | P of int
   | S of query list
 
+let rec pp_query ppf = function
+ | L s -> Format.pp_print_string ppf s
+ | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
+ | S qs -> List.iter (pp_query ppf) qs
+
 type ('a, 'b, +'m) t = {
   id: int option;
   query: Caqti_driver_info.t -> query;
@@ -138,3 +143,14 @@ let find_opt ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_one (fun _ -> qs)
 let collect ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)
+
+let pp ppf req =
+  Format.fprintf ppf "(%a -%s-> %a) {|%a|}"
+    Caqti_type.pp req.param_type
+    (match Caqti_mult.expose req.row_mult with
+     | `Zero -> "!"
+     | `One -> ""
+     | `Zero_or_one -> "?"
+     | `Zero_or_more -> "*")
+    Caqti_type.pp req.row_type
+    pp_query (req.query Caqti_driver_info.dummy)

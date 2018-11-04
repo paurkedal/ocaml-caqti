@@ -14,4 +14,4 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Caqti_sql_io.S with type 'a future := 'a
+include Caqti_sql_io.S with type 'a future = 'a

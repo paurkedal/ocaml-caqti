@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+type 'a future = 'a
+
 include Caqti_sql_io.Make (struct
   type 'a t = 'a
   let (>>=) x f = f x

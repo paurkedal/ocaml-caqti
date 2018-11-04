@@ -48,7 +48,7 @@
 
 (alias
   (name runtest)
-  (package caqti)
+  (package caqti-dynload)
   (deps (:first-dep test_sql_blocking.exe) (alias drivers) uris.conf)
   (locks /db/test_sql)
   (action (setenv OCAMLPATH . (run %{first-dep}))))

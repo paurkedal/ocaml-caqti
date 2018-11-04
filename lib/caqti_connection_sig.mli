@@ -49,7 +49,7 @@
 
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
-  type 'a future
+  type +'a future
 
 
   (** {2 Query} *)

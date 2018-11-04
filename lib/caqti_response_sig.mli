@@ -17,7 +17,7 @@
 (** Signature of a response from a database. *)
 
 module type S = sig
-  type 'b future
+  type +'b future
 
   type ('b, +'m) t
   (** The type describing the response and containing returned data from a

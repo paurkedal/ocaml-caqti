@@ -18,7 +18,7 @@
 
 module type S = sig
 
-  type 'a future
+  type +'a future
 
   type ('a, +'e) t
 

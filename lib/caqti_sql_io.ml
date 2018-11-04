@@ -15,13 +15,13 @@
  *)
 
 module type MONAD = sig
-  type 'a t
+  type +'a t
   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
   val return : 'a -> 'a t
 end
 
 module type S = sig
-  type 'a future
+  type +'a future
 
   val read_sql_statement :
     ('a -> char option future) -> 'a -> string option future

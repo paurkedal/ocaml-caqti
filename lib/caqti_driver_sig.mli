@@ -64,7 +64,7 @@ module type System_unix = sig
 end
 
 module type S = sig
-  type 'a future
+  type +'a future
 
   module type CONNECTION =
     Caqti_connection_sig.Base with type 'a future := 'a future

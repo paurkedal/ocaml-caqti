@@ -18,7 +18,7 @@
 
 module type S = sig
 
-  type 'a future
+  type +'a future
   (** The type of a deferred value of type ['a]. *)
 
   module Pool : Caqti_pool_sig.S with type 'a future := 'a future

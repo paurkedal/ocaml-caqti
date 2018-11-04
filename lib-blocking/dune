@@ -1,0 +1,7 @@
+(library
+  (name caqti_blocking)
+  (public_name caqti.blocking)
+  (wrapped false)
+  (modules Caqti_blocking Caqti_blocking_sql_io)
+  (libraries caqti logs threads unix))
+  ; TODO: Can threads dependency be moved to drivers which need it?

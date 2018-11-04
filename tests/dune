@@ -40,16 +40,22 @@
   (modules Bikereg)
   (libraries caqti caqti-dynload caqti-lwt testkit))
 
+(library
+  (name test_sql)
+  (wrapped false)
+  (modules Test_sql)
+  (libraries caqti ptime.clock.os))
+
 (alias
   (name runtest)
   (package caqti-async)
   (deps (:first-dep test_sql_async.exe) (alias drivers) uris.conf)
-  (locks /db/test_sql_async)
+  (locks /db/test_sql)
   (action (setenv OCAMLPATH . (run %{first-dep}))))
 (executable
   (name test_sql_async)
   (modules Test_sql_async)
-  (libraries caqti caqti-dynload caqti-async testkit))
+  (libraries caqti caqti-dynload caqti-async testkit test_sql))
 
 (alias
   (name runtest)
@@ -66,12 +72,12 @@
   (name runtest)
   (package caqti-lwt)
   (deps (:first-dep test_sql_lwt.exe) (alias drivers) uris.conf)
-  (locks /db/test_sql_lwt)
+  (locks /db/test_sql)
   (action (setenv OCAMLPATH . (run %{first-dep}))))
 (executable
   (name test_sql_lwt)
   (modules Test_sql_lwt)
-  (libraries caqti caqti-dynload caqti-lwt ptime.clock.os testkit))
+  (libraries caqti caqti-dynload caqti-lwt testkit test_sql))
 
 (alias
   (name runtest)

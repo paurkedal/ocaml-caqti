@@ -52,10 +52,10 @@ val create :
   (Caqti_driver_info.t -> query) -> ('a, 'b, 'm) t
 (** [create arg_type row_type row_mult f] is a request which takes parameters of
     type [arg_type], returns rows of type [row_type] with multiplicity
-    [row_mult], and which sends query strings generated from the query [f
-    di], where [di] is the {!Caqti_driver_info.t} of the target driver.  The
-    driver is responsible for turning parameter references into a form accepted
-    by the database, while other differences must be handled by [f]. *)
+    [row_mult], and which sends query strings generated from the query [f di],
+    where [di] is the {!Caqti_driver_info.t} of the target driver.  The driver
+    is responsible for turning parameter references into a form accepted by the
+    database, while other differences must be handled by [f]. *)
 
 val param_type : ('a, _, _) t -> 'a Caqti_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)
@@ -137,32 +137,32 @@ val exec :
   ?oneshot: bool ->
   'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
-(** [exec_p arg_type s] is a shortcut for [create_p arg_type Caqti_type.unit
-    Caqti_mult.zero (fun _ -> s)]. *)
+(** [exec_p arg_type s] is a shortcut for
+    [create_p arg_type Caqti_type.unit Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :
   ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
-(** [find_p arg_type row_type s] is a shortcut for [create_p arg_type row_type
-    Caqti_mult.one (fun _ -> s)]. *)
+(** [find_p arg_type row_type s] is a shortcut for
+    [create_p arg_type row_type Caqti_mult.one (fun _ -> s)]. *)
 
 val find_opt :
   ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
-(** [find_opt_p arg_type row_type s] is a shortcut for [create_p arg_type
-    row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
+(** [find_opt_p arg_type row_type s] is a shortcut for
+    [create_p arg_type row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
 
 val collect :
   ?env: (Caqti_driver_info.t -> string -> query) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
-(** [collect_p arg_type row_type s] is a shortcut for [create_p arg_type
-    row_type Caqti_mult.many (fun _ -> s)]. *)
+(** [collect_p arg_type row_type s] is a shortcut for
+    [create_p arg_type row_type Caqti_mult.many (fun _ -> s)]. *)
 
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human

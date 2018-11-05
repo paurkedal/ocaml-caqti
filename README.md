@@ -60,20 +60,22 @@ checkout using [topkg-care][].
 
 As the main entry point, you would normally use either of
 
-    Caqti_lwt : Caqti_connection_sig.S with type 'a io = 'a Lwt.t
-    Caqti_async : Caqti_connection_sig.S with type 'a io = 'a Deferred.t
+    Caqti_lwt : Caqti_connect_sig.S with type 'a future := 'a Lwt.t
+    Caqti_async : Caqti_connect_sig.S with type 'a future := 'a Deferred.t
+    Caqti_blocking : Caqti_connect_sig.S with type 'a future = 'a
 
-which is provided by `caqti-lwt` or `caqti-async`, respectively.  These
-provide a connect functions which receives an URI, loads the appropriate
-driver, and returns a connection as a first-class module containing query
-functionality for the database.
+which is provided by `caqti-lwt`, `caqti-async`, and `caqti.blocking`,
+respectively.  These provide a connect functions which receives an URI,
+loads the appropriate driver, and returns a connection as a first-class
+module containing query functionality for the database.
 
 The most important modules to know about are:
 
   - `Caqti_type` and `Caqti_request` for constructing prepared or one-shot
     queries.
-  - `Caqti_lwt` and `Caqti_async` for connecting to the database and
-    obtaining a first class module implementing `Caqti_connection_sig.S`.
+  - `Caqti_lwt`, `Caqti_async`, and `Caqti_blocking` for connecting to the
+    database and obtaining a first class module implementing
+    `Caqti_connection_sig.S`.
   - `Caqti_connection_sig.S` and `Caqti_response_sig.S` for executing
     queries.
 

@@ -39,7 +39,7 @@ end
 (* Query Strings
  * =============
  *
- * Queries are normally registered in advance.  This allows Caqti to emit
+ * Queries are normally defined in advance.  This allows Caqti to emit
  * prepared queries which are reused throughout the lifetime of the
  * connection.  The two most useful functions to do this are
  *

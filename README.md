@@ -64,7 +64,7 @@ As the main entry point, you would normally use either of
     Caqti_async : Caqti_connect_sig.S with type 'a future := 'a Deferred.t
     Caqti_blocking : Caqti_connect_sig.S with type 'a future = 'a
 
-provided by `caqti-lwt`, `caqti-async`, or `caqti.blocking`, respectively.
+provided by `caqti-lwt`, `caqti-async`, and `caqti.blocking`, respectively.
 These provide a connect functions which receives an URI, loads the
 appropriate driver, and returns a connection as a first-class module
 containing query functionality for the database.

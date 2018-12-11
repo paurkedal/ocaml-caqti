@@ -96,7 +96,9 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
     accepts two forms:
 
     - ["$(<var>)"] is substituted by [env driver_info "<var>"].
-    - ["$."] is a shortcut for ["$(.)"].
+    - ["$(<var>.)"], if not found by the first rule, is substituted by
+      [env driver_info "<var>"] followed by a dot iff that result is nonempty.
+    - ["$<var>."] is a shortcut for ["$(<var>.)"].
 
     These aid in substituting configurable fragments, like database schemas or
     table names.  The latter form is suggested for qualifying tables, sequences,

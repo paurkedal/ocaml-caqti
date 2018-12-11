@@ -79,6 +79,14 @@ let format_query ~env qs =
     if qs.[j] = ')' then j + 1 else
     skip_end_paren (j + 1) in
 
+  let check_idr s =
+    let l = String.length s in
+    for i = 0 to (if l > 1 && s.[l - 1] = '.' then l - 2 else l - 1) do
+      (match s.[i] with
+       | 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> ()
+       | _ -> invalid_arg_f "Invalid character %C in identifier %S." s.[i] s)
+    done in
+
   let rec loop p i j acc = (* acc is reversed *)
     if j = n then L (String.sub qs i (j - i)) :: acc else
     (match qs.[j] with
@@ -93,6 +101,9 @@ let format_query ~env qs =
         if j + 1 = n then invalid_arg "$ at end of query" else
         let acc = L (String.sub qs i (j - i)) :: acc in
         (match qs.[j + 1] with
+         | '$' ->
+            let acc = L"$" :: acc in
+            loop p (j + 2) (j + 2) acc
          | '0'..'9' ->
             if p > 0 then invalid_arg "Mixed ? and $i style parameters." else
             let k, p' = scan_int (j + 1) 0 in
@@ -105,9 +116,14 @@ let format_query ~env qs =
          | '.' ->
             let acc = env "." :: acc in
             loop p (j + 2) (j + 2) acc
-         | '$' ->
-            let acc = L"$" :: acc in
-            loop p (j + 2) (j + 2) acc
+         | 'a'..'z' ->
+            (match String.index qs '.' with
+             | exception Not_found -> invalid_arg "Unterminated '$'."
+             | k ->
+                let idr = String.sub qs (j + 1) (k - j) in
+                check_idr idr;
+                let acc = env idr :: acc in
+                loop p (k + 1) (k + 1) acc)
          | _ ->
             invalid_arg "Unescaped $ in query string.")
      | _ ->

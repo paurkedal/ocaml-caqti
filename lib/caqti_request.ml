@@ -123,17 +123,11 @@ let no_env _ _ = raise Not_found
 let create_p ?(env = no_env) ?oneshot param_type row_type row_mult qs =
   create ?oneshot param_type row_type row_mult
     (fun di ->
-      (match Caqti_driver_info.parameter_style di with
-       | `None ->
-          ksprintf invalid_arg
-            "The %s driver does not support query parameters."
-            (Caqti_driver_info.uri_scheme di)
-       | _ ->
-          let env k = try env di k with
-           | Not_found ->
-              invalid_arg_f "The reference to $(%s) in %S is not defined by \
-                             the environment handler." k (qs di) in
-          format_query ~env (qs di)))
+      let env k = try env di k with
+       | Not_found ->
+          invalid_arg_f "The reference to $(%s) in %S is not defined by \
+                         the environment handler." k (qs di) in
+      format_query ~env (qs di))
 
 let exec ?env ?oneshot pt qs =
   create_p ?env ?oneshot pt Caqti_type.unit Caqti_mult.zero (fun _ -> qs)

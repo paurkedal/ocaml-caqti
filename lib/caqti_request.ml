@@ -136,13 +136,30 @@ let format_query ~env qs =
 
 let no_env _ _ = raise Not_found
 
+let rec simplify = function
+ | L "" -> S []
+ | S frags -> S (frags |> List.map simplify |> List.filter ((<>) (S [])))
+ | L _ | P _ as frag -> frag
+
 let create_p ?(env = no_env) ?oneshot param_type row_type row_mult qs =
   create ?oneshot param_type row_type row_mult
     (fun di ->
-      let env k = try env di k with
-       | Not_found ->
-          invalid_arg_f "The reference to $(%s) in %S is not defined by \
-                         the environment handler." k (qs di) in
+      let env k =
+        (match simplify (env di k) with
+         | exception Not_found ->
+            let l = String.length k in
+            if l = 0 || k.[l - 1] <> '.' then
+              invalid_arg_f "No expansion provided for $(%s) \
+                             as needed by query %S." k (qs di) else
+            let k' = String.sub k 0 (l - 1) in
+            (match simplify (env di k') with
+             | exception Not_found ->
+                invalid_arg_f "No expansion provided for $(%s) or $(%s) \
+                               as needed by query %S." k k' (qs di)
+             | S[] as v -> v
+             | v -> S[v; L"."])
+         | v -> v)
+      in
       format_query ~env (qs di))
 
 let exec ?env ?oneshot pt qs =

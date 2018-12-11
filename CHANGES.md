@@ -1,3 +1,11 @@
+## Unreleased
+
+- Add pretty printer for requests.
+- Add variance to `'a future` declarations.
+- Add blocking instance of API.
+- Generalize `$.` to `$<var>.` in queries.
+- Infer the expansion of `$(<var>.)` from `$(<var>)` if not provided.
+
 ## v1.0.0 - 2018-08-26
 
 - Added `Caqti_type.Std : Caqti_type_sig.Std`, containing type descriptors

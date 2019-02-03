@@ -1,10 +1,13 @@
-## Unreleased
+## v1.1.0 - 2019-02-03
 
 - Add pretty printer for requests.
 - Add variance to `'a future` declarations.
 - Add blocking instance of API.
 - Generalize `$.` to `$<var>.` in queries.
 - Infer the expansion of `$(<var>.)` from `$(<var>)` if not provided.
+- Fix connection recovery for PostgreSQL (issue #19, Dave Aitken).
+- Fix some unhandled exceptions for PostgreSQL.
+- Fix connection validation for MariaDB.
 
 ## v1.0.0 - 2018-08-26
 

@@ -363,29 +363,40 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let aux fd =
         let rec loop = function
          | Pg.Polling_reading ->
-            Unix.poll ~read:true fd >>= fun _ -> loop (step ())
+            Unix.poll ~read:true fd >>= fun _ ->
+            (match step () with
+             | exception Pg.Error msg -> return (Error msg)
+             | ps -> loop ps)
          | Pg.Polling_writing ->
-            Unix.poll ~write:true fd >>= fun _ -> loop (step ())
+            Unix.poll ~write:true fd >>= fun _ ->
+            (match step () with
+             | exception Pg.Error msg -> return (Error msg)
+             | ps -> loop ps)
          | Pg.Polling_failed | Pg.Polling_ok ->
-            return ()
+            return (Ok ())
         in
         loop Pg.Polling_writing
       in
-      Unix.wrap_fd aux (Obj.magic db#socket)
+      (match db#socket with
+       | exception Pg.Error msg -> return (Error msg)
+       | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
     let get_next_result ~uri ~query db =
-      let aux fd =
-        let rec hold () =
-          db#consume_input;
-          if db#is_busy then
-            Unix.poll ~read:true fd >|= (fun _ -> ()) >>= hold
-          else
-            return (Ok db#get_result) in
-        (try hold () with
-         | Pg.Error msg ->
-            let msg = Pg_msg msg in
-            return (Error (Caqti_error.request_failed ~uri ~query msg))) in
-      Unix.wrap_fd aux (Obj.magic db#socket)
+      let pg_error msg =
+        Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)) in
+      let rec aux fd =
+        (match db#consume_input; db#is_busy with
+         | exception Pg.Error msg -> return (pg_error msg)
+         | true ->
+            Unix.poll ~read:true fd >>= fun _ -> aux fd
+         | false ->
+            (match db#get_result with
+             | exception Pg.Error msg -> return (pg_error msg)
+             | result -> return (Ok result)))
+      in
+      (match db#socket with
+       | exception Pg.Error msg -> return (pg_error msg)
+       | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
     let get_result ~uri ~query db =
       get_next_result ~uri ~query db >>=
@@ -411,6 +422,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         let msg = Caqti_error.Msg msg in
         Error (Caqti_error.request_failed ~uri ~query msg) in
       (match result#status with
+       | exception Pg.Error msg ->
+          Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg))
        | Pg.Command_ok ->
           (match Caqti_mult.expose mult with
            | `Zero -> Ok ()
@@ -459,14 +472,16 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Log.warn (fun p ->
         p "Lost connection to <%a>, reconnecting." Caqti_error.pp_uri uri)
         >>= fun () ->
-      try
-        if db#reset_start then begin
+      (match db#reset_start with
+       | exception Pg.Error _ -> return false
+       | true ->
           Hashtbl.clear prepare_cache;
-          Pg_io.communicate db (fun () -> db#reset_poll) >|= fun () ->
-          db#status = Pg.Ok
-        end else
-          return false
-      with Pg.Error _ -> return false
+          Pg_io.communicate db (fun () -> db#reset_poll) >|=
+          (function
+           | Error _ -> false
+           | Ok () -> (try db#status = Pg.Ok with Pg.Error _ -> false))
+       | false ->
+          return false)
 
     let wrap_pg ~query f =
       try Ok (f ()) with
@@ -617,8 +632,18 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
 
-    let disconnect () = db#finish; return ()
-    let validate () = if db#status = Pg.Ok then return true else reset ()
+    let disconnect () =
+      try db#finish; return () with Pg.Error err ->
+        Log.warn (fun p ->
+          p "While disconnecting from <%a>: %s"
+            Caqti_error.pp_uri uri (Pg.string_of_error err))
+
+    let validate () =
+      if (try db#status = Pg.Ok with Pg.Error _ -> false) then
+        return true
+      else
+        reset ()
+
     let check f = f (try db#status = Pg.Ok with Pg.Error _ -> false)
 
     let exec q p = call ~f:Response.exec q p
@@ -629,18 +654,24 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   let connect uri =
     let conninfo = Pg_ext.conninfo_of_uri uri in
-    try
-      let db = new Pg.connection ~conninfo () in
-      Pg_io.communicate db (fun () -> db#connect_poll) >|= fun () ->
-      if db#status <> Pg.Ok then
-        let msg = db#error_message in
-        Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg))
-      else
-        let module Connection =
-          Connection (struct let uri = uri let db = db end) in
-        Ok (module Connection : CONNECTION)
-    with Pg.Error error ->
-      return (Error (Caqti_error.connect_failed ~uri (Pg_msg error)))
+    (match new Pg.connection ~conninfo () with
+     | exception Pg.Error msg ->
+        return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
+     | db ->
+        Pg_io.communicate db (fun () -> db#connect_poll) >|=
+        (function
+         | Error msg -> Error (Caqti_error.connect_failed ~uri (Pg_msg msg))
+         | Ok () ->
+            (match db#status <> Pg.Ok with
+             | exception Pg.Error msg ->
+                Error (Caqti_error.connect_failed ~uri (Pg_msg msg))
+             | true ->
+                let msg = db#error_message in
+                Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg))
+             | false ->
+                let module Connection =
+                  Connection (struct let uri = uri let db = db end) in
+                Ok (module Connection : CONNECTION))))
 end
 
 let () = Caqti_connect.define_unix_driver "postgresql" (module Connect_functor)

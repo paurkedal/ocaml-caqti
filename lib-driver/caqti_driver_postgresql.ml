@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -320,6 +320,35 @@ let decode_row ~uri resp row_type =
    | Ok (j, y) -> assert (j = Caqti_type.length row_type); Ok y
    | Error _ as r -> r)
 
+(* We cache the query string and properties globally using a weak map to avoid
+ * reconstruction.  Although designed to work for any query, it is only used for
+ * prepared queries, as it is unclear whether it benefits oneshot queries. *)
+module Any_request = struct
+  type t = Any : ('a, 'b, 'm) Caqti_request.t -> t
+
+  let hash (Any req) =
+    (match Caqti_request.query_id req with
+     | Some id -> Hashtbl.hash id
+     | None -> Hashtbl.hash (Caqti_request.query req))
+
+  let equal (Any req1) (Any req2) =
+    (match Caqti_request.query_id req1, Caqti_request.query_id req2 with
+     | Some id1, Some id2 -> id1 = id2
+     | None, Some _ | Some _, None -> false
+     | None, None -> Caqti_request.query req1 = Caqti_request.query req2)
+end
+module Request_cache = Ephemeron.K1.Make (Any_request)
+
+type request_cache_entry = {
+  query_name: string;
+  query: string;
+  param_length: int;
+  binary_params: bool array;
+}
+
+let request_cache : request_cache_entry Request_cache.t =
+  Request_cache.create 27
+
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
 
@@ -424,54 +453,67 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   struct
     open Db
 
-    type pcache_entry = {
-      query: string;
-      param_length: int;
-      binary_params: bool array;
-    }
-    let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 19
+    let prepare_cache : (int, unit) Hashtbl.t = Hashtbl.create 19
 
     let reset () =
+      Log.warn (fun p ->
+        p "Lost connection to <%a>, reconnecting." Caqti_error.pp_uri uri)
+        >>= fun () ->
       try
         if db#reset_start then begin
-          Hashtbl.clear pcache;
+          Hashtbl.clear prepare_cache;
           Pg_io.communicate db (fun () -> db#reset_poll) >|= fun () ->
           db#status = Pg.Ok
         end else
           return false
       with Pg.Error _ -> return false
 
-    let rec retry ~query ?(n = 1) f =
-      try return (Ok (f ()))
-      with Postgresql.Error (Connection_failure _ as err) ->
-        if n > 0 then
+    let wrap_pg ~query f =
+      try Ok (f ()) with
+       | Postgresql.Error err ->
+          Error (Caqti_error.request_failed ~uri ~query (Pg_msg err))
+
+    let rec retry_pg ~query ?(n = 1) f =
+      (f () : (_, [> Caqti_error.call]) result future) >>=
+      (function
+       | Ok _ as r -> return r
+       | Error (`Request_failed
+                {Caqti_error.msg = Pg_msg (Postgresql.Connection_failure _); _})
+            as r when n > 0 ->
           reset () >>= fun reset_ok ->
           if reset_ok then
-            retry ~query ~n:(n - 1) f
+            retry_pg ~query ~n:(n - 1) f
           else
-            return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg err)))
-        else
-          return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg err)))
-
-    let prepare query_name query =
-      retry ~query (fun () -> db#send_prepare query_name query) >>=
-      (function
-       | Error _ as r -> return r
-       | Ok () ->
-          Pg_io.get_result ~uri ~query db >|=
-          (function
-           | Ok result -> Pg_io.check_command_result ~uri ~query result
-           | Error _ as r -> r))
+            return r
+       | Error _ as r -> return r)
 
     let query_oneshot ?params ?binary_params query =
-      retry ~query (fun () -> db#send_query ?params ?binary_params query) >>=
+      retry_pg ~query begin fun () ->
+        return @@ wrap_pg ~query
+          (fun () -> db#send_query ?params ?binary_params query)
+      end >>=
       (function
        | Error _ as r -> return r
        | Ok () -> Pg_io.get_result ~uri ~query db)
 
-    let query_prepared ~query ?params ?binary_params query_name =
-      retry ~query
-        (fun () -> db#send_query_prepared ?params ?binary_params query_name) >>=
+    let query_prepared query_id {query_name; query; binary_params; _} params =
+      retry_pg ~query begin fun () ->
+        begin
+          if Hashtbl.mem prepare_cache query_id then return (Ok ()) else
+          (match wrap_pg ~query (fun() -> db#send_prepare query_name query) with
+           | Ok () ->
+              Pg_io.get_result ~uri ~query db >|=
+                (function
+                 | Ok result ->
+                    (match Pg_io.check_command_result ~uri ~query result with
+                     | Ok () as r -> Hashtbl.add prepare_cache query_id (); r
+                     | Error _ as r -> r)
+                 | Error _ as r -> r)
+           | Error _ as r -> return r)
+        end >|=? fun () ->
+        wrap_pg ~query
+          (fun () -> db#send_query_prepared ~params ~binary_params query_name)
+      end >>=
       (function
        | Error _ as r -> return r
        | Ok () -> Pg_io.get_result ~uri ~query db)
@@ -546,27 +588,25 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               Ok (query, result)
            | Error _ as r -> return r)
        | Some query_id ->
-          let query_name = sprintf "_caq%d" query_id in
-          (try return (Ok (Hashtbl.find pcache query_id)) with
+          let rck = Any_request.Any req in
+          let rce = try Request_cache.find request_cache rck with
            | Not_found ->
+              let query_name = sprintf "_caq%d" query_id in
               let templ = Caqti_request.query req driver_info in
               let query = Pg_ext.query_string templ in
-              prepare query_name query >|=? fun () ->
               let param_length = Caqti_type.length param_type in
               let binary_params = Array.make param_length false in
               let nbp = set_binary_params binary_params param_type 0 in
               assert (nbp = param_length);
-              let pcache_entry = {query; param_length; binary_params} in
-              Hashtbl.add pcache query_id pcache_entry;
-              Ok pcache_entry)
-            >>=? fun {query; param_length; binary_params} ->
-          let params = Array.make param_length Pg.null in
+              let rce = {query_name; query; param_length; binary_params} in
+              Request_cache.add request_cache rck rce;
+              rce in
+          let params = Array.make rce.param_length Pg.null in
           (match encode_param ~uri params param_type param 0 with
            | Ok n ->
-              assert (n = param_length);
-              query_prepared ~query ~params ~binary_params query_name
-                >|=? fun result ->
-              Ok (query, result)
+              assert (n = rce.param_length);
+              query_prepared query_id rce params >|=? fun result ->
+              Ok (rce.query, result)
            | Error _ as r -> return r))
         >>=? fun (query, result) ->
 

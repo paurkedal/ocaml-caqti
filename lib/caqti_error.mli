@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,6 +38,11 @@ type msg += Msg : string -> msg
 (** The shape of locally generated messages and messages from drivers without
     dedicated error type. *)
 
+(**/**)
+val pp_uri : Format.formatter -> Uri.t -> unit
+(** Pretty printer of URIs which omits the password, used by drivers when
+    logging. *)
+(**/**)
 
 (** {2 Error Records}
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -460,7 +460,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Hashtbl.fold close_stmt pcache (return ()) >>= fun () ->
       Mdb.close db
 
-    let validate () = return true (* FIXME *)
+    let validate () = Mdb.ping db >|= function Ok () -> true | Error _ -> false
     let check f = f true (* FIXME *)
 
     let transaction_failed query err =

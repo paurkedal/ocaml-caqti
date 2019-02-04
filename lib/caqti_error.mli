@@ -17,7 +17,7 @@
 (** Error descriptors. *)
 
 
-(** {2 Error Messages} *)
+(** {2 Messages} *)
 
 type msg = ..
 (** In this type, drivers can stash information about an errors in ther own
@@ -44,7 +44,7 @@ val pp_uri : Format.formatter -> Uri.t -> unit
     logging. *)
 (**/**)
 
-(** {2 Error Records}
+(** {2 Messages with Metadata}
 
     {b Note.} Please consider the fields internal for now, they may still be
     revised or hidden. *)
@@ -69,7 +69,10 @@ type coding_error = private {
 }
 
 
-(** {2 Errors during Driver Loading} *)
+(** {2 Documented Constructors} *)
+
+
+(** {3 Errors during Driver Loading} *)
 
 val load_rejected : uri: Uri.t -> msg -> [> `Load_rejected of load_error]
 (** [load_rejected ~uri msg] indicates that the driver to load could not be
@@ -80,7 +83,7 @@ val load_failed : uri: Uri.t -> msg -> [> `Load_failed of load_error]
     loaded. *)
 
 
-(** {2 Errors during Connect} *)
+(** {3 Errors during Connect} *)
 
 val connect_rejected : uri: Uri.t -> msg ->
   [> `Connect_rejected of connection_error]
@@ -92,7 +95,7 @@ val connect_failed : uri: Uri.t -> msg ->
     connection to the database. *)
 
 
-(** {2 Errors during Call} *)
+(** {3 Errors during Call} *)
 
 val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Encode_rejected of coding_error]
@@ -122,7 +125,7 @@ val request_failed : uri: Uri.t -> query: string -> msg ->
     processed. *)
 
 
-(** {2 Errors during Result Retrieval} *)
+(** {3 Errors during Result Retrieval} *)
 
 val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
   [> `Decode_rejected of coding_error]
@@ -146,7 +149,7 @@ val response_rejected : uri: Uri.t -> query: string -> msg ->
     database was rejected due to requirements posed by client code. *)
 
 
-(** {2 Error Sub-Types} *)
+(** {2 Specific Error Types} *)
 
 type call =
   [ `Encode_rejected of coding_error
@@ -176,7 +179,7 @@ type connect =
 type load_or_connect = [load | connect]
 
 
-(** {2 Error Type and Functions} *)
+(** {2 Generic Error Type and Functions} *)
 
 type t = [load | connect | call | retrieve]
 (** The full union of errors used by Caqti. *)

@@ -84,20 +84,21 @@ The most important modules to know about are:
 Dynamic linking does not work under utop.  The workaround is to link against
 the needed database driver.  E.g.
 ```ocaml
-> #require "caqti-lwt";;
-> #require "caqti-driver-postgresql";;
-> open Lwt.Infix;;
+# #require "caqti-lwt";;
+# #require "caqti-driver-postgresql";;
+# open Lwt.Infix;;
 
 (* Create a DB handle. *)
-> module Db = (val Caqti_lwt.connect (Uri.of_string "postgresql://") >>= Caqti_lwt.or_fail |> Lwt_main.run);;
+# module Db = (val Caqti_lwt.connect (Uri.of_string "postgresql://") >>= Caqti_lwt.or_fail |> Lwt_main.run);;
 module Db : Caqti_lwt.CONNECTION
 
 (* Create a request which merely adds two parameters. *)
-> let plus = Caqti_request.find Caqti_type.(tup2 int int) Caqti_type.int "SELECT ?::integer + ?::integer";;
-val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t = <abstr>
+# let plus = Caqti_request.find Caqti_type.(tup2 int int) Caqti_type.int "SELECT ?::integer + ?::integer";;
+val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
+  <abstr>
 
 (* Run it. *)
-> Db.find plus (7, 13);;
+# Db.find plus (7, 13);;
 - : (int, [> Caqti_error.call_or_retrieve ]) result = Ok 20
 ```
 

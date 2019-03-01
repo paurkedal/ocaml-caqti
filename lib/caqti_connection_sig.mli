@@ -142,7 +142,8 @@ module type S = sig
     ('b -> 'c -> ('c, 'e) result future) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combining {!call} with {!Response.fold_s}, this sends a request to the
-      database and folds concurrently over the result rows.
+      database and folds sequentially over the result rows in a non-blocking
+      manner.
 
       Please be aware of possible deadlocks when using resources from the
       callback.  In particular, if the same connection pool is invoked as the
@@ -155,8 +156,8 @@ module type S = sig
     ('b -> (unit, 'e) result future) ->
     'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** Combining {!call} with {!Response.iter_s}, this sends a request to the
-      database and iterates concurrently over the result rows.  Please see the
-      warning in {!fold_s} about resource usage in the callback. *)
+      database and iterates sequentially over the result rows in a non-blocking manner.
+      Please see the warning in {!fold_s} about resource usage in the callback. *)
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->

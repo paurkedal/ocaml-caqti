@@ -31,6 +31,10 @@ module Sys = struct
     let (>>=) = (>>=)
     let (>|=) = (>>|)
   end
+
+  module Stream = struct
+    type 'a t = 'a Async.Pipe.Reader.t
+  end
 end
 
 module Test = Test_sql.Make (Sys) (Caqti_async)

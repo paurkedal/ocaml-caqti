@@ -20,6 +20,7 @@
     with Lwt. *)
 
 include Caqti_connect_sig.S with type 'a future := 'a Lwt.t
+                            and type 'a stream := 'a Lwt_stream.t
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}

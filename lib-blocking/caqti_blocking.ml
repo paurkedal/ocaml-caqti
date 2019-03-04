@@ -42,6 +42,15 @@ module System = struct
     let debug ?(src = default_log_src) = Logs.debug ~src
   end
 
+  module Stream = struct
+    type 'a t = 'a Seq.t
+
+    let rec from_fun f state () =
+      match f state with
+      | None -> Seq.Nil
+      | Some (a, state') -> Seq.Cons (a, from_fun f state')
+  end
+
   module Unix = struct
     type file_descr = Unix.file_descr
     let wrap_fd f fd = f fd

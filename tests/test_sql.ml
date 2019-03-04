@@ -96,11 +96,15 @@ module type Sys = sig
     val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
     val (>|=) : 'a future -> ('a -> 'b) -> 'b future
   end
+  module Stream : sig
+    type 'a t
+  end
 end
 
 module Make
     (Sys : Sys)
-    (Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a Sys.future) =
+    (Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a Sys.future
+                                      and type 'a stream := 'a Sys.Stream.t) =
 struct
 
   open Sys.Infix

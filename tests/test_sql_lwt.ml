@@ -21,6 +21,10 @@ module Sys = struct
   include Lwt
   type 'a future = 'a Lwt.t
   let or_fail = Caqti_lwt.or_fail
+
+  module Stream = struct
+    type 'a t = 'a Lwt_stream.t
+  end
 end
 
 module Test = Test_sql.Make (Sys) (Caqti_lwt)

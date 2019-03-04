@@ -21,11 +21,15 @@ module type S = sig
   type +'a future
   (** The type of a deferred value of type ['a]. *)
 
+  type 'a stream
+  (** The type of stream of values of type ['a] *)
+
   module Pool : Caqti_pool_sig.S with type 'a future := 'a future
   (** A pool implementation for the current concurrency library. *)
 
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a future := 'a future
+                           with type 'a stream := 'a stream
   (** The connection API specialized for the current concurrency library. *)
 
   type connection = (module CONNECTION)

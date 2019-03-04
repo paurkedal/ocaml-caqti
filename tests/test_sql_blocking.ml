@@ -24,6 +24,10 @@ module Sys = struct
     let (>>=) x f = f x
     let (>|=) x f = f x
   end
+
+  module Stream = struct
+    type 'a t = 'a Seq.t
+  end
 end
 
 module Test = Test_sql.Make (Sys) (Caqti_blocking)

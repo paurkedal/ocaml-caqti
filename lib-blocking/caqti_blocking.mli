@@ -27,6 +27,7 @@
     connections will not be allocated, since usage is serial. *)
 
 include Caqti_connect_sig.S with type 'a future = 'a
+                             and type 'a stream := 'a Seq.t
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Takes [Ok x] to [x] and raises {!Caqti_error.Exn err} on [Error err]. *)

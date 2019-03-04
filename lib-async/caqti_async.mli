@@ -19,3 +19,4 @@
 open Async
 
 include Caqti_connect_sig.S with type 'a future := 'a Deferred.t
+                             and type 'a stream := 'a Async.Pipe.Reader.t

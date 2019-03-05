@@ -98,6 +98,7 @@ module type Sys = sig
   end
   module Stream : sig
     type 'a t
+    val to_list : 'a t -> 'a list future
   end
 end
 
@@ -230,9 +231,28 @@ struct
     assert (s_acc = "zero+two+three+five");
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
+  let test_stream (module Db : Caqti_sys.CONNECTION) =
+    let assert_stream_is expected =
+      Db.call
+        ~f:(fun response ->
+            Sys.Stream.to_list @@ Db.Response.to_stream response >>= fun actual ->
+            assert (actual = expected);
+            Sys.return (Ok ()))
+        Q.select_from_tmp
+        ()
+    in
+    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+    assert_stream_is [] >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (1, "one") >>= Sys.or_fail >>= fun () ->
+    assert_stream_is [Ok (1, "one")] >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (2, "two") >>= Sys.or_fail >>= fun () ->
+    assert_stream_is [Ok (1, "one"); Ok (2, "two")] >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.drop_tmp () >>= Sys.or_fail
+
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
+    test_stream (module Db) >>= fun () ->
     Db.disconnect ()
 
   let run_pool pool =

@@ -27,6 +27,8 @@ module Sys = struct
 
   module Stream = struct
     type 'a t = 'a Seq.t
+
+    let to_list t = Seq.fold_left (fun acc x -> x::acc) [] t |> List.rev
   end
 end
 

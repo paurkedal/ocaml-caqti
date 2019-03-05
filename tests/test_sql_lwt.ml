@@ -24,6 +24,8 @@ module Sys = struct
 
   module Stream = struct
     type 'a t = 'a Lwt_stream.t
+
+    let to_list = Lwt_stream.to_list
   end
 end
 

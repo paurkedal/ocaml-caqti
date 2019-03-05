@@ -34,6 +34,8 @@ module Sys = struct
 
   module Stream = struct
     type 'a t = 'a Async.Pipe.Reader.t
+
+    let to_list = Async.Pipe.to_list
   end
 end
 

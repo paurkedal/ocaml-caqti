@@ -44,7 +44,6 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   module type DRIVER =
     Caqti_driver_sig.S with type 'a future := 'a System.future
-                        and type 'a stream := 'a System.Stream.t
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -68,10 +67,9 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION_BASE =
     Caqti_connection_sig.Base with type 'a future := 'a System.future
-                               and type 'a stream := 'a System.Stream.t
+
   module type CONNECTION =
     Caqti_connection_sig.S with type 'a future := 'a System.future
-                            and type 'a stream := 'a System.Stream.t
 
   type connection = (module CONNECTION)
 

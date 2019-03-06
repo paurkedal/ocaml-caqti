@@ -29,6 +29,5 @@ val define_unix_driver :
 
 module Make_unix (System : Caqti_driver_sig.System_unix) :
   Caqti_connect_sig.S with type 'a future := 'a System.future
-                       and type 'a stream := 'a System.Stream.t
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

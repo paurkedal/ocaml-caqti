@@ -118,7 +118,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION =
     Caqti_connection_sig.Base with type 'a future := 'a System.future
-                               and type 'a stream := 'a System.Stream.t
 
   let driver_info =
     Caqti_driver_info.create
@@ -309,6 +308,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         row_type: 'b Caqti_type.t;
       }
 
+      module Stream = Caqti_stream.Make (System)
+
+      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
+
       let reject ~query msg =
         Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
       let reject_f ~query fmt =
@@ -376,15 +379,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error _ as r -> return r) in
         loop ()
 
-      let to_stream {query; res; row_type} =
-        let f got_error =
-          if got_error then return None else
-          decode_next_row ~query res row_type >>=
-          (function
-           | Ok None -> return None
-           | Ok (Some y) -> return (Some (Ok y, false))
-           | Error _ as r -> return (Some (r, true))) in
-        System.Stream.from_fun f false
+      let rec to_stream ({query; res; row_type} as resp) () =
+        let open Stream in
+        decode_next_row ~query res row_type >>=
+        (function
+          | Ok None -> return Nil
+          | Error err -> return (Err err)
+          | Ok (Some y) -> return (Cons (y, to_stream resp)))
     end
 
     type pcache_entry = {

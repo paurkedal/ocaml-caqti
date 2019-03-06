@@ -39,21 +39,6 @@ module System = struct
     let debug ?(src = default_log_src) = Logs_lwt.debug ~src
   end
 
-  module Stream = struct
-    type 'a t = 'a Lwt_stream.t
-
-    let from_fun f initial_state =
-      let state = ref initial_state in
-      let wrapped_f () =
-        f !state >|= function
-        | None -> None
-        | Some (a, new_state) ->
-          state := new_state;
-          Some a
-      in
-      Lwt_stream.from wrapped_f
-  end
-
   module Unix = struct
     type file_descr = Lwt_unix.file_descr
 

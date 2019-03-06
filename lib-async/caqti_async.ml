@@ -34,13 +34,6 @@ module System = struct
     let fetch v = Ivar.read v
   end
 
-  module Stream = struct
-    type 'a t = 'a Async.Pipe.Reader.t
-
-    let from_fun f initial_state =
-      Async.Pipe.unfold ~init:initial_state ~f
-  end
-
   module Unix = struct
     type file_descr = Async_unix.Fd.t
 

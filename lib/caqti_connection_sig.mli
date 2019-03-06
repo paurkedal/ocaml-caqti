@@ -51,12 +51,9 @@
 module type Base = sig
   type +'a future
 
-  type 'a stream
-
   (** {2 Query} *)
 
   module Response : Caqti_response_sig.S with type 'a future := 'a future
-                                          and type 'a stream := 'a stream
 
   val call :
     f: (('b, 'm) Response.t -> ('c, 'e) result future) ->

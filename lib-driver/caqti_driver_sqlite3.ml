@@ -274,7 +274,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION =
     Caqti_connection_sig.Base with type 'a future := 'a System.future
-                               and type 'a stream := 'a System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =
@@ -288,6 +287,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         row_type: 'b Caqti_type.t;
         query: string;
       }
+
+      module Stream = Caqti_stream.Make (System)
+
+      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
 
       let returned_count _ = return (Error `Unsupported)
 
@@ -374,14 +377,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error _ as r -> r) in
         Preemptive.detach retrieve ()
 
-      let to_stream resp =
-        let f got_error =
-          if got_error then return None else
-          (match fetch_row resp with
-           | Ok None -> return None
-           | Ok (Some y) -> return (Some (Ok y, false))
-           | Error _ as r -> return (Some (r, true))) in
-        System.Stream.from_fun f false
+      let rec to_stream resp () =
+        let open Stream in
+        match fetch_row resp with
+        | Ok None -> return Nil
+        | Error err -> return (Err err)
+        | Ok (Some y) -> return (Cons (y, to_stream resp))
     end
 
     let pcache = Hashtbl.create 19

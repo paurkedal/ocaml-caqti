@@ -460,7 +460,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION =
     Caqti_connection_sig.Base with type 'a future := 'a System.future
-                               and type 'a stream := 'a System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
     : CONNECTION =
@@ -537,6 +536,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     module Response = struct
       type ('b, 'm) t = {row_type: 'b Caqti_type.t; result: Pg.result}
 
+      module Stream = Caqti_stream.Make (System)
+
+      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
+
       let returned_count {result; _} =
         return (Ok result#ntuples)
 
@@ -584,13 +587,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         loop 0 ()
 
       let to_stream {row_type; result} =
+        let open Stream in
         let n = result#ntuples in
-        let f (i, got_error) =
-          if i = n || got_error then return None else
+        let rec f i () =
+          if i = n then return Nil else
           (match decode_row ~uri (result, i) row_type with
-           | Ok y -> return @@ Some (Ok y, (i + 1, false))
-           | Error _ as r -> return (Some (r, (i, true)))) in
-        System.Stream.from_fun f (0, false)
+           | Ok y -> return @@ Cons (y, f (i + 1))
+           | Error err -> return @@ Err err) in
+        f 0
     end
 
     let call ~f req param =

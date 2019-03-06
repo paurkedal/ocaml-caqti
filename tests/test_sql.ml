@@ -96,16 +96,11 @@ module type Sys = sig
     val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
     val (>|=) : 'a future -> ('a -> 'b) -> 'b future
   end
-  module Stream : sig
-    type 'a t
-    val to_list : 'a t -> 'a list future
-  end
 end
 
 module Make
     (Sys : Sys)
-    (Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a Sys.future
-                                      and type 'a stream := 'a Sys.Stream.t) =
+    (Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a Sys.future) =
 struct
 
   open Sys.Infix
@@ -235,18 +230,19 @@ struct
     let assert_stream_is expected =
       Db.call
         ~f:(fun response ->
-            Sys.Stream.to_list @@ Db.Response.to_stream response >>= fun actual ->
+            let open Db.Response in
+            Stream.to_list @@ to_stream response >>= fun actual ->
             assert (actual = expected);
             Sys.return (Ok ()))
         Q.select_from_tmp
         ()
     in
     Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
-    assert_stream_is [] >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok []) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (1, "one") >>= Sys.or_fail >>= fun () ->
-    assert_stream_is [Ok (1, "one")] >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one")]) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (2, "two") >>= Sys.or_fail >>= fun () ->
-    assert_stream_is [Ok (1, "one"); Ok (2, "two")] >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one"); (2, "two")]) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
   let run (module Db : Caqti_sys.CONNECTION) =

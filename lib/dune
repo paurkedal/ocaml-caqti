@@ -18,6 +18,7 @@
     Caqti_response_sig
     Caqti_sql
     Caqti_sql_io
+    Caqti_stream
     Caqti_type
     Caqti_type_sig
     ; internal

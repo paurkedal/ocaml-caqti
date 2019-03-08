@@ -458,8 +458,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   (* Driver Interface *)
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
     : CONNECTION =
@@ -535,10 +536,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     module Response = struct
       type ('b, 'm) t = {row_type: 'b Caqti_type.t; result: Pg.result}
-
-      module Stream = Caqti_stream.Make (System)
-
-      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
 
       let returned_count {result; _} =
         return (Ok result#ntuples)

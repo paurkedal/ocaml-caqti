@@ -231,7 +231,7 @@ struct
       Db.call
         ~f:(fun response ->
             let open Db.Response in
-            Stream.to_list @@ to_stream response >>= fun actual ->
+            Caqti_sys.Stream.to_list @@ to_stream response >>= fun actual ->
             assert (actual = expected);
             Sys.return (Ok ()))
         Q.select_from_tmp

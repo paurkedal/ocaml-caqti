@@ -116,8 +116,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   end
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   let driver_info =
     Caqti_driver_info.create
@@ -307,10 +308,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         res: Mdb.Res.t;
         row_type: 'b Caqti_type.t;
       }
-
-      module Stream = Caqti_stream.Make (System)
-
-      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
 
       let reject ~query msg =
         Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))

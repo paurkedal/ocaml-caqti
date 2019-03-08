@@ -42,8 +42,9 @@ let load_driver_functor ~uri scheme =
 module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   open System
 
-  module type DRIVER =
-    Caqti_driver_sig.S with type 'a future := 'a System.future
+  module type DRIVER = Caqti_driver_sig.S
+    with type 'a future := 'a System.future
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -65,11 +66,13 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
                 Ok driver
              | Error _ as r -> r)))
 
-  module type CONNECTION_BASE =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION_BASE = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
-  module type CONNECTION =
-    Caqti_connection_sig.S with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   type connection = (module CONNECTION)
 
@@ -127,6 +130,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
         return (Error err))
 
   module Pool = Caqti_pool.Make (System)
+  module Stream = System.Stream
 
   let connect_pool ?max_size uri =
     (match load_driver uri with

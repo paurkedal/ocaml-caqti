@@ -98,6 +98,13 @@ module System = struct
     let detach f x = In_thread.run (fun () -> f x)
     let run_in_main f = Thread_safe.block_on_async_exn f
   end
+
+  module Stream = Caqti_stream.Make (struct
+    type 'a future = 'a Deferred.t
+    let (>>=) m f = Deferred.bind m ~f
+    let (>|=) = Deferred.(>>|)
+    let return = Deferred.return
+  end)
 end
 
 include Caqti_connect.Make_unix (System)

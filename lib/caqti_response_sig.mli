@@ -19,9 +19,7 @@
 module type S = sig
   type +'b future
 
-  module Stream : Caqti_stream.S with type 'a future := 'a future
-
-  type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
+  type (+'a, +'err) stream
 
   type ('b, +'m) t
   (** The type describing the response and containing returned data from a
@@ -84,7 +82,7 @@ module type S = sig
       {b Note.} Do not make nested queries in the callback to this function.
       Cf. {!fold_s}. *)
 
-  val to_stream : ('b, 'm) t -> ('b, 'err) stream
+  val to_stream : ('b, 'm) t -> ('b, [> Caqti_error.retrieve] as 'err) stream
     (** [to_stream resp] returns a stream whose elements are the decoded rows
         returned by [resp]. *)
 end

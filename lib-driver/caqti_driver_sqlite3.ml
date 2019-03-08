@@ -272,8 +272,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   let driver_info = driver_info
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =
@@ -287,10 +288,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         row_type: 'b Caqti_type.t;
         query: string;
       }
-
-      module Stream = Caqti_stream.Make (System)
-
-      type ('b, 'err) stream = ('b, [> Caqti_error.retrieve] as 'err) Stream.t
 
       let returned_count _ = return (Error `Unsupported)
 

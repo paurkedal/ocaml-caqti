@@ -56,6 +56,13 @@ module System = struct
     let detach f x = f x
     let run_in_main f = f ()
   end
+
+  module Stream = Caqti_stream.Make (struct
+    type 'a future = 'a
+    let (>>=) x f = f x
+    let (>|=) x f = f x
+    let return x = x
+  end)
 end
 
 type 'a future = 'a

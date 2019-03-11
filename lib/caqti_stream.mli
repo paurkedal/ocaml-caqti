@@ -20,7 +20,7 @@ module type S = sig
   type ('a, 'err) t = unit -> ('a, 'err) node future
   and ('a, 'err) node =
     | Nil
-    | Err of 'err
+    | Error of 'err
     | Cons of 'a * ('a, 'err) t
 
   val fold :

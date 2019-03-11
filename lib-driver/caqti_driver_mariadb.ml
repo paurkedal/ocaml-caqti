@@ -377,12 +377,11 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         loop ()
 
       let rec to_stream ({query; res; row_type} as resp) () =
-        let open Stream in
         decode_next_row ~query res row_type >>=
         (function
-          | Ok None -> return Nil
-          | Error err -> return (Err err)
-          | Ok (Some y) -> return (Cons (y, to_stream resp)))
+          | Ok None -> return Stream.Nil
+          | Error err -> return (Stream.Error err)
+          | Ok (Some y) -> return (Stream.Cons (y, to_stream resp)))
     end
 
     type pcache_entry = {

@@ -375,11 +375,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         Preemptive.detach retrieve ()
 
       let rec to_stream resp () =
-        let open Stream in
         match fetch_row resp with
-        | Ok None -> return Nil
-        | Error err -> return (Err err)
-        | Ok (Some y) -> return (Cons (y, to_stream resp))
+        | Ok None -> return Stream.Nil
+        | Error err -> return (Stream.Error err)
+        | Ok (Some y) -> return (Stream.Cons (y, to_stream resp))
     end
 
     let pcache = Hashtbl.create 19

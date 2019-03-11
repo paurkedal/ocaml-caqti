@@ -20,7 +20,7 @@ module type S = sig
   type ('a, 'err) t = unit -> ('a, 'err) node future
   and ('a, 'err) node =
     | Nil
-    | Err of 'err
+    | Error of 'err
     | Cons of 'a * ('a, 'err) t
 
   val fold :
@@ -65,25 +65,25 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
   type ('a, 'err) t = unit -> ('a, 'err) node future
   and ('a, 'err) node =
     | Nil
-    | Err of 'err
+    | Error of 'err
     | Cons of 'a * ('a, 'err) t
 
   let rec fold ~f t state =
     t () >>= function
     | Nil -> return (Ok state)
-    | Err err -> return (Error err)
+    | Error err -> return (Error err : ('a, 'err) result)
     | Cons (a, t') -> fold ~f t' (f a state)
 
   let rec fold_s ~f t state =
     t () >>= function
     | Nil -> return (Ok state)
-    | Err err -> return (Error err)
+    | Error err -> return (Error err : ('a, 'err) result)
     | Cons (a, t') -> f a state >>=? fold_s ~f t'
 
   let rec iter_s ~f t =
     t () >>= function
     | Nil -> return (Ok ())
-    | Err err -> return (Error err)
+    | Error err -> return (Error err : ('a, 'err) result)
     | Cons (a, t') -> f a >>=? fun () -> iter_s ~f t'
 
   let to_rev_list t = fold ~f:List.cons t []

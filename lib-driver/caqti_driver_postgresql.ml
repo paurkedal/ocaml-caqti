@@ -584,13 +584,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         loop 0 ()
 
       let to_stream {row_type; result} =
-        let open Stream in
         let n = result#ntuples in
         let rec f i () =
-          if i = n then return Nil else
+          if i = n then return Stream.Nil else
           (match decode_row ~uri (result, i) row_type with
-           | Ok y -> return @@ Cons (y, f (i + 1))
-           | Error err -> return @@ Err err) in
+           | Ok y -> return @@ Stream.Cons (y, f (i + 1))
+           | Error err -> return @@ Stream.Error err) in
         f 0
     end
 

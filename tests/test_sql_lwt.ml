@@ -1,4 +1,4 @@
-(* Copyright (C) 2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,12 +21,6 @@ module Sys = struct
   include Lwt
   type 'a future = 'a Lwt.t
   let or_fail = Caqti_lwt.or_fail
-
-  module Stream = struct
-    type 'a t = 'a Lwt_stream.t
-
-    let to_list = Lwt_stream.to_list
-  end
 end
 
 module Test = Test_sql.Make (Sys) (Caqti_lwt)

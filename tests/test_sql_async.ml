@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,12 +30,6 @@ module Sys = struct
   module Infix = struct
     let (>>=) = (>>=)
     let (>|=) = (>>|)
-  end
-
-  module Stream = struct
-    type 'a t = 'a Async.Pipe.Reader.t
-
-    let to_list = Async.Pipe.to_list
   end
 end
 

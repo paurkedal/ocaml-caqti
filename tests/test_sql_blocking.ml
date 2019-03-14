@@ -1,4 +1,4 @@
-(* Copyright (C) 2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,12 +23,6 @@ module Sys = struct
   module Infix = struct
     let (>>=) x f = f x
     let (>|=) x f = f x
-  end
-
-  module Stream = struct
-    type 'a t = 'a Seq.t
-
-    let to_list t = Seq.fold_left (fun acc x -> x::acc) [] t |> List.rev
   end
 end
 

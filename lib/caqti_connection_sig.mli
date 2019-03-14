@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,10 +50,13 @@
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
   type +'a future
+  type (+'a, +'err) stream
 
   (** {2 Query} *)
 
-  module Response : Caqti_response_sig.S with type 'a future := 'a future
+  module Response : Caqti_response_sig.S
+    with type 'a future := 'a future
+     and type ('a, 'err) stream := ('a, 'err) stream
 
   val call :
     f: (('b, 'm) Response.t -> ('c, 'e) result future) ->

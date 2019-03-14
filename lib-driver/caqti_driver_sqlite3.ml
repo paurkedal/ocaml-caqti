@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -274,7 +274,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION = Caqti_connection_sig.Base
     with type 'a future := 'a System.future
-     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =

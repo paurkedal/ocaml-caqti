@@ -460,7 +460,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION = Caqti_connection_sig.Base
     with type 'a future := 'a System.future
-     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
     : CONNECTION =

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -68,11 +68,11 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION_BASE = Caqti_connection_sig.Base
     with type 'a future := 'a System.future
-     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a System.future
-     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   type connection = (module CONNECTION)
 

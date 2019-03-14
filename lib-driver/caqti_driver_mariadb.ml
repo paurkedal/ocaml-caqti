@@ -118,7 +118,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module type CONNECTION = Caqti_connection_sig.Base
     with type 'a future := 'a System.future
-     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let driver_info =
     Caqti_driver_info.create

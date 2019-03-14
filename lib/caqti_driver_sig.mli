@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -71,7 +71,7 @@ module type S = sig
 
   module type CONNECTION = Caqti_connection_sig.Base
     with type 'a future := 'a future
-     and type ('a, 'err) Response.stream := ('a, 'err) stream
+     and type ('a, 'err) stream := ('a, 'err) stream
 
   val driver_info : Caqti_driver_info.t
 

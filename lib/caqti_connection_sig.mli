@@ -51,7 +51,6 @@
 module type Base = sig
   type +'a future
 
-
   (** {2 Query} *)
 
   module Response : Caqti_response_sig.S with type 'a future := 'a future

@@ -43,6 +43,8 @@ module type System_common = sig
     val info : ?src: Logs.src -> 'a log
     val debug : ?src: Logs.src -> 'a log
   end
+
+  module Stream : Caqti_stream.S with type 'a future := 'a future
 end
 
 module type System_unix = sig
@@ -65,9 +67,11 @@ end
 
 module type S = sig
   type +'a future
+  type (+'a, +'err) stream
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a future
+     and type ('a, 'err) Response.stream := ('a, 'err) stream
 
   val driver_info : Caqti_driver_info.t
 
@@ -78,3 +82,4 @@ end
 module type Of_system_unix =
   functor (System : System_unix) ->
   S with type 'a future := 'a System.future
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t

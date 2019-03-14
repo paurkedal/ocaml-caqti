@@ -27,7 +27,8 @@ val define_unix_driver :
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make_unix (System : Caqti_driver_sig.System_unix) :
-  Caqti_connect_sig.S with type 'a future := 'a System.future
+module Make_unix (System : Caqti_driver_sig.System_unix) : Caqti_connect_sig.S
+  with type 'a future := 'a System.future
+   and module Stream = System.Stream
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

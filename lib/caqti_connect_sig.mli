@@ -24,8 +24,11 @@ module type S = sig
   module Pool : Caqti_pool_sig.S with type 'a future := 'a future
   (** A pool implementation for the current concurrency library. *)
 
-  module type CONNECTION =
-    Caqti_connection_sig.S with type 'a future := 'a future
+  module Stream : Caqti_stream.S with type 'a future := 'a future
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a future := 'a future
+     and type ('a, 'err) Response.stream := ('a, 'err) Stream.t
   (** The connection API specialized for the current concurrency library. *)
 
   type connection = (module CONNECTION)

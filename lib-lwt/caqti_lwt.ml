@@ -64,6 +64,13 @@ module System = struct
 
   module Preemptive = Lwt_preemptive
 
+  module Stream = Caqti_stream.Make (struct
+    type nonrec 'a future = 'a future
+    let (>>=) = Lwt.(>>=)
+    let (>|=) = Lwt.(>|=)
+    let return = Lwt.return
+  end)
+
 end
 
 include Caqti_connect.Make_unix (System)

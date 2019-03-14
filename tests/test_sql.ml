@@ -226,9 +226,29 @@ struct
     assert (s_acc = "zero+two+three+five");
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
+  let test_stream (module Db : Caqti_sys.CONNECTION) =
+    let assert_stream_is expected =
+      Db.call
+        ~f:(fun response ->
+            let open Db.Response in
+            Caqti_sys.Stream.to_list @@ to_stream response >>= fun actual ->
+            assert (actual = expected);
+            Sys.return (Ok ()))
+        Q.select_from_tmp
+        ()
+    in
+    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok []) >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (1, "one") >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one")]) >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (2, "two") >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one"); (2, "two")]) >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.drop_tmp () >>= Sys.or_fail
+
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
+    test_stream (module Db) >>= fun () ->
     Db.disconnect ()
 
   let run_pool pool =

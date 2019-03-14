@@ -272,8 +272,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   let driver_info = driver_info
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
     : CONNECTION =
@@ -372,6 +373,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                | Error _ as r -> r)
            | Error _ as r -> r) in
         Preemptive.detach retrieve ()
+
+      let rec to_stream resp () =
+        match fetch_row resp with
+        | Ok None -> return Stream.Nil
+        | Error err -> return (Stream.Error err)
+        | Ok (Some y) -> return (Stream.Cons (y, to_stream resp))
     end
 
     let pcache = Hashtbl.create 19

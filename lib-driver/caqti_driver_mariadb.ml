@@ -116,8 +116,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   end
 
-  module type CONNECTION =
-    Caqti_connection_sig.Base with type 'a future := 'a System.future
+  module type CONNECTION = Caqti_connection_sig.Base
+    with type 'a future := 'a System.future
+     and type ('a, 'err) Response.stream := ('a, 'err) System.Stream.t
 
   let driver_info =
     Caqti_driver_info.create
@@ -374,6 +375,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Ok (Some y) -> f y >>=? loop
            | Error _ as r -> return r) in
         loop ()
+
+      let rec to_stream ({query; res; row_type} as resp) () =
+        decode_next_row ~query res row_type >>=
+        (function
+          | Ok None -> return Stream.Nil
+          | Error err -> return (Stream.Error err)
+          | Ok (Some y) -> return (Stream.Cons (y, to_stream resp)))
     end
 
     type pcache_entry = {

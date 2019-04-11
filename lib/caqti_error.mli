@@ -75,8 +75,8 @@ type coding_error = private {
 (** {3 Errors during Driver Loading} *)
 
 val load_rejected : uri: Uri.t -> msg -> [> `Load_rejected of load_error]
-(** [load_rejected ~uri msg] indicates that the driver to load could not be
-    identified from [uri]. *)
+(** [load_rejected ~uri msg] indicates that a driver could not be identified
+    from [uri]. *)
 
 val load_failed : uri: Uri.t -> msg -> [> `Load_failed of load_error]
 (** [load_failed ~uri msg] indicates that a driver for [uri] could not be
@@ -110,7 +110,7 @@ val encode_rejected : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
 val encode_failed : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
   [> `Encode_failed of coding_error]
 (** [encode_failed ~uri ~typ msg] indicates that a parameter of type [typ] was
-    not accepted by the database driver. *)
+    not accepted by the database client library. *)
 
 val request_rejected : uri: Uri.t -> query: string -> msg ->
   [> `Request_rejected of query_error]
@@ -119,10 +119,9 @@ val request_rejected : uri: Uri.t -> query: string -> msg ->
 
 val request_failed : uri: Uri.t -> query: string -> msg ->
   [> `Request_failed of query_error]
-(** [request_failed ~uri ~query msg] indicates that the request to could not be
+(** [request_failed ~uri ~query msg] indicates that the request could not be
     transmitted to the database, that the database was not ready to process the
-    request, or that something went wrong while the request was being
-    processed. *)
+    request, or that something went wrong while processing the request. *)
 
 
 (** {3 Errors during Result Retrieval} *)

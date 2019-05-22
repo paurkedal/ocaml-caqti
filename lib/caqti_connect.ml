@@ -26,10 +26,14 @@ let define_loader f = dynload_library := f
 let drivers = Hashtbl.create 11
 let define_unix_driver scheme p = Hashtbl.add drivers scheme p
 
+let scheme_driver_name = function
+  | "postgres" | "postgresql" -> "caqti-driver-postgresql"
+  | s -> "caqti-driver-" ^ s
+
 let load_driver_functor ~uri scheme =
   (try Ok (Hashtbl.find drivers scheme) with
    | Not_found ->
-      (match !dynload_library ("caqti-driver-" ^ scheme) with
+      (match !dynload_library (scheme_driver_name scheme) with
        | Ok () ->
           (try Ok (Hashtbl.find drivers scheme) with
            | Not_found ->

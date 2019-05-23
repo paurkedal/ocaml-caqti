@@ -684,4 +684,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 Ok (module Connection : CONNECTION))))
 end
 
-let () = Caqti_connect.define_unix_driver "postgresql" (module Connect_functor)
+let () =
+  Caqti_connect.define_unix_driver "postgres" (module Connect_functor);
+  Caqti_connect.define_unix_driver "postgresql" (module Connect_functor)

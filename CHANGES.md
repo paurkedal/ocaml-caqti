@@ -1,6 +1,8 @@
 ## Unreleased
 
-- Use the postgres driver when `postgres` is specified as the URL scheme (James Owen).
+- Add stream for result extraction (Nathan Rebours).
+- Use the postgres driver when `postgres` is specified as the URL scheme
+  (James Owen).
 
 ## v1.1.0 - 2019-02-03
 

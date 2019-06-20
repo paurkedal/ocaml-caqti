@@ -57,6 +57,21 @@ type ('params, 'output, +'mult) t = ('params, counit, 'output, 'mult) t4
     - ['output] is the type of a returned row.
     - ['multiplicity] is the possible multiplicities of returned rows. *)
 
+val create_full :
+  ?oneshot: bool ->
+  'params Caqti_type.t ->
+  'input Caqti_type.t ->
+  'output Caqti_type.t ->
+  'mult Caqti_mult.t ->
+  (Caqti_driver_info.t -> query) ->
+  ('params, 'input, 'output, 'mult) t4
+(** [create_full params_type input_type output_type row_mult f] is a request which takes
+    parameters of type [params_type], inputs rows of type [input_type] and returns rows of
+    type [output_type] with multiplicity [row_mult], and which sends query strings generated
+    from the query [f di], where [di] is the {!Caqti_driver_info.t} of the target driver.
+    The driver is responsible for turning parameter references into a form accepted by the
+    database, while other differences must be handled by [f]. *)
+
 val create :
   ?oneshot: bool ->
   'params Caqti_type.t ->

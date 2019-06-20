@@ -39,19 +39,33 @@ type query =
     denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
     as needed.  *)
 
-type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
+type counit
+(** Empty type *)
+
+type ('params, 'input, 'output, +'mult) t4 constraint 'mult = [< `Zero | `One | `Many]
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.
-    - ['a] is the type of the expected parameter bundle.
-    - ['b] is the type of a returned row.
-    - ['m] is the possible multiplicities of returned rows. *)
+    - ['params] is the type of the expected parameter bundle.
+    - ['input] is the type of an input row.
+    - ['output] is the type of a returned row.
+    - ['mult] is the possible multiplicities of returned rows. *)
+
+type ('params, 'output, +'mult) t = ('params, counit, 'output, 'mult) t4
+(** A request specification embedding a query generator, parameter encoder, and
+    row decoder.
+    - ['params] is the type of the expected parameter bundle.
+    - ['output] is the type of a returned row.
+    - ['multiplicity] is the possible multiplicities of returned rows. *)
 
 val create :
   ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> query) -> ('a, 'b, 'm) t
-(** [create arg_type row_type row_mult f] is a request which takes parameters of
-    type [arg_type], returns rows of type [row_type] with multiplicity
+  'params Caqti_type.t ->
+  'output Caqti_type.t ->
+  'mult Caqti_mult.t ->
+  (Caqti_driver_info.t -> query) ->
+  ('params, 'output, 'mult) t
+(** [create params_type row_type row_mult f] is a request which takes parameters of
+    type [params_type], returns rows of type [row_type] with multiplicity
     [row_mult], and which sends query strings generated from the query [f di],
     where [di] is the {!Caqti_driver_info.t} of the target driver.  The driver
     is responsible for turning parameter references into a form accepted by the
@@ -59,6 +73,12 @@ val create :
 
 val param_type : ('a, _, _) t -> 'a Caqti_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)
+
+val input_type : (_, 'input, _, _) t4 -> 'input Caqti_type.t
+(** [input_type req] is the type of rows accepted by [req]. *)
+
+val output_type : (_, _, 'output, _) t4 -> 'output Caqti_type.t
+(** [output_type req] is the type of rows returned by [req]. *)
 
 val row_type : (_, 'b, _) t -> 'b Caqti_type.t
 (** [row_type req] is the type of rows returned by [req]. *)

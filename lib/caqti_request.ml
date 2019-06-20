@@ -26,22 +26,29 @@ let rec pp_query ppf = function
  | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
  | S qs -> List.iter (pp_query ppf) qs
 
-type ('a, 'b, +'m) t = {
+type counit = unit
+
+type ('params, 'input, 'output, +'mult) t4 = {
   id: int option;
   query: Caqti_driver_info.t -> query;
-  param_type: 'a Caqti_type.t;
-  row_type: 'b Caqti_type.t;
-  row_mult: 'm Caqti_mult.t;
-} constraint 'm = [< `Zero | `One | `Many]
+  param_type: 'params Caqti_type.t;
+  input_type: 'input Caqti_type.t;
+  output_type: 'output Caqti_type.t;
+  row_mult: 'mult Caqti_mult.t;
+} constraint 'mult = [< `Zero | `One | `Many]
+
+type ('params, 'output, +'mult) t = ('params, counit, 'output, 'mult) t4
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) param_type row_type row_mult query =
+let create ?(oneshot = false) param_type output_type row_mult query =
   let id = if oneshot then None else (incr last_id; Some !last_id) in
-  {id; query; param_type; row_type; row_mult}
+  {id; query; param_type; input_type = Caqti_type.Std.unit; output_type; row_mult}
 
 let param_type request = request.param_type
-let row_type request = request.row_type
+let input_type request = request.input_type
+let output_type request = request.output_type
+let row_type request = request.output_type
 let row_mult request = request.row_mult
 
 let query_id request = request.id
@@ -179,5 +186,5 @@ let pp ppf req =
      | `One -> ""
      | `Zero_or_one -> "?"
      | `Zero_or_more -> "*")
-    Caqti_type.pp req.row_type
+    Caqti_type.pp (row_type req)
     pp_query (req.query Caqti_driver_info.dummy)

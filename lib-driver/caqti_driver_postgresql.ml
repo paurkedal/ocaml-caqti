@@ -425,24 +425,30 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | exception Pg.Error msg ->
           Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg))
        | Pg.Command_ok ->
-          (match Caqti_mult.expose mult with
-           | `Zero -> Ok ()
-           | (`One | `Zero_or_one | `Zero_or_more) ->
-              reject "Tuples expected for this query.")
+          ( match Caqti_mult.expose mult with
+            | `Zero -> Ok ()
+            | (`One | `Zero_or_one | `Zero_or_more) ->
+              reject "Tuples expected for this query."
+            | `Zero_or_more_in ->
+              reject "Copy response expected for this query"
+          )
        | Pg.Tuples_ok ->
-          (match Caqti_mult.expose mult with
-           | `Zero ->
+          ( match Caqti_mult.expose mult with
+            | `Zero ->
               if result#ntuples = 0 then Ok () else
               reject "No tuples expected for this query."
-           | `One ->
+            | `One ->
               if result#ntuples = 1 then Ok () else
               ksprintf reject "Received %d tuples, expected one."
                        result#ntuples
-           | `Zero_or_one ->
+            | `Zero_or_one ->
               if result#ntuples <= 1 then Ok () else
               ksprintf reject "Received %d tuples, expected at most one."
                        result#ntuples
-           | `Zero_or_more -> Ok ())
+            | `Zero_or_more -> Ok ()
+            | `Zero_or_more_in ->
+              reject "Copy response expected for this query"
+          )
        | Pg.Empty_query -> fail "The query was empty."
        | Pg.Bad_response -> reject result#error
        | Pg.Fatal_error -> fail result#error

@@ -185,6 +185,7 @@ let pp ppf req =
      | `Zero -> "!"
      | `One -> ""
      | `Zero_or_one -> "?"
-     | `Zero_or_more -> "*")
+     | `Zero_or_more -> "*"
+     | `Zero_or_more_in -> "<*")
     Caqti_type.pp (row_type req)
     pp_query (req.query Caqti_driver_info.dummy)

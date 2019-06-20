@@ -16,20 +16,22 @@
 
 (** Row multiplicity. *)
 
-type +'m t constraint 'm = [< `Zero | `One | `Many]
+type +'m t constraint 'm = [< `Zero | `One | `Many | `Many_in]
 
 type zero = [`Zero]
 type one = [`One]
 type zero_or_one = [`Zero | `One]
 type zero_or_more = [`Zero | `One | `Many]
+type zero_or_more_in = [`Many_in]
 
 val zero : [> `Zero] t
 val one : [> `One] t
 val zero_or_one : [> `Zero | `One] t
 val zero_or_more : [> `Zero | `One | `Many] t
+val zero_or_more_in : [> `Many_in] t
 
 val only_zero : [< `Zero] t -> unit
 val only_one : [< `One] t -> unit
 val only_zero_or_one : [< `Zero | `One] t -> unit
 
-val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more]
+val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more | `Zero_or_more_in]

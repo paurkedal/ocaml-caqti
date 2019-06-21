@@ -27,7 +27,7 @@ type ('params, 'input, 'output, +'mult) t4 = {
   input_type: 'input Caqti_type.t;
   output_type: 'output Caqti_type.t;
   row_mult: 'mult Caqti_mult.t;
-} constraint 'mult = [< `Zero | `One | `Many]
+} constraint 'mult = [< `Zero | `One | `Many | `Many_in]
 
 type ('params, 'output, +'mult) t = ('params, counit, 'output, 'mult) t4
 
@@ -173,6 +173,34 @@ let find_opt ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_one (fun _ -> qs)
 let collect ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)
+
+let stream_in ?env:_ ?oneshot rt ~table ~columns () =
+  (* TODO: Handle env? *)
+  create_full
+    ?oneshot
+    Caqti_type.unit  (* No parameters in a streaming query *)
+    rt
+    Caqti_type.unit  (* No output in a stream-in query *)
+    Caqti_mult.zero_or_more_in
+    ( fun driver_info ->
+      match Caqti_driver_info.stream_in_builder driver_info with
+      | Some builder -> builder ~table_name:table ~columns
+      | None -> failwith "Driver does not support stream-in queries"
+    )
+
+let stream_out ?env:_ ?oneshot rt ~table ~columns () =
+  (* TODO: Handle env? *)
+  create_full
+    ?oneshot
+    Caqti_type.unit  (* No parameters in a streaming query *)
+    Caqti_type.unit  (* No input in a stream-out query *)
+    rt
+    Caqti_mult.zero_or_more
+    ( fun driver_info ->
+      match Caqti_driver_info.stream_out_builder driver_info with
+      | Some builder -> builder ~table_name:table ~columns
+      | None -> failwith "Driver does not support stream-in queries"
+    )
 
 let pp ppf req =
   Format.fprintf ppf "(%a -%s-> %a) {|%a|}"

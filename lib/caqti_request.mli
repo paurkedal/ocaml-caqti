@@ -33,7 +33,7 @@ type query = Caqti_sql.query
 type counit
 (** Empty type *)
 
-type ('params, 'input, 'output, +'mult) t4 constraint 'mult = [< `Zero | `One | `Many]
+type ('params, 'input, 'output, +'mult) t4 constraint 'mult = [< `Zero | `One | `Many | `Many_in]
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.
     - ['params] is the type of the expected parameter bundle.
@@ -191,6 +191,30 @@ val collect :
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
 (** [collect_p arg_type row_type s] is a shortcut for
     [create_p arg_type row_type Caqti_mult.many (fun _ -> s)]. *)
+
+val stream_in :
+  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?oneshot: bool ->
+  'row_type Caqti_type.t ->
+  table: string ->
+  columns: string list ->
+  unit ->
+  (counit, 'row_type, counit, [> `Many_in]) t4
+(** [stream_in row_type table columns] is a shortcut to create a special query
+    that allows multiple rows of type [row_type] to be inserted into the database in an
+    efficient manner (the exact query mechanism depends on the driver used). *)
+
+val stream_out :
+  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?oneshot: bool ->
+  'row_type Caqti_type.t ->
+  table: string ->
+  columns: string list ->
+  unit ->
+  (counit, counit, 'row_type, [> `Zero | `One | `Many]) t4
+(** [stream_out row_type table columns] is a shortcut to create a special query
+    that allows multiple rows of type [row_type] to be collected from the database in an
+    efficient manner (the exact query mechanism depends on the driver used). *)
 
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human

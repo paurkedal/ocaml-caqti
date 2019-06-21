@@ -18,32 +18,32 @@ open Caqti_prereq
 
 let linear_param_length templ =
   let rec loop = function
-   | Caqti_request.L _ -> ident
-   | Caqti_request.P _ -> succ
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_sql.L _ -> ident
+   | Caqti_sql.P _ -> succ
+   | Caqti_sql.S frags -> List.fold loop frags in
   loop templ 0
 
 let nonlinear_param_length templ =
   let rec loop = function
-   | Caqti_request.L _ -> ident
-   | Caqti_request.P n -> max (n + 1)
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_sql.L _ -> ident
+   | Caqti_sql.P n -> max (n + 1)
+   | Caqti_sql.S frags -> List.fold loop frags in
   loop templ 0
 
 let linear_param_order templ =
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
-   | Caqti_request.L _ -> fun j -> j
-   | Caqti_request.P i -> fun j -> a.(i) <- j :: a.(i); j + 1
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_sql.L _ -> fun j -> j
+   | Caqti_sql.P i -> fun j -> a.(i) <- j :: a.(i); j + 1
+   | Caqti_sql.S frags -> List.fold loop frags in
   let _ = loop templ 0 in
   Array.to_list a
 
 let linear_query_string templ =
   let buf = Buffer.create 64 in
   let rec loop = function
-   | Caqti_request.L s -> Buffer.add_string buf s
-   | Caqti_request.P _ -> Buffer.add_char buf '?'
-   | Caqti_request.S frags -> List.iter loop frags in
+   | Caqti_sql.L s -> Buffer.add_string buf s
+   | Caqti_sql.P _ -> Buffer.add_char buf '?'
+   | Caqti_sql.S frags -> List.iter loop frags in
   loop templ;
   Buffer.contents buf

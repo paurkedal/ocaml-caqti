@@ -16,15 +16,7 @@
 
 open Printf
 
-type query =
-  | L of string
-  | P of int
-  | S of query list
-
-let rec pp_query ppf = function
- | L s -> Format.pp_print_string ppf s
- | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
- | S qs -> List.iter (pp_query ppf) qs
+type query = Caqti_sql.query
 
 type counit = unit
 
@@ -98,6 +90,7 @@ let format_query ~env qs =
     done in
 
   let rec loop p i j acc = (* acc is reversed *)
+    let open Caqti_sql in
     if j = n then L (String.sub qs i (j - i)) :: acc else
     (match qs.[j] with
      | '\'' ->
@@ -147,8 +140,8 @@ let format_query ~env qs =
 let no_env _ _ = raise Not_found
 
 let rec simplify = function
- | L "" -> S []
- | S frags -> S (frags |> List.map simplify |> List.filter ((<>) (S [])))
+ | Caqti_sql.L "" -> Caqti_sql.S []
+ | S frags -> S (frags |> List.map simplify |> List.filter ((<>) (Caqti_sql.S [])))
  | L _ | P _ as frag -> frag
 
 let create_p ?(env = no_env) ?oneshot param_type row_type row_mult qs =
@@ -191,4 +184,4 @@ let pp ppf req =
      | `Zero_or_more -> "*"
      | `Zero_or_more_in -> "<*")
     Caqti_type.pp (row_type req)
-    pp_query (req.query Caqti_driver_info.dummy)
+    Caqti_sql.pp_query (req.query Caqti_driver_info.dummy)

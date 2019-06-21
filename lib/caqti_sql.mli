@@ -14,7 +14,22 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** SQL utility functions.
+(** {2 SQL Primitives} *)
+
+type query =
+  | L of string  (** Literal code. May contain incomplete fragments. *)
+  | P of int     (** [P i] refers to parameter number [i], counting from 0. *)
+  | S of query list (** [S frags] is the concatenation of [frags]. *)
+(** A representation of a query string to send to a database, abstracting over
+    parameter references and providing nested concatenation to simplify
+    generation.  For databases which only support linear parameters (typically
+    denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
+    as needed.  *)
+
+val pp_query : Format.formatter -> query -> unit
+(** Pretty-print a query with the supplied formatter (for debugging). *)
+
+(** {2 SQL utility functions}
 
     {b Note.} Since real databases generally do not implement the precise same
     escaping mechanisms, and discrepancies between the escape function and the

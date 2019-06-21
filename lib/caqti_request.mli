@@ -28,16 +28,7 @@
     query. *)
 
 (** {2 Primitives} *)
-
-type query =
-  | L of string  (** Literal code. May contain incomplete fragments. *)
-  | P of int     (** [P i] refers to parameter number [i], counting from 0. *)
-  | S of query list (** [S frags] is the concatenation of [frags]. *)
-(** A representation of a query string to send to a database, abstracting over
-    parameter references and providing nested concatenation to simplify
-    generation.  For databases which only support linear parameters (typically
-    denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
-    as needed.  *)
+type query = Caqti_sql.query
 
 type counit
 (** Empty type *)

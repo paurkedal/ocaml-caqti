@@ -14,6 +14,16 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+type query =
+  | L of string
+  | P of int
+  | S of query list
+
+let rec pp_query ppf = function
+ | L s -> Format.pp_print_string ppf s
+ | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
+ | S qs -> List.iter (pp_query ppf) qs
+
 let bprint_sql_escaped buf s =
   for i = 0 to String.length s - 1 do
     match s.[i] with

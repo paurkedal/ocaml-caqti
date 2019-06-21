@@ -16,15 +16,15 @@
 
 (** {b Internal:} Library for Drivers *)
 
-val linear_param_length : Caqti_request.query -> int
+val linear_param_length : Caqti_sql.query -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a
     query represented by [templ]. *)
 
-val linear_param_order : Caqti_request.query -> int list list
+val linear_param_order : Caqti_sql.query -> int list list
 (** [linear_param_order templ] is a list where item number [i] is a list of
     positions of the linearized query which refer to the [i]th incoming
     parameter.  Positions are zero-based. *)
 
-val linear_query_string : Caqti_request.query -> string
+val linear_query_string : Caqti_sql.query -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters. *)

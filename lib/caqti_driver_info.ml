@@ -20,6 +20,7 @@ type parameter_style =
   [ `None
   | `Linear of string
   | `Indexed of (int -> string) ]
+type query_builder = table_name: string -> columns: string list -> Caqti_sql.query
 
 type t = {
   index: int;
@@ -31,6 +32,8 @@ type t = {
   can_transact: bool;
   can_pool: bool;
   can_concur: bool;
+  stream_in_builder: query_builder option;
+  stream_out_builder: query_builder option;
 }
 
 let next_backend_index = ref 0
@@ -44,6 +47,8 @@ let create
     ~can_transact
     ~describe_has_typed_params
     ~describe_has_typed_fields
+    ?stream_in_builder
+    ?stream_out_builder
     () =
   {
     index = (let i = !next_backend_index in incr next_backend_index; i);
@@ -55,6 +60,8 @@ let create
     can_transact;
     can_pool;
     can_concur;
+    stream_in_builder;
+    stream_out_builder;
   }
 
 let dummy = create
@@ -68,5 +75,7 @@ let parameter_style di = di.parameter_style
 let can_pool di = di.can_pool
 let can_concur di = di.can_concur
 let can_transact di = di.can_transact
+let stream_in_builder di = di.stream_in_builder
+let stream_out_builder di = di.stream_out_builder
 let describe_has_typed_params di = di.describe_has_typed_params
 let describe_has_typed_fields di = di.describe_has_typed_fields

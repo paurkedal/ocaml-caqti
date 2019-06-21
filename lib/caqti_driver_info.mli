@@ -40,6 +40,10 @@ type parameter_style = private [>
     - [`Indexed f] means that an occurrence of [f i] represents parameter
       number [i], counting from 0. *)
 
+type query_builder = table_name: string -> columns: string list -> Caqti_sql.query
+(** [query_builder] functions are functions that build [query] instances based on the provided
+    table name and list of column names. The exact query produced depends on the context. *)
+
 type t
 
 val create :
@@ -51,6 +55,8 @@ val create :
   can_transact: bool ->
   describe_has_typed_params: bool ->
   describe_has_typed_fields: bool ->
+  ?stream_in_builder: query_builder ->
+  ?stream_out_builder: query_builder ->
   unit -> t
 (** The function used by drivers to construct a description of themselves.  For
     an explanation of the parameters, see the corresponding projections. *)
@@ -85,6 +91,12 @@ val can_concur : t -> bool
 
 val can_transact : t -> bool
 (** Whether the database and driver supports transactions. *)
+
+val stream_in_builder : t -> query_builder option
+(** If supported, return a query builder for building stream in queries. *)
+
+val stream_out_builder : t -> query_builder option
+(** If supported, return a query builder for building stream out queries. *)
 
 (**/**)
 

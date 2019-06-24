@@ -79,6 +79,9 @@ val create :
     is responsible for turning parameter references into a form accepted by the
     database, while other differences must be handled by [f]. *)
 
+val collapse : ('params, 'input, 'output, 'mult) t4 -> ('params, 'output, 'mult) t
+(** [collapse req] gives the collapsed type version of the full type [req]. *)
+
 val param_type : ('a, _, _) t -> 'a Caqti_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)
 

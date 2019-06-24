@@ -42,6 +42,8 @@ let create_full ?(oneshot = false) param_type input_type output_type row_mult qu
 let create ?(oneshot = false) param_type output_type row_mult query =
   create_full ~oneshot param_type Caqti_type.Std.unit output_type row_mult query
 
+let collapse full = {full with input_type = Caqti_type.Std.unit}
+
 let param_type request = request.param_type
 let input_type request = request.input_type
 let output_type request = request.output_type

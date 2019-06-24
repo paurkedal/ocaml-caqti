@@ -57,6 +57,15 @@ let pp_load_msg ppf fmt err =
   Format.pp_print_string ppf ": ";
   pp_msg ppf err.msg
 
+type driver_error = {
+  uri : Uri.t;
+  msg : msg;
+}
+let pp_driver_msg ppf fmt err =
+  Format.fprintf ppf fmt pp_uri err.uri;
+  Format.pp_print_string ppf ": ";
+  pp_msg ppf err.msg
+
 type connection_error = {
   uri : Uri.t;
   msg : msg;
@@ -91,6 +100,9 @@ let pp_coding_error ppf fmt err =
 
 let load_rejected ~uri msg = `Load_rejected ({uri; msg} : load_error)
 let load_failed ~uri msg = `Load_failed ({uri; msg} : load_error)
+
+(* Driver *)
+let not_implemented ~uri msg = `Not_implemented ({uri; msg} : driver_error)
 
 (* Connect *)
 
@@ -160,7 +172,10 @@ type connect =
 
 type load_or_connect = [load | connect]
 
-type t = [load | connect | call | retrieve]
+type driver =
+  [ `Not_implemented of driver_error]
+
+type t = [load | connect | call | retrieve | driver]
 
 let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Load_rejected ({uri; _} : load_error) -> uri
@@ -175,6 +190,7 @@ let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Decode_rejected ({uri; _} : coding_error) -> uri
  | `Response_failed ({uri; _} : query_error) -> uri
  | `Response_rejected ({uri; _} : query_error) -> uri
+ | `Not_implemented ({uri; _} : driver_error) -> uri
 
 let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Load_rejected err -> pp_load_msg ppf "Cannot load driver for <%a>" err
@@ -191,6 +207,7 @@ let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Request_failed err -> pp_query_msg ppf "Request to <%a> failed" err
  | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err
  | `Response_rejected err -> pp_query_msg ppf "Unexpected result from <%a>" err
+ | `Not_implemented err -> pp_driver_msg ppf "Method not implemented from <%a>" err
 
 let show err =
   let buf = Buffer.create 128 in

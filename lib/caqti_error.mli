@@ -53,6 +53,10 @@ type load_error = private {
   uri: Uri.t;
   msg: msg;
 }
+type driver_error = private {
+  uri: Uri.t;
+  msg: msg;
+}
 type connection_error = private {
   uri: Uri.t;
   msg: msg;
@@ -82,6 +86,11 @@ val load_failed : uri: Uri.t -> msg -> [> `Load_failed of load_error]
 (** [load_failed ~uri msg] indicates that a driver for [uri] could not be
     loaded. *)
 
+(** {3 Errors during driver operation} *)
+
+val not_implemented : uri: Uri.t -> msg -> [> `Not_implemented of driver_error]
+(** [not_implemented msg] indicates that the driver for [uri] does not implement
+    the requested method. *)
 
 (** {3 Errors during Connect} *)
 
@@ -177,10 +186,13 @@ type connect =
 
 type load_or_connect = [load | connect]
 
+type driver =
+  [ `Not_implemented of driver_error ]
+
 
 (** {2 Generic Error Type and Functions} *)
 
-type t = [load | connect | call | retrieve]
+type t = [load | connect | call | retrieve | driver]
 (** The full union of errors used by Caqti. *)
 
 val uri : [< t] -> Uri.t

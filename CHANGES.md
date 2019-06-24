@@ -1,8 +1,9 @@
 ## Unreleased
 
-- Add stream for result extraction (Nathan Rebours).
+- Add stream for result extraction (GPR#22 Nathan Rebours).
 - Use the postgres driver when `postgres` is specified as the URL scheme
-  (James Owen).
+  (GPR#25 James Owen).
+- Documentation improvements (GPR#20 Nathan Rebours, etc.).
 
 ## v1.1.0 - 2019-02-03
 

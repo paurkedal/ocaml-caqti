@@ -20,6 +20,8 @@ type query = Caqti_sql.query
 
 type counit = unit
 
+let counit () = ()
+
 type ('params, 'input, 'output, +'mult) t4 = {
   id: int option;
   query: Caqti_driver_info.t -> query;

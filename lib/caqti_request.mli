@@ -33,6 +33,8 @@ type query = Caqti_sql.query
 type counit
 (** Empty type *)
 
+val counit : unit -> counit
+
 type ('params, 'input, 'output, +'mult) t4 constraint 'mult = [< `Zero | `One | `Many | `Many_in]
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.

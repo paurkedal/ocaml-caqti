@@ -210,7 +210,7 @@ let rec decode_field
    | Caqti_type.String -> Ok s
    | Caqti_type.Octets -> Ok s
    | Caqti_type.Pdate ->
-     (match pdate_of_iso8601 s with
+      (match pdate_of_iso8601 s with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in

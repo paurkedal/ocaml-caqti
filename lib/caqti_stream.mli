@@ -43,6 +43,8 @@ module type S = sig
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 
   val to_list : ('a, 'err) t -> ('a list, 'err) result future
+
+  val from_list : 'a list -> ('a, 'err) t
 end
 
 module type FUTURE = sig

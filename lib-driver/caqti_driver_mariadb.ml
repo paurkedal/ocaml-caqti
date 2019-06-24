@@ -382,6 +382,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           | Ok None -> return Stream.Nil
           | Error err -> return (Stream.Error err)
           | Ok (Some y) -> return (Stream.Cons (y, to_stream resp)))
+
+      let from_stream _ _stream =
+        let msg = Caqti_error.Msg "from_stream not implemented" in
+        return (Error (Caqti_error.not_implemented ~uri msg))
     end
 
     type pcache_entry = {

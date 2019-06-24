@@ -597,6 +597,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Ok y -> return @@ Stream.Cons (y, f (i + 1))
            | Error err -> return @@ Stream.Error err) in
         f 0
+
+      let from_stream _ _stream =
+        let msg = Caqti_error.Msg "from_stream not implemented" in
+        return (Error (Caqti_error.not_implemented ~uri msg))
     end
 
     let call ~f req param =

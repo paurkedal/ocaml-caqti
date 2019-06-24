@@ -111,6 +111,13 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
       let f resp = Response.fold List.cons resp [] in
       call ~f q p
 
+    let from_stream q s =
+      let f resp = Response.from_stream resp s in
+      call
+        ~f
+        (Caqti_request.collapse q)
+        (Caqti_request.counit ())
+
     let start () = use C.start
     let commit () = use C.commit
     let rollback () = use C.rollback

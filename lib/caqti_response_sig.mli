@@ -83,6 +83,14 @@ module type S = sig
       Cf. {!fold_s}. *)
 
   val to_stream : ('b, 'm) t -> ('b, [> Caqti_error.retrieve] as 'err) stream
-    (** [to_stream resp] returns a stream whose elements are the decoded rows
-        returned by [resp]. *)
+  (** [to_stream resp] returns a stream whose elements are the decoded rows
+      returned by [resp]. *)
+
+  (** {2 Insertion functions} *)
+
+  val from_stream :
+    (Caqti_request.counit, [`Many_in]) t ->
+    ('row_type, unit) stream ->
+    (unit, [> Caqti_error.driver] as 'err) result future
+  (** [from_stream resp stream] inserts the contents of [stream] into the database. *)
 end

@@ -174,4 +174,15 @@ module type S = sig
       extracting the result as a reversed list.  This is more efficient than
       {!find_list} and fits well with a subsequent {!List.rev_map}, though it
       may not matter much in practise. *)
+
+  (** {2 Insertion Convenience}
+
+      These are shortcuts for {!call} combined with insertion functions from
+      {!Caqti_response_sig.S} of the same name. *)
+
+  val from_stream :
+    (Caqti_request.counit, 'row_type, Caqti_request.counit, [`Many_in]) Caqti_request.t4 ->
+    ('row_type, unit) stream ->
+    (unit, [> Caqti_error.call | Caqti_error.driver] as 'e) result future
+
 end

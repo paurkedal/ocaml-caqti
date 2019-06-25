@@ -67,6 +67,18 @@ module Q = struct
     "SELECT i, s FROM test_sql"
   let select_from_tmp_where_i_lt = Caqti_request.collect int (tup2 int string)
     "SELECT i, s FROM test_sql WHERE i < ?"
+  let stream_into_tmp =
+    Caqti_request.stream_in
+      (tup2 int string)
+      ~table:"test_sql"
+      ~columns:["i"; "s"]
+      ()
+  let stream_from_tmp =
+    Caqti_request.stream_out
+      (tup2 int string)
+      ~table:"test_sql"
+      ~columns:["i"; "s"]
+      ()
 
   let select_current_time = Caqti_request.find unit ptime
     "SELECT current_timestamp"
@@ -245,10 +257,24 @@ struct
     assert_stream_is (Ok [(1, "one"); (2, "two")]) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
+  let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
+    let assert_stream_both_ways expected =
+      let input_stream = Caqti_sys.Stream.from_list expected in
+      Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+      Db.from_stream Q.stream_into_tmp input_stream >>= Sys.or_fail >>= fun () ->
+      Db.collect_list Q.stream_from_tmp (Caqti_request.counit ()) >>= Sys.or_fail >>= fun actual ->
+      assert (actual = expected);
+      Db.exec Q.drop_tmp ()
+    in
+    assert_stream_both_ways [] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways [(1, "one")] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways [(1, "one"); (2, "two")] >>= Sys.or_fail
+
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
     test_stream (module Db) >>= fun () ->
+    test_stream_both_ways (module Db) >>= fun () ->
     Db.disconnect ()
 
   let run_pool pool =

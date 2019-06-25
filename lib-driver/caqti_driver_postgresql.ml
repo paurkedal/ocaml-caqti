@@ -29,6 +29,14 @@ let () =
    | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Pg_msg]
 
+let stream_in_builder ~table_name:_ ~columns:_ =
+  (* Create a COPY INTO table_name (columns) query to execute *)
+  failwith "Unimplemented"
+
+let stream_out_builder ~table_name:_ ~columns:_ =
+  (* Create a COPY FROM table_name (columns) query to execute *)
+  failwith "Unimplemented"
+
 let driver_info =
   Caqti_driver_info.create
     ~uri_scheme:"postgresql"
@@ -39,6 +47,8 @@ let driver_info =
     ~can_transact:true
     ~describe_has_typed_params:true
     ~describe_has_typed_fields:true
+    ~stream_in_builder
+    ~stream_out_builder
     ()
 
 module Pg_ext = struct
@@ -590,6 +600,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         loop 0 ()
 
       let to_stream {row_type; result} =
+        (* This needs to somehow handle copying out based on the value of result *)
         let n = result#ntuples in
         let rec f i () =
           if i = n then return Stream.Nil else
@@ -599,6 +610,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         f 0
 
       let from_stream _ _stream =
+        (* Check the response allows us to copy, then stream in the serialized items *)
         let msg = Caqti_error.Msg "from_stream not implemented" in
         return (Error (Caqti_error.not_implemented ~uri msg))
     end

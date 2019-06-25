@@ -18,6 +18,14 @@ open Caqti_prereq
 open Caqti_driver_lib
 open Printf
 
+let stream_in_builder ~table_name:_ ~columns:_ =
+  (* Create an INSERT INTO table_name (columns) VALUES (?,..) query to be prepared *)
+  failwith "Unimplemented"
+
+let stream_out_builder ~table_name:_ ~columns:_ =
+  (* Create a normal SELECT columns FROM table_name query *)
+  failwith "Unimplemented"
+
 let driver_info =
   Caqti_driver_info.create
     ~uri_scheme:"sqlite3"
@@ -28,6 +36,8 @@ let driver_info =
     ~can_transact:true
     ~describe_has_typed_params:false
     ~describe_has_typed_fields:true
+    ~stream_in_builder
+    ~stream_out_builder
     ()
 
 let get_uri_bool uri name =
@@ -380,7 +390,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         | Error err -> return (Stream.Error err)
         | Ok (Some y) -> return (Stream.Cons (y, to_stream resp))
 
-      let from_stream _ _stream =
+      let from_stream _resp stream =
+        (* Begin a transaction, call the prepared query for every item, end the transaction *)
         let msg = Caqti_error.Msg "from_stream not implemented" in
         return (Error (Caqti_error.not_implemented ~uri msg))
     end

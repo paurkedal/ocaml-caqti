@@ -245,10 +245,29 @@ struct
     assert_stream_is (Ok [(1, "one"); (2, "two")]) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
+  let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
+    let assert_stream_both_ways expected =
+      let input_stream = Caqti_sys.Stream.of_list expected in
+      Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+      Db.populate
+        ~table:"test_sql"
+        ~columns:["i"; "s"]
+        Caqti_type.(tup2 int string)
+        input_stream
+      >>= Sys.or_fail >>= fun () ->
+      Db.collect_list Q.select_from_tmp () >>= Sys.or_fail >>= fun actual ->
+      assert (actual = expected);
+      Db.exec Q.drop_tmp ()
+    in
+    assert_stream_both_ways [] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways [(1, "one")] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways [(1, "one"); (2, "two")] >>= Sys.or_fail
+
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
     test_stream (module Db) >>= fun () ->
+    test_stream_both_ways (module Db) >>= fun () ->
     Db.disconnect ()
 
   let run_pool pool =

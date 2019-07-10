@@ -474,6 +474,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let transaction_failed query err =
       return (Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err)))
 
+    let exec q p = call ~f:Response.exec q p
+
     let start () =
       Mdb.autocommit db false >>=
       (function
@@ -493,6 +495,39 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (function
        | Ok () -> return (Ok ())
        | Error err -> transaction_failed "# ROLLBACK" err)
+
+    let populate ~table ~columns row_type input_stream =
+      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
+      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
+      let insert_query =
+        Caqti_request.exec
+          row_type
+          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
+      in
+      (* TODO: Should we prepare the statement directly somehow? *)
+      begin
+        (* Begin a transaction *)
+        start () >>=? fun () ->
+
+        (* Insert each element in the stream *)
+        System.Stream.iter_s
+          ~f:(fun row -> exec insert_query row)
+          input_stream
+        >>= fun resp ->
+        begin
+          (* Since the input stream cannot contain errors, unpack the combined error type
+           * returned
+           *)
+          match resp with
+          | Ok () as x -> return x
+          | Error (`Callback e) -> return (Error e)
+          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
+        end
+        >>=? fun () ->
+
+        (* Commit the transaction *)
+        commit ()
+      end
   end
 
   type conninfo = {

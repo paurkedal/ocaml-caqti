@@ -383,10 +383,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let pcache = Hashtbl.create 19
 
-    let call ~f req param =
-      let param_type = Caqti_request.param_type req in
-      let row_type = Caqti_request.row_type req in
-
+    let prepare req =
       let prepare_helper query =
         try
           let stmt = Sqlite3.prepare db query in
@@ -395,21 +392,25 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Some stmt -> Ok stmt)
         with Sqlite3.Error msg ->
           let msg = Caqti_error.Msg msg in
-          Error (Caqti_error.request_failed ~uri ~query msg) in
+          Error (Caqti_error.request_failed ~uri ~query msg)
+      in
 
-      let prepare () =
-        let templ = Caqti_request.query req driver_info in
-        let query = linear_query_string templ in
-        let os = linear_param_order templ in
-        Preemptive.detach prepare_helper query >|=? fun stmt ->
-        Ok (stmt, os, query) in
+      let templ = Caqti_request.query req driver_info in
+      let query = linear_query_string templ in
+      let os = linear_param_order templ in
+      Preemptive.detach prepare_helper query >|=? fun stmt ->
+      Ok (stmt, os, query)
+
+    let call ~f req param =
+      let param_type = Caqti_request.param_type req in
+      let row_type = Caqti_request.row_type req in
 
       (match Caqti_request.query_id req with
-       | None -> prepare ()
+       | None -> prepare req
        | Some id ->
           (try return (Ok (Hashtbl.find pcache id)) with
            | Not_found ->
-              prepare () >|=? fun pcache_entry ->
+              prepare req >|=? fun pcache_entry ->
               Hashtbl.add pcache id pcache_entry;
               Ok pcache_entry))
       >>=? fun (stmt, os, query) ->
@@ -469,6 +470,39 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec Q.start ()
     let commit () = exec Q.commit ()
     let rollback () = exec Q.rollback ()
+
+    let populate ~table ~columns row_type input_stream =
+      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
+      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
+      let insert_query =
+        Caqti_request.exec
+          row_type
+          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
+      in
+      (* TODO: Should we prepare the statement directly somehow? *)
+      begin
+        (* Begin a transaction *)
+        start () >>=? fun () ->
+
+        (* Insert each element in the stream *)
+        System.Stream.iter_s
+          ~f:(fun row -> exec insert_query row)
+          input_stream
+        >>= fun resp ->
+        begin
+          (* Since the input stream cannot contain errors, unpack the combined error type
+           * returned
+           *)
+          match resp with
+          | Ok () as x -> return x
+          | Error (`Callback e) -> return (Error e)
+          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
+        end
+        >>=? fun () ->
+
+        (* Commit the transaction *)
+        commit ()
+      end
   end
 
   let connect uri =

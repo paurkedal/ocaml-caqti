@@ -43,6 +43,8 @@ module type S = sig
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 
   val to_list : ('a, 'err) t -> ('a list, 'err) result future
+
+  val of_list : 'a list -> ('a, 'err) t
 end
 
 module type FUTURE = sig
@@ -89,4 +91,9 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
   let to_rev_list t = fold ~f:List.cons t []
 
   let to_list t = to_rev_list t >|=? List.rev
+
+  let rec of_list l =
+    fun () -> match l with
+    | [] -> return Nil
+    | hd::tl -> return (Cons (hd, (of_list tl)))
 end

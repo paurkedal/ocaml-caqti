@@ -30,15 +30,15 @@ module type S = sig
     ('state, 'err) result future
 
   val fold_s :
-    f: ('a -> 'state -> ('state, 'err) result future) ->
+    f: ('a -> 'state -> ('state, 'errc) result future) ->
     ('a, 'err) t ->
     'state ->
-    ('state, 'err) result future
+    ('state, [`Self of 'err| `Callback of 'errc]) result future
 
   val iter_s :
-    f:('a -> (unit, 'err) result future) ->
+    f:('a -> (unit, 'errc) result future) ->
     ('a, 'err) t ->
-    (unit, 'err) result future
+    (unit, [`Self of 'err| `Callback of 'errc]) result future
 
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 

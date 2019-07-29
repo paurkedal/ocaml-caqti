@@ -501,6 +501,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
       let insert_query =
         Caqti_request.exec
+          ~oneshot:true
           row_type
           ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
       in

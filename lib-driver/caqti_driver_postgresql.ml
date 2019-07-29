@@ -660,6 +660,40 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec start_req ()
     let commit () = exec commit_req ()
     let rollback () = exec rollback_req ()
+
+    let populate ~table ~columns row_type input_stream =
+      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
+      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
+      let insert_query =
+        Caqti_request.exec
+          ~oneshot:true
+          row_type
+          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
+      in
+      (* TODO: Should we prepare the statement directly somehow? *)
+      begin
+        (* Begin a transaction *)
+        start () >>=? fun () ->
+
+        (* Insert each element in the stream *)
+        System.Stream.iter_s
+          ~f:(fun row -> exec insert_query row)
+          input_stream
+        >>= fun resp ->
+        begin
+          (* Since the input stream cannot contain errors, unpack the combined error type
+           * returned
+           *)
+          match resp with
+          | Ok () as x -> return x
+          | Error (`Callback e) -> return (Error e)
+          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
+        end
+        >>=? fun () ->
+
+        (* Commit the transaction *)
+        commit ()
+      end
   end
 
   let connect uri =

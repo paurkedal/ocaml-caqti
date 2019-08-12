@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,12 +18,12 @@
 
 val define_loader : (string -> (unit, string) result) -> unit
 (** Defines the function used to dynamically load driver libraries. This is
-    normally only called once during initialization of the [caqti-dynload]
-    library, if linked. *)
+    normally called during initialization by the [caqti-dynload] library, if
+    linked into the application. *)
 
 val define_unix_driver :
   string -> (module Caqti_driver_sig.Of_system_unix) -> unit
-(** [register_scheme scheme m] installs [m] as a handler for the URI scheme
+(** [define_unix_driver scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 

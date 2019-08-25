@@ -30,11 +30,13 @@
 (** {2 Primitives} *)
 
 (**/**)
+[@@@warning "-3"]
 type query = Caqti_query.t =
   | L of string [@deprecated "Moved to Caqti_query"]
   | P of int [@deprecated "Moved to Caqti_query"]
   | S of query list [@deprecated "Moved to Caqti_query"]
-[@@deprecated "Moved to Caqti_query.t"] [@@warning "-3"]
+[@@deprecated "Moved to Caqti_query.t"]
+[@@@warning "+3"]
 (**/**)
 
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]

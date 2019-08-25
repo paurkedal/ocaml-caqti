@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,17 +14,24 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** {b Internal:} Library for Drivers *)
+type t =
+  | L of string
+  | P of int
+  | S of t list
+[@@deriving eq]
 
-val linear_param_length : Caqti_query.t -> int
-(** [linear_param_length templ] is the number of linear parameters expected by a
-    query represented by [templ]. *)
+let hash = Hashtbl.hash
 
-val linear_param_order : Caqti_query.t -> int list list
-(** [linear_param_order templ] is a list where item number [i] is a list of
-    positions of the linearized query which refer to the [i]th incoming
-    parameter.  Positions are zero-based. *)
+let rec pp ppf = function
+ | L s -> Format.pp_print_string ppf s
+ | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
+ | S qs -> List.iter (pp ppf) qs
 
-val linear_query_string : Caqti_query.t -> string
-(** [linear_query_string templ] is [templ] where ["?"] is substituted for
-    parameters. *)
+let concat =
+  let rec loop pfx acc = function
+   | [] -> acc
+   | q :: qs -> loop pfx (pfx :: q :: acc) qs
+  in
+  fun sep -> function
+   | [] -> S[]
+   | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))

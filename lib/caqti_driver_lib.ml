@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,32 +18,32 @@ open Caqti_prereq
 
 let linear_param_length templ =
   let rec loop = function
-   | Caqti_request.L _ -> ident
-   | Caqti_request.P _ -> succ
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_query.L _ -> ident
+   | Caqti_query.P _ -> succ
+   | Caqti_query.S frags -> List.fold loop frags in
   loop templ 0
 
 let nonlinear_param_length templ =
   let rec loop = function
-   | Caqti_request.L _ -> ident
-   | Caqti_request.P n -> max (n + 1)
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_query.L _ -> ident
+   | Caqti_query.P n -> max (n + 1)
+   | Caqti_query.S frags -> List.fold loop frags in
   loop templ 0
 
 let linear_param_order templ =
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
-   | Caqti_request.L _ -> fun j -> j
-   | Caqti_request.P i -> fun j -> a.(i) <- j :: a.(i); j + 1
-   | Caqti_request.S frags -> List.fold loop frags in
+   | Caqti_query.L _ -> fun j -> j
+   | Caqti_query.P i -> fun j -> a.(i) <- j :: a.(i); j + 1
+   | Caqti_query.S frags -> List.fold loop frags in
   let _ = loop templ 0 in
   Array.to_list a
 
 let linear_query_string templ =
   let buf = Buffer.create 64 in
   let rec loop = function
-   | Caqti_request.L s -> Buffer.add_string buf s
-   | Caqti_request.P _ -> Buffer.add_char buf '?'
-   | Caqti_request.S frags -> List.iter loop frags in
+   | Caqti_query.L s -> Buffer.add_string buf s
+   | Caqti_query.P _ -> Buffer.add_char buf '?'
+   | Caqti_query.S frags -> List.iter loop frags in
   loop templ;
   Buffer.contents buf

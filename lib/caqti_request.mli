@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,15 +29,13 @@
 
 (** {2 Primitives} *)
 
-type query =
-  | L of string  (** Literal code. May contain incomplete fragments. *)
-  | P of int     (** [P i] refers to parameter number [i], counting from 0. *)
-  | S of query list (** [S frags] is the concatenation of [frags]. *)
-(** A representation of a query string to send to a database, abstracting over
-    parameter references and providing nested concatenation to simplify
-    generation.  For databases which only support linear parameters (typically
-    denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
-    as needed.  *)
+(**/**)
+type query = Caqti_query.t =
+  | L of string [@deprecated "Moved to Caqti_query"]
+  | P of int [@deprecated "Moved to Caqti_query"]
+  | S of query list [@deprecated "Moved to Caqti_query"]
+[@@deprecated "Moved to Caqti_query.t"] [@@warning "-3"]
+(**/**)
 
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 (** A request specification embedding a query generator, parameter encoder, and
@@ -49,7 +47,7 @@ type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 val create :
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> query) -> ('a, 'b, 'm) t
+  (Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t
 (** [create arg_type row_type row_mult f] is a request which takes parameters of
     type [arg_type], returns rows of type [row_type] with multiplicity
     [row_mult], and which sends query strings generated from the query [f di],
@@ -71,15 +69,15 @@ val query_id : ('a, 'b, 'm) t -> int option
 (** If [req] is a prepared query, then [query_id req] is [Some id] for some [id]
     which uniquely identifies [req], otherwise it is [None]. *)
 
-val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
+val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 (** [query req] is the function which generates the query of this request
     possibly tailored for the given driver. *)
 
 (** {2 Convenience}
 
     In the following functions, queries are written out as plain strings with
-    the following syntax, which is parsed by Caqti into a {!query} object before
-    being passed to drivers.
+    the following syntax, which is parsed by Caqti into a {!Caqti_query.t}
+    object before being passed to drivers.
 
     {b Parameters} are specified as either
 
@@ -111,7 +109,7 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> query
     according to the multiplicity parameter of their types. *)
 
 val create_p :
-  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
   (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
@@ -135,7 +133,7 @@ val create_p :
       the bug. *)
 
 val exec :
-  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
@@ -143,7 +141,7 @@ val exec :
     [create_p arg_type Caqti_type.unit Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :
-  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
@@ -151,7 +149,7 @@ val find :
     [create_p arg_type row_type Caqti_mult.one (fun _ -> s)]. *)
 
 val find_opt :
-  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
@@ -159,7 +157,7 @@ val find_opt :
     [create_p arg_type row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
 
 val collect :
-  ?env: (Caqti_driver_info.t -> string -> query) ->
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
@@ -194,7 +192,7 @@ C.exec req pv
     Note that dynamically constructed requests should have [~oneshot:true]
     unless they are memoized.  Also note that it is natural to use {!create} for
     dynamically constructed queries, since it accepts the easily composible
-    {!query} type instead of plain strings.
+    {!Caqti_query.t} type instead of plain strings.
 
     This scheme can be specialized for particular use cases, including
     generation of fragments of the [query], which reduces the risk of wrongly

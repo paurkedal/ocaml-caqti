@@ -14,6 +14,7 @@
     Caqti_mult
     Caqti_pool
     Caqti_pool_sig
+    Caqti_query
     Caqti_request
     Caqti_response_sig
     Caqti_sql
@@ -32,4 +33,5 @@
     Caqti_pool_sig
     Caqti_type_sig)
   (library_flags (:standard -linkall))
-  (libraries logs ptime uri))
+  (libraries logs ptime uri)
+  (preprocess (pps ppx_deriving.eq)))

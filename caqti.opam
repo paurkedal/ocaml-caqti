@@ -10,6 +10,7 @@ depends: [
   "ocaml" {>= "4.04.0"}
   "dune" {build}
   "logs"
+  "ppx_deriving"
   "ptime"
   "uri" {>= "1.9.0"}
 ]

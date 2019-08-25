@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,15 +16,10 @@
 
 open Printf
 
-type query =
+type query = Caqti_query.t =
   | L of string
   | P of int
   | S of query list
-
-let rec pp_query ppf = function
- | L s -> Format.pp_print_string ppf s
- | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
- | S qs -> List.iter (pp_query ppf) qs
 
 type ('a, 'b, +'m) t = {
   id: int option;
@@ -180,4 +175,4 @@ let pp ppf req =
      | `Zero_or_one -> "?"
      | `Zero_or_more -> "*")
     Caqti_type.pp req.row_type
-    pp_query (req.query Caqti_driver_info.dummy)
+    Caqti_query.pp (req.query Caqti_driver_info.dummy)

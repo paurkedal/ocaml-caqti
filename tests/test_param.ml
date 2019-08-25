@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,8 +43,8 @@ let test_nonlin (module Db : Caqti_lwt.CONNECTION) =
 
 let env1_q =
   let env _ = function
-   | "." -> Caqti_request.L"100"
-   | "fourty" -> Caqti_request.L"40"
+   | "." -> Caqti_query.L"100"
+   | "fourty" -> Caqti_query.L"40"
    | _ -> raise Not_found in
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int "SELECT $. - $(fourty)"
 

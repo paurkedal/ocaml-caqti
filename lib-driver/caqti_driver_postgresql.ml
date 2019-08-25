@@ -53,9 +53,9 @@ module Pg_ext = struct
   let query_string templ =
     let buf = Buffer.create 64 in
     let rec loop = function
-     | Caqti_request.L s -> Buffer.add_string buf s
-     | Caqti_request.P i -> bprintf buf "$%d" (i + 1)
-     | Caqti_request.S frags -> List.iter loop frags in
+     | Caqti_query.L s -> Buffer.add_string buf s
+     | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
+     | Caqti_query.S frags -> List.iter loop frags in
     loop templ;
     Buffer.contents buf
 

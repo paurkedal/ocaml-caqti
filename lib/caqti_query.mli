@@ -25,13 +25,26 @@ type t =
     generation.  For databases which only support linear parameters (typically
     denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
     as needed.  *)
-[@@deriving eq]
+
+val normal : t -> t
+(** [normal q] rewrites [q] to a normal form containing at most one top-level
+    {!S} constructor, containing no empty literals, and no consecutive literals.
+    This function can be used to post-process queries before using {!equal} and
+    {!hash}. *)
+
+val equal : t -> t -> bool
+(** Equality predicate for {!query}. *)
 
 val hash : t -> int
-(** A hash function for {!query}, currently using {!Hashtbl.hash}. *)
+(** A hash function compatible with {!equal}.  This is currently
+    {!Hashtbl.hash}. *)
 
 val pp : Format.formatter -> t -> unit
 (** [pp ppf q] prints a human-readable representation of [q] on [ppf]. *)
+
+val show : t -> string
+(** [show q] is the same human-readable representation of [q] as printed by
+    {!pp}. *)
 
 val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty

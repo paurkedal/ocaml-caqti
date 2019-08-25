@@ -20,12 +20,38 @@ type t =
   | S of t list
 [@@deriving eq]
 
+let normal =
+  let rec collect acc = function
+   | [] -> List.rev acc
+   | ((L"" | S[]) :: qs) -> collect acc qs
+   | (P i :: qs) -> collect (P i :: acc) qs
+   | (S (q' :: qs') :: qs) -> collect acc (q' :: S qs' :: qs)
+   | (L s :: qs) -> collectL acc [s] qs
+  and collectL acc accL = function
+   | ((L"" | S[]) :: qs) -> collectL acc accL qs
+   | (L s :: qs) -> collectL acc (s :: accL) qs
+   | (S (q' :: qs') :: qs) -> collectL acc accL (q' :: S qs' :: qs)
+   | [] | (P _ :: _) as qs ->
+      collect (L (String.concat "" (List.rev accL)) :: acc) qs
+  in
+  fun q ->
+    (match collect [] [q] with
+     | [] -> S[]
+     | [q] -> q
+     | qs -> S qs)
+
 let hash = Hashtbl.hash
 
 let rec pp ppf = function
  | L s -> Format.pp_print_string ppf s
  | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
  | S qs -> List.iter (pp ppf) qs
+
+let show q =
+  let buf = Buffer.create 512 in
+  let ppf = Format.formatter_of_buffer buf in
+  pp ppf q; Format.pp_print_flush ppf ();
+  Buffer.contents buf
 
 let concat =
   let rec loop pfx acc = function

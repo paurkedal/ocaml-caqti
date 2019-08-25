@@ -13,6 +13,12 @@
   (libraries caqti testkit))
 
 (test
+  (name test_query)
+  (package caqti)
+  (modules Test_query)
+  (libraries caqti testkit))
+
+(test
   (name test_pool_lwt)
   (package caqti-lwt)
   (modules Test_pool_lwt)

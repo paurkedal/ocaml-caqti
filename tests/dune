@@ -6,19 +6,15 @@
 
 ; Basic Tests
 
-(alias (name runtest) (deps (:first-dep test_heap.exe)) (action (run %{first-dep})))
-(executable
+(test
   (name test_heap)
+  (package caqti)
   (modules Test_heap)
   (libraries caqti testkit))
 
-(alias
-  (name runtest)
-  (package caqti-lwt)
-  (deps (:first-dep test_pool_lwt.exe))
-  (action (run %{first-dep})))
-(executable
+(test
   (name test_pool_lwt)
+  (package caqti-lwt)
   (modules Test_pool_lwt)
   (libraries caqti-lwt testkit))
 
@@ -29,16 +25,14 @@
   (mode fallback)
   (action (write-file %{targets} "sqlite3::memory:\n")))
 
-(alias
-  (name runtest)
-  (package caqti-lwt)
-  (deps (:first-dep bikereg.exe) (alias drivers) uris.conf)
-  (locks /db/bikereg)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
+(test
   (name bikereg)
+  (package caqti-lwt)
   (modules Bikereg)
-  (libraries caqti caqti-dynload caqti-lwt testkit))
+  (libraries caqti caqti-dynload caqti-lwt testkit)
+  (deps (alias drivers) uris.conf)
+  (locks /db/bikereg)
+  (action (setenv OCAMLPATH . (run %{test}))))
 
 (library
   (name test_sql)
@@ -46,61 +40,51 @@
   (modules Test_sql)
   (libraries caqti ptime.clock.os))
 
-(alias
-  (name runtest)
-  (package caqti-dynload)
-  (deps (:first-dep test_sql_blocking.exe) (alias drivers) uris.conf)
-  (locks /db/test_sql)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
+(test
   (name test_sql_blocking)
+  (package caqti-dynload)
   (modules Test_sql_blocking)
-  (libraries caqti caqti.blocking caqti-dynload testkit test_sql))
-
-(alias
-  (name runtest)
-  (package caqti-async)
-  (deps (:first-dep test_sql_async.exe) (alias drivers) uris.conf)
+  (libraries caqti caqti.blocking caqti-dynload testkit test_sql)
+  (deps (alias drivers) uris.conf)
   (locks /db/test_sql)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
+  (action (setenv OCAMLPATH . (run %{test}))))
+
+(test
   (name test_sql_async)
+  (package caqti-async)
   (modules Test_sql_async)
-  (libraries caqti caqti-dynload caqti-async testkit test_sql))
-
-(alias
-  (name runtest)
-  (package caqti-lwt)
-  (deps (:first-dep test_parallel_lwt.exe) (alias drivers) uris.conf)
-  (locks /db/test_parallel_lwt)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
-  (name test_parallel_lwt)
-  (modules Test_parallel_lwt)
-  (libraries caqti caqti-dynload caqti-lwt testkit))
-
-(alias
-  (name runtest)
-  (package caqti-lwt)
-  (deps (:first-dep test_sql_lwt.exe) (alias drivers) uris.conf)
+  (libraries caqti caqti-dynload caqti-async testkit test_sql)
+  (deps (alias drivers) uris.conf)
   (locks /db/test_sql)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
-  (name test_sql_lwt)
-  (modules Test_sql_lwt)
-  (libraries caqti caqti-dynload caqti-lwt testkit test_sql))
+  (action (setenv OCAMLPATH . (run %{test}))))
 
-(alias
-  (name runtest)
+(test
+  (name test_parallel_lwt)
   (package caqti-lwt)
-  (deps (:first-dep test_param.exe) (alias drivers) uris.conf)
-  (action (setenv OCAMLPATH . (run %{first-dep}))))
-(executable
-  (name test_param)
-  (modules Test_param)
-  (libraries caqti caqti-dynload caqti-lwt testkit))
+  (modules Test_parallel_lwt)
+  (libraries caqti caqti-dynload caqti-lwt testkit)
+  (deps (alias drivers) uris.conf)
+  (locks /db/test_parallel_lwt)
+  (action (setenv OCAMLPATH . (run %{test}))))
 
-; Fake META Files
+(test
+  (name test_sql_lwt)
+  (package caqti-lwt)
+  (modules Test_sql_lwt)
+  (libraries caqti caqti-dynload caqti-lwt testkit test_sql)
+  (deps (alias drivers) uris.conf)
+  (locks /db/test_sql)
+  (action (setenv OCAMLPATH . (run %{test}))))
+
+(test
+  (name test_param)
+  (package caqti-lwt)
+  (modules Test_param)
+  (libraries caqti caqti-dynload caqti-lwt testkit)
+  (deps (alias drivers) uris.conf)
+  (action (setenv OCAMLPATH . (run %{test}))))
+
+; Fake META Files - used for dynamic linking of drivers
 
 (alias (name drivers))
 

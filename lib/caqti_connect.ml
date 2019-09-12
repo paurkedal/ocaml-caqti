@@ -97,7 +97,9 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
       r
 
     let call ~f req param = use (fun () -> C.call ~f req param)
-    let populate ~table ~columns r s = use (fun () -> C.populate ~table ~columns r s)
+
+    let populate ~table ~columns r s =
+      use (fun () -> C.populate ~table ~columns r s)
 
     let exec q p = call ~f:Response.exec q p
     let find q p = call ~f:Response.find q p

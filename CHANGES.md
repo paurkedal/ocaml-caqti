@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Add a signature for the populate function, and add basic implementations
+  for all drivers (GPR#28).
 - Add stream for result extraction (GPR#22 Nathan Rebours).
 - Use the postgres driver when `postgres` is specified as the URL scheme
   (GPR#25 James Owen).

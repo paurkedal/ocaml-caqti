@@ -67,7 +67,9 @@ module type Base = sig
       during the call to [f], and must not be returned or operated on by other
       threads. *)
 
+
   (** {2 Insertion} *)
+
   val populate:
     table: string ->
     columns: string list ->
@@ -77,6 +79,7 @@ module type Base = sig
   (** [populate table columns row_type input_stream] inputs the contents of
       [input_stream] into the database in whatever manner is most efficient
       as decided by the driver. *)
+
 
   (** {2 Transactions} *)
 

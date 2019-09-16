@@ -5,6 +5,7 @@
   (modules
     Caqti_connect
     Caqti_connect_sig
+    Caqti_connection
     Caqti_connection_sig
     Caqti_driver_lib
     Caqti_driver_info

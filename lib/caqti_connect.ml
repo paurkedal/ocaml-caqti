@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_prereq
 open Printf
 
 let dynload_library = ref @@ fun lib ->
@@ -80,59 +79,11 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   type connection = (module CONNECTION)
 
-  module Connection_of_base (D : DRIVER) (C : CONNECTION_BASE) : CONNECTION =
-  struct
-    let driver_info = D.driver_info
-
-    module Response = C.Response
-
-    let use_count = ref 0
-
-    let use f =
-      if !use_count <> 0 then failwith "Concurrent access to DB connection.";
-      incr use_count;
-      if !use_count <> 1 then failwith "Concurrent access to DB connection.";
-      f () >|= fun r ->
-      decr use_count;
-      r
-
-    let call ~f req param = use (fun () -> C.call ~f req param)
-
-    let populate ~table ~columns r s =
-      use (fun () -> C.populate ~table ~columns r s)
-
-    let exec q p = call ~f:Response.exec q p
-    let find q p = call ~f:Response.find q p
-    let find_opt q p = call ~f:Response.find_opt q p
-    let fold q f p acc = call ~f:(fun resp -> Response.fold f resp acc) q p
-    let fold_s q f p acc = call ~f:(fun resp -> Response.fold_s f resp acc) q p
-    let iter_s q f p = call ~f:(fun resp -> Response.iter_s f resp) q p
-    let collect_list q p =
-      let f resp = Response.fold List.cons resp [] >|= Result.map List.rev in
-      call ~f q p
-    let rev_collect_list q p =
-      let f resp = Response.fold List.cons resp [] in
-      call ~f q p
-
-    let start () = use C.start
-    let commit () = use C.commit
-    let rollback () = use C.rollback
-    let disconnect () = use C.disconnect
-    let validate () = use C.validate
-    let check = C.check
-  end
-
   let connect uri : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect uri >|=
-        (function
-         | Ok connection ->
-            let module Connection = (val connection) in
-            let module Connection = Connection_of_base (Driver) (Connection) in
-            Ok (module Connection : CONNECTION)
-         | Error err -> Error err)
+        Driver.connect uri
      | Error err ->
         return (Error err))
 
@@ -143,14 +94,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        let connect () =
-          Driver.connect uri >|=
-          (function
-           | Ok connection ->
-              let module Connection = (val connection) in
-              let module Connection = Connection_of_base (Driver) (Connection) in
-              Ok (module Connection : CONNECTION)
-           | Error err -> Error err) in
+        let connect () = Driver.connect uri in
         let disconnect (module Db : CONNECTION) = Db.disconnect () in
         let validate (module Db : CONNECTION) = Db.validate () in
         let check (module Db : CONNECTION) = Db.check in

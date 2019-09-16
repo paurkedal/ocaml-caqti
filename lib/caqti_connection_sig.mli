@@ -68,19 +68,6 @@ module type Base = sig
       threads. *)
 
 
-  (** {2 Insertion} *)
-
-  val populate:
-    table: string ->
-    columns: string list ->
-    'input Caqti_type.t ->
-    ('input, unit) stream ->
-    (unit, [> Caqti_error.call_or_retrieve]) result future
-  (** [populate table columns row_type input_stream] inputs the contents of
-      [input_stream] into the database in whatever manner is most efficient
-      as decided by the driver. *)
-
-
   (** {2 Transactions} *)
 
   val start : unit -> (unit, [> Caqti_error.transact]) result future
@@ -113,13 +100,8 @@ module type Base = sig
 
 end
 
-(** Full connection signature available to users. *)
-module type S = sig
-  include Base
-
-  val driver_info : Caqti_driver_info.t
-  (** Information about the driver providing this connection module. *)
-
+module type Convenience = sig
+  type +'a future
 
   (** {2 Retrieval Convenience}
 
@@ -187,4 +169,30 @@ module type S = sig
       extracting the result as a reversed list.  This is more efficient than
       {!find_list} and fits well with a subsequent {!List.rev_map}, though it
       may not matter much in practise. *)
+end
+
+module type Populate = sig
+  type +'a future
+
+  (** {2 Insertion} *)
+
+  val populate:
+    table: string ->
+    columns: string list ->
+    'a Caqti_type.t -> 'a Seq.t ->
+    (unit, [> Caqti_error.call_or_retrieve]) result future
+  (** [populate table columns row_type seq] inputs the contents of [seq] into
+      the database in whatever manner is most efficient as decided by the
+      driver. *)
+end
+
+(** Full connection signature available to users. *)
+module type S = sig
+
+  val driver_info : Caqti_driver_info.t
+  (** Information about the driver providing this connection module. *)
+
+  include Base
+  include Convenience with type 'a future := 'a future
+  include Populate with type 'a future := 'a future
 end

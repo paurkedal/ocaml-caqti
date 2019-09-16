@@ -30,6 +30,7 @@ let set_utc_req =
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
+  module H = Caqti_connection.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
 
@@ -116,7 +117,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   end
 
-  module type CONNECTION = Caqti_connection_sig.Base
+  module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
@@ -298,9 +299,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               Error (Caqti_error.decode_rejected ~uri ~typ msg))
        | Error _ as r -> r))
 
-  module Connection (Db : sig val uri : Uri.t val db : Mdb.t end) : CONNECTION =
+  module Make_connection_base (Db : sig val uri : Uri.t val db : Mdb.t end) =
   struct
     open Db
+
+    let using_db_ref = ref false
+    let using_db f = H.assert_single_use using_db_ref f
 
     module Response = struct
       type ('b, +'m) t = {
@@ -396,7 +400,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let request_failed query err =
       Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err))
 
-    let call ~f req param =
+    let call ~f req param = using_db @@ fun () ->
 
       let process {query; stmt; param_length; param_order} =
         let param_type = Caqti_request.param_type req in
@@ -468,21 +472,21 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Hashtbl.fold close_stmt pcache (return ()) >>= fun () ->
       Mdb.close db
 
-    let validate () = Mdb.ping db >|= function Ok () -> true | Error _ -> false
+    let validate () = using_db @@ fun () ->
+      Mdb.ping db >|= function Ok () -> true | Error _ -> false
+
     let check f = f true (* FIXME *)
 
     let transaction_failed query err =
       return (Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err)))
 
-    let exec q p = call ~f:Response.exec q p
-
-    let start () =
+    let start () = using_db @@ fun () ->
       Mdb.autocommit db false >>=
       (function
        | Ok () -> return (Ok ())
        | Error err -> transaction_failed "# SET autocommit = 0" err)
 
-    let commit () =
+    let commit () = using_db @@ fun () ->
       Mdb.commit db >>= fun commit_result ->
       Mdb.autocommit db true >>= fun autocommit_result ->
       (match commit_result, autocommit_result with
@@ -490,45 +494,11 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Error err, _ -> transaction_failed "# COMMIT" err
        | Ok (), Error err -> transaction_failed "# SET autocommit = 1" err)
 
-    let rollback () =
+    let rollback () = using_db @@ fun () ->
       Mdb.rollback db >>=
       (function
        | Ok () -> return (Ok ())
        | Error err -> transaction_failed "# ROLLBACK" err)
-
-    let populate ~table ~columns row_type input_stream =
-      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
-      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
-      let insert_query =
-        Caqti_request.exec
-          ~oneshot:true
-          row_type
-          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
-      in
-      (* TODO: Should we prepare the statement directly somehow? *)
-      begin
-        (* Begin a transaction *)
-        start () >>=? fun () ->
-
-        (* Insert each element in the stream *)
-        System.Stream.iter_s
-          ~f:(fun row -> exec insert_query row)
-          input_stream
-        >>= fun resp ->
-        begin
-          (* Since the input stream cannot contain errors, unpack the combined error type
-           * returned
-           *)
-          match resp with
-          | Ok () as x -> return x
-          | Error (`Callback e) -> return (Error e)
-          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
-        end
-        >>=? fun () ->
-
-        (* Commit the transaction *)
-        commit ()
-      end
   end
 
   type conninfo = {
@@ -560,7 +530,15 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
     (function
      | Ok db ->
-        let module C = Connection (struct let uri = uri let db = db end) in
+        let module B =
+          Make_connection_base (struct let uri = uri let db = db end)
+        in
+        let module C = struct
+          let driver_info = driver_info
+          include B
+          include Caqti_connection.Make_convenience (System) (B)
+          include Caqti_connection.Make_populate (System) (B)
+        end in
         (* MariaDB returns local times but without time zone, so change it to
          * UTC for Caqti sessions. *)
         C.call ~f:(fun resp -> C.Response.exec resp) set_utc_req () >|=

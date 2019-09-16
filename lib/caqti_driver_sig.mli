@@ -69,7 +69,7 @@ module type S = sig
   type +'a future
   type (+'a, +'err) stream
 
-  module type CONNECTION = Caqti_connection_sig.Base
+  module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) stream
 

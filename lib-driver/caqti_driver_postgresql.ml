@@ -351,6 +351,7 @@ let request_cache : request_cache_entry Request_cache.t =
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
+  module H = Caqti_connection.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
@@ -458,14 +459,17 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   (* Driver Interface *)
 
-  module type CONNECTION = Caqti_connection_sig.Base
+  module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-  module Connection (Db : sig val uri : Uri.t val db : Pg.connection end)
-    : CONNECTION =
+  module Make_connection_base
+          (Db : sig val uri : Uri.t val db : Pg.connection end) =
   struct
     open Db
+
+    let using_db_ref = ref false
+    let using_db f = H.assert_single_use using_db_ref f
 
     let prepare_cache : (int, unit) Hashtbl.t = Hashtbl.create 19
 
@@ -593,7 +597,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         f 0
     end
 
-    let call ~f req param =
+    let call ~f req param = using_db @@ fun () ->
 
       (* Send the query. *)
       let param_type = Caqti_request.param_type req in
@@ -642,13 +646,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
 
-    let disconnect () =
+    let disconnect () = using_db @@ fun () ->
       try db#finish; return () with Pg.Error err ->
         Log.warn (fun p ->
           p "While disconnecting from <%a>: %s"
             Caqti_error.pp_uri uri (Pg.string_of_error err))
 
-    let validate () =
+    let validate () = using_db @@ fun () ->
       if (try db#status = Pg.Ok with Pg.Error _ -> false) then
         return true
       else
@@ -660,40 +664,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec start_req ()
     let commit () = exec commit_req ()
     let rollback () = exec rollback_req ()
-
-    let populate ~table ~columns row_type input_stream =
-      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
-      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
-      let insert_query =
-        Caqti_request.exec
-          ~oneshot:true
-          row_type
-          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
-      in
-      (* TODO: Should we prepare the statement directly somehow? *)
-      begin
-        (* Begin a transaction *)
-        start () >>=? fun () ->
-
-        (* Insert each element in the stream *)
-        System.Stream.iter_s
-          ~f:(fun row -> exec insert_query row)
-          input_stream
-        >>= fun resp ->
-        begin
-          (* Since the input stream cannot contain errors, unpack the combined error type
-           * returned
-           *)
-          match resp with
-          | Ok () as x -> return x
-          | Error (`Callback e) -> return (Error e)
-          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
-        end
-        >>=? fun () ->
-
-        (* Commit the transaction *)
-        commit ()
-      end
   end
 
   let connect uri =
@@ -713,8 +683,15 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 let msg = db#error_message in
                 Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg))
              | false ->
-                let module Connection =
-                  Connection (struct let uri = uri let db = db end) in
+                let module B =
+                  Make_connection_base (struct let uri = uri let db = db end)
+                in
+                let module Connection = struct
+                  let driver_info = driver_info
+                  include B
+                  include Caqti_connection.Make_convenience (System) (B)
+                  include Caqti_connection.Make_populate (System) (B)
+                end in
                 Ok (module Connection : CONNECTION))))
 end
 

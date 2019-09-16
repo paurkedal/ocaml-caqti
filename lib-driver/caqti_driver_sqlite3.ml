@@ -266,20 +266,24 @@ end
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
+  module H = Caqti_connection.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
 
   let driver_info = driver_info
 
-  module type CONNECTION = Caqti_connection_sig.Base
+  module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-  module Connection (Db : sig val uri : Uri.t val db : Sqlite3.db end)
-    : CONNECTION =
+  module Make_connection_base
+    (Db : sig val uri : Uri.t val db : Sqlite3.db end) =
   struct
     open Db
+
+    let using_db_ref = ref false
+    let using_db f = H.assert_single_use using_db_ref f
 
     module Response = struct
 
@@ -401,7 +405,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       Ok (stmt, os, query)
 
-    let call ~f req param =
+    let call ~f req param = using_db @@ fun () ->
       let param_type = Caqti_request.param_type req in
       let row_type = Caqti_request.row_type req in
 
@@ -443,7 +447,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (try f resp >>= fun r -> cleanup () >|= fun () -> r
        with exn -> cleanup () >|= fun () -> raise exn (* should not happen *))
 
-    let disconnect () =
+    let disconnect () = using_db @@ fun () ->
       let finalize_error_count = ref 0 in
       let not_busy = ref false in
       Preemptive.detach begin fun () ->
@@ -470,40 +474,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec Q.start ()
     let commit () = exec Q.commit ()
     let rollback () = exec Q.rollback ()
-
-    let populate ~table ~columns row_type input_stream =
-      let columns_tuple = "(" ^ (String.concat "," columns) ^ ")" in
-      let values_tuple = "(" ^ (String.concat "," (List.map (fun _ -> "?") columns)) ^ ")" in
-      let insert_query =
-        Caqti_request.exec
-          ~oneshot:true
-          row_type
-          ("INSERT INTO " ^ table ^  " " ^ columns_tuple ^ " VALUES " ^ values_tuple)
-      in
-      (* TODO: Should we prepare the statement directly somehow? *)
-      begin
-        (* Begin a transaction *)
-        start () >>=? fun () ->
-
-        (* Insert each element in the stream *)
-        System.Stream.iter_s
-          ~f:(fun row -> exec insert_query row)
-          input_stream
-        >>= fun resp ->
-        begin
-          (* Since the input stream cannot contain errors, unpack the combined error type
-           * returned
-           *)
-          match resp with
-          | Ok () as x -> return x
-          | Error (`Callback e) -> return (Error e)
-          | Error (`Self ()) -> failwith "Input stream to populate cannot return errors"
-        end
-        >>=? fun () ->
-
-        (* Commit the transaction *)
-        commit ()
-      end
   end
 
   let connect uri =
@@ -530,8 +500,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);
       let module Arg = struct let uri = uri let db = db end in
-      let module Db = Connection (Arg) in
-      Ok (module Db : CONNECTION)
+      let module Connection_base = Make_connection_base (Arg) in
+      let module Connection = struct
+        let driver_info = driver_info
+        include Connection_base
+        include Caqti_connection.Make_convenience (System) (Connection_base)
+        include Caqti_connection.Make_populate (System) (Connection_base)
+      end in
+      Ok (module Connection : CONNECTION)
     with
      | Invalid_argument msg ->
         return (Error (Caqti_error.connect_rejected ~uri (Caqti_error.Msg msg)))

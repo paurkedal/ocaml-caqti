@@ -80,9 +80,9 @@ struct
     Stream.iter_s ~f:(C.call ~f:C.Response.exec request) data >>= function
      | Ok () ->
         C.commit ()
-     | Error (`Callback err) ->
-        return (Error err)
      | Error (`Congested err) ->
         C.rollback () >>=? fun () ->
         return (Error (`Congested err))
+     | Error err ->
+        return (Error err)
 end

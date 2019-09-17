@@ -30,15 +30,15 @@ module type S = sig
     ('state, 'err) result future
 
   val fold_s :
-    f: ('a -> 'state -> ('state, 'errc) result future) ->
-    ('a, 'err) t ->
+    f: ('a -> 'state -> ('state, 'err) result future) ->
+    ('a, 'clog) t ->
     'state ->
-    ('state, [> `Congested of 'err | `Callback of 'errc]) result future
+    ('state, [> `Congested of 'clog ] as 'err) result future
 
   val iter_s :
-    f:('a -> (unit, 'errc) result future) ->
-    ('a, 'err) t ->
-    (unit, [> `Congested of 'err | `Callback of 'errc]) result future
+    f: ('a -> (unit, 'err) result future) ->
+    ('a, 'clog) t ->
+    (unit, [> `Congested of 'clog ] as 'err) result future
 
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 
@@ -61,7 +61,7 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
   let (>>=?) res_future f =
     res_future >>= function
     | Ok a -> f a
-    | Error r -> return (Error (`Callback r))
+    | Error _ as r -> return r
 
   let (>|=?) res_future f =
     res_future >>= function

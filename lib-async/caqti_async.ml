@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,7 +43,8 @@ module System = struct
       let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
       let open Deferred in
       f fd >>= fun r ->
-      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd >>= fun () ->
+      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd
+        >>= fun () ->
       return r
 
     let poll ?(read = false) ?(write = false) ?timeout fd =

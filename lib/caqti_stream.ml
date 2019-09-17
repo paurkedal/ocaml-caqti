@@ -33,12 +33,12 @@ module type S = sig
     f: ('a -> 'state -> ('state, 'errc) result future) ->
     ('a, 'err) t ->
     'state ->
-    ('state, [`Self of 'err| `Callback of 'errc]) result future
+    ('state, [> `Congested of 'err | `Callback of 'errc]) result future
 
   val iter_s :
     f:('a -> (unit, 'errc) result future) ->
     ('a, 'err) t ->
-    (unit, [`Self of 'err| `Callback of 'errc]) result future
+    (unit, [> `Congested of 'err | `Callback of 'errc]) result future
 
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 
@@ -83,13 +83,13 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
   let rec fold_s ~f t state =
     t () >>= function
     | Nil -> return (Ok state)
-    | Error err -> return (Error (`Self err) : ('a, 'err) result)
+    | Error err -> return (Error (`Congested err) : ('a, 'err) result)
     | Cons (a, t') -> f a state >>=? fold_s ~f t'
 
   let rec iter_s ~f t =
     t () >>= function
     | Nil -> return (Ok ())
-    | Error err -> return (Error (`Self err) : ('a, 'err) result)
+    | Error err -> return (Error (`Congested err) : ('a, 'err) result)
     | Cons (a, t') -> f a >>=? fun () -> iter_s ~f t'
 
   let to_rev_list t = fold ~f:List.cons t []

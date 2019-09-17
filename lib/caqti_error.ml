@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -198,6 +198,10 @@ let show err =
   pp ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
+
+let uncongested = function
+ | Error #t | Ok _ as x -> x
+ | Error `Congested x -> Caqti_prereq.absurd x
 
 exception Exn of t
 

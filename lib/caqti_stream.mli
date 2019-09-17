@@ -33,12 +33,12 @@ module type S = sig
     f: ('a -> 'state -> ('state, 'errc) result future) ->
     ('a, 'err) t ->
     'state ->
-    ('state, [`Self of 'err| `Callback of 'errc]) result future
+    ('state, [> `Congested of 'err | `Callback of 'errc]) result future
 
   val iter_s :
     f:('a -> (unit, 'errc) result future) ->
     ('a, 'err) t ->
-    (unit, [`Self of 'err| `Callback of 'errc]) result future
+    (unit, [> `Congested of 'err | `Callback of 'errc]) result future
 
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
 

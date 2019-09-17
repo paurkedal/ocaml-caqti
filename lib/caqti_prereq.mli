@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,7 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-(** {b Internal:} Prerequisites. *)
+(** Prerequisites. *)
+
+type counit
+
+val absurd : counit -> 'a
+
+(**/**)
+(* The rest are for internal use only. *)
 
 val (%) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
 val (%>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c

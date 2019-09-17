@@ -17,11 +17,6 @@
 open Caqti_prereq
 open Printf
 
-let rec seq_of_list xs () =
-  (match xs with
-   | [] -> Seq.Nil
-   | x :: xs' -> Seq.Cons (x, seq_of_list xs'))
-
 module Q = struct
   open Caqti_type
 
@@ -252,14 +247,14 @@ struct
 
   let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
     let assert_stream_both_ways expected =
-      let seq = seq_of_list expected in
+      let input_stream = Caqti_sys.Stream.of_list expected in
       Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
       Db.populate
         ~table:"test_sql"
         ~columns:["i"; "s"]
         Caqti_type.(tup2 int string)
-        seq
-      >>= Sys.or_fail >>= fun () ->
+        input_stream
+      >|= Caqti_error.uncongested >>= Sys.or_fail >>= fun () ->
       Db.collect_list Q.select_from_tmp () >>= Sys.or_fail >>= fun actual ->
       assert (actual = expected);
       Db.exec Q.drop_tmp ()

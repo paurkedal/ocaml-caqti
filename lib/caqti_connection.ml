@@ -77,12 +77,12 @@ struct
     in
 
     C.start () >>=? fun () ->
-    let rec loop xs =
-      (match xs () with
-       | Seq.Nil -> return (Ok ())
-       | Seq.Cons (x, xs') ->
-          C.call ~f:C.Response.exec request x >>=? fun () -> loop xs')
-    in
-    loop data >>=? fun () ->
-    C.commit ()
+    Stream.iter_s ~f:(C.call ~f:C.Response.exec request) data >>= function
+     | Ok () ->
+        C.commit ()
+     | Error (`Callback err) ->
+        return (Error err)
+     | Error (`Congested err) ->
+        C.rollback () >>=? fun () ->
+        return (Error (`Congested err))
 end

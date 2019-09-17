@@ -173,14 +173,15 @@ end
 
 module type Populate = sig
   type +'a future
+  type (+'a, +'err) stream
 
   (** {2 Insertion} *)
 
-  val populate:
+  val populate :
     table: string ->
     columns: string list ->
-    'a Caqti_type.t -> 'a Seq.t ->
-    (unit, [> Caqti_error.call_or_retrieve]) result future
+    'a Caqti_type.t -> ('a, 'err) stream ->
+    (unit, [> Caqti_error.call_or_retrieve | `Congested of 'err]) result future
   (** [populate table columns row_type seq] inputs the contents of [seq] into
       the database in whatever manner is most efficient as decided by the
       driver. *)
@@ -194,5 +195,7 @@ module type S = sig
 
   include Base
   include Convenience with type 'a future := 'a future
-  include Populate with type 'a future := 'a future
+  include Populate
+     with type 'a future := 'a future
+      and type ('a, 'err) stream := ('a, 'err) stream
 end

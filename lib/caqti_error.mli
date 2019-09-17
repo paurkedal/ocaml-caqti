@@ -192,6 +192,11 @@ val pp : Format.formatter -> [< t] -> unit
 val show : [< t] -> string
 (** [show error] is an explanation of [error]. *)
 
+val uncongested :
+  ('a, [< t | `Congested of Caqti_prereq.counit]) result ->
+  ('a, [> t]) result
+(** [uncongested r] eliminates an unused [`Congested] case from the error. *)
+
 exception Exn of t
 (** [Exn error] can be used when an exception is preferred over explicit error
     handling.  The core Caqti API never raises exceptions which originate from

@@ -35,4 +35,6 @@ module Make_populate :
   functor (C : Caqti_connection_sig.Base
                 with type 'a future := 'a Sys.future
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->
-  Caqti_connection_sig.Populate with type 'a future := 'a Sys.future
+  Caqti_connection_sig.Populate
+    with type 'a future := 'a Sys.future
+     and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t

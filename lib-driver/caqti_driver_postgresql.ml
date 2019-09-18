@@ -642,6 +642,21 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
 
+    let deallocate req =
+      (match Caqti_request.query_id req with
+       | Some query_id ->
+          if Int_hashtbl.mem prepare_cache query_id then
+            begin
+              let query = sprintf "DEALLOCATE _caq%d" query_id in
+              query_oneshot query >|=? fun result ->
+              Int_hashtbl.remove prepare_cache query_id;
+              Pg_io.check_query_result ~uri ~query result Caqti_mult.zero
+            end
+          else
+            return (Ok ())
+       | None ->
+          failwith "deallocate called on oneshot request")
+
     let disconnect () = using_db @@ fun () ->
       try db#finish; return () with Pg.Error err ->
         Log.warn (fun p ->

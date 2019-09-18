@@ -85,6 +85,11 @@ module type Base = sig
 
   (** {2 Disconnection and Reuse} *)
 
+  val deallocate :
+    ('a, 'b, 'm) Caqti_request.t -> (unit, [> Caqti_error.call]) result future
+  (** [deallocate req] deallocates the prepared query for [req] if it was
+      allocated. The request must not be oneshot. *)
+
   val disconnect : unit -> unit future
   (** Calling [disconnect ()] closes the connection to the database and frees
       up related resources. *)

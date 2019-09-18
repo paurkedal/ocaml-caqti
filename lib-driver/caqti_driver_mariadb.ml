@@ -460,6 +460,23 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               Hashtbl.remove pcache id) >|= fun () ->
           process_result)
 
+    let deallocate req =
+      (match Caqti_request.query_id req with
+       | Some query_id ->
+          (match Hashtbl.find pcache query_id with
+           | exception Not_found -> return (Ok ())
+           | pcache_entry ->
+              Mdb.Stmt.close pcache_entry.stmt >>=
+              (function
+               | Ok () ->
+                  Hashtbl.remove pcache query_id;
+                  return (Ok ())
+               | Error err ->
+                  let query = sprintf "DEALLOCATE %d" query_id in
+                  return (request_failed query err)))
+       | None ->
+          failwith "deallocate called on oneshot request")
+
     let disconnect () =
       let close_stmt _ pcache_entry prologue =
         prologue >>= fun () ->

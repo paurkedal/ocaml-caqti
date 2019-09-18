@@ -447,6 +447,25 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (try f resp >>= fun r -> cleanup () >|= fun () -> r
        with exn -> cleanup () >|= fun () -> raise exn (* should not happen *))
 
+    let deallocate req = using_db @@ fun () ->
+      (match Caqti_request.query_id req with
+       | Some query_id ->
+          (match Hashtbl.find pcache query_id with
+           | exception Not_found -> return (Ok ())
+           | (stmt, _, _) ->
+              Preemptive.detach begin fun () ->
+                (match Sqlite3.finalize stmt with
+                 | Sqlite3.Rc.OK -> Ok (Hashtbl.remove pcache query_id)
+                 | rc ->
+                    let query = sprintf "DEALLOCATE %d" query_id in
+                    Error (Caqti_error.request_failed ~uri ~query (Rc rc))
+                 | exception Sqlite3.Error msg ->
+                    let query = sprintf "DEALLOCATE %d" query_id in
+                    let msg = Caqti_error.Msg msg in
+                    Error (Caqti_error.request_failed ~uri ~query msg))
+              end ())
+       | None -> failwith "deallocate called on oneshot request")
+
     let disconnect () = using_db @@ fun () ->
       let finalize_error_count = ref 0 in
       let not_busy = ref false in

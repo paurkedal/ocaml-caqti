@@ -113,6 +113,13 @@ struct
 
   let test_expr (module Db : Caqti_sys.CONNECTION) =
 
+    let maybe_deallocate q =
+      if Random.int 50 = 0 then
+        Db.deallocate q >>= Sys.or_fail
+      else
+        Sys.return ()
+    in
+
     (* Non-prepared. *)
     repeat 200 (fun i ->
       let req = Caqti_request.find ~oneshot:true
@@ -126,6 +133,7 @@ struct
 
     (* Prepared: null *)
     repeat 3 (fun _ ->
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_null_etc (None, None) >>= Sys.or_fail >>= fun (c1, c2) ->
       assert (c1 && c2 = None);
       Sys.return ()
@@ -133,6 +141,7 @@ struct
 
     (* Prepared: bool *)
     let ck_and a b =
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_and (a, b) >>= Sys.or_fail >|= fun c ->
       assert (c = (a && b)) in
     ck_and false false >>= fun () -> ck_and false true >>= fun () ->
@@ -140,6 +149,7 @@ struct
 
     (* Prepared: int *)
     let ck_plus_int i j =
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_plus_int (i, j) >>= Sys.or_fail >>= fun k ->
       assert (k = (i + j)); Sys.return () in
     repeat 200 (fun _ ->
@@ -149,6 +159,7 @@ struct
 
     (* Prepared: int64 *)
     let ck_plus_int64 i j =
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_plus_int64 (i, j) >>= Sys.or_fail >|= fun k ->
       assert (k = Int64.add i j) in
     repeat 200 (fun _ ->
@@ -159,6 +170,7 @@ struct
 
     (* Prepared: float *)
     let ck_plus_float x y =
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_plus_float (x, y) >>= Sys.or_fail >>= fun z ->
       assert (abs_float (z -. (x +. y)) < 1e-6 *. (x +. y));
       Sys.return () in
@@ -169,6 +181,7 @@ struct
 
     (* Prepared: string *)
     let ck_string x y =
+      maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_cat (x, y) >>= Sys.or_fail >>= fun s ->
       assert (s = x ^ y); Sys.return () in
     repeat 200 (fun _ ->

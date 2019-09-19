@@ -72,17 +72,18 @@ struct
         S[L(sprintf "INSERT INTO %s (%s) VALUES (" table columns_tuple);
           concat ", " (List.mapi (fun i _ -> P i) columns); L")"]
       in
-      Caqti_request.create ~oneshot:true
-        row_type Caqti_type.unit Caqti_mult.zero (fun _ -> q)
+      Caqti_request.create row_type Caqti_type.unit Caqti_mult.zero (fun _ -> q)
     in
 
     C.start () >>=? fun () ->
-    Stream.iter_s ~f:(C.call ~f:C.Response.exec request) data >>= function
+    Stream.iter_s ~f:(C.call ~f:C.Response.exec request) data >>= fun res ->
+    C.deallocate request >>= fun _ ->
+    (match res with
      | Ok () ->
         C.commit ()
      | Error (`Congested err) ->
         C.rollback () >>=? fun () ->
         return (Error (`Congested err))
      | Error err ->
-        return (Error err)
+        return (Error err))
 end

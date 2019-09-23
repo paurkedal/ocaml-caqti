@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -13,6 +13,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
+
+open Caqti_compat [@@warning "-33"]
 
 type _ field = ..
 
@@ -44,11 +46,11 @@ module Field = struct
     Hashtbl.create 11
 
   let define_coding ft get =
-    let ec = Obj.extension_constructor ft in
+    let ec = Obj.Extension_constructor.of_val ft in
     Hashtbl.add coding_ht ec get
 
   let coding di ft =
-    let ec = Obj.extension_constructor ft in
+    let ec = Obj.Extension_constructor.of_val ft in
     try Some ((Hashtbl.find coding_ht ec).get_coding di ft)
     with Not_found -> None
 
@@ -63,7 +65,7 @@ module Field = struct
    | Pdate -> "pdate"
    | Ptime -> "ptime"
    | Ptime_span -> "ptime_span"
-   | ft -> Obj.extension_name (Obj.extension_constructor ft)
+   | ft -> Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft)
 end
 
 type _ t =

@@ -7,6 +7,7 @@
     Caqti_connect_sig
     Caqti_connection
     Caqti_connection_sig
+    Caqti_compat
     Caqti_driver_lib
     Caqti_driver_info
     Caqti_error
@@ -33,6 +34,13 @@
     Caqti_driver_sig
     Caqti_pool_sig
     Caqti_type_sig)
+  (private_modules
+    Caqti_compat)
   (library_flags (:standard -linkall))
   (libraries logs ptime uri)
   (preprocess (pps ppx_deriving.eq)))
+
+(rule
+  (target caqti_compat.ml)
+  (deps caqti_compat.cppo.ml)
+  (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{deps} -o %{target})))

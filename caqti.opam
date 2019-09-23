@@ -7,9 +7,10 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "http://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "ocaml" {>= "4.04.0"}
-  "dune" {build}
+  "cppo" {build}
+  "dune" {build & >= "1.11"}
   "logs"
+  "ocaml" {>= "4.04.0"}
   "ppx_deriving"
   "ptime"
   "uri" {>= "1.9.0"}

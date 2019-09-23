@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_compat [@@warning "-33"]
+
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
@@ -25,7 +27,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
   module Task = struct
     type t = {priority : float; mvar : unit Mvar.t}
     let wake {mvar; _} = Mvar.store () mvar
-    let compare {priority = pA; _} {priority = pB; _} = Pervasives.compare pB pA
+    let compare {priority = pA; _} {priority = pB; _} = Float.compare pB pA
   end
 
   module Taskq = Caqti_heap.Make (Task)

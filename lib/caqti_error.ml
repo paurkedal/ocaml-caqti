@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_compat [@@warning "-33"]
+
 (* Driver *)
 
 type msg = ..
@@ -23,14 +25,14 @@ let msg_pp = Hashtbl.create 7
 let define_msg ~pp ec = Hashtbl.add msg_pp ec pp
 
 let pp_msg ppf msg =
-  let c = Obj.extension_constructor msg in
+  let c = Obj.Extension_constructor.of_val msg in
   try
     let pp = Hashtbl.find msg_pp c in
     pp ppf msg
   with Not_found ->
     Format.fprintf ppf
       "[FIXME: missing printer for (%s _ : Caqti_error.msg)]"
-      (Obj.extension_name c)
+      (Obj.Extension_constructor.name c)
 
 type msg += Msg : string -> msg
 

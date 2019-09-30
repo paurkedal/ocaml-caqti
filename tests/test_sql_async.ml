@@ -14,8 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Core
-open Async
+open Async_kernel
+open Async_unix
+open Core_kernel
 
 module Sys = struct
   type 'a future = 'a Deferred.t

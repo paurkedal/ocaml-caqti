@@ -16,9 +16,10 @@
 
 (* This is partly based on https://github.com/janestreet/lwt-async *)
 
+open Async_kernel
+open Async_unix
 open Caqti_prereq
-open Core
-open Async
+open Core_kernel
 
 module System = struct
   type 'a future = 'a Deferred.t

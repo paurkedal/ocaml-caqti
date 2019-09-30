@@ -3,4 +3,4 @@
   (public_name caqti-async)
   (wrapped false)
   (modules Caqti_async Caqti_async_sql_io)
-  (libraries async caqti core logs))
+  (libraries async_kernel async_unix caqti core_kernel logs))

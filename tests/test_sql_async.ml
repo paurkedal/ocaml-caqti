@@ -36,21 +36,18 @@ end
 module Test = Test_sql.Make (Sys) (Caqti_async)
 
 let main uris () =
-  Shutdown.don't_finish_before begin
-    let open Deferred in
-    let rec loop = function
-     | [] -> return ()
-     | uri :: uris ->
-        Caqti_async.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
-        (match Caqti_async.connect_pool uri with
-         | Ok pool ->
-            Test.run_pool pool >>= fun () ->
-            loop uris
-         | Error err ->
-            Error.raise (Error.of_exn (Caqti_error.Exn err))) in
-    loop uris
-  end;
-  Shutdown.shutdown 0
+  let open Deferred in
+  let rec loop = function
+   | [] -> return ()
+   | uri :: uris ->
+      Caqti_async.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
+      (match Caqti_async.connect_pool uri with
+       | Ok pool ->
+          Test.run_pool pool >>= fun () ->
+          loop uris
+       | Error err ->
+          Error.raise (Error.of_exn (Caqti_error.Exn err))) in
+  upon (loop uris) (fun () -> Shutdown.shutdown 0)
 
 let () =
   let uris = Testkit.parse_common_args () in

@@ -15,7 +15,7 @@
  *)
 
 open Caqti_driver_lib
-open Caqti_prereq
+open Caqti_common_priv
 open Printf
 
 type Caqti_error.msg += Mdb_msg of (int * string)

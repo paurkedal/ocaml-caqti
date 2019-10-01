@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_prereq
+open Caqti_common_priv
 
 let linear_param_length templ =
   let rec loop = function

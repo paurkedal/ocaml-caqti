@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_prereq
+open Caqti_common_priv
 open Printf
 
 module Q = struct

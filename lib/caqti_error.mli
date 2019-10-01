@@ -193,7 +193,7 @@ val show : [< t] -> string
 (** [show error] is an explanation of [error]. *)
 
 val uncongested :
-  ('a, [< t | `Congested of Caqti_prereq.counit]) result ->
+  ('a, [< t | `Congested of Caqti_common.counit]) result ->
   ('a, [> t]) result
 (** [uncongested r] eliminates an unused [`Congested] case from the error. *)
 

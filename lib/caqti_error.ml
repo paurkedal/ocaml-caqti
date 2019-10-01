@@ -203,7 +203,7 @@ let show err =
 
 let uncongested = function
  | Error #t | Ok _ as x -> x
- | Error `Congested x -> Caqti_prereq.absurd x
+ | Error `Congested x -> Caqti_common.absurd x
 
 exception Exn of t
 

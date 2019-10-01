@@ -16,6 +16,7 @@
     Caqti_mult
     Caqti_pool
     Caqti_pool_sig
+    Caqti_common
     Caqti_query
     Caqti_request
     Caqti_response_sig
@@ -26,7 +27,7 @@
     Caqti_type_sig
     ; internal
     Caqti_heap
-    Caqti_prereq)
+    Caqti_common_priv)
   (modules_without_implementation
     Caqti_connect_sig
     Caqti_connection_sig

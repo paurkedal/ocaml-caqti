@@ -18,7 +18,7 @@
 
 open Async_kernel
 open Async_unix
-open Caqti_prereq
+open Caqti_common_priv
 open Core_kernel
 
 module System = struct

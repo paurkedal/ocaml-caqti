@@ -1,4 +1,4 @@
-## Unreleased
+## v1.2.0 - 2019-10-02
 
 - Add a signature for the populate function, and add basic implementations
   for all drivers (GPR#28).

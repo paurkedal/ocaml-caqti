@@ -6,6 +6,11 @@
 - Use the postgres driver when `postgres` is specified as the URL scheme
   (GPR#25 James Owen).
 - Documentation improvements (GPR#20 Nathan Rebours, etc.).
+- Reimplemented partly ineffective prepare-cache for PostgreSQL.
+- Backwards incompatible changes to the driver API.
+- Backwards incompatible changes to modules marked internal but exposed due
+  to being split across packages.
+- Fix forward compatibility past OCaml 4.08 as announced by deprecations.
 
 ## v1.1.0 - 2019-02-03
 

@@ -90,6 +90,14 @@
   (deps (alias drivers) uris.conf)
   (action (setenv OCAMLPATH . (run %{test}))))
 
+; Benchmarks; opam install benchmark and run manually
+
+(executable
+  (name bench_stream)
+  (modules Bench_stream)
+  (preprocess (pps lwt_ppx))
+  (libraries benchmark caqti lwt lwt.unix))
+
 ; Fake META Files - used for dynamic linking of drivers
 
 (alias (name drivers))

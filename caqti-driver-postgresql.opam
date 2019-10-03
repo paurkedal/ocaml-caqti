@@ -9,7 +9,7 @@ bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "ocaml"
   "caqti" {>= "1.2.0" & < "1.3.0~"}
-  "dune" {build}
+  "dune" {>= "1.11"}
   "postgresql"
 ]
 build: [

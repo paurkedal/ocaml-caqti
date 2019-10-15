@@ -58,22 +58,63 @@ module Q = struct
   let create_tmp = (unit -->! unit) @@ function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_sql \
-        (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL, o BYTEA NOT NULL)"
+         (id SERIAL NOT NULL, \
+          i INTEGER NOT NULL, \
+          s TEXT NOT NULL, \
+          o BYTEA NOT NULL)"
    | `Mysql ->
       "CREATE TEMPORARY TABLE test_sql \
-        (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT NOT NULL, o BLOB NOT NULL)"
+         (id SERIAL NOT NULL, \
+          i INTEGER NOT NULL, \
+          s TEXT NOT NULL, \
+          o BLOB NOT NULL)"
    | `Sqlite ->
       "CREATE TABLE test_sql \
-        (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT NOT NULL, o BLOB NOT NULL)"
+         (id INTEGER PRIMARY KEY, \
+          i INTEGER NOT NULL, \
+          s TEXT NOT NULL, \
+          o BLOB NOT NULL)"
    | _ -> failwith "Unimplemented."
+  let create_tmp_nullable = (unit -->! unit) @@ function
+   | `Pgsql ->
+      "CREATE TEMPORARY TABLE test_sql \
+        (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT, o BYTEA)"
+   | `Mysql ->
+      "CREATE TEMPORARY TABLE test_sql \
+        (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT, o BLOB)"
+   | `Sqlite ->
+      "CREATE TABLE test_sql \
+        (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT, o BLOB)"
+   | _ -> failwith "Unimplemented."
+  let create_tmp_binary = (unit -->! unit) @@ function
+   | `Pgsql ->
+      "CREATE TEMPORARY TABLE test_sql \
+        (id SERIAL NOT NULL, data BYTEA NOT NULL)"
+   | `Mysql ->
+      "CREATE TEMPORARY TABLE test_sql \
+        (id SERIAL NOT NULL, data BLOB NOT NULL)"
+   | `Sqlite ->
+      "CREATE TABLE test_sql \
+        (id INTEGER PRIMARY KEY, data BLOB NOT NULL)"
+   | _ -> failwith "Unimplemented"
   let drop_tmp = (unit -->! unit) @@ function
    | _ -> "DROP TABLE test_sql"
   let insert_into_tmp = Caqti_request.exec (tup3 int string octets)
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
   let select_from_tmp = Caqti_request.collect unit (tup3 int string octets)
     "SELECT i, s, o FROM test_sql"
-  let select_from_tmp_where_i_lt = Caqti_request.collect int (tup3 int string octets)
-    "SELECT i, s, o FROM test_sql WHERE i < ?"
+  let select_from_tmp_where_i_lt =
+    Caqti_request.collect
+      int
+      (tup3 int string octets)
+      "SELECT i, s, o FROM test_sql WHERE i < ?"
+  let select_from_tmp_nullable =
+    Caqti_request.collect
+      unit
+      (tup3 int (option string) (option octets))
+      "SELECT i, s, o FROM test_sql"
+  let select_from_tmp_binary = Caqti_request.collect unit octets
+    "SELECT data FROM test_sql"
 
   let select_current_time = Caqti_request.find unit ptime
     "SELECT current_timestamp"
@@ -261,19 +302,27 @@ struct
     begin
       if Caqti_driver_info.can_transact Db.driver_info then
         Db.start () >>= Sys.or_fail >>= fun () ->
-        Db.exec Q.insert_into_tmp (1, "one", "one") >>= Sys.or_fail >>= fun () ->
+        Db.exec Q.insert_into_tmp (1, "one", "one")
+        >>= Sys.or_fail >>= fun () ->
         Db.rollback () >>= Sys.or_fail
       else
         Sys.return ()
     end >>= fun () ->
     Db.start () >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (2, "two", "two") >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (3, "three", "three") >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (5, "five", "five") >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (2, "two", "two")
+    >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (3, "three", "three")
+    >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (5, "five", "five")
+    >>= Sys.or_fail >>= fun () ->
     Db.commit () >>= Sys.or_fail >>= fun () ->
     Db.fold Q.select_from_tmp
-      (fun (i, s, o) (i_acc, s_acc, o_acc) -> i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o)
-      () (0, "zero", "zero") >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
+      (fun (i, s, o) (i_acc, s_acc, o_acc) ->
+        i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o
+      )
+      ()
+      (0, "zero", "zero")
+    >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
     assert (i_acc = 10);
     assert (s_acc = "zero+two+three+five");
     assert (o_acc = "zero+two+three+five");
@@ -295,32 +344,111 @@ struct
     Db.exec Q.insert_into_tmp (1, "one", "one") >>= Sys.or_fail >>= fun () ->
     assert_stream_is (Ok [(1, "one", "one")]) >>= Sys.or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (2, "two", "two") >>= Sys.or_fail >>= fun () ->
-    assert_stream_is (Ok [(1, "one", "one"); (2, "two", "two")]) >>= Sys.or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one", "one"); (2, "two", "two")])
+    >>= Sys.or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
   let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
+    let show_string_option = function
+      | None -> "None"
+      | Some s -> "Some \"" ^ s ^ "\'"
+    in
     let assert_stream_both_ways expected =
       let input_stream = Caqti_sys.Stream.of_list expected in
-      Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+      Db.exec Q.create_tmp_nullable () >>= Sys.or_fail >>= fun () ->
       Db.populate
         ~table:"test_sql"
         ~columns:["i"; "s"; "o"]
-        Caqti_type.(tup3 int string octets)
+        Caqti_type.(tup3 int (option string) (option octets))
         input_stream
       >|= Caqti_error.uncongested >>= Sys.or_fail >>= fun () ->
-      Db.collect_list Q.select_from_tmp () >>= Sys.or_fail >>= fun actual ->
+      Db.collect_list Q.select_from_tmp_nullable ()
+      >>= Sys.or_fail >>= fun actual ->
+      if actual <> expected then
+        (
+        let repr a =
+          a
+          |> List.map (fun (i, s, o) ->
+              let repr_s = show_string_option s in
+              let repr_o = show_string_option o in
+              "(" ^ (string_of_int i) ^ "," ^ repr_s ^ "," ^ repr_o ^ ")")
+          |> String.concat "; "
+          |> (fun s -> "[" ^ s ^ "]")
+        in
+        eprintf "Expected: %s\nActual: %s\n" (repr expected) (repr actual));
       assert (actual = expected);
       Db.exec Q.drop_tmp ()
     in
-    assert_stream_both_ways [] >>= Sys.or_fail >>= fun () ->
-    assert_stream_both_ways [(1, "one", "one")] >>= Sys.or_fail >>= fun () ->
-    assert_stream_both_ways [(1, "one", "one"); (2, "two", "two")] >>= Sys.or_fail
+    assert_stream_both_ways
+      [] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways
+      [(1, Some "one", Some "one")
+      ] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways
+      [(1, Some "one", Some "one")
+      ; (2, Some "two", Some "two")] >>= Sys.or_fail >>= fun () ->
+    assert_stream_both_ways
+      [ (1, Some "bad1\"\"", Some "bad1\"\"")
+      ; (2, Some "bad2,\"\n", Some "bad2,\"\n")
+      ; (3, None, None)
+      ; (4, Some "", Some "")
+      ; (5, Some "\\\"", Some "\\\"")
+      ] >>= Sys.or_fail
+
+  let test_stream_binary (module Db : Caqti_sys.CONNECTION) =
+    (* Insert and retrieve all pairs of bytes as strings *)
+    let all_bytes =
+      Testkit.init_list
+      256
+      (fun c -> String.make 1 (Char.chr c))
+    in
+    let all_pairs =
+	all_bytes
+	|> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)
+	|> List.flatten
+    in
+    let all_pairs_len = List.length all_pairs in
+    assert (all_pairs_len = 65536);
+    let input_stream = Caqti_sys.Stream.of_list all_pairs in
+    Db.exec Q.create_tmp_binary () >>= Sys.or_fail >>= fun () ->
+    Db.populate
+      ~table:"test_sql"
+      ~columns:["data"]
+      Caqti_type.octets
+      input_stream
+    >|= Caqti_error.uncongested >>= Sys.or_fail >>= fun () ->
+    Db.collect_list Q.select_from_tmp_binary ()
+    >>= Sys.or_fail >>= fun actual ->
+    if actual <> all_pairs then
+      begin
+        let actual_len = List.length actual in
+        if actual_len <> all_pairs_len then
+          eprintf
+            "Expected length: %d\nActual length: %d\n"
+            all_pairs_len
+            actual_len
+        else
+          List.iteri
+            (fun i (a, e) ->
+              if a <> e then
+                eprintf
+                  "Element in position %d differs: Actual %s, Expected: %s\n"
+                  i
+                  a
+                  (String.escaped e)
+            )
+            (List.combine actual all_pairs)
+      end;
+    assert (actual = all_pairs);
+    Db.exec Q.drop_tmp () >>= Sys.or_fail
+
 
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
     test_stream (module Db) >>= fun () ->
     test_stream_both_ways (module Db) >>= fun () ->
+    test_stream_binary (module Db) >>= fun () ->
     Db.disconnect ()
 
   let run_pool pool =
@@ -329,7 +457,8 @@ struct
         test_expr (module Db) >>= fun () ->
         test_table (module Db) >>= fun () ->
         test_stream (module Db) >>= fun () ->
-        test_stream_both_ways (module Db) >|= fun () ->
+        test_stream_both_ways (module Db) >>= fun () ->
+        test_stream_binary (module Db) >|= fun () ->
         Ok ()
       end
       pool >>= Sys.or_fail >>= fun () ->

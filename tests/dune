@@ -44,7 +44,7 @@
   (name test_sql)
   (wrapped false)
   (modules Test_sql)
-  (libraries caqti ptime.clock.os))
+  (libraries caqti ptime.clock.os testkit))
 
 (test
   (name test_sql_blocking)

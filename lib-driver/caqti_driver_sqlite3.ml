@@ -140,6 +140,13 @@ let rec value_of_data
                   Error (Caqti_error.decode_rejected ~uri ~typ msg))
            | Error _ as r -> r)))
 
+let bind_quotes ~uri ~query stmt oq =
+  let aux (j, x) =
+    (match Sqlite3.bind stmt (j + 1) (Sqlite3.Data.TEXT x) with
+     | Sqlite3.Rc.OK -> Ok ()
+     | rc -> Error (Caqti_error.request_rejected ~uri ~query (Rc rc))) in
+  List.iter_r aux oq
+
 let encode_null_field ~uri stmt field_type o =
   let aux i =
     (match Sqlite3.bind stmt (i + 1) Sqlite3.Data.NULL with
@@ -401,9 +408,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
       let templ = Caqti_request.query req driver_info in
       let query = linear_query_string templ in
-      let os = linear_param_order templ in
+      let os, oq = linear_param_order templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
-      Ok (stmt, os, query)
+      Ok (stmt, os, oq, query)
 
     let call ~f req param = using_db @@ fun () ->
       let param_type = Caqti_request.param_type req in
@@ -417,9 +424,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               prepare req >|=? fun pcache_entry ->
               Hashtbl.add pcache id pcache_entry;
               Ok pcache_entry))
-      >>=? fun (stmt, os, query) ->
+      >>=? fun (stmt, os, oq, query) ->
 
       (* CHECKME: Does binding involve IO? *)
+      return (bind_quotes ~uri ~query stmt oq) >>=? fun () ->
       (match encode_param ~uri stmt param_type param os with
        | Ok os ->
           assert (os = []);
@@ -452,7 +460,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Some query_id ->
           (match Hashtbl.find pcache query_id with
            | exception Not_found -> return (Ok ())
-           | (stmt, _, _) ->
+           | (stmt, _, _, _) ->
               Preemptive.detach begin fun () ->
                 (match Sqlite3.finalize stmt with
                  | Sqlite3.Rc.OK -> Ok (Hashtbl.remove pcache query_id)
@@ -470,7 +478,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let finalize_error_count = ref 0 in
       let not_busy = ref false in
       Preemptive.detach begin fun () ->
-        let uncache _ (stmt, _, _) =
+        let uncache _ (stmt, _, _, _) =
           (match Sqlite3.finalize stmt with
            | Sqlite3.Rc.OK -> ()
            | _ -> finalize_error_count := !finalize_error_count + 1) in

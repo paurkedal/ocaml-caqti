@@ -58,10 +58,14 @@ module Pg_ext = struct
 
   let string_of_bool = function true -> "t" | false -> "f"
 
-  let query_string templ =
+  let query_string (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
     let rec loop = function
      | Caqti_query.L s -> Buffer.add_string buf s
+     | Caqti_query.Q s ->
+        Buffer.add_char buf '\'';
+        Buffer.add_string buf (db#escape_string s);
+        Buffer.add_char buf '\''
      | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
      | Caqti_query.S frags -> List.iter loop frags in
     loop templ;
@@ -600,7 +604,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match Caqti_request.query_id req with
        | None ->
           let templ = Caqti_request.query req driver_info in
-          let query = Pg_ext.query_string templ in
+          let query = Pg_ext.query_string Db.db templ in
           let param_length = Caqti_type.length param_type in
           let binary_params = Array.make param_length false in
           let nbp = set_binary_params binary_params param_type 0 in
@@ -618,7 +622,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             try Int_hashtbl.find prepare_cache query_id with
              | Not_found ->
                 let templ = Caqti_request.query req driver_info in
-                let query = Pg_ext.query_string templ in
+                let query = Pg_ext.query_string Db.db templ in
                 let param_length = Caqti_type.length param_type in
                 let binary_params = Array.make param_length false in
                 let nbp = set_binary_params binary_params param_type 0 in

@@ -18,6 +18,7 @@ open Printf
 
 type query = Caqti_query.t =
   | L of string
+  | Q of string
   | P of int
   | S of query list
 
@@ -134,7 +135,7 @@ let no_env _ _ = raise Not_found
 let rec simplify = function
  | L "" -> S []
  | S frags -> S (frags |> List.map simplify |> List.filter ((<>) (S [])))
- | L _ | P _ as frag -> frag
+ | L _ | Q _ | P _ as frag -> frag
 
 let create_p ?(env = no_env) ?oneshot param_type row_type row_mult qs =
   create ?oneshot param_type row_type row_mult

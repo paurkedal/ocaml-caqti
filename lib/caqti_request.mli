@@ -33,6 +33,7 @@
 [@@@warning "-3"]
 type query = Caqti_query.t =
   | L of string [@deprecated "Moved to Caqti_query"]
+  | Q of string [@deprecated "Moved to Caqti_query"]
   | P of int [@deprecated "Moved to Caqti_query"]
   | S of query list [@deprecated "Moved to Caqti_query"]
 [@@deprecated "Moved to Caqti_query.t"]

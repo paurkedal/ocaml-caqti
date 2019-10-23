@@ -120,15 +120,37 @@ struct
         Sys.return ()
     in
 
-    (* Non-prepared. *)
-    repeat 200 (fun i ->
-      let req = Caqti_request.find ~oneshot:true
-        Caqti_type.unit
-        Caqti_type.(tup2 int string)
-        (sprintf "SELECT %d, '%s'" i (string_of_int i)) in
-      Db.find req () >>= Sys.or_fail >|= fun (j, s) ->
-      assert (i = j);
-      assert (i = int_of_string s);
+    (* Non-prepared and prepared with non-linear parameters and quotes. *)
+    repeat 254 (fun i ->
+      let i = i mod 127 + 1 in
+      let oneshot = i < 127 in
+      let s1 = String.make 1 (Char.chr i) in
+      let s2 = String.make i '\'' in
+      let req = Caqti_request.create ~oneshot
+        Caqti_type.(tup2 int int)
+        Caqti_type.(tup4 int int (tup4 int string string string) int)
+        Caqti_mult.one
+        Caqti_query.(fun _ -> S[
+          L "SELECT ";
+          P 1; L " + 10, ";     (* last parameter first *)
+          P 1; L " + 20, ";     (* and duplicated *)
+          L (string_of_int i); L ", ";
+          Q s1; L", ";          (* first quote *)
+          L "'"; L (string_of_int i); L "'"; L ", ";
+          Q s2; L ", ";         (* second quote *)
+          P 0; L " + 10";       (* first paramater last *)
+        ]) in
+      Db.find req (i + 1, i + 2) >>= Sys.or_fail
+        >>= fun (i12, i22, (i', s1', si', s2'), i11) ->
+      (if oneshot then Sys.return () else Db.deallocate req >>= Sys.or_fail)
+        >|= fun () ->
+      assert (i12 = i + 12);
+      assert (i22 = i + 22);
+      assert (i11 = i + 11);
+      assert (i' = i);
+      assert (s1' = s1);
+      assert (s2' = s2);
+      assert (si' = string_of_int i)
     ) >>= fun () ->
 
     (* Prepared: null *)

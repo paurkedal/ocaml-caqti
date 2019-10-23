@@ -20,11 +20,20 @@ val linear_param_length : Caqti_query.t -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a
     query represented by [templ]. *)
 
-val linear_param_order : Caqti_query.t -> int list list
-(** [linear_param_order templ] is a list where item number [i] is a list of
-    positions of the linearized query which refer to the [i]th incoming
-    parameter.  Positions are zero-based. *)
+val linear_param_order : Caqti_query.t -> int list list * (int * string) list
+(** [linear_param_order templ] describes the parameter bindings expected for
+    [templ] after linearizing parameters and lifting quoted strings out of the
+    query:
+
+      - The first is a list where item number [i] is a list of linear parameter
+        positions to which to bind the [i]th incoming parameter.
+
+      - The second is a list of pairs where the first component is the position
+        of the linear parameter taking the place of a quoted string, and the
+        second component is the quoted string to bind to this parameter.
+
+    All positions are zero-based. *)
 
 val linear_query_string : Caqti_query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
-    parameters. *)
+    parameters and quoted strings. *)

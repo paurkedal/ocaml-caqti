@@ -16,6 +16,7 @@
 
 type t =
   | L of string
+  | Q of string
   | P of int
   | S of t list
 [@@deriving eq]
@@ -24,14 +25,14 @@ let normal =
   let rec collect acc = function
    | [] -> List.rev acc
    | ((L"" | S[]) :: qs) -> collect acc qs
-   | (P i :: qs) -> collect (P i :: acc) qs
+   | ((P _ | Q _ as q) :: qs) -> collect (q :: acc) qs
    | (S (q' :: qs') :: qs) -> collect acc (q' :: S qs' :: qs)
    | (L s :: qs) -> collectL acc [s] qs
   and collectL acc accL = function
    | ((L"" | S[]) :: qs) -> collectL acc accL qs
    | (L s :: qs) -> collectL acc (s :: accL) qs
    | (S (q' :: qs') :: qs) -> collectL acc accL (q' :: S qs' :: qs)
-   | [] | (P _ :: _) as qs ->
+   | [] | ((P _ | Q _) :: _) as qs ->
       collect (L (String.concat "" (List.rev accL)) :: acc) qs
   in
   fun q ->
@@ -44,6 +45,21 @@ let hash = Hashtbl.hash
 
 let rec pp ppf = function
  | L s -> Format.pp_print_string ppf s
+ | Q s ->
+    (* Using non-SQL quoting, to avoid issues with newlines and other control
+     * characters when printing to log files. *)
+    Format.pp_print_string ppf "E'";
+    for i = 0 to String.length s - 1 do
+      (match s.[i] with
+       | '\\' -> Format.pp_print_string ppf {|\\|}
+       | '\'' -> Format.pp_print_string ppf {|\'|}
+       | '\t' -> Format.pp_print_string ppf {|\t|}
+       | '\n' -> Format.pp_print_string ppf {|\n|}
+       | '\r' -> Format.pp_print_string ppf {|\r|}
+       | '\x00'..'\x1f' as c -> Format.fprintf ppf {|\x%02x|} (Char.code c)
+       | _ -> Format.pp_print_char ppf s.[i])
+    done;
+    Format.pp_print_char ppf '\''
  | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
  | S qs -> List.iter (pp ppf) qs
 

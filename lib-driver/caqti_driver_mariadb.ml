@@ -393,6 +393,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       stmt: Mdb.Stmt.t;
       param_length: int;
       param_order: int list list;
+      quotes: (int * string) list;
     }
 
     let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
@@ -402,10 +403,11 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let call ~f req param = using_db @@ fun () ->
 
-      let process {query; stmt; param_length; param_order} =
+      let process {query; stmt; param_length; param_order; quotes} =
         let param_type = Caqti_request.param_type req in
         let row_type = Caqti_request.row_type req in
         let params = Array.make param_length `Null in
+        List.iter (fun (j, s) -> params.(j) <- `String s) quotes;
         (match encode_param ~uri params param_type param param_order with
          | Error _ as r -> return r
          | Ok [] ->
@@ -424,8 +426,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error err -> return (request_failed query err)
            | Ok stmt ->
               let param_length = linear_param_length templ in
-              let param_order = linear_param_order templ in
-              let pcache_entry = {query; stmt; param_length; param_order} in
+              let param_order, quotes = linear_param_order templ in
+              let pcache_entry =
+                {query; stmt; param_length; param_order; quotes} in
               process pcache_entry >>= fun process_result ->
               Mdb.Stmt.close stmt >>=
               (function
@@ -444,8 +447,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                | Error err -> request_failed query err
                | Ok stmt ->
                   let param_length = linear_param_length templ in
-                  let param_order = linear_param_order templ in
-                  let pcache_entry = {query; stmt; param_length; param_order} in
+                  let param_order, quotes = linear_param_order templ in
+                  let pcache_entry =
+                    {query; stmt; param_length; param_order; quotes} in
                   Hashtbl.add pcache id pcache_entry;
                   Ok pcache_entry))
             >>=? fun pcache_entry ->

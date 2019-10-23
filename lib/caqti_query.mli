@@ -18,6 +18,10 @@
 
 type t =
   | L of string (** Literal code. May contain incomplete fragments. *)
+  | Q of string (** [Q s] corresponds to a [TEXT] literal; passed as part of the
+                    query string if a suitable quoting function is available in
+                    the client library, otherwise passed as an additional
+                    parameter. *)
   | P of int    (** [P i] refers to parameter number [i], counting from 0. *)
   | S of t list (** [S frags] is the concatenation of [frags]. *)
 (** A representation of a query string to send to a database, abstracting over
@@ -40,11 +44,15 @@ val hash : t -> int
     {!Hashtbl.hash}. *)
 
 val pp : Format.formatter -> t -> unit
-(** [pp ppf q] prints a human-readable representation of [q] on [ppf]. *)
+(** [pp ppf q] prints a {e human}-readable representation of [q] on [ppf].
+    The printed string is {e not suitable for sending to an SQL database}; doing
+    so may lead to an SQL injection vulnerability. *)
 
 val show : t -> string
-(** [show q] is the same human-readable representation of [q] as printed by
-    {!pp}. *)
+(** [show q] is the same {e human}-readable representation of [q] as printed by
+    {!pp}.
+    The returned string is {e not suitable for sending to an SQL database};
+    doing so may lead to an SQL injection vulnerability. *)
 
 val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty

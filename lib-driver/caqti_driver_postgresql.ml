@@ -220,7 +220,7 @@ let rec decode_field
    | Caqti_type.Int64 -> conv Int64.of_string s
    | Caqti_type.Float -> conv float_of_string s
    | Caqti_type.String -> Ok s
-   | Caqti_type.Octets -> Ok s
+   | Caqti_type.Octets -> Ok (Postgresql.unescape_bytea s)
    | Caqti_type.Pdate ->
       (match pdate_of_iso8601 s with
        | Ok _ as r -> r

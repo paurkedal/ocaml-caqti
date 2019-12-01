@@ -51,7 +51,8 @@ module Q = struct
    | `Mysql -> "SELECT concat(?, ?)"
    | _ -> failwith "Unimplemented."
   let select_octets_identity = (octets --> octets) @@ function
-   | `Pgsql | `Sqlite | `Mysql -> "SELECT ?"
+   | `Pgsql -> "SELECT ? :: bytea"
+   | `Sqlite | `Mysql -> "SELECT ?"
    | _ -> failwith "Unimplemented."
 
   let create_tmp = (unit -->! unit) @@ function

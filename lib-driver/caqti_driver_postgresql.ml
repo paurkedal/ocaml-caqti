@@ -205,6 +205,45 @@ let rec encode_field
               let typ = Caqti_type.field field_type in
               Error (Caqti_error.encode_rejected ~uri ~typ msg))))
 
+let rec copy_encode_field
+    : type a. uri: Uri.t ->
+           a Caqti_type.field ->
+           bool ->
+           (string -> string) ->
+           a ->
+           (string, _) result =
+  fun ~uri field_type field_is_binary binary_escape x ->
+  let escape_and_quote s =
+    "\"" ^ (String.concat "\"\"" (String.split_on_char '"' s)) ^ "\""
+  in
+  (match field_type with
+   | Caqti_type.Bool -> Ok (Pg_ext.string_of_bool x)
+   | Caqti_type.Int -> Ok (string_of_int x)
+   | Caqti_type.Int32 -> Ok (Int32.to_string x)
+   | Caqti_type.Int64 -> Ok (Int64.to_string x)
+   | Caqti_type.Float -> Ok (sprintf "%.17g" x)
+   | Caqti_type.String ->
+      let x = if field_is_binary then binary_escape x else x in
+      Ok (escape_and_quote x)
+   | Caqti_type.Octets ->
+      let x = if field_is_binary then binary_escape x else x in
+      Ok (escape_and_quote x)
+   | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
+   | Caqti_type.Ptime ->
+      Ok (Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 ~frac_s:6 x)
+   | Caqti_type.Ptime_span ->
+      Ok (Pg_ext.string_of_ptime_span x)
+   | _ ->
+      (match Caqti_type.Field.coding driver_info field_type with
+       | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
+       | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
+          (match encode x with
+           | Ok y -> copy_encode_field ~uri rep field_is_binary binary_escape y
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Error (Caqti_error.encode_rejected ~uri ~typ msg))))
+
 let rec decode_field
     : type a. uri: Uri.t -> a Caqti_type.field -> string -> (a, _) result =
   fun ~uri field_type s ->
@@ -280,6 +319,45 @@ let rec encode_param
    | Caqti_type.Custom {rep; encode; _}, x -> fun i ->
       (match encode x with
        | Ok y -> encode_param ~uri params rep y i
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          Error (Caqti_error.encode_rejected ~uri ~typ:t msg)))
+
+let rec copy_encode_param
+    : type a. uri: Uri.t ->
+           string array ->
+           bool array ->
+           (string -> string) ->
+           a Caqti_type.t ->
+           a ->
+           int ->
+           (int, _) result =
+  fun ~uri params binary_params binary_escape t x ->
+  (match t, x with
+   | Caqti_type.Unit, () -> fun i -> Ok i
+   | Caqti_type.Field ft, fv -> fun i ->
+      (match copy_encode_field ~uri ft binary_params.(i) binary_escape fv with
+       | Ok s -> params.(i) <- s; Ok (i + 1)
+       | Error _ as r -> r)
+   | Caqti_type.Option t, None -> fun i -> Ok (i + Caqti_type.length t)
+   | Caqti_type.Option t, Some x ->
+      copy_encode_param ~uri params binary_params binary_escape t x
+   | Caqti_type.Tup2 (t0, t1), (x0, x1) ->
+      copy_encode_param ~uri params binary_params binary_escape t0 x0 %>?
+      copy_encode_param ~uri params binary_params binary_escape t1 x1
+   | Caqti_type.Tup3 (t0, t1, t2), (x0, x1, x2) ->
+      copy_encode_param ~uri params binary_params binary_escape t0 x0 %>?
+      copy_encode_param ~uri params binary_params binary_escape t1 x1 %>?
+      copy_encode_param ~uri params binary_params binary_escape t2 x2
+   | Caqti_type.Tup4 (t0, t1, t2, t3), (x0, x1, x2, x3) ->
+      copy_encode_param ~uri params binary_params binary_escape t0 x0 %>?
+      copy_encode_param ~uri params binary_params binary_escape t1 x1 %>?
+      copy_encode_param ~uri params binary_params binary_escape t2 x2 %>?
+      copy_encode_param ~uri params binary_params binary_escape t3 x3
+   | Caqti_type.Custom {rep; encode; _}, x -> fun i ->
+      (match encode x with
+       | Ok y ->
+          copy_encode_param ~uri params binary_params binary_escape rep y i
        | Error msg ->
           let msg = Caqti_error.Msg msg in
           Error (Caqti_error.encode_rejected ~uri ~typ:t msg)))
@@ -388,20 +466,23 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | exception Pg.Error msg -> return (pg_error msg)
        | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
-    let get_result ~uri ~query db =
+    let get_result ~uri ~query ?(ensure_single_result=true) db =
       get_next_result ~uri ~query db >>=
       (function
        | Ok None ->
           let msg = Caqti_error.Msg "No response received after send." in
           return (Error (Caqti_error.request_failed ~uri ~query msg))
        | Ok (Some result) ->
-          get_next_result ~uri ~query db >>=
-          (function
-           | Ok None -> return (Ok result)
-           | Ok (Some _) ->
-              let msg = Caqti_error.Msg "More than one response received." in
-              return (Error (Caqti_error.response_rejected ~uri ~query msg))
-           | Error _ as r -> return r)
+          if ensure_single_result then
+            get_next_result ~uri ~query db >>=
+            (function
+             | Ok None -> return (Ok result)
+             | Ok (Some _) ->
+                let msg = Caqti_error.Msg "More than one response received." in
+                return (Error (Caqti_error.response_rejected ~uri ~query msg))
+             | Error _ as r -> return r)
+          else
+            return (Ok result)
        | Error _ as r -> return r)
 
     let check_query_result ~uri ~query result mult =
@@ -444,6 +525,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let check_command_result ~uri ~query result =
       check_query_result ~uri ~query result Caqti_mult.zero
+
+    let get_and_check_result ~uri ~query db =
+      get_result ~uri ~query db
+      >|=? check_command_result ~uri ~query
   end
 
   (* Driver Interface *)
@@ -512,12 +597,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             return r
        | Error _ as r -> return r)
 
-    let query_oneshot ?params ?binary_params query =
+    let query_oneshot ?params ?binary_params ?ensure_single_result query =
       retry_on_connection_error begin fun () ->
         return (send_query ?params ?binary_params query)
       end >>= function
        | Error _ as r -> return r
-       | Ok () -> Pg_io.get_result ~uri ~query db
+       | Ok () -> Pg_io.get_result ~uri ~query ?ensure_single_result db
 
     let query_prepared query_id prepared params =
       let {query; binary_params; _} = prepared in
@@ -679,6 +764,95 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec start_req () >|=? fun () -> Ok (in_transaction := true)
     let commit () = in_transaction := false; exec commit_req ()
     let rollback () = in_transaction := false; exec rollback_req ()
+
+    let populate ~table ~columns row_type data =
+      let query =
+        sprintf "COPY %s (%s) FROM STDIN WITH CSV"
+                table (String.concat "," columns)
+      in
+      let param_length = Caqti_type.length row_type in
+      let binary_params = Array.make param_length false in
+      let nbp = set_binary_params binary_params row_type 0 in
+      assert (nbp = param_length);
+      let binary_escape = db#escape_bytea in
+      let fail msg =
+        return
+          (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))
+      in
+      let pg_error msg =
+        return
+          (Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)))
+      in
+      let put_copy_data data =
+        let rec loop fd =
+          match db#put_copy_data data with
+          | Pg.Put_copy_error ->
+              fail "Unable to put copy data"
+          | Pg.Put_copy_queued ->
+              return (Ok ())
+          | Pg.Put_copy_not_queued ->
+              Unix.poll ~write:true fd >>= fun _ -> loop fd
+        in
+        (match db#socket with
+         | exception Pg.Error msg -> pg_error msg
+         | socket -> Unix.wrap_fd loop (Obj.magic socket))
+      in
+      let copy_row row =
+        let params = Array.make param_length Pg.null in
+        let num_encoded_params =
+          copy_encode_param
+            ~uri
+            params
+            binary_params
+            binary_escape
+            row_type
+            row
+            0
+        in
+        (match num_encoded_params with
+         | Ok n ->
+            assert (n = param_length);
+            return (Ok (String.concat "," (Array.to_list params)))
+         | Error _ as r ->
+            return r)
+        >>=? fun param_string -> put_copy_data (param_string ^ "\n")
+      in
+      begin
+        (* Send the copy command to start the transfer.
+         * Skip checking that there is only a single result: while in copy mode
+         * we can repeatedly get the latest result and it will always be
+         * Copy_in, so checking for a single result would trigger an error.
+         *)
+        query_oneshot ~ensure_single_result:false query
+        >>=? fun result ->
+          (* We expect the Copy_in response only - turn other success responses
+           * into errors, and delegate error handling.
+           *)
+          (match result#status with
+           | Pg.Copy_in -> return (Ok ())
+           | Pg.Command_ok -> fail "Received Command_ok when expecting Copy_in"
+           | _ -> return (Pg_io.check_command_result ~uri ~query result))
+        >>=? fun () -> System.Stream.iter_s ~f:copy_row data
+        >>=? fun () ->
+          (* End the copy *)
+          let rec copy_end_loop fd =
+            match db#put_copy_end () with
+            | Pg.Put_copy_error ->
+                fail "Unable to finalize copy"
+            | Pg.Put_copy_not_queued ->
+                Unix.poll ~write:true fd >>= fun _ -> copy_end_loop fd
+            | Pg.Put_copy_queued ->
+                return (Ok ())
+          in
+          (match db#socket with
+           | exception Pg.Error msg -> pg_error msg
+           | socket -> Unix.wrap_fd copy_end_loop (Obj.magic socket))
+        >>=? fun () ->
+          (* After ending the copy, there will be a new result for the initial
+           * query.
+           *)
+          Pg_io.get_and_check_result ~uri ~query db
+      end
   end
 
   let connect uri =
@@ -705,7 +879,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                   let driver_info = driver_info
                   include B
                   include Caqti_connection.Make_convenience (System) (B)
-                  include Caqti_connection.Make_populate (System) (B)
                 end in
                 Ok (module Connection : CONNECTION))))
 end

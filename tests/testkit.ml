@@ -50,6 +50,10 @@ let parse_common_args () =
    | Some uri -> [uri]
    | None -> load_uris ())
 
+let init_list n f = (* List.init is available from OCaml 4.6.0 *)
+ let rec loop acc i = if i < 0 then acc else loop (f i :: acc) (i - 1) in
+ loop [] (n - 1)
+
 let () =
   Random.self_init ();
   (* Needed for bytecode since plugins link against C libraries: *)

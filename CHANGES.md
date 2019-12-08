@@ -1,3 +1,9 @@
+## v1.2.1 - 2019-12-08
+
+- Support TEXT literals in queries.
+- Fix decoding of binary results for PostgreSQL (thanks to James Owen).
+- Implement copy-mode for PostgreSQL (GPR#30 James Owen).
+
 ## v1.2.0 - 2019-10-02
 
 - Add a signature for the populate function, and add basic implementations

@@ -1,7 +1,10 @@
 opam-version: "2.0"
 name: "caqti"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
-authors: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: [
+  "Petter A. Urkedal <paurkedal@gmail.com>"
+  "Nathan Rebours <nathan@cryptosense.com>"
+]
 license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"

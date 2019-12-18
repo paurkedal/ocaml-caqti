@@ -58,9 +58,12 @@ module System = struct
          | Some t -> Clock.after (Time.Span.of_sec t)
          | None -> Deferred.never ()) in
       let did_read, did_write, did_timeout = ref false, ref false, ref false in
+      let is_ready = function
+        | `Ready -> true
+        | `Bad_fd | `Closed -> false in
       Deferred.enabled [
-        Deferred.choice wait_read (fun st -> did_read := st = `Ready);
-        Deferred.choice wait_write (fun st -> did_write := st = `Ready);
+        Deferred.choice wait_read (fun st -> did_read := is_ready st);
+        Deferred.choice wait_write (fun st -> did_write := is_ready st);
         Deferred.choice wait_timeout (fun () -> did_timeout := true);
       ] >>|
       (fun f ->
@@ -80,7 +83,7 @@ module System = struct
          | _ -> ()) in
       (match Logs.Src.level src with
        | None -> return ()
-       | Some level' when level > level' ->
+       | Some level' when Poly.(level > level') ->
           count_it ();
           return ()
        | Some _ ->

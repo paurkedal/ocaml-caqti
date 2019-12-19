@@ -1,3 +1,7 @@
+## v1.2.2 - 2019-12-19
+
+- Update for core v0.13 (GPR#31 Xavier Clerc).
+
 ## v1.2.1 - 2019-12-08
 
 - Support TEXT literals in queries.

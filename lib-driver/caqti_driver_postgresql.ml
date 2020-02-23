@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -397,21 +397,16 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
     let get_next_result ~uri ~query db =
-      let pg_error msg =
-        Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)) in
-      let rec aux fd =
-        (match db#consume_input; db#is_busy with
-         | exception Pg.Error msg -> return (pg_error msg)
-         | true ->
-            Unix.poll ~read:true fd >>= fun _ -> aux fd
-         | false ->
-            (match db#get_result with
-             | exception Pg.Error msg -> return (pg_error msg)
-             | result -> return (Ok result)))
+      let rec retry fd =
+        db#consume_input;
+        if db#is_busy then
+          Unix.poll ~read:true fd >>= (fun _ -> retry fd)
+        else
+          return (Ok db#get_result)
       in
-      (match db#socket with
-       | exception Pg.Error msg -> return (pg_error msg)
-       | socket -> Unix.wrap_fd aux (Obj.magic socket))
+      try Unix.wrap_fd retry (Obj.magic db#socket)
+      with Pg.Error msg ->
+        return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)))
 
     let get_result ~uri ~query ?(ensure_single_result=true) db =
       get_next_result ~uri ~query db >>=

@@ -40,7 +40,7 @@ The following drivers are available.
       [sqlite3-ocaml](https://github.com/mmottl/sqlite3-ocaml)
       using preemtive threading for non-blocking operation.
     - Supports transactions.
-    - Does not pool connections or cache statements.
+    - Does not pool connections but caches statements.
 
 If you link against `caqti-dynload`, then drivers are loaded dynamically
 based on the URI.  If dynamic loading is unavailable on your platform, you

@@ -491,7 +491,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     end)
 
     let using_db_ref = ref false
-    let using_db f = H.assert_single_use using_db_ref f
+    let using_db f =
+      H.assert_single_use ~what:"PostgreSQL connection" using_db_ref f
+
     let in_transaction = ref false
     let prepare_cache : prepared Int_hashtbl.t = Int_hashtbl.create 19
 

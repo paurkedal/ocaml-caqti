@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,9 @@ module Make_helpers
 struct
   open System
 
-  let assert_single_use in_use f =
+  let assert_single_use ~what in_use f =
+    if !in_use then
+      failwith ("Invalid concurrent usage of " ^ what ^ " detected.");
     assert (not !in_use);
     in_use := true;
     f () >|= fun y ->

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -290,7 +290,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     open Db
 
     let using_db_ref = ref false
-    let using_db f = H.assert_single_use using_db_ref f
+    let using_db f =
+      H.assert_single_use ~what:"SQLite connection" using_db_ref f
 
     module Response = struct
 

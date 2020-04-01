@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,9 @@ module Make_helpers :
   functor (Sys : Caqti_driver_sig.System_common) ->
 sig
   open Sys
-  val assert_single_use : bool ref -> (unit -> 'a future) -> 'a future
+
+  val assert_single_use :
+    what: string -> bool ref -> (unit -> 'a future) -> 'a future
 end
 
 module Make_convenience :

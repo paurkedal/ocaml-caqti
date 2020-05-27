@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,4 +24,9 @@
       {[postgresql://<user>:<password>@<host>:<port>/<rest>]}
 
     which are passed verbatim to {!Postgresql.connection}, and URIs of the form
-    [postgresq:/<query>] which are first split into [<key> = '<value>'] form. *)
+    [postgresq:/<query>] which are first split into [<key> = '<value>'] form.
+
+    Additionally the query option [notice_processing] can be set to [quiet] (the
+    default) to suppress notices or to [stderr] to emit notices to standard
+    error.  This option is interpreted by the Caqti driver and stripped off
+    before passing the URI to libpq. *)

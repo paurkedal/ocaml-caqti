@@ -18,6 +18,8 @@ open Caqti_common_priv
 open Printf
 module Pg = Postgresql
 
+let ( |>? ) r f = match r with Ok x -> f x | Error _ as r -> r
+
 module Int_hashable = struct
   type t = int
   let equal (i : int) (j : int) = i = j
@@ -80,11 +82,25 @@ module Pg_ext = struct
     String.iter aux s;
     Buffer.contents buf
 
-  let conninfo_of_uri uri =
-    if Uri.host uri <> None then Uri.to_string uri else
-    let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
-    let mkparams (k, vs) = List.map (mkparam k) vs in
-    String.concat " " (List.flatten (List.map mkparams (Uri.query uri)))
+  let parse_uri uri =
+    (match Uri.get_query_param uri "notice_processing" with
+     | None ->
+        Ok (`Quiet, uri)
+     | Some "quiet" ->
+        Ok (`Quiet, Uri.remove_query_param uri "notice_processing")
+     | Some "stderr" ->
+        Ok (`Stderr, Uri.remove_query_param uri "notice_processing")
+     | Some _ ->
+        let msg = Caqti_error.Msg "Invalid argument for notice_processing." in
+        Error (Caqti_error.connect_rejected ~uri msg))
+    |>? fun (notice_processing, uri') ->
+    let conninfo =
+      if Uri.host uri <> None then Uri.to_string uri' else
+      let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
+      let mkparams (k, vs) = List.map (mkparam k) vs in
+      String.concat " " (List.flatten (List.map mkparams (Uri.query uri')))
+    in
+    Ok (conninfo, notice_processing)
 
   let string_of_ptime_span t =
     let is_neg = Ptime.Span.compare t Ptime.Span.zero < 0 in
@@ -792,7 +808,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   end
 
   let connect uri =
-    let conninfo = Pg_ext.conninfo_of_uri uri in
+    return (Pg_ext.parse_uri uri) >>=? fun (conninfo, notice_processing) ->
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error msg ->
         return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
@@ -808,6 +824,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 let msg = db#error_message in
                 Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg))
              | false ->
+                db#set_notice_processing notice_processing;
                 let module B =
                   Make_connection_base (struct let uri = uri let db = db end)
                 in

@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,9 +56,12 @@ let finally cleanup thunk =
 
 let datetuple_of_iso8601 s =
   if String.length s = 10 && s.[4] = '-' && s.[7] = '-' then
-    (int_of_string (String.sub s 0 4),
-     int_of_string (String.sub s 5 2),
-     int_of_string (String.sub s 8 2))
+    try
+      (int_of_string (String.sub s 0 4),
+       int_of_string (String.sub s 5 2),
+       int_of_string (String.sub s 8 2))
+    with Failure _ ->
+      failwith "Caqti_internal.datetuple_of_iso8601"
   else
     failwith "Caqti_internal.datetuple_of_iso8601"
 

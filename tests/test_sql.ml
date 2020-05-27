@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -351,7 +351,7 @@ struct
   let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
     let show_string_option = function
       | None -> "None"
-      | Some s -> "Some \"" ^ s ^ "\'"
+      | Some s -> "Some \"" ^ s ^ "\""
     in
     let assert_stream_both_ways expected =
       let input_stream = Caqti_sys.Stream.of_list expected in

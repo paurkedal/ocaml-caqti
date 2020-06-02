@@ -1,3 +1,10 @@
+## v1.2.3 - 2020-06-07
+
+- Silence PostgreSQL notifications which were printed to stderr.  They can
+  be re-enabled with a parameter on the connection URI (#33).
+- Improve details in exceptions in two places.
+- Fix info about connection caching for sqlite in README (#35, dgllghr).
+
 ## v1.2.2 - 2019-12-19
 
 - Update for core v0.13 (GPR#31 Xavier Clerc).

@@ -501,9 +501,20 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     open Db
 
     module Copy_encoder = Make_encoder (struct
+
       let encode_string s =
-        "\"" ^ (String.concat "\"\"" (String.split_on_char '"' s)) ^ "\""
-      let encode_octets s = db#escape_bytea s
+        let buf = Buffer.create (String.length s) in
+        for i = 0 to String.length s - 1 do
+          (match s.[i] with
+           | '\\' -> Buffer.add_string buf "\\\\"
+           | '\n' -> Buffer.add_string buf "\\n"
+           | '\r' -> Buffer.add_string buf "\\r"
+           | '\t' -> Buffer.add_string buf "\\t"
+           | c -> Buffer.add_char buf c)
+        done;
+        Buffer.contents buf
+
+      let encode_octets s = encode_string (db#escape_bytea s)
     end)
 
     let using_db_ref = ref false
@@ -731,8 +742,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let populate ~table ~columns row_type data =
       let query =
-        sprintf "COPY %s (%s) FROM STDIN WITH CSV"
-                table (String.concat "," columns)
+        sprintf "COPY %s (%s) FROM STDIN" table (String.concat "," columns)
       in
       let param_length = Caqti_type.length row_type in
       let binary_params = Array.make param_length false in
@@ -761,10 +771,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | socket -> Unix.wrap_fd loop (Obj.magic socket))
       in
       let copy_row row =
-        let params = Array.make param_length Pg.null in
+        let params = Array.make param_length "\\N" in
         (match Copy_encoder.encode ~uri params row_type row with
          | Ok () ->
-            return (Ok (String.concat "," (Array.to_list params)))
+            return (Ok (String.concat "\t" (Array.to_list params)))
          | Error _ as r ->
             return r)
         >>=? fun param_string -> put_copy_data (param_string ^ "\n")

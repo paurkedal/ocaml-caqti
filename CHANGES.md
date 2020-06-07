@@ -1,4 +1,8 @@
-## v1.2.3 - 2020-06-07
+## v1.2.4 - 2020-06-07
+
+- Switch to TEXT format for PostgreSQL populate implementation.
+
+## v1.2.3 - 2020-06-02
 
 - Silence PostgreSQL notifications which were printed to stderr.  They can
   be re-enabled with a parameter on the connection URI (#33).

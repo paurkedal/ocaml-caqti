@@ -102,6 +102,12 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
 - : (int, [> Caqti_error.call_or_retrieve ]) result = Ok 20
 ```
 
+## Related Software
+
+  - [ppx\_rapper](https://github.com/roddyyaga/ppx_rapper) - a syntax
+    extension for Caqti/PostgreSQL queries
+
+
 [API]: http://paurkedal.github.io/ocaml-caqti/index.html
 [BP-2018]: https://medium.com/@bobbypriambodo/interfacing-ocaml-and-postgresql-with-caqti-a92515bdaa11
 [bikereg]: tests/bikereg.ml

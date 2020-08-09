@@ -124,7 +124,8 @@ module type Convenience = sig
     (int, [> Caqti_error.call_or_retrieve | `Unsupported ] as 'e) result future
   (** Combining {!call} with {!Response.exec} and {!Response.affected_count},
       this sends a request to the database, checks that no rows are returned and
-      returns the number of affected rows. *)
+      returns the number of affected rows.  Like {!Response.affected_count}, this
+      may not be available for all databases. *)
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->

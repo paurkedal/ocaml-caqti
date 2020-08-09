@@ -62,7 +62,6 @@ struct
       | Ok () -> Response.affected_count response
       | Error x -> return (Error x) in
     C.call ~f q p
-
 end
 
 module Make_populate

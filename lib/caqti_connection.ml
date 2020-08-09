@@ -54,6 +54,15 @@ struct
   let rev_collect_list q p =
     let f resp = Response.fold List.cons resp [] in
     C.call ~f q p
+
+  let exec_count q p =
+    let f response =
+      Response.exec response >>= fun execResult ->
+      match execResult with
+      | Ok () -> Response.affected_count response
+      | Error x -> return (Error x) in
+    C.call ~f q p
+
 end
 
 module Make_populate

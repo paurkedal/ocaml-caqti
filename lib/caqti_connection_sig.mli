@@ -119,6 +119,13 @@ module type Convenience = sig
   (** Combining {!call} with {!Response.exec}, this sends a request to the
       database and checks that no rows are returned. *)
 
+  val exec_count :
+    ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
+    (int, [> Caqti_error.call_or_retrieve | `Unsupported ] as 'e) result future
+  (** Combining {!call} with {!Response.exec} and {!Response.affected_count},
+      this sends a request to the database, checks that no rows are returned and
+      returns the number of affected rows. *)
+
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
     ('b, [> Caqti_error.call_or_retrieve] as 'e) result future

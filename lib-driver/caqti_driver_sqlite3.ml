@@ -316,15 +316,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
       let run_step response =
         let ret = Sqlite3.step response.stmt in
-        if response.has_been_executed
-        then ret
-        else
-          (response.has_been_executed <- true;
-           response.affected_count <- Sqlite3.changes db;
-           ret)
+        if not response.has_been_executed
+        then (response.has_been_executed <- true;
+              response.affected_count <- Sqlite3.changes db);
+        ret
 
-      let fetch_row response =
-        let {stmt; row_type; query; _} = response in
+      let fetch_row ({stmt; row_type; query; _} as response) =
         (match run_step response with
          | Sqlite3.Rc.DONE -> Ok None
          | Sqlite3.Rc.ROW ->
@@ -341,8 +338,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | rc ->
             Error (Caqti_error.response_failed ~uri ~query (Rc rc)))
 
-      let exec response =
-        let {row_type; query; _} = response in
+      let exec ({row_type; query; _} as response) =
         assert (row_type = Caqti_type.unit);
         let retrieve () =
           (match run_step response with

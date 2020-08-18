@@ -110,7 +110,7 @@ module Q = struct
   let delete_from_tmp = Caqti_request.exec unit
     "DELETE FROM test_sql"
   let select_from_tmp = Caqti_request.collect unit (tup3 int string octets)
-    "SELECT i, s, o FROM test_sql"
+    "SELECT i, s, o FROM test_sql ORDER BY i ASC"
   let select_from_tmp_where_i_lt =
     Caqti_request.collect
       int

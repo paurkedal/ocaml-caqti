@@ -101,6 +101,14 @@ module Q = struct
    | _ -> "DROP TABLE test_sql"
   let insert_into_tmp = Caqti_request.exec (tup3 int string octets)
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
+  let update_in_tmp_where_i = Caqti_request.exec (tup2 octets int)
+    "UPDATE test_sql SET o = ? WHERE i = ?"
+  let update_in_tmp = Caqti_request.exec unit
+    "UPDATE test_sql SET s = 'ZERO'"
+  let delete_from_tmp_where_i = Caqti_request.exec int
+    "DELETE FROM test_sql WHERE i = ?"
+  let delete_from_tmp = Caqti_request.exec unit
+    "DELETE FROM test_sql"
   let select_from_tmp = Caqti_request.collect unit (tup3 int string octets)
     "SELECT i, s, o FROM test_sql"
   let select_from_tmp_where_i_lt =
@@ -328,6 +336,75 @@ struct
     assert (o_acc = "zero+two+three+five");
     Db.exec Q.drop_tmp () >>= Sys.or_fail
 
+  let test_affected_count (module Db : Caqti_sys.CONNECTION) =
+    let select_all exp_i exp_s exp_o =
+      Db.fold Q.select_from_tmp
+        (fun (i, s, o) (i_acc, s_acc, o_acc) ->
+          i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o)
+        ()
+        (0, "zero", "zero")
+      >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
+      assert (i_acc = exp_i);
+      assert (s_acc = exp_s);
+      assert (o_acc = exp_o);
+      Sys.return ()
+    in
+    (* prepare db *)
+    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+    Db.start () >>= Sys.or_fail >>= fun () ->
+    Db.exec_with_affected_count Q.insert_into_tmp (2, "two", "X")
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 1);
+    Db.exec Q.insert_into_tmp (3, "three", "Y")
+    >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (5, "five", "Z")
+    >>= Sys.or_fail >>= fun () ->
+    select_all 10 "zero+two+three+five" "zero+X+Y+Z" >>= fun () ->
+
+    (* update where i = 1 -> 0 affected rows *)
+    Db.exec_with_affected_count Q.update_in_tmp_where_i ("null", 0)
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 0);
+    select_all 10 "zero+two+three+five" "zero+X+Y+Z" >>= fun () ->
+
+    (* update where i = 3 -> 1 affected row*)
+    Db.exec_with_affected_count Q.update_in_tmp_where_i ("drei", 3)
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 1);
+    select_all 10 "zero+two+three+five" "zero+X+drei+Z" >>= fun () ->
+
+    (* update w/o id -> 3 affected rows *)
+    Db.exec_with_affected_count Q.update_in_tmp ()
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 3);
+    select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
+
+    (* delete where i = 1 -> no affected rows *)
+    Db.exec_with_affected_count Q.delete_from_tmp_where_i 1
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 0);
+    select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
+
+    (* delete where i = 3 -> one affected row *)
+    Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 1);
+    select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
+
+    (* delete where i = 3 -> no affected rows *)
+    Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 0);
+    select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
+
+    (* delete w/o condition -> 2 affected rows *)
+    Db.exec_with_affected_count Q.delete_from_tmp ()
+    >>= Sys.or_fail >>= fun nrows ->
+    assert (nrows = 2);
+    select_all 0 "zero" "zero" >>= fun () ->
+    Db.commit () >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.drop_tmp () >>= Sys.or_fail
+
   let test_stream (module Db : Caqti_sys.CONNECTION) =
     let assert_stream_is expected =
       Db.call
@@ -446,6 +523,7 @@ struct
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->
     test_table (module Db) >>= fun () ->
+    test_affected_count (module Db) >>= fun () ->
     test_stream (module Db) >>= fun () ->
     test_stream_both_ways (module Db) >>= fun () ->
     test_stream_binary (module Db) >>= fun () ->
@@ -456,6 +534,7 @@ struct
       begin fun (module Db : Caqti_sys.CONNECTION) ->
         test_expr (module Db) >>= fun () ->
         test_table (module Db) >>= fun () ->
+        test_affected_count (module Db) >>= fun () ->
         test_stream (module Db) >>= fun () ->
         test_stream_both_ways (module Db) >>= fun () ->
         test_stream_binary (module Db) >|= fun () ->

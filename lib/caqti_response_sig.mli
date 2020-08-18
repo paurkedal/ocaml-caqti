@@ -35,9 +35,9 @@ module type S = sig
       function may not be available for all databases. *)
 
   val affected_count :
-    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result future
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve ]) result future
   (** [affected_count resp] is the number of rows affected by the updated the
-      produced [resp].  This function may not be available for all databases. *)
+      produced [resp]. *)
 
   (** {2 Result retrieval} *)
 

@@ -299,16 +299,30 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         stmt: Sqlite3.stmt;
         row_type: 'b Caqti_type.t;
         query: string;
+        mutable affected_count: int;
+        mutable has_been_executed: bool;
       }
 
       let returned_count _ = return (Error `Unsupported)
 
-      let affected_count {stmt; _} = return (Error `Unsupported)
-      (* Might be implemented with Sqlite3.changes, but it needs to be queried
-       * at the correct time. *)
+      let affected_count {affected_count; has_been_executed; query; _} =
+        if has_been_executed
+        then return (Ok affected_count)
+        else
+          let msg =
+            Caqti_error.Msg
+              "Statement not executed yet, affected_count unavailable." in
+          return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
-      let fetch_row {stmt; row_type; query} =
-        (match Sqlite3.step stmt with
+      let run_step response =
+        let ret = Sqlite3.step response.stmt in
+        if not response.has_been_executed
+        then (response.has_been_executed <- true;
+              response.affected_count <- Sqlite3.changes db);
+        ret
+
+      let fetch_row ({stmt; row_type; query; _} as response) =
+        (match run_step response with
          | Sqlite3.Rc.DONE -> Ok None
          | Sqlite3.Rc.ROW ->
             (match decode_row ~uri stmt 0 row_type with
@@ -324,10 +338,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | rc ->
             Error (Caqti_error.response_failed ~uri ~query (Rc rc)))
 
-      let exec {stmt; row_type; query} =
+      let exec ({row_type; query; _} as response) =
         assert (row_type = Caqti_type.unit);
         let retrieve () =
-          (match Sqlite3.step stmt with
+          (match run_step response with
            | Sqlite3.Rc.DONE -> Ok ()
            | Sqlite3.Rc.ROW ->
               let msg = Caqti_error.Msg "Received unexpected row for exec." in
@@ -432,7 +446,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match encode_param ~uri stmt param_type param os with
        | Ok os ->
           assert (os = []);
-          return (Ok Response.{stmt; query; row_type})
+          return (Ok Response.{stmt; query; row_type;
+                               has_been_executed=false; affected_count = -1; })
        | Error _ as r -> return r)
       >>=? fun resp ->
 

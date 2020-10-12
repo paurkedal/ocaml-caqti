@@ -45,8 +45,17 @@ let rec equal t1 t2 =
   | L s1, L s2 -> String.equal s1 s2
   | Q s1, Q s2 -> String.equal s1 s2
   | P i1, P i2 -> Int.equal i1 i2
-  | S l1, S l2 -> (try List.for_all2 equal l1 l2 with _ -> false)
-  | _ -> false
+  | S l1, S l2 -> 
+    let rec list_equal a b =
+      match (a, b) with
+      | ([], []) -> true
+      | (a::x, b::y) -> equal a b && (list_equal x y)
+      | _ -> false in
+    list_equal l1 l2
+  | L _, _ -> false
+  | Q _, _ -> false
+  | P _, _ -> false
+  | S _, _ -> false
 
 let hash = Hashtbl.hash
 

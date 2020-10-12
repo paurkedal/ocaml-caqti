@@ -38,8 +38,7 @@
   (private_modules
     Caqti_compat)
   (library_flags (:standard -linkall))
-  (libraries logs ptime uri)
-  (preprocess (pps ppx_deriving.eq)))
+  (libraries logs ptime uri))
 
 (rule
   (target caqti_compat.ml)

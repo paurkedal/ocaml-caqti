@@ -19,7 +19,6 @@ type t =
   | Q of string
   | P of int
   | S of t list
-[@@deriving eq]
 
 let normal =
   let rec collect acc = function
@@ -40,6 +39,14 @@ let normal =
      | [] -> S[]
      | [q] -> q
      | qs -> S qs)
+
+let rec equal t1 t2 =
+  match t1, t2 with
+  | L s1, L s2 -> String.equal s1 s2
+  | Q s1, Q s2 -> String.equal s1 s2
+  | P i1, P i2 -> Int.equal i1 i2
+  | S l1, S l2 -> (try List.for_all2 equal l1 l2 with _ -> false)
+  | _ -> false
 
 let hash = Hashtbl.hash
 

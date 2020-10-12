@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -51,8 +51,8 @@ let pp_uri ppf uri =
 (* Records *)
 
 type load_error = {
-  uri : Uri.t;
-  msg : msg;
+  uri: Uri.t;
+  msg: msg;
 }
 let pp_load_msg ppf fmt err =
   Format.fprintf ppf fmt pp_uri err.uri;
@@ -60,8 +60,8 @@ let pp_load_msg ppf fmt err =
   pp_msg ppf err.msg
 
 type connection_error = {
-  uri : Uri.t;
-  msg : msg;
+  uri: Uri.t;
+  msg: msg;
 }
 let pp_connection_msg ppf fmt err =
   Format.fprintf ppf fmt pp_uri err.uri;
@@ -69,9 +69,9 @@ let pp_connection_msg ppf fmt err =
   pp_msg ppf err.msg
 
 type query_error = {
-  uri : Uri.t;
-  query : string;
-  msg : msg;
+  uri: Uri.t;
+  query: string;
+  msg: msg;
 }
 let pp_query_msg ppf fmt err =
   Format.fprintf ppf fmt pp_uri err.uri;
@@ -80,9 +80,9 @@ let pp_query_msg ppf fmt err =
   Format.fprintf ppf " Query: %S." err.query
 
 type coding_error = {
-  uri : Uri.t;
-  typ : Caqti_type.any;
-  msg : msg;
+  uri: Uri.t;
+  typ: Caqti_type.any;
+  msg: msg;
 }
 let pp_coding_error ppf fmt err =
   Format.fprintf ppf fmt Caqti_type.pp_any err.typ pp_uri err.uri;

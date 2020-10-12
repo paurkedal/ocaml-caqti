@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
 
   module Task = struct
-    type t = {priority : float; mvar : unit Mvar.t}
+    type t = {priority: float; mvar: unit Mvar.t}
     let wake {mvar; _} = Mvar.store () mvar
     let compare {priority = pA; _} {priority = pB; _} = Float.compare pB pA
   end
@@ -33,14 +33,14 @@ module Make (System : Caqti_driver_sig.System_common) = struct
   module Taskq = Caqti_heap.Make (Task)
 
   type ('a, +'e) t = {
-    p_create : unit -> ('a, 'e) result future;
-    p_free : 'a -> unit future;
-    p_check : 'a -> (bool -> unit) -> unit;
-    p_validate : 'a -> bool future;
-    p_max_size : int;
-    mutable p_cur_size : int;
-    p_pool : 'a Queue.t;
-    mutable p_waiting : Taskq.t;
+    create: unit -> ('a, 'e) result future;
+    free: 'a -> unit future;
+    check: 'a -> (bool -> unit) -> unit;
+    validate: 'a -> bool future;
+    max_size: int;
+    mutable cur_size: int;
+    pool: 'a Queue.t;
+    mutable waiting: Taskq.t;
   }
 
   let create
@@ -48,49 +48,50 @@ module Make (System : Caqti_driver_sig.System_common) = struct
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
         create free =
-    { p_create = create; p_free = free;
-      p_check = check; p_validate = validate;
-      p_max_size = max_size;
-      p_cur_size = 0; p_pool = Queue.create (); p_waiting = Taskq.empty }
+    { create; free; check; validate; max_size;
+      cur_size = 0; pool = Queue.create (); waiting = Taskq.empty }
 
-  let size {p_cur_size; _} = p_cur_size
+  let size {cur_size; _} = cur_size
 
   let wait ~priority p =
     let mvar = Mvar.create () in
-    p.p_waiting <- Taskq.push Task.({priority; mvar}) p.p_waiting;
+    p.waiting <- Taskq.push Task.({priority; mvar}) p.waiting;
     Mvar.fetch mvar
 
   let rec acquire ~priority p =
-    if Queue.is_empty p.p_pool then begin
-      if p.p_cur_size < p.p_max_size
-      then begin
-        p.p_cur_size <- p.p_cur_size + 1;
-        p.p_create () >|=
-        (function
-         | Ok e -> Ok e
-         | Error err -> p.p_cur_size <- p.p_cur_size - 1; Error err)
-      end else
+    if Queue.is_empty p.pool then begin
+      if p.cur_size < p.max_size then
+        begin
+          p.cur_size <- p.cur_size + 1;
+          p.create () >|=
+          (function
+           | Ok e -> Ok e
+           | Error err -> p.cur_size <- p.cur_size - 1; Error err)
+        end
+      else
         (wait ~priority p >>= fun () -> acquire ~priority p)
     end else begin
-      let e = Queue.take p.p_pool in
-      p.p_validate e >>= fun ok ->
+      let e = Queue.take p.pool in
+      p.validate e >>= fun ok ->
       if ok then
         return (Ok e)
       else
-        p.p_create () >|=
+        p.create () >|=
         (function
          | Ok e -> Ok e
-         | Error err -> p.p_cur_size <- p.p_cur_size - 1; Error err)
+         | Error err -> p.cur_size <- p.cur_size - 1; Error err)
     end
 
   let release p e =
-    p.p_check e @@ fun ok ->
-    if ok then Queue.add e p.p_pool
-          else p.p_cur_size <- p.p_cur_size - 1;
-    if not (Taskq.is_empty p.p_waiting) then
-      let task, taskq = Taskq.pop_e p.p_waiting in
-      p.p_waiting <- taskq;
-      Task.wake task
+    p.check e @@ fun ok ->
+    if ok then Queue.add e p.pool
+          else p.cur_size <- p.cur_size - 1;
+    if not (Taskq.is_empty p.waiting) then
+      begin
+        let task, taskq = Taskq.pop_e p.waiting in
+        p.waiting <- taskq;
+        Task.wake task
+      end
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
@@ -102,13 +103,13 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     with exn ->
       release p e; raise exn
 
-  let dispose p e = p.p_free e >|= fun () -> p.p_cur_size <- p.p_cur_size - 1
+  let dispose p e = p.free e >|= fun () -> p.cur_size <- p.cur_size - 1
 
   let rec drain p =
-    if p.p_cur_size = 0 then return () else
-    (if Queue.is_empty p.p_pool
+    if p.cur_size = 0 then return () else
+    (if Queue.is_empty p.pool
      then wait ~priority:0.0 p
-     else dispose p (Queue.take p.p_pool)) >>= fun () ->
+     else dispose p (Queue.take p.pool)) >>= fun () ->
     drain p
 
 end

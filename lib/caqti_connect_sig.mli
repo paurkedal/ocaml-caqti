@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,10 +38,17 @@ module type S = sig
     (connection, [> Caqti_error.load_or_connect]) result future
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
-      first-class module implementing {!Caqti_connection_sig.S}. *)
+      first-class module implementing {!Caqti_connection_sig.S}.
+
+      If you use preemptive threading, note that the connection must only be
+      used from the thread where it was created. *)
 
   val connect_pool : ?max_size: int -> Uri.t ->
     ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
   (** [connect_pool uri] is a pool of database connections constructed by
-      [connect uri]. *)
+      [connect uri].
+
+      If you use preemptive threading, note that the connection pool must only
+      be used from the thread where it was created. Use thread local storage to
+      create a separate pool per thread if necessary. *)
 end

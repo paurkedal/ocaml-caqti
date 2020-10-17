@@ -42,6 +42,7 @@ module List : sig
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val fold_r : ('a -> 'b -> ('b, 'e) result) -> 'a list -> 'b -> ('b, 'e) result
   val iter_r : ('a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
+  val equal : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
 end
 
 val finally : (unit -> unit) -> (unit -> 'a) -> 'a

@@ -48,6 +48,12 @@ module List = struct
   let rec iter_r f = function
    | [] -> Ok ()
    | x :: xs -> (match f x with Ok () -> iter_r f xs | Error _ as r -> r)
+
+  let rec equal f xs ys =
+    (match xs, ys with
+     | [], [] -> true
+     | x :: xs', y :: ys' -> f x y && equal f xs' ys'
+     | [], _ :: _ | _ :: _, [] -> false)
 end
 
 let finally cleanup thunk =

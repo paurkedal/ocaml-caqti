@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,9 +32,14 @@ module Resource = struct
 end
 
 let test n =
-  let pool = Pool.create Resource.create Resource.free in
+  let max_idle_size = Random.int 11 in
+  let max_size = max 1 (max_idle_size + Random.int 5) in
+  let pool =
+    Pool.create ~max_idle_size ~max_size Resource.create Resource.free
+  in
   let wakers = Array.make n None in
   let wait_count = ref 0 in
+  let wait_count_cond = Lwt_condition.create () in
   let wake j u = Lwt.wakeup u (); wakers.(j) <- None in
   for _ = 0 to 3 * n - 1 do
     let j = Random.int n in
@@ -43,12 +48,20 @@ let test n =
      | None ->
         let waiter, waker = Lwt.wait () in
         incr wait_count;
-        let task _ = waiter >|= fun () -> decr wait_count; Ok () in
+        let task _ =
+          waiter >|= fun () ->
+          decr wait_count;
+          Lwt_condition.signal wait_count_cond ();
+          Ok ()
+        in
         Lwt.async begin fun () ->
           Pool.use task pool >>=
           (function
            | Ok () -> Lwt.return_unit
-           | Error () -> waiter >|= fun () -> decr wait_count)
+           | Error () ->
+              waiter >|= fun () ->
+              decr wait_count;
+              Lwt_condition.signal wait_count_cond ())
         end;
         wakers.(j) <- Some waker
      | Some u -> wake j u)
@@ -58,6 +71,12 @@ let test n =
      | None -> ()
      | Some u -> wake j u)
   done;
+  let rec wait_for_all () =
+    if !wait_count = 0 then Lwt.return_unit else
+    Lwt_condition.wait wait_count_cond >>= wait_for_all
+  in
+  Lwt_unix.with_timeout 2.0 wait_for_all >>= fun () ->
+  assert (Pool.size pool <= max_idle_size);
   assert (!wait_count = 0);
   Pool.drain pool >|= fun () ->
   assert (Pool.size pool = 0);
@@ -67,12 +86,10 @@ let () =
   Lwt_main.run begin
     test 0 >>= fun () ->
     test 1 >>= fun () ->
-    test 3 >>= fun () ->
-    test 8 >>= fun () ->
-    test 12 >>= fun () ->
-    test 16 >>= fun () ->
-    test 64 >>= fun () ->
-    test 128 >>= fun () ->
-    test 1024 >>= fun () ->
-    test 10240
+    let rec loop n_it =
+      if n_it = 0 then Lwt.return_unit else
+      test (Random.int (1 lsl Random.int 12)) >>= fun () ->
+      loop (n_it - 1)
+    in
+    loop 500
   end

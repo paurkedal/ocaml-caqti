@@ -37,6 +37,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     free: 'a -> unit future;
     check: 'a -> (bool -> unit) -> unit;
     validate: 'a -> bool future;
+    max_idle_size: int;
     max_size: int;
     mutable cur_size: int;
     pool: 'a Queue.t;
@@ -45,10 +46,13 @@ module Make (System : Caqti_driver_sig.System_common) = struct
 
   let create
         ?(max_size = default_max_size)
+        ?(max_idle_size = max_size)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
         create free =
-    { create; free; check; validate; max_size;
+    assert (max_size > 0);
+    assert (max_size >= max_idle_size);
+    { create; free; check; validate; max_idle_size; max_size;
       cur_size = 0; pool = Queue.create (); waiting = Taskq.empty }
 
   let size {cur_size; _} = cur_size
@@ -58,50 +62,66 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     p.waiting <- Taskq.push Task.({priority; mvar}) p.waiting;
     Mvar.fetch mvar
 
+  let schedule p =
+    if not (Taskq.is_empty p.waiting) then begin
+      let task, taskq = Taskq.pop_e p.waiting in
+      p.waiting <- taskq;
+      Task.wake task
+    end
+
+  let realloc p =
+    p.create () >|=
+    (function
+     | Ok e -> Ok e
+     | Error err ->
+        p.cur_size <- p.cur_size - 1;
+        schedule p;
+        Error err)
+
   let rec acquire ~priority p =
     if Queue.is_empty p.pool then begin
       if p.cur_size < p.max_size then
         begin
           p.cur_size <- p.cur_size + 1;
-          p.create () >|=
-          (function
-           | Ok e -> Ok e
-           | Error err -> p.cur_size <- p.cur_size - 1; Error err)
+          realloc p
         end
       else
-        (wait ~priority p >>= fun () -> acquire ~priority p)
+        wait ~priority p >>= fun () ->
+        acquire ~priority p
     end else begin
       let e = Queue.take p.pool in
       p.validate e >>= fun ok ->
       if ok then
         return (Ok e)
       else
-        p.create () >|=
-        (function
-         | Ok e -> Ok e
-         | Error err -> p.cur_size <- p.cur_size - 1; Error err)
+        realloc p
     end
 
   let release p e =
-    p.check e @@ fun ok ->
-    if ok then Queue.add e p.pool
-          else p.cur_size <- p.cur_size - 1;
-    if not (Taskq.is_empty p.waiting) then
-      begin
-        let task, taskq = Taskq.pop_e p.waiting in
-        p.waiting <- taskq;
-        Task.wake task
-      end
+    if p.cur_size > p.max_idle_size then begin
+      p.cur_size <- p.cur_size - 1;
+      p.free e >|= fun () ->
+      schedule p
+    end else begin
+      p.check e begin fun ok ->
+        if ok then
+          Queue.add e p.pool
+        else
+          p.cur_size <- p.cur_size - 1;
+        schedule p
+      end;
+      return ()
+    end
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
     try
       f e >>=
       (function
-       | Ok y -> release p e; return (Ok y)
-       | Error err -> release p e; return (Error err))
+       | Ok y -> release p e >|= fun () -> Ok y
+       | Error err -> release p e >|= fun () -> Error err)
     with exn ->
-      release p e; raise exn
+      release p e >|= fun () -> raise exn
 
   let dispose p e = p.free e >|= fun () -> p.cur_size <- p.cur_size - 1
 

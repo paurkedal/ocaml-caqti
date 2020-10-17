@@ -23,7 +23,7 @@ let driver_info =
     ~uri_scheme:"sqlite3"
     ~dialect_tag:`Sqlite
     ~parameter_style:(`Linear "?")
-    ~can_pool:false
+    ~can_pool:true
     ~can_concur:false
     ~can_transact:true
     ~describe_has_typed_params:false

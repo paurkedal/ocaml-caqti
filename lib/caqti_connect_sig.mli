@@ -43,12 +43,30 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created. *)
 
-  val connect_pool : ?max_size: int -> Uri.t ->
+  val connect_pool : ?max_size: int -> ?max_idle_size: int -> Uri.t ->
     ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].
 
+      Do not use pooling for connections to volatile resources like
+      [sqlite3::memory:] and beware of temporary tables or other objects which
+      may not be shared across connections to the same URI.
+
       If you use preemptive threading, note that the connection pool must only
       be used from the thread where it was created. Use thread local storage to
-      create a separate pool per thread if necessary. *)
+      create a separate pool per thread if necessary.
+
+      @param max_size
+        The maximum number of open connections. Must be at least [1].
+        For drivers which does not support concurrent connections, this will be
+        ignored and the value [1] used instead.
+
+      @param max_idle_size
+        The maximum number of idle connections to put into the pool for reuse.
+        Defaults to [max_size]. Must be between 0 and [max_size]. If you set
+        this, you must also set [max_size].
+        For drivers which does not support pooling, this will be ignored and the
+        value [0] used instead. For drivers which does not support concurrent
+        connections, but supports pooling, the value will clipped to a maximum
+        of [1]. *)
 end

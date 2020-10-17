@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -90,7 +90,17 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   module Pool = Caqti_pool.Make (System)
   module Stream = System.Stream
 
-  let connect_pool ?max_size uri =
+  let connect_pool ?max_size ?max_idle_size uri =
+    let check_arg cond =
+      if not cond then invalid_arg "Caqti_connect.Make_unix.connect_pool"
+    in
+    (match max_size, max_idle_size with
+     | None, None -> ()
+     | Some max_size, None -> check_arg (max_size >= 0)
+     | None, Some _ -> check_arg false
+     | Some max_size, Some max_idle_size ->
+        check_arg (max_size >= 0);
+        check_arg (0 <= max_idle_size && max_idle_size <= max_size));
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
@@ -99,11 +109,20 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
         let validate (module Db : CONNECTION) = Db.validate () in
         let check (module Db : CONNECTION) = Db.check in
         let di = Driver.driver_info in
-        let max_size =
-          if not (Caqti_driver_info.(can_concur di && can_pool di))
-          then Some 1
-          else max_size in
-        Ok (Pool.create ?max_size ~validate ~check connect disconnect)
+        let max_size, max_idle_size =
+          (match Caqti_driver_info.can_concur di, Caqti_driver_info.can_pool di,
+                 max_idle_size with
+           | true, true, _ ->     max_size, max_idle_size
+           | true, false, _ ->    max_size, Some 0
+           | false, true, Some 0 -> Some 1, Some 0
+           | false, true, _ ->      Some 1, Some 1
+           | false, false, _ ->     Some 1, Some 0)
+        in
+        let pool =
+          Pool.create ?max_size ?max_idle_size ~validate ~check
+            connect disconnect
+        in
+        Ok pool
      | Error err ->
         Error err)
 end

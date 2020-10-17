@@ -29,7 +29,7 @@
 (rule
   (targets uris.conf)
   (mode fallback)
-  (action (write-file %{targets} "sqlite3::memory:\n")))
+  (action (write-file %{targets} "sqlite3:test.db?busy_timeout=60000\n")))
 
 (test
   (name bikereg)

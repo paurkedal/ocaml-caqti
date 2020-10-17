@@ -69,7 +69,7 @@ module Q = struct
           s TEXT NOT NULL, \
           o BLOB NOT NULL)"
    | `Sqlite ->
-      "CREATE TABLE test_sql \
+      "CREATE TEMPORARY TABLE test_sql \
          (id INTEGER PRIMARY KEY, \
           i INTEGER NOT NULL, \
           s TEXT NOT NULL, \
@@ -83,7 +83,7 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT, o BLOB)"
    | `Sqlite ->
-      "CREATE TABLE test_sql \
+      "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT, o BLOB)"
    | _ -> failwith "Unimplemented."
   let create_tmp_binary = (unit -->! unit) @@ function
@@ -94,7 +94,7 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, data BLOB NOT NULL)"
    | `Sqlite ->
-      "CREATE TABLE test_sql \
+      "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, data BLOB NOT NULL)"
    | _ -> failwith "Unimplemented"
   let drop_tmp = (unit -->! unit) @@ function

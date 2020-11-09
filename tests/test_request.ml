@@ -36,7 +36,8 @@ let test_request_parse () =
    | "delta" -> Q.L "δ"
    | _ -> raise Not_found
   in
-  expect_parse ~env "$(alpha) $beta. $(gamma) $delta." Q.(L"α β[dot] γ δ.")
+  expect_parse ~env "$(alpha) $QUOTE$ $beta. $(gamma) $delta."
+    Q.(L"α $QUOTE$ β[dot] γ δ.")
 
 let () =
   test_request_parse ()

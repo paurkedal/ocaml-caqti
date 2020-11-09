@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -107,9 +107,20 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
     followed by a dot, so that the empty string can be returned if the database
     does not support schemas or no schema is requested by the user.
 
+    Finally, to support the PostgreSQL quoting mechanism:
+
+    - ["$<var>$"] is left unchanged.
+    - ["$$"] will be left unchanged in a future version, see the below notice.
+
     Apart from the more generic {!create_p}, these function match up with
     retrieval functions of {!Caqti_connection_sig.S} and {!Caqti_response_sig.S}
-    according to the multiplicity parameter of their types. *)
+    according to the multiplicity parameter of their types.
+
+    {b Deprecation of undocumented feature.} In previous versions it was
+    possible to quote the dollar by doubling it. This was undocumented and is
+    hereby deprecated. If you need a plain dollar sign, you can add it to the
+    environment. It is not neccesary to quote dollar signs in single-quoted
+    strings. In the future [$$] will be left unchanged. *)
 
 val create_p :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->

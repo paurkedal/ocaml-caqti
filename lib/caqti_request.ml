@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Caqti_common_priv
 open Printf
 
 type query = Caqti_query.t =
@@ -75,13 +76,12 @@ let format_query ~env qs =
     if qs.[j] = ')' then j + 1 else
     skip_end_paren (j + 1) in
 
-  let check_idr s =
-    let l = String.length s in
-    for i = 0 to (if l > 1 && s.[l - 1] = '.' then l - 2 else l - 1) do
-      (match s.[i] with
-       | 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> ()
-       | _ -> invalid_arg_f "Invalid character %C in identifier %S." s.[i] s)
-    done in
+  let rec skip_idr s i =
+    if i = String.length s then i else
+    (match s.[i] with
+     | 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> skip_idr s (i + 1)
+     | _ -> i)
+  in
 
   let rec loop p i j acc = (* acc is reversed *)
     if j = n then L (String.sub qs i (j - i)) :: acc else
@@ -98,6 +98,10 @@ let format_query ~env qs =
         let acc = L (String.sub qs i (j - i)) :: acc in
         (match qs.[j + 1] with
          | '$' ->
+            Alog.err (fun f ->
+              f "Invalid $$ in Caqti query strings, falling back to deprecated \
+                 and undocumented behaviour for now. \
+                 This will change in a future version.");
             let acc = L"$" :: acc in
             loop p (j + 2) (j + 2) acc
          | '0'..'9' ->
@@ -112,14 +116,19 @@ let format_query ~env qs =
          | '.' ->
             let acc = env "." :: acc in
             loop p (j + 2) (j + 2) acc
-         | 'a'..'z' ->
-            (match String.index_from qs (j + 2) '.' with
-             | exception Not_found -> invalid_arg "Unterminated '$'."
-             | k ->
+         | 'a'..'z' | 'A'..'Z' ->
+            let k = skip_idr qs (j + 2) in
+            if k = String.length qs then invalid_arg "Unterminated '$'." else
+            (match qs.[k] with
+             | '.' ->
                 let idr = String.sub qs (j + 1) (k - j) in
-                check_idr idr;
-                let acc = env idr :: acc in
-                loop p (k + 1) (k + 1) acc)
+                loop p (k + 1) (k + 1) (env idr :: acc)
+             | '$' ->
+                let quote = String.sub qs j (k - j + 1) in
+                loop p (k + 1) (k + 1) (L quote :: acc)
+             | ch ->
+                invalid_arg_f
+                  "Unterminated $ or invalid character %C in identifier." ch)
          | _ ->
             invalid_arg "Unescaped $ in query string.")
      | _ ->

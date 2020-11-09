@@ -19,6 +19,12 @@
   (libraries caqti testkit))
 
 (test
+  (name test_request)
+  (package caqti)
+  (modules Test_request)
+  (libraries caqti))
+
+(test
   (name test_pool_lwt)
   (package caqti-lwt)
   (modules Test_pool_lwt)

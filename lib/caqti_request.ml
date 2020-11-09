@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -113,7 +113,7 @@ let format_query ~env qs =
             let acc = env "." :: acc in
             loop p (j + 2) (j + 2) acc
          | 'a'..'z' ->
-            (match String.index qs '.' with
+            (match String.index_from qs (j + 2) '.' with
              | exception Not_found -> invalid_arg "Unterminated '$'."
              | k ->
                 let idr = String.sub qs (j + 1) (k - j) in

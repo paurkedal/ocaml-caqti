@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,16 +41,7 @@ end
  *
  * Queries are normally defined in advance.  This allows Caqti to emit
  * prepared queries which are reused throughout the lifetime of the
- * connection.  The two most useful functions to do this are
- *
- *   - [prepare_sql] creates a query string which should work with all SQL
- *     databases of interest.
- *
- *   - [prepare_fun] creates a per-database query string.
- *
- * It's possible to avoid many dialect variation cases by using a function
- * which translates the placeholders for parameters, like [Q._q] defined in
- * [tests/test_sql_lwt.ml]. *)
+ * connection. *)
 
 module Q = struct
 

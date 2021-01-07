@@ -120,7 +120,7 @@ let test db =
   (* Examples of statement execution: Create and populate the register. *)
   create_bikereg db >>=? fun () ->
   reg_bike db "BIKE-0000" "Arthur Dent" >>=? fun () ->
-  reg_bike db "BIKE-0001" "Ford Perfect" >>=? fun () ->
+  reg_bike db "BIKE-0001" "Ford Prefect" >>=? fun () ->
   reg_bike db "BIKE-0002" "Zaphod Beeblebrox" >>=? fun () ->
   reg_bike db "BIKE-0003" "Trillian" >>=? fun () ->
   reg_bike db "BIKE-0004" "Marvin" >>=? fun () ->

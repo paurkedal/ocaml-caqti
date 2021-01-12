@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,6 +21,9 @@ end
 #endif
 
 #if OCAML_VERSION < (4, 8, 0)
+module Int = struct
+  let equal (x : int) (y : int) = x = y
+end
 module Obj = struct
   include Obj
   module Extension_constructor = struct

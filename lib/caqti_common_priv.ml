@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -108,5 +108,7 @@ let pdate_of_iso8601 s =
 let iso8601_of_pdate x = iso8601_of_datetuple (Ptime.to_date x)
 
 let default_log_src = Logs.Src.create "caqti"
+
+let request_log_src = Logs.Src.create "caqti.request"
 
 module Alog = (val Logs.src_log default_log_src)

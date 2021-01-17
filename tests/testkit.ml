@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,8 +17,14 @@
 let common_uri_r = ref None
 
 let common_args =
-  [ "-u", Arg.String (fun s -> common_uri_r := Some (Uri.of_string s)),
-    "URI Test against URI."; ]
+  let set_uri uri_str = common_uri_r := Some (Uri.of_string uri_str) in
+  let set_log_level level_str =
+    (match Logs.level_of_string level_str with
+     | Error (`Msg msg) -> raise (Arg.Bad msg)
+     | Ok level -> Logs.set_level level)
+  in
+  [ "-u", Arg.String set_uri, "URI Test against URI.";
+    "--log-level", Arg.String set_log_level, "LEVEL Log level."; ]
 
 let common_uri () =
   match !common_uri_r with
@@ -58,5 +64,7 @@ let init_list n f = (* List.init is available from OCaml 4.6.0 *)
 
 let () =
   Random.self_init ();
+  Logs.set_reporter (Logs_fmt.reporter ());
+
   (* Needed for bytecode since plugins link against C libraries: *)
   Dynlink.allow_unsafe_modules true

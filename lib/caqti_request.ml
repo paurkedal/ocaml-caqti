@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -186,3 +186,8 @@ let pp ppf req =
      | `Zero_or_more -> "*")
     Caqti_type.pp req.row_type
     Caqti_query.pp (req.query Caqti_driver_info.dummy)
+
+let pp_with_param ?(driver_info = Caqti_driver_info.dummy) ppf (req, param) =
+  Format.fprintf ppf "{|%a|} %a"
+    Caqti_query.pp (req.query driver_info)
+    Caqti_type.pp_value (req.param_type, param)

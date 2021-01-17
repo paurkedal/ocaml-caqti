@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -428,6 +428,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Ok (stmt, os, oq, query)
 
     let call ~f req param = using_db @@ fun () ->
+      Log.debug ~src:request_log_src (fun f ->
+        f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
+        >>= fun () ->
+
       let param_type = Caqti_request.param_type req in
       let row_type = Caqti_request.row_type req in
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -66,6 +66,25 @@ module Field = struct
    | Ptime -> "ptime"
    | Ptime_span -> "ptime_span"
    | ft -> Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft)
+
+  let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
+
+  let pp_value : type a. _ -> a field * a -> unit = fun ppf -> function
+   | Bool, x -> Format.pp_print_bool ppf x
+   | Int, x -> Format.pp_print_int ppf x
+   | Int32, x -> Format.fprintf ppf "%ldl" x
+   | Int64, x -> Format.fprintf ppf "%LdL" x
+   | Float, x -> Format.fprintf ppf "%F" x
+   | String, x -> Format.fprintf ppf "%S" x
+   | Octets, x -> Format.fprintf ppf "%S" x
+   | Pdate, x ->
+      let y, m, d = Ptime.to_date x in
+      Format.fprintf ppf "%d-%02d-%02d" y m d
+   | Ptime, x -> pp_ptime ppf x
+   | Ptime_span, x -> Ptime.Span.pp ppf x
+   | ft ->
+      Format.fprintf ppf "<%s>"
+        (Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft))
 end
 
 type _ t =
@@ -128,6 +147,42 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
 
 let pp ppf = pp_at 1 ppf
 let pp_any ppf (Any t) = pp_at 1 ppf t
+
+let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
+ | Unit, () -> Format.pp_print_string ppf "()"
+ | Field ft, fv -> Field.pp_value ppf (ft, fv)
+ | Option _, None -> Format.pp_print_string ppf "None"
+ | Option t, Some x ->
+    Format.pp_print_string ppf "Some ";
+    pp_value ppf (t, x)
+ | Tup2 (t1, t2), (x1, x2) ->
+    Format.pp_print_char ppf '(';
+    pp_value ppf (t1, x1);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t2, x2);
+    Format.pp_print_char ppf ')'
+ | Tup3 (t1, t2, t3), (x1, x2, x3) ->
+    Format.pp_print_char ppf '(';
+    pp_value ppf (t1, x1);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t2, x2);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t3, x3);
+    Format.pp_print_char ppf ')'
+ | Tup4 (t1, t2, t3, t4), (x1, x2, x3, x4) ->
+    Format.pp_print_char ppf '(';
+    pp_value ppf (t1, x1);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t2, x2);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t3, x3);
+    Format.pp_print_string ppf ", ";
+    pp_value ppf (t4, x4);
+    Format.pp_print_char ppf ')'
+ | Custom {rep; encode; _}, x ->
+    (match encode x with
+     | Ok y -> pp_value ppf (rep, y)
+     | Error _ -> Format.pp_print_string ppf "INVALID")
 
 let show t =
   let buf = Buffer.create 64 in

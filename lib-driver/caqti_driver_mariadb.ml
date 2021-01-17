@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -403,6 +403,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err))
 
     let call ~f req param = using_db @@ fun () ->
+      Log.debug ~src:request_log_src (fun f ->
+        f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
+        >>= fun () ->
 
       let process {query; stmt; param_length; param_order; quotes} =
         let param_type = Caqti_request.param_type req in

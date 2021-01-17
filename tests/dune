@@ -2,7 +2,7 @@
   (name testkit)
   (modules Testkit)
   (wrapped false)
-  (libraries dynlink uri))
+  (libraries caqti dynlink logs logs.fmt uri))
 
 ; Basic Tests
 

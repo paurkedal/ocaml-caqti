@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,5 +56,6 @@ val pdate_of_iso8601 : string -> (Ptime.t, string) result
 val iso8601_of_pdate : Ptime.t -> string
 
 val default_log_src : Logs.Src.t
+val request_log_src : Logs.Src.t
 
 module Alog : Logs.LOG

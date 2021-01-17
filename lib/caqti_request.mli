@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -181,6 +181,14 @@ val collect :
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human
     inspection. *)
+
+val pp_with_param :
+  ?driver_info: Caqti_driver_info.t ->
+  Format.formatter -> ('a, 'b, 'm) t * 'a -> unit
+(** [pp_with_param ppf (req, param)] prints [req] and the associated [param] to
+    [ppf].  This functions is meant for debugging; the output is neither
+    guaranteed to be consistent across releases nor to contain a complete record
+    of the data. *)
 
 (** {2 How to Dynamically Assemble Queries and Parameters}
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -91,6 +91,12 @@ val pp : Format.formatter -> 'a t -> unit
 
 val pp_any : Format.formatter -> any -> unit
 (** [pp_any ppf t] prints a human presentation of [t] on [ppf]. *)
+
+val pp_value : Format.formatter -> 'a t * 'a -> unit
+(** [pp_value ppf (t, v)] prints a human representation of [v] given the type
+    descriptor [t]. This function is meant for debugging; the output is neither
+    guaranteed to be consistent across releases nor to contain a complete record
+    of the data. *)
 
 val show : 'a t -> string
 (** [show t] is a human presentation of [t]. *)

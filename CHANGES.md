@@ -1,3 +1,17 @@
+## v1.3.0 - 2021-01-17
+
+- Implement `affected_count` for sqlite backend (GPR#46 jakob).
+- Add method `exec_with_affected_count` to `Caqti_connection_sig.S` (GPR#45
+  jakob).
+- Add `?max_idle_size` to pool creation functions.
+- Dropped dependency on `ppx_deriving` due to issue with static compilation
+  (GPR#50 Ulrik Strid).
+- Pass through `$<var>$` in query strings and deprecate `$$`.
+- Log statements to be executed at debug level.
+- Add COPYING.OCAML and fix license expression in opam files.
+- Misc improvements to tests and documentation (GPR#51 Philippe Wang, GPR#54
+  Reynir Björnsson, etc.).
+
 ## v1.2.4 - 2020-06-07
 
 - Switch to TEXT format for PostgreSQL populate implementation.

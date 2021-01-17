@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,9 +36,16 @@ let pp_msg ppf msg =
 
 type msg += Msg : string -> msg
 
+let is_punct = function
+ | '.' | '!' | '?' -> true
+ | _ -> false
+
 let () =
   let pp ppf = function
-   | Msg s -> Format.pp_print_string ppf s
+   | Msg s ->
+      Format.pp_print_string ppf s;
+      if s <> "" && not (is_punct s.[String.length s - 1]) then
+        Format.pp_print_char ppf '.'
    | _ -> assert false in
   define_msg ~pp [%extension_constructor Msg]
 
@@ -73,6 +80,7 @@ type query_error = {
   query: string;
   msg: msg;
 }
+
 let pp_query_msg ppf fmt err =
   Format.fprintf ppf fmt pp_uri err.uri;
   Format.pp_print_string ppf ": ";

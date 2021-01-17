@@ -21,7 +21,7 @@ open Printf
 type Caqti_error.msg += Mdb_msg of (int * string)
 let () =
   let pp ppf = function
-   | Mdb_msg (code, msg) -> Format.fprintf ppf "Error %d, %s" code msg
+   | Mdb_msg (code, msg) -> Format.fprintf ppf "Error %d, %s." code msg
    | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Mdb_msg]
 

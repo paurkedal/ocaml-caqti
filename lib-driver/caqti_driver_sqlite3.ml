@@ -49,7 +49,7 @@ let get_uri_int uri name =
 type Caqti_error.msg += Rc : Sqlite3.Rc.t -> Caqti_error.msg
 let () =
   let pp ppf = function
-   | Rc rc -> Format.pp_print_string ppf (Sqlite3.Rc.to_string rc)
+   | Rc rc -> Format.fprintf ppf "%s." (Sqlite3.Rc.to_string rc)
    | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Rc]
 

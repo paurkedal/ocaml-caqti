@@ -64,7 +64,7 @@ let init_list n f = (* List.init is available from OCaml 4.6.0 *)
 
 let () =
   Random.self_init ();
-  Logs.set_reporter (Logs_fmt.reporter ());
+  Logs.set_reporter (Logs.format_reporter ());
 
   (* Needed for bytecode since plugins link against C libraries: *)
   Dynlink.allow_unsafe_modules true

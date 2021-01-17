@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,26 +33,20 @@ module Q = struct
 
   let select_and = Caqti_request.find (tup2 bool bool) bool "SELECT ? AND ?"
 
-  let select_plus_int = (tup2 int int --> int) @@ function
-   | `Pgsql -> "SELECT ?::integer + ?::integer"
-   | `Mysql | `Sqlite -> "SELECT CAST(? AS integer) + CAST(? AS integer)"
-   | _ -> failwith "Unimplemented."
-  let select_plus_int64 = (tup2 int64 int64 --> int64) @@ function
-   | `Pgsql -> "SELECT ?::integer + ?::integer"
-   | `Mysql | `Sqlite -> "SELECT CAST(? AS integer) + CAST(? AS integer)"
-   | _ -> failwith "Unimplemented."
+  let select_plus_int = (tup2 int int --> int) @@ fun _ ->
+    "SELECT CAST(? AS integer) + CAST(? AS integer)"
+  let select_plus_int64 = (tup2 int64 int64 --> int64) @@ fun _ ->
+    "SELECT CAST(? AS integer) + CAST(? AS integer)"
   let select_plus_float = (tup2 float float --> float) @@ function
-   | `Pgsql -> "SELECT ?::float + ?::float"
    | `Mysql -> "SELECT CAST(? AS double) + CAST(? AS double)"
-   | `Sqlite -> "SELECT CAST(? AS float) + CAST(? AS float)"
-   | _ -> failwith "Unimplemented."
+   | _ -> "SELECT CAST(? AS double precision) + CAST(? AS double precision)"
   let select_cat = (tup2 string string --> string) @@ function
-   | `Pgsql | `Sqlite -> "SELECT ? || ?"
    | `Mysql -> "SELECT concat(?, ?)"
-   | _ -> failwith "Unimplemented."
+   | _ -> "SELECT ? || ?"
   let select_octets_identity = (octets --> octets) @@ function
-   | `Pgsql -> "SELECT ? :: bytea"
-   | `Sqlite | `Mysql -> "SELECT ?"
+   | `Mysql -> "SELECT CAST(? AS binary)"
+   | `Pgsql -> "SELECT CAST(? AS bytea)"
+   | `Sqlite -> "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
 
   let create_tmp = (unit -->! unit) @@ function
@@ -127,7 +121,7 @@ module Q = struct
   let select_current_time = Caqti_request.find unit ptime
     "SELECT current_timestamp"
   let select_given_time = (ptime --> ptime) @@ function
-    | `Pgsql  -> "SELECT ?::timestamp"
+    | `Pgsql  -> "SELECT CAST(? AS timestamp)"
     | `Sqlite -> "SELECT ?"
     | `Mysql  -> "SELECT CAST(? AS datetime)"
     | _ -> failwith "Unimplemented."
@@ -186,16 +180,22 @@ struct
         Caqti_type.(tup2 int int)
         Caqti_type.(tup4 int int (tup4 int string string string) int)
         Caqti_mult.one
-        Caqti_query.(fun _ -> S[
-          L "SELECT ";
-          P 1; L " + 10, ";     (* last parameter first *)
-          P 1; L " + 20, ";     (* and duplicated *)
-          L (string_of_int i); L ", ";
-          Q s1; L", ";          (* first quote *)
-          L "'"; L (string_of_int i); L "'"; L ", ";
-          Q s2; L ", ";         (* second quote *)
-          P 0; L " + 10";       (* first paramater last *)
-        ]) in
+        Caqti_query.(fun di ->
+          let quote = match Caqti_driver_info.dialect_tag di with
+           | `Mysql -> fun x -> S [L "CAST("; Q x; L" AS CHAR)"]
+           | _ -> fun x -> Q x
+          in
+          S[
+            L "SELECT ";
+            P 1; L " + 10, ";     (* last parameter first *)
+            P 1; L " + 20, ";     (* and duplicated *)
+            L (string_of_int i); L ", ";
+            quote s1; L ", ";     (* first quote *)
+            L "'"; L (string_of_int i); L "'"; L ", ";
+            quote s2; L ", ";     (* second quote *)
+            P 0; L " + 10";       (* first paramater last *)
+          ])
+      in
       Db.find req (i + 1, i + 2) >>= Sys.or_fail
         >>= fun (i12, i22, (i', s1', si', s2'), i11) ->
       (if oneshot then Sys.return () else Db.deallocate req >>= Sys.or_fail)
@@ -479,10 +479,9 @@ struct
       256
       (fun c -> String.make 1 (Char.chr c))
     in
-    let all_pairs =
-	all_bytes
-	|> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)
-	|> List.flatten
+    let all_pairs = all_bytes
+      |> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)
+      |> List.flatten
     in
     let all_pairs_len = List.length all_pairs in
     assert (all_pairs_len = 65536);
@@ -518,7 +517,6 @@ struct
       end;
     assert (actual = all_pairs);
     Db.exec Q.drop_tmp () >>= Sys.or_fail
-
 
   let run (module Db : Caqti_sys.CONNECTION) =
     test_expr (module Db) >>= fun () ->

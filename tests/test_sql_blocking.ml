@@ -28,20 +28,19 @@ end
 
 module Test = Test_sql.Make (Sys) (Caqti_blocking)
 
-let () =
-  List.iter
-    (fun uri ->
-      try
-        Caqti_blocking.connect uri |> Sys.or_fail |> Test.run;
-        (match Caqti_blocking.connect_pool uri with
-         | Error err -> raise (Caqti_error.Exn err)
-         | Ok pool -> Test.run_pool pool)
-      with
-       | Caqti_error.Exn err ->
-          eprintf "%s\n" (Caqti_error.show err);
-          exit 2
-       | exn ->
-          eprintf "%s raised during test on %s\n"
-            (Printexc.to_string exn) (Uri.to_string uri);
-          exit 2)
-    (Testkit.parse_common_args ())
+let test_on uri =
+  try
+    Caqti_blocking.connect uri |> Sys.or_fail |> Test.run;
+    (match Caqti_blocking.connect_pool uri with
+     | Error err -> raise (Caqti_error.Exn err)
+     | Ok pool -> Test.run_pool pool)
+  with
+   | Caqti_error.Exn err ->
+      eprintf "%s\n" (Caqti_error.show err);
+      exit 2
+   | exn ->
+      eprintf "%s raised during test on %s\n"
+        (Printexc.to_string exn) (Uri.to_string uri);
+      exit 2
+
+let () = List.iter test_on (Testkit.parse_common_args ())

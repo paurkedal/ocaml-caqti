@@ -25,22 +25,20 @@ end
 
 module Test = Test_sql.Make (Sys) (Caqti_lwt)
 
-let () = Lwt_main.run begin
-  Lwt_list.iter_s
-    (fun uri ->
-      Lwt.catch
-        (fun () ->
-          Caqti_lwt.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
-          (match Caqti_lwt.connect_pool uri with
-           | Error err -> raise (Caqti_error.Exn err)
-           | Ok pool -> Test.run_pool pool))
-        (function
-         | Caqti_error.Exn err ->
-            eprintf "%s\n" (Caqti_error.show err);
-            exit 2
-         | exn ->
-            eprintf "%s raised during test on %s\n"
-              (Printexc.to_string exn) (Uri.to_string uri);
-            exit 2))
-    (Testkit.parse_common_args ())
-end
+let test_on uri =
+  Lwt.catch
+    (fun () ->
+      Caqti_lwt.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
+      (match Caqti_lwt.connect_pool uri with
+       | Error err -> raise (Caqti_error.Exn err)
+       | Ok pool -> Test.run_pool pool))
+    (function
+     | Caqti_error.Exn err ->
+        eprintf "%s\n" (Caqti_error.show err);
+        exit 2
+     | exn ->
+        eprintf "%s raised during test on %s\n"
+          (Printexc.to_string exn) (Uri.to_string uri);
+        exit 2)
+
+let () = Lwt_main.run (Lwt_list.iter_s test_on (Testkit.parse_common_args ()))

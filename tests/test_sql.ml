@@ -299,7 +299,8 @@ struct
              | None -> assert false) in
           Db.find Q.select_interval t >>= Sys.or_fail >>= fun t' ->
           assert Ptime.Span.(equal (round ~frac_s:6 t) (round ~frac_s:6 t'));
-          test_times tfs in
+          test_times tfs
+      in
       test_times [0.0; -1.2e-5; 1.23e-3; -1.001; 1.23e2; -1.23e5]
     end
 
@@ -326,8 +327,7 @@ struct
     Db.commit () >>= Sys.or_fail >>= fun () ->
     Db.fold Q.select_from_tmp
       (fun (i, s, o) (i_acc, s_acc, o_acc) ->
-        i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o
-      )
+        i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o)
       ()
       (0, "zero", "zero")
     >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
@@ -442,42 +442,38 @@ struct
       Db.collect_list Q.select_from_tmp_nullable ()
       >>= Sys.or_fail >>= fun actual ->
       if actual <> expected then
-        (
-        let repr a =
-          a
-          |> List.map (fun (i, s, o) ->
-              let repr_s = show_string_option s in
-              let repr_o = show_string_option o in
-              "(" ^ (string_of_int i) ^ "," ^ repr_s ^ "," ^ repr_o ^ ")")
-          |> String.concat "; "
-          |> (fun s -> "[" ^ s ^ "]")
-        in
-        eprintf "Expected: %s\nActual: %s\n" (repr expected) (repr actual));
+        begin
+          let repr a = a
+            |> List.map (fun (i, s, o) ->
+                let repr_s = show_string_option s in
+                let repr_o = show_string_option o in
+                "(" ^ (string_of_int i) ^ "," ^ repr_s ^ "," ^ repr_o ^ ")")
+            |> String.concat "; "
+            |> (fun s -> "[" ^ s ^ "]")
+          in
+          eprintf "Expected: %s\nActual: %s\n" (repr expected) (repr actual)
+        end;
       assert (actual = expected);
       Db.exec Q.drop_tmp ()
     in
     assert_stream_both_ways
       [] >>= Sys.or_fail >>= fun () ->
     assert_stream_both_ways
-      [(1, Some "one", Some "one")
-      ] >>= Sys.or_fail >>= fun () ->
+      [(1, Some "one", Some "one")] >>= Sys.or_fail >>= fun () ->
     assert_stream_both_ways
-      [(1, Some "one", Some "one")
-      ; (2, Some "two", Some "two")] >>= Sys.or_fail >>= fun () ->
+      [(1, Some "one", Some "one");
+       (2, Some "two", Some "two")] >>= Sys.or_fail >>= fun () ->
     assert_stream_both_ways
-      [ (1, Some "bad1\"\"", Some "bad1\"\"")
-      ; (2, Some "bad2,\"\n", Some "bad2,\"\n")
-      ; (3, None, None)
-      ; (4, Some "", Some "")
-      ; (5, Some "\\\"", Some "\\\"")
-      ] >>= Sys.or_fail
+      [(1, Some "bad1\"\"", Some "bad1\"\"");
+       (2, Some "bad2,\"\n", Some "bad2,\"\n");
+       (3, None, None);
+       (4, Some "", Some "");
+       (5, Some "\\\"", Some "\\\"")] >>= Sys.or_fail
 
   let test_stream_binary (module Db : Caqti_sys.CONNECTION) =
     (* Insert and retrieve all pairs of bytes as strings *)
     let all_bytes =
-      Testkit.init_list
-      256
-      (fun c -> String.make 1 (Char.chr c))
+      Testkit.init_list 256 (fun c -> String.make 1 (Char.chr c))
     in
     let all_pairs = all_bytes
       |> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)
@@ -509,10 +505,7 @@ struct
               if a <> e then
                 eprintf
                   "Element in position %d differs: Actual %s, Expected: %s\n"
-                  i
-                  a
-                  (String.escaped e)
-            )
+                  i a (String.escaped e))
             (List.combine actual all_pairs)
       end;
     assert (actual = all_pairs);

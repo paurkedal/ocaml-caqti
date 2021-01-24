@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,8 +43,12 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created. *)
 
-  val connect_pool : ?max_size: int -> ?max_idle_size: int -> Uri.t ->
-    ((connection, [> Caqti_error.connect]) Pool.t, [> Caqti_error.load]) result
+  val connect_pool :
+    ?max_size: int -> ?max_idle_size: int ->
+    ?post_connect: (connection -> (unit, 'connect_error) result future) ->
+    Uri.t ->
+    ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
+     [> Caqti_error.load]) result
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].
 

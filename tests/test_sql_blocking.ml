@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@ module Test = Test_sql.Make (Sys) (Caqti_blocking)
 let test_on uri =
   try
     Caqti_blocking.connect uri |> Sys.or_fail |> Test.run;
-    (match Caqti_blocking.connect_pool uri with
+    (match Caqti_blocking.connect_pool ~post_connect:Test.post_connect uri with
      | Error err -> raise (Caqti_error.Exn err)
      | Ok pool -> Test.run_pool pool)
   with

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,6 +45,9 @@ let load_driver_functor ~uri scheme =
 module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   open System
 
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
+
   module type DRIVER = Caqti_driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
@@ -90,7 +93,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   module Pool = Caqti_pool.Make (System)
   module Stream = System.Stream
 
-  let connect_pool ?max_size ?max_idle_size uri =
+  let connect_pool ?max_size ?max_idle_size ?post_connect uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make_unix.connect_pool"
     in
@@ -104,7 +107,17 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        let connect () = Driver.connect uri in
+        let connect =
+          (match post_connect with
+           | None ->
+              fun () ->
+                (Driver.connect uri :> (connection, _) result future)
+           | Some post_connect ->
+              fun () ->
+                (Driver.connect uri :> (connection, _) result future)
+                  >>=? fun conn -> post_connect conn
+                  >|=? fun () -> conn)
+        in
         let disconnect (module Db : CONNECTION) = Db.disconnect () in
         let validate (module Db : CONNECTION) = Db.validate () in
         let check (module Db : CONNECTION) = Db.check in

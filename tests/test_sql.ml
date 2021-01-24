@@ -49,6 +49,12 @@ module Q = struct
    | `Sqlite -> "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
 
+  let create_post_connect = (unit -->! unit) @@ fun _ ->
+    "CREATE TEMPORARY TABLE test_post_connect \
+      (id serial PRIMARY KEY, word text NOT NULL)"
+  let insert_into_post_connect = (string -->! unit) @@ fun _ ->
+    "INSERT INTO test_post_connect (word) VALUES (?)"
+
   let create_tmp = (unit -->! unit) @@ function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_sql \
@@ -160,6 +166,14 @@ struct
       if i = n then Sys.return () else
       f i >>= fun () -> loop (i + 1) in
     loop 0
+
+  let post_connect (module Db : Caqti_sys.CONNECTION) =
+    Db.exec Q.create_post_connect () >|= function
+     | Ok x -> Ok x
+     | Error err -> Error (`Post_connect err)
+
+  let test_post_connect (module Db : Caqti_sys.CONNECTION) =
+    Db.exec Q.insert_into_post_connect "swallow" >>= Sys.or_fail
 
   let test_expr (module Db : Caqti_sys.CONNECTION) =
 
@@ -523,6 +537,7 @@ struct
   let run_pool pool =
     Caqti_sys.Pool.use
       begin fun (module Db : Caqti_sys.CONNECTION) ->
+        test_post_connect (module Db) >>= fun () ->
         test_expr (module Db) >>= fun () ->
         test_table (module Db) >>= fun () ->
         test_affected_count (module Db) >>= fun () ->

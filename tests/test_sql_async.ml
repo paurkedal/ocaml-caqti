@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,7 +42,7 @@ let main uris () =
    | [] -> return ()
    | uri :: uris ->
       Caqti_async.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
-      (match Caqti_async.connect_pool uri with
+      (match Caqti_async.connect_pool ~post_connect:Test.post_connect uri with
        | Ok pool ->
           Test.run_pool pool >>= fun () ->
           loop uris

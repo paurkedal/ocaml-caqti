@@ -64,7 +64,7 @@ val uri_scheme : t -> string
 val dialect_tag : t -> dialect_tag
 (** A variant indicating the SQL dialect or other query language, used for easy
     dispatching when constructing queries.  Can be omitted if non of the cases
-    applies, but this means clients must inspect the backend-info to indentify
+    applies, but this means clients must inspect the backend-info to identify
     the language. *)
 
 val parameter_style : t -> parameter_style

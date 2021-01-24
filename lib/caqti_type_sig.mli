@@ -29,9 +29,9 @@ module type Std = sig
   val option : 'a t -> 'a option t
 
   val unit : unit t
-  (** A holding no fields. This is used to pass no parameters and as the result
-      for queries which does not return any rows. It can also be nested in
-      tuples, in which case it will not contribute to the total number of
+  (** A type holding no fields. This is used to pass no parameters and as the
+      result for queries which does not return any rows. It can also be nested
+      in tuples, in which case it will not contribute to the total number of
       fields. *)
 
   val tup2 : 'a t -> 'b t -> ('a * 'b) t

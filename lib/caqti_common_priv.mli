@@ -16,7 +16,7 @@
 
 (** {b Internal:} Prerequisites.
 
-    This module is ment for internal use by Caqti and may change in backwards
+    This module is meant for internal use by Caqti and may change in backwards
     incompatible ways between minor versions without prior notice. *)
 
 val (%) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c

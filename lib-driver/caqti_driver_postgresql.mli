@@ -16,15 +16,15 @@
 
 (** PostgreSQL driver for Caqti (bindings).
 
-    This driver is implemented in terms of the postgrsql OPAM package which
+    This driver is implemented in terms of the postgresql OPAM package which
     provides bindings for the PostgreSQL C client library.
 
     It handles URIs of the form
-
-      {[postgresql://<user>:<password>@<host>:<port>/<rest>]}
-
+    {[
+      postgresql://<user>:<password>@<host>:<port>/<rest>
+    ]}
     which are passed verbatim to {!Postgresql.connection}, and URIs of the form
-    [postgresq:/<query>] which are first split into [<key> = '<value>'] form.
+    [postgresql://<query>] which are first split into [<key> = '<value>'] form.
 
     Additionally the query option [notice_processing] can be set to [quiet] (the
     default) to suppress notices or to [stderr] to emit notices to standard

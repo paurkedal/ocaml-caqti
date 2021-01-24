@@ -180,7 +180,7 @@ module type Convenience = sig
     ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
   (** [rev_collect_list request param] performs a {!call} on [request],
       extracting the result as a reversed list.  This is more efficient than
-      {!find_list} and fits well with a subsequent {!List.rev_map}, though it
+      {!collect_list} and fits well with a subsequent {!List.rev_map}, though it
       may not matter much in practise. *)
 end
 

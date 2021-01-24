@@ -16,10 +16,10 @@
 
 (** Caqti driver for MariaDB (bindings).
 
-    This driver is implement in terms of the mariadb OPAM package.
+    This driver is implemented in terms of the mariadb OPAM package.
     It handles URIs of the form
-
-      {[mariadb://<user>:<password>@<host>:<port>/?socket=<socket>]}
-
+    {[
+      mariadb://<user>:<password>@<host>:<port>/?socket=<socket>
+    ]}
     where components are optional and present ones are passed on to the
     correspondingly named arguments to the [connect] function of MariaDB. *)

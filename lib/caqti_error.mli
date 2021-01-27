@@ -20,7 +20,7 @@
 (** {2 Messages} *)
 
 type msg = ..
-(** In this type, drivers can stash information about an errors in ther own
+(** In this type, drivers can stash information about any errors in their own
     format, which can later be used for pretty-printing and or future
     operations. Drivers must {!define_msg} on each constructor added to this
     type. *)

@@ -16,11 +16,11 @@
 
 (** Sqlite3 driver for Caqti (bindings).
 
-    This driver is implemeted in terms of the sqlite3 OPAM package, which
+    This driver is implemented in terms of the sqlite3 OPAM package, which
     provides bindings for libsqlite3.  It handles URIs of the form
-
-      {[sqlite3:/<path>?create=<bool>&write=<bool>]}
-
+    {[
+      sqlite3://<path>?create=<bool>&write=<bool>
+    ]}
     where [<path>] is passed to {!Sqlite3.db_open} and the query string is used
     to determine its [mode] parameter.  The [<bool>] parameters take the values
     [true] and [false], and default to [true]. *)

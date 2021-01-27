@@ -23,9 +23,8 @@
     database connection handle.
 
     The request often represent a prepared query, in which case it is static and
-    can be be defined directly in a module scope.  However, an optional
-    [oneshot] parameter may be passed to indicate a dynamically generated
-    query. *)
+    can be defined directly in a module scope.  However, an optional [oneshot]
+    parameter may be passed to indicate a dynamically generated query. *)
 
 (** {2 Primitives} *)
 
@@ -198,18 +197,18 @@ val pp_with_param :
     following can be used to existentially pack the parameter types along with
     the corresponding parameter values to allow collecing them incrementally:
     {[
-module Dynparam = struct
-  type t = Pack : 'a Caqti_type.t * 'a -> t
-  let empty = Pack (Caqti_type.unit, ())
-  let add t x (Pack (t', x')) = Pack (Caqti_type.tup2 t' t, (x', x))
-end
+      module Dynparam = struct
+        type t = Pack : 'a Caqti_type.t * 'a -> t
+        let empty = Pack (Caqti_type.unit, ())
+        let add t x (Pack (t', x')) = Pack (Caqti_type.tup2 t' t, (x', x))
+      end
     ]}
     Now, given a [param : Dynparam.t] and a corresponding query string [qs], one
     can construct a request and execute it:
     {[
-let Dynparam.Pack (pt, pv) = param in
-let req = Caqti_request.exec ~oneshot:true pt qs in
-C.exec req pv
+      let Dynparam.Pack (pt, pv) = param in
+      let req = Caqti_request.exec ~oneshot:true pt qs in
+      C.exec req pv
     ]}
     Note that dynamically constructed requests should have [~oneshot:true]
     unless they are memoized.  Also note that it is natural to use {!create} for

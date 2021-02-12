@@ -53,7 +53,7 @@ For a gentle introduction I recommend reading [Interfacing OCaml and
 PostgreSQL with Caqti][BP-2018] by Bobby Priambodo.  There is also a
 [documented example][bikereg] in this repository.
 
-A resent rendering of the [full API reference][API] is available online.
+A recent rendering of the [full API reference][API] is available online.
 You can also generate the API reference matching your installed version
 using [odig][].  Finally, `topkg doc` builds the reference from a Git
 checkout using [topkg-care][].

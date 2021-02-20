@@ -93,7 +93,7 @@ the needed database driver.  E.g.
 module Db : Caqti_lwt.CONNECTION
 
 (* Create a request which merely adds two parameters. *)
-# let plus = Caqti_request.find Caqti_type.(tup2 int int) Caqti_type.int "SELECT ?::integer + ?::integer";;
+# let plus = Caqti_request.find Caqti_type.(tup2 int int) Caqti_type.int "SELECT ? + ?";;
 val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
   <abstr>
 

@@ -19,6 +19,7 @@ open Printf
 module Pg = Postgresql
 
 let ( |>? ) r f = match r with Ok x -> f x | Error _ as r -> r
+let ( %>? ) f g x = match f x with Ok y -> g y | Error _ as r -> r
 
 module Int_hashable = struct
   type t = int
@@ -175,24 +176,61 @@ module Pg_ext = struct
       Error "Non-integer days in interval string."
 end
 
-let is_binary_param : type a. a Caqti_type.field -> bool = function
- | Caqti_type.Octets -> true
- | _ -> false
+let bool_oid = Pg.oid_of_ftype Pg.BOOL
+let int4_oid = Pg.oid_of_ftype Pg.INT4
+let int8_oid = Pg.oid_of_ftype Pg.INT8
+let float8_oid = Pg.oid_of_ftype Pg.FLOAT8
+let text_oid = Pg.oid_of_ftype Pg.TEXT
+let bytea_oid = Pg.oid_of_ftype Pg.BYTEA
+let date_oid = Pg.oid_of_ftype Pg.DATE
+let timestamp_oid = Pg.oid_of_ftype Pg.TIMESTAMPTZ
+let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
 
-let rec set_binary_params
-    : type a. bool array -> a Caqti_type.t -> int -> int = fun bp -> function
- | Caqti_type.Unit -> fun i -> i
- | Caqti_type.Field ft -> fun i -> bp.(i) <- is_binary_param ft; i + 1
- | Caqti_type.Option t -> set_binary_params bp t
- | Caqti_type.Tup2 (t0, t1) ->
-    set_binary_params bp t0 %> set_binary_params bp t1
- | Caqti_type.Tup3 (t0, t1, t2) ->
-    set_binary_params bp t0 %> set_binary_params bp t1 %>
-    set_binary_params bp t2
- | Caqti_type.Tup4 (t0, t1, t2, t3) ->
-    set_binary_params bp t0 %> set_binary_params bp t1 %>
-    set_binary_params bp t2 %> set_binary_params bp t3
- | Caqti_type.Custom {rep; _} -> set_binary_params bp rep
+let init_param_types ~uri =
+  let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
+   | Caqti_type.Bool -> Ok bool_oid
+   | Caqti_type.Int -> Ok int8_oid
+   | Caqti_type.Int32 -> Ok int4_oid
+   | Caqti_type.Int64 -> Ok int8_oid
+   | Caqti_type.Float -> Ok float8_oid
+   | Caqti_type.String -> Ok text_oid
+   | Caqti_type.Octets -> Ok bytea_oid
+   | Caqti_type.Pdate -> Ok date_oid
+   | Caqti_type.Ptime -> Ok timestamp_oid
+   | Caqti_type.Ptime_span -> Ok interval_oid
+   | field_type ->
+      (match Caqti_type.Field.coding driver_info field_type with
+       | None ->
+          Error (Caqti_error.encode_missing ~uri ~field_type ())
+       | Some (Caqti_type.Field.Coding {rep; _}) ->
+          oid_of_field_type rep)
+  in
+  let rec recurse : type a. _ -> _ -> a Caqti_type.t -> _ -> _
+      = fun pt bp -> function
+   | Caqti_type.Unit -> fun i -> Ok i
+   | Caqti_type.Field ft -> fun i ->
+      oid_of_field_type ft |>? fun oid ->
+      pt.(i) <- oid;
+      bp.(i) <- oid = bytea_oid;
+      Ok (i + 1)
+   | Caqti_type.Option t ->
+      recurse pt bp t
+   | Caqti_type.Tup2 (t0, t1) ->
+      recurse pt bp t0 %>? recurse pt bp t1
+   | Caqti_type.Tup3 (t0, t1, t2) ->
+      recurse pt bp t0 %>? recurse pt bp t1 %>?
+      recurse pt bp t2
+   | Caqti_type.Tup4 (t0, t1, t2, t3) ->
+      recurse pt bp t0 %>? recurse pt bp t1 %>?
+      recurse pt bp t2 %>? recurse pt bp t3
+   | Caqti_type.Custom {rep; _} ->
+      recurse pt bp rep
+  in
+  fun pt bp t ->
+    recurse pt bp t 0 |>? fun np ->
+    assert (np = Array.length pt);
+    assert (np = Array.length bp);
+    Ok ()
 
 module type STRING_ENCODER = sig
   val encode_string : string -> string
@@ -376,6 +414,7 @@ let decode_row ~uri resp row_type =
 type prepared = {
   query: string;
   param_length: int;
+  param_types: Pg.oid array;
   binary_params: bool array;
 }
 
@@ -531,13 +570,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Postgresql.Error err ->
           Error (Caqti_error.request_failed ~uri ~query (Pg_msg err))
 
-    let send_query ?params ?binary_params query =
+    let send_query ?params ?param_types ?binary_params query =
       wrap_pg ~query @@ fun () ->
-      db#send_query ?params ?binary_params query
+      db#send_query ?params ?param_types ?binary_params query
 
-    let send_prepare query_id query =
+    let send_prepare ?param_types query_id query =
       wrap_pg ~query @@ fun () ->
-      db#send_prepare (query_name_of_id query_id) query
+      db#send_prepare ?param_types (query_name_of_id query_id) query
 
     let send_query_prepared ?params ?binary_params ~query ~query_id =
       wrap_pg ~query @@ fun () ->
@@ -574,19 +613,20 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             return r
        | Error _ as r -> return r)
 
-    let query_oneshot ?params ?binary_params ?ensure_single_result query =
+    let query_oneshot ?params ?param_types ?binary_params ?ensure_single_result
+                      query =
       retry_on_connection_error begin fun () ->
-        return (send_query ?params ?binary_params query)
+        return (send_query ?params ?param_types ?binary_params query)
       end >>= function
        | Error _ as r -> return r
        | Ok () -> Pg_io.get_result ~uri ~query ?ensure_single_result db
 
     let query_prepared query_id prepared params =
-      let {query; binary_params; _} = prepared in
+      let {query; param_types; binary_params; _} = prepared in
       retry_on_connection_error begin fun () ->
         begin
           if Int_hashtbl.mem prepare_cache query_id then return (Ok()) else
-          (match send_prepare query_id query with
+          (match send_prepare ~param_types query_id query with
            | Ok () ->
               Pg_io.get_result ~uri ~query db >|=
               (function
@@ -671,9 +711,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           let templ = Caqti_request.query req driver_info in
           let query = Pg_ext.query_string Db.db templ in
           let param_length = Caqti_type.length param_type in
+          let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
-          let nbp = set_binary_params binary_params param_type 0 in
-          assert (nbp = param_length);
+          init_param_types ~uri param_types binary_params param_type
+            |> return >>=? fun () ->
           let params = Array.make param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
@@ -682,17 +723,18 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error _ as r ->
               return r)
        | Some query_id ->
-          let prepared =
-            try Int_hashtbl.find prepare_cache query_id with
+          begin
+            try Ok (Int_hashtbl.find prepare_cache query_id) with
              | Not_found ->
                 let templ = Caqti_request.query req driver_info in
                 let query = Pg_ext.query_string Db.db templ in
                 let param_length = Caqti_type.length param_type in
+                let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
-                let nbp = set_binary_params binary_params param_type 0 in
-                assert (nbp = param_length);
-                {query; param_length; binary_params}
-          in
+                init_param_types ~uri param_types binary_params param_type
+                  |>? fun () ->
+                Ok {query; param_length; param_types; binary_params}
+          end |> return >>=? fun prepared ->
           let params = Array.make prepared.param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
@@ -748,9 +790,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         sprintf "COPY %s (%s) FROM STDIN" table (String.concat "," columns)
       in
       let param_length = Caqti_type.length row_type in
-      let binary_params = Array.make param_length false in
-      let nbp = set_binary_params binary_params row_type 0 in
-      assert (nbp = param_length);
       let fail msg =
         return
           (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))

@@ -43,6 +43,11 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created. *)
 
+  val with_connection :
+    Uri.t ->
+    (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
+      ('a, 'e) result future
+
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->

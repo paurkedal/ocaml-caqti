@@ -144,6 +144,6 @@ let report_error = function
 
 let () = Lwt_main.run begin
   Lwt_list.iter_s
-    (fun uri -> Caqti_lwt.connect uri >>=? test >>= report_error)
+    (fun uri -> Caqti_lwt.with_connection uri test >>= report_error)
     (Testkit.parse_common_args ())
 end

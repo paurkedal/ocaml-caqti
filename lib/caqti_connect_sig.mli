@@ -47,6 +47,10 @@ module type S = sig
     Uri.t ->
     (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
       ('a, 'e) result future
+  (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
+      to [Ok connection], [with_connection] passes the connection to [f]. Once
+      [f] either evaluates to a [result], or raises an exception,
+      [with_connection] closes the database connection. *)
 
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->

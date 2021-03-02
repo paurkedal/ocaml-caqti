@@ -578,7 +578,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       wrap_pg ~query @@ fun () ->
       db#send_prepare ?param_types (query_name_of_id query_id) query
 
-    let send_query_prepared ?params ?binary_params ~query ~query_id =
+    let send_query_prepared ?params ?binary_params query_id query =
       wrap_pg ~query @@ fun () ->
       db#send_query_prepared ?params ?binary_params (query_name_of_id query_id)
 
@@ -636,7 +636,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               return r) >|=? fun () ->
           Ok (Int_hashtbl.add prepare_cache query_id prepared)
         end >|=? fun () ->
-        send_query_prepared ~params ~binary_params ~query ~query_id
+        send_query_prepared ~params ~binary_params query_id query
       end >>=? fun () ->
       Pg_io.get_result ~uri ~query db
 

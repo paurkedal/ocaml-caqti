@@ -46,16 +46,11 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
       let wait db status =
         Mariadb.Nonblocking.fd db |> System.Unix.wrap_fd @@ fun fd ->
-        let timeout =
-          if Mariadb.Nonblocking.Status.timeout status
-          then Some (float_of_int (Mariadb.Nonblocking.timeout db))
-          else None in
         System.Unix.poll
           ~read:(Mariadb.Nonblocking.Status.read status)
-          ~write:(Mariadb.Nonblocking.Status.write status)
-          ?timeout fd >|=
-        (fun (read, write, timeout) ->
-          Mariadb.Nonblocking.Status.create ~read ~write ~timeout ())
+          ~write:(Mariadb.Nonblocking.Status.write status) fd
+          >|= (fun (read, write, timeout) ->
+        Mariadb.Nonblocking.Status.create ~read ~write ~timeout ())
     end)
 
   module Mdb_ext = struct

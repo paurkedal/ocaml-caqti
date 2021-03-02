@@ -90,6 +90,13 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
      | Error err ->
         return (Error err))
 
+  let with_connection uri f =
+    connect uri >>=? fun ((module Db) as conn) ->
+    try
+      f conn >>= fun result -> Db.disconnect () >|= fun () -> result
+    with exn ->
+      Db.disconnect () >|= fun () -> raise exn
+
   module Pool = Caqti_pool.Make (System)
   module Stream = System.Stream
 

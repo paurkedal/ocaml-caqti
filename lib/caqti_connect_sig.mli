@@ -43,6 +43,15 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created. *)
 
+  val with_connection :
+    Uri.t ->
+    (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
+      ('a, 'e) result future
+  (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
+      to [Ok connection], [with_connection] passes the connection to [f]. Once
+      [f] either evaluates to a [result], or raises an exception,
+      [with_connection] closes the database connection. *)
+
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->

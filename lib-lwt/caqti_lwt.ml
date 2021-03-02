@@ -78,3 +78,7 @@ include Caqti_connect.Make_unix (System)
 let or_fail = function
  | Ok x -> Lwt.return x
  | Error (#Caqti_error.t as err) -> Lwt.fail (Caqti_error.Exn err)
+
+let with_connection_or_fail uri f =
+  let open Lwt.Infix in
+  with_connection uri (fun conn -> f conn >|= fun x -> Ok x) >>= or_fail

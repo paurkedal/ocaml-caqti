@@ -24,3 +24,7 @@ include Caqti_connect_sig.S with type 'a future := 'a Lwt.t
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
     exception holding the error. *)
+
+val with_connection_or_fail : Uri.t -> (connection -> 'a Lwt.t) -> 'a Lwt.t
+(** Calls {!with_connection}, and composes both the callback and the result with
+    {!or_fail}. *)

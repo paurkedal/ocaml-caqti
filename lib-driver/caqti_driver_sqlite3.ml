@@ -235,7 +235,7 @@ let rec decode_row
    | Caqti_type.Option t ->
       let j = i + Caqti_type.length t in
       let rec null_only k = k = j ||
-        (Sqlite3.column stmt k = Sqlite3.Data.NULL && null_only (i + 1)) in
+        (Sqlite3.column stmt k = Sqlite3.Data.NULL && null_only (k + 1)) in
       if null_only i then Ok (j, None) else
       (match decode_row ~uri stmt i t with
        | Ok (j, y) -> Ok (j, Some y)

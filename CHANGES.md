@@ -1,4 +1,4 @@
-## v1.3.1 - 2021-03-11
+## v1.4.0 - 2021-03-11
 
 - Fix infinite loop when deserializing an optional tuple (GPR#63 mefyl).
 - Add `Caqti_connect_sig.S.with_connection` (GPR#61 Anton Bachin).

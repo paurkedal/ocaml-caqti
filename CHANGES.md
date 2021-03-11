@@ -1,3 +1,13 @@
+## v1.3.1 - 2021-03-11
+
+- Fix infinite loop when deserializing an optional tuple (GPR#63 mefyl).
+- Add `Caqti_connect_sig.S.with_connection` (GPR#61 Anton Bachin).
+- Pass parameter types to PostgreSQL prepare and query functions. This
+  avoids the need to CAST parameters on the SQL side in some cases.
+- Add `?post_connect` callback to `connect_pool`.
+- Documentation fixes and improvements (Aaron L. Zeng, Anton Bachin, Petter
+  A. Urkedal).
+
 ## v1.3.0 - 2021-01-17
 
 - Implement `affected_count` for sqlite backend (GPR#46 jakob).

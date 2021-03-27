@@ -176,6 +176,7 @@ module Pg_ext = struct
       Error "Non-integer days in interval string."
 end
 
+let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 let bool_oid = Pg.oid_of_ftype Pg.BOOL
 let int2_oid = Pg.oid_of_ftype Pg.INT2
 let int4_oid = Pg.oid_of_ftype Pg.INT4
@@ -200,6 +201,7 @@ let init_param_types ~uri =
    | Caqti_type.Pdate -> Ok date_oid
    | Caqti_type.Ptime -> Ok timestamp_oid
    | Caqti_type.Ptime_span -> Ok interval_oid
+   | Caqti_type.Enum _ -> Ok unknown_oid
    | field_type ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
@@ -253,6 +255,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
      | Caqti_type.Int64 -> Ok (Int64.to_string x)
      | Caqti_type.Float -> Ok (sprintf "%.17g" x)
      | Caqti_type.String -> Ok (encode_string x)
+     | Caqti_type.Enum _ -> Ok (encode_string x)
      | Caqti_type.Octets -> Ok (encode_octets x)
      | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
      | Caqti_type.Ptime ->
@@ -330,6 +333,7 @@ let rec decode_field
    | Caqti_type.Int64 -> conv Int64.of_string s
    | Caqti_type.Float -> conv float_of_string s
    | Caqti_type.String -> Ok s
+   | Caqti_type.Enum _ -> Ok s
    | Caqti_type.Octets -> Ok (Postgresql.unescape_bytea s)
    | Caqti_type.Pdate ->
       (match pdate_of_iso8601 s with

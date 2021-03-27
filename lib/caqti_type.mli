@@ -41,6 +41,7 @@ type _ field +=
   | Pdate : Ptime.t field
   | Ptime : Ptime.t field
   | Ptime_span : Ptime.span field
+  | Enum : string -> string field
 
 (** Facilities for extending and using primitive field types. *)
 module Field : sig

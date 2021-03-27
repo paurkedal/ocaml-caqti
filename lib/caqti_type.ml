@@ -30,6 +30,7 @@ type _ field +=
   | Pdate : Ptime.t field
   | Ptime : Ptime.t field
   | Ptime_span : Ptime.span field
+  | Enum : string -> string field
 
 module Field = struct
 
@@ -67,6 +68,7 @@ module Field = struct
    | Pdate -> "pdate"
    | Ptime -> "ptime"
    | Ptime_span -> "ptime_span"
+   | Enum name -> name
    | ft -> Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft)
 
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
@@ -85,6 +87,7 @@ module Field = struct
       Format.fprintf ppf "%d-%02d-%02d" y m d
    | Ptime, x -> pp_ptime ppf x
    | Ptime_span, x -> Ptime.Span.pp ppf x
+   | Enum _, x -> Format.pp_print_string ppf x
    | ft ->
       Format.fprintf ppf "<%s>"
         (Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft))
@@ -203,6 +206,8 @@ module Std = struct
   let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
   let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
   let custom ~encode ~decode rep = Custom {rep; encode; decode}
+  let enum ~encode ~decode name =
+    Custom {rep = Field (Enum name); encode = (fun x -> Ok (encode x)); decode}
 
   let bool = Field Bool
   let int = Field Int

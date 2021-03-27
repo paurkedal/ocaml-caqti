@@ -17,6 +17,19 @@
 open Caqti_common_priv
 open Printf
 
+type abc = [`Aye | `Bee | `Cee]
+
+let string_of_abc = function
+  | `Aye -> "aye"
+  | `Bee -> "bee"
+  | `Cee -> "cee"
+
+let abc_of_string = function
+  | "aye" -> Ok `Aye
+  | "bee" -> Ok `Bee
+  | "cee" -> Ok `Cee
+  | _ -> Error "abc_of_string"
+
 module Q = struct
   open Caqti_type
 
@@ -25,6 +38,7 @@ module Q = struct
 
   let (-->!) tA (tR : unit t) f = create_p tA tR Caqti_mult.zero f
   let (-->) tA tR f = create_p tA tR Caqti_mult.one f
+  let (-->*) tA tR f = create_p tA tR Caqti_mult.zero_or_more f
 
   let select_null_etc = Caqti_request.find
     (tup2 (option int) (option int))
@@ -47,6 +61,28 @@ module Q = struct
    | `Pgsql -> "SELECT ?"
    | `Sqlite -> "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
+
+  let abc = enum ~encode:string_of_abc ~decode:abc_of_string "abc"
+
+  let create_type_abc = (unit -->! unit) @@ fun _ ->
+    "CREATE TYPE abc AS ENUM ('aye', 'bee', 'cee')"
+  let drop_type_abc = (unit -->! unit) @@ fun _ ->
+    "DROP TYPE abc"
+  let create_table_test_abc = (unit -->! unit) @@ function
+   | `Pgsql ->
+      "CREATE TEMPORARY TABLE test_abc (e abc PRIMARY KEY, s char(3) NOT NULL)"
+   | `Mysql ->
+      "CREATE TEMPORARY TABLE test_abc \
+        (e ENUM('aye', 'bee', 'cee') PRIMARY KEY, s char(3) NOT NULL)"
+   | `Sqlite ->
+      "CREATE TEMPORARY TABLE test_abc (e text PRIMARY KEY, s char(3) NOT NULL)"
+   | _ -> failwith "Unimplemented."
+  let drop_table_test_abc = (unit -->! unit) @@ fun _ ->
+    "DROP TABLE test_abc"
+  let insert_into_test_abc = (tup2 abc string -->! unit) @@ fun _ ->
+    "INSERT INTO test_abc VALUES (?, ?)"
+  let select_from_test_abc = (unit -->* tup2 abc string) @@ fun _ ->
+    "SELECT * FROM test_abc"
 
   let create_post_connect = (unit -->! unit) @@ fun _ ->
     "CREATE TEMPORARY TABLE test_post_connect \
@@ -157,6 +193,8 @@ module Make
 struct
 
   open Sys.Infix
+
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Sys.return r
 
   let repeat n f =
     let rec loop i =
@@ -314,6 +352,23 @@ struct
       in
       test_times [0.0; -1.2e-5; 1.23e-3; -1.001; 1.23e2; -1.23e5]
     end
+
+  let test_enum (module Db : Caqti_sys.CONNECTION) =
+    let with_type_abc f =
+      (match Caqti_driver_info.dialect_tag Db.driver_info with
+       | `Sqlite | `Mysql -> f ()
+       | _ ->
+          Db.exec Q.create_type_abc () >>=? fun () ->
+          f () >>=? fun () ->
+          Db.exec Q.drop_type_abc ())
+    in
+    with_type_abc begin fun () ->
+      Db.exec Q.create_table_test_abc () >>=? fun () ->
+      Db.exec Q.insert_into_test_abc (`Bee, "bee") >>=? fun () ->
+      Db.collect_list Q.select_from_test_abc () >>=? fun rows ->
+      assert (rows = [`Bee, "bee"]);
+      Db.exec Q.drop_table_test_abc ()
+    end >>= Sys.or_fail
 
   let test_table (module Db : Caqti_sys.CONNECTION) =
 
@@ -536,6 +591,7 @@ struct
       begin fun (module Db : Caqti_sys.CONNECTION) ->
         test_post_connect (module Db) >>= fun () ->
         test_expr (module Db) >>= fun () ->
+        test_enum (module Db) >>= fun () ->
         test_table (module Db) >>= fun () ->
         test_affected_count (module Db) >>= fun () ->
         test_stream (module Db) >>= fun () ->

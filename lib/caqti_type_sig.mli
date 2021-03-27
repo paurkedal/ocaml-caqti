@@ -96,4 +96,13 @@ module type Std = sig
   val ptime_span : Ptime.span t
   (** A period of time. If the database lacks a dedicated representation, the
       integer number of seconds is used. *)
+
+  val enum :
+    encode: ('a -> string) ->
+    decode: (string -> ('a, string) result) ->
+    string -> 'a t
+  (** [enum ~encode ~decode name] creates an enum type which on the SQL side is
+      named [name], with cases which are converted with [encode] and [decode]
+      functions. This is implemented in terms of the {!Caqti_type.Enum} field
+      type. *)
 end

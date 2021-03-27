@@ -1,4 +1,4 @@
-(* Copyright (C) 2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -57,32 +57,37 @@ module type Std = sig
   (** {3 Singular} *)
 
   val bool : bool t
-  (** A boolean. *)
+  (** A [bool] mapped to [boolean] on the SQL side if supported, otherwise
+      mapped to an integer. *)
 
   val int : int t
-  (** An integer. *)
+  (** An [int] mapped to a sufficiently wide integer on the SQL side. *)
 
   val int16 : int t
-  (** A 16 bit integer represented on the OCaml side by [int]. *)
+  (** An [int] mapped to a [smallint] (16 bits) on the SQL side. *)
 
   val int32 : int32 t
-  (** A 32 bit integer. *)
+  (** An [int32] mapped to an [integer] (32 bits) on the SQL side. *)
 
   val int64 : int64 t
-  (** A 64 bit integer. *)
+  (** An [int64] mapped to a [bigint] (64 bits) on the SQL side. *)
 
   val float : float t
-  (** A float. *)
+  (** A [float] mapped to [double precision] or (best alternative) on the SQL
+      side. Serialization may be lossy (e.g. base 10 may be used), so even if
+      both sides support IEEE 754 double precision numbers, there may be
+      discrepancies in the last digits of the binary representaton. *)
 
   val string : string t
   (** An UTF-8 string. The database should accept UTF-8 if non-ASCII characters
       are present. *)
 
   val octets : string t
-  (** A binary string. *)
+  (** A [string] mapped to whichever type is used to represent binary data on
+      the SQL side. *)
 
   val pdate : Ptime.t t
-  (** A date. This corresponds to the SQL [date] type. *)
+  (** A time truncated to a date and mapped to the SQL [date] type. *)
 
   val ptime : Ptime.t t
   (** An absolute time with driver-dependent precision. This corresponds to an

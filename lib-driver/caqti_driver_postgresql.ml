@@ -177,6 +177,7 @@ module Pg_ext = struct
 end
 
 let bool_oid = Pg.oid_of_ftype Pg.BOOL
+let int2_oid = Pg.oid_of_ftype Pg.INT2
 let int4_oid = Pg.oid_of_ftype Pg.INT4
 let int8_oid = Pg.oid_of_ftype Pg.INT8
 let float8_oid = Pg.oid_of_ftype Pg.FLOAT8
@@ -190,6 +191,7 @@ let init_param_types ~uri =
   let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
    | Caqti_type.Bool -> Ok bool_oid
    | Caqti_type.Int -> Ok int8_oid
+   | Caqti_type.Int16 -> Ok int2_oid
    | Caqti_type.Int32 -> Ok int4_oid
    | Caqti_type.Int64 -> Ok int8_oid
    | Caqti_type.Float -> Ok float8_oid
@@ -246,6 +248,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
     (match field_type with
      | Caqti_type.Bool -> Ok (Pg_ext.string_of_bool x)
      | Caqti_type.Int -> Ok (string_of_int x)
+     | Caqti_type.Int16 -> Ok (string_of_int x)
      | Caqti_type.Int32 -> Ok (Int32.to_string x)
      | Caqti_type.Int64 -> Ok (Int64.to_string x)
      | Caqti_type.Float -> Ok (sprintf "%.17g" x)
@@ -322,6 +325,7 @@ let rec decode_field
   (match field_type with
    | Caqti_type.Bool -> conv Pg_ext.bool_of_string s
    | Caqti_type.Int -> conv int_of_string s
+   | Caqti_type.Int16 -> conv int_of_string s
    | Caqti_type.Int32 -> conv Int32.of_string s
    | Caqti_type.Int64 -> conv Int64.of_string s
    | Caqti_type.Float -> conv float_of_string s

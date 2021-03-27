@@ -32,6 +32,7 @@ type 'a field = ..
 type _ field +=
   | Bool : bool field
   | Int : int field
+  | Int16 : int field
   | Int32 : int32 field
   | Int64 : int64 field
   | Float : float field

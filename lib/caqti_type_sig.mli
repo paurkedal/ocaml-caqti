@@ -62,6 +62,9 @@ module type Std = sig
   val int : int t
   (** An integer. *)
 
+  val int16 : int t
+  (** A 16 bit integer represented on the OCaml side by [int]. *)
+
   val int32 : int32 t
   (** A 32 bit integer. *)
 

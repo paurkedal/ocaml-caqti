@@ -21,6 +21,7 @@ type _ field = ..
 type _ field +=
   | Bool : bool field
   | Int : int field
+  | Int16 : int field
   | Int32 : int32 field
   | Int64 : int64 field
   | Float : float field
@@ -57,6 +58,7 @@ module Field = struct
   let to_string : type a. a field -> string = function
    | Bool -> "bool"
    | Int -> "int"
+   | Int16 -> "int16"
    | Int32 -> "int32"
    | Int64 -> "int64"
    | Float -> "float"
@@ -72,6 +74,7 @@ module Field = struct
   let pp_value : type a. _ -> a field * a -> unit = fun ppf -> function
    | Bool, x -> Format.pp_print_bool ppf x
    | Int, x -> Format.pp_print_int ppf x
+   | Int16, x -> Format.pp_print_int ppf x
    | Int32, x -> Format.fprintf ppf "%ldl" x
    | Int64, x -> Format.fprintf ppf "%LdL" x
    | Float, x -> Format.fprintf ppf "%F" x
@@ -203,6 +206,7 @@ module Std = struct
 
   let bool = Field Bool
   let int = Field Int
+  let int16 = Field Int16
   let int32 = Field Int32
   let int64 = Field Int64
   let float = Field Float

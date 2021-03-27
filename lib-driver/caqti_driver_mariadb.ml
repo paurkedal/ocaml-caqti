@@ -135,6 +135,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     (match field_type with
      | Caqti_type.Bool -> Ok (`Int (if x then 1 else 0))
      | Caqti_type.Int -> Ok (`Int x)
+     | Caqti_type.Int16 -> Ok (`Int x)
      | Caqti_type.Int32 -> Ok (`Int (Int32.to_int x))
      | Caqti_type.Int64 -> Ok (`Int (Int64.to_int x))
      | Caqti_type.Float -> Ok (`Float x)
@@ -171,6 +172,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     try match field_type with
      | Caqti_type.Bool -> Ok (Mdb_ext.Field.bool field)
      | Caqti_type.Int -> Ok (Mdb_ext.Field.int field)
+     | Caqti_type.Int16 -> Ok (Mdb_ext.Field.int field)
      | Caqti_type.Int32 -> Ok (Mdb_ext.Field.int32 field)
      | Caqti_type.Int64 -> Ok (Mdb_ext.Field.int64 field)
      | Caqti_type.Float -> Ok (Mdb.Field.float field)

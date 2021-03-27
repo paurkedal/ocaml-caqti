@@ -60,6 +60,7 @@ let rec data_of_value
   (match field_type with
    | Caqti_type.Bool   -> Ok (Sqlite3.Data.INT (if x then 1L else 0L))
    | Caqti_type.Int    -> Ok (Sqlite3.Data.INT (Int64.of_int x))
+   | Caqti_type.Int16  -> Ok (Sqlite3.Data.INT (Int64.of_int x))
    | Caqti_type.Int32  -> Ok (Sqlite3.Data.INT (Int64.of_int32 x))
    | Caqti_type.Int64  -> Ok (Sqlite3.Data.INT x)
    | Caqti_type.Float  -> Ok (Sqlite3.Data.FLOAT x)

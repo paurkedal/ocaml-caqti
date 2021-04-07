@@ -32,6 +32,8 @@ module Int_hashtbl = Hashtbl.Make (Int_hashable)
 let start_req = Caqti_request.exec Caqti_type.unit "BEGIN"
 let commit_req = Caqti_request.exec Caqti_type.unit "COMMIT"
 let rollback_req = Caqti_request.exec Caqti_type.unit "ROLLBACK"
+let type_oid_req = Caqti_request.find_opt Caqti_type.string Caqti_type.int
+  "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
 
 type Caqti_error.msg += Pg_msg of Pg.error
 let () =
@@ -176,7 +178,6 @@ module Pg_ext = struct
       Error "Non-integer days in interval string."
 end
 
-let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 let bool_oid = Pg.oid_of_ftype Pg.BOOL
 let int2_oid = Pg.oid_of_ftype Pg.INT2
 let int4_oid = Pg.oid_of_ftype Pg.INT4
@@ -188,7 +189,7 @@ let date_oid = Pg.oid_of_ftype Pg.DATE
 let timestamp_oid = Pg.oid_of_ftype Pg.TIMESTAMPTZ
 let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
 
-let init_param_types ~uri =
+let init_param_types ~uri ~type_oid_cache =
   let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
    | Caqti_type.Bool -> Ok bool_oid
    | Caqti_type.Int -> Ok int8_oid
@@ -201,7 +202,7 @@ let init_param_types ~uri =
    | Caqti_type.Pdate -> Ok date_oid
    | Caqti_type.Ptime -> Ok timestamp_oid
    | Caqti_type.Ptime_span -> Ok interval_oid
-   | Caqti_type.Enum _ -> Ok unknown_oid
+   | Caqti_type.Enum name -> Ok (Hashtbl.find type_oid_cache name)
    | field_type ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
@@ -707,7 +708,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         f 0
     end
 
-    let call ~f req param = using_db @@ fun () ->
+    let type_oid_cache = Hashtbl.create 19
+
+    let call' ~f req param =
       Log.debug ~src:request_log_src (fun f ->
         f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
         >>= fun () ->
@@ -721,7 +724,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           let param_length = Caqti_type.length param_type in
           let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
-          init_param_types ~uri param_types binary_params param_type
+          init_param_types
+              ~uri ~type_oid_cache param_types binary_params param_type
             |> return >>=? fun () ->
           let params = Array.make param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
@@ -739,7 +743,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 let param_length = Caqti_type.length param_type in
                 let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
-                init_param_types ~uri param_types binary_params param_type
+                init_param_types
+                    ~uri ~type_oid_cache param_types binary_params param_type
                   |>? fun () ->
                 Ok {query; param_length; param_types; binary_params}
           end |> return >>=? fun prepared ->
@@ -758,6 +763,45 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match Pg_io.check_query_result ~uri ~query result row_mult with
        | Ok () -> f Response.{row_type; result}
        | Error _ as r -> return r)
+
+    let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
+     | Caqti_type.Unit -> return (Ok ())
+     | Caqti_type.Field (Caqti_type.Enum name as field_type)
+          when not (Hashtbl.mem type_oid_cache name) ->
+        call' ~f:Response.find_opt type_oid_req name >>=
+        (function
+         | Ok (Some oid) ->
+            return (Ok (Hashtbl.add type_oid_cache name oid))
+         | Ok None ->
+            Log.warn (fun p ->
+              p "Failed to query OID for enum %s." name) >|= fun () ->
+            Error (Caqti_error.encode_missing ~uri ~field_type ())
+         | Error (`Encode_rejected _ | `Decode_rejected _ as err) ->
+            Log.err (fun p ->
+              p "Failed to fetch obtain OID for enum %s due to: %a"
+                name Caqti_error.pp err) >|= fun () ->
+            Error (Caqti_error.encode_missing ~uri ~field_type ())
+         | Error #Caqti_error.call as r ->
+            return r)
+     | Caqti_type.Field _ -> return (Ok ())
+     | Caqti_type.Option t -> fetch_type_oids t
+     | Caqti_type.Tup2 (t1, t2) ->
+        fetch_type_oids t1 >>=? fun () ->
+        fetch_type_oids t2
+     | Caqti_type.Tup3 (t1, t2, t3) ->
+        fetch_type_oids t1 >>=? fun () ->
+        fetch_type_oids t2 >>=? fun () ->
+        fetch_type_oids t3
+     | Caqti_type.Tup4 (t1, t2, t3, t4) ->
+        fetch_type_oids t1 >>=? fun () ->
+        fetch_type_oids t2 >>=? fun () ->
+        fetch_type_oids t3 >>=? fun () ->
+        fetch_type_oids t4
+     | Caqti_type.Custom {rep; _} -> fetch_type_oids rep
+
+    let call ~f req param = using_db @@ fun () ->
+      fetch_type_oids (Caqti_request.param_type req) >>=? fun () ->
+      call' ~f req param
 
     let deallocate req =
       (match Caqti_request.query_id req with

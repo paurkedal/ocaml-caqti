@@ -67,7 +67,7 @@ module Q = struct
   let create_type_abc = (unit -->! unit) @@ fun _ ->
     "CREATE TYPE abc AS ENUM ('aye', 'bee', 'cee')"
   let drop_type_abc = (unit -->! unit) @@ fun _ ->
-    "DROP TYPE abc"
+    "DROP TYPE IF EXISTS abc"
   let create_table_test_abc = (unit -->! unit) @@ function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_abc (e abc PRIMARY KEY, s char(3) NOT NULL)"
@@ -358,6 +358,7 @@ struct
       (match Caqti_driver_info.dialect_tag Db.driver_info with
        | `Sqlite | `Mysql -> f ()
        | _ ->
+          Db.exec Q.drop_type_abc () >>=? fun () ->
           Db.exec Q.create_type_abc () >>=? fun () ->
           f () >>=? fun () ->
           Db.exec Q.drop_type_abc ())

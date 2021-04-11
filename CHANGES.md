@@ -1,3 +1,8 @@
+## v1.5.0 - 2021-04-11
+
+- Request the full UTF-8 character for the MariaDB connection.
+- Support int16 and enum types for parameters and rows.
+
 ## v1.4.0 - 2021-03-11
 
 - Fix infinite loop when deserializing an optional tuple (GPR#63 mefyl).

@@ -563,12 +563,21 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           include Caqti_connection.Make_convenience (System) (B)
           include Caqti_connection.Make_populate (System) (B)
         end in
+        Mdb.set_character_set db "utf8mb4" >>=
+          (function
+           | Ok () -> return ()
+           | Error (err_no, err_msg) ->
+              Log.warn (fun f ->
+                f "Could not enable full Unicode coverage for this MariaDB \
+                   connection. UTF-8 strings are likely limited to the BMP. \
+                   set_character_set says %S (%d)" err_msg err_no))
+          >>= fun () ->
         (* MariaDB returns local times but without time zone, so change it to
          * UTC for Caqti sessions. *)
         C.call ~f:(fun resp -> C.Response.exec resp) set_utc_req () >|=
-        (function
-         | Ok () -> Ok (module C : CONNECTION)
-         | Error err -> Error (`Post_connect err))
+          (function
+           | Ok () -> Ok (module C : CONNECTION)
+           | Error err -> Error (`Post_connect err))
      | Error err ->
         return (Error (Caqti_error.connect_failed ~uri (Mdb_msg err))))
 

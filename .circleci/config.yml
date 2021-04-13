@@ -1,3 +1,2 @@
-branches:
-  ignore:
-    - gh-pages
+version: 2
+jobs: []

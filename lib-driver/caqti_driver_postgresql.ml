@@ -385,7 +385,7 @@ let rec decode_row'
    | Caqti_type.Option t -> fun j ->
       let j' = j + Caqti_type.length t in
       let rec null_only k = k = j' ||
-        (resp#getisnull i j && null_only (k + 1)) in
+        (resp#getisnull i k && null_only (k + 1)) in
       if null_only j then Ok (j', None) else
       (match decode_row' ~uri row t j with
        | Ok (j'', y) -> assert (j' = j''); Ok (j'', Some y)

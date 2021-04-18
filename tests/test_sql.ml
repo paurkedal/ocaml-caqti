@@ -62,6 +62,12 @@ module Q = struct
    | `Sqlite -> "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
 
+  let select_compound_option =
+    (tup2 (option int) (option int) -->
+     tup3 int (option (tup3 (option int) (option int) (option int))) int)
+      @@ fun _ ->
+    "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
+
   let abc = enum ~encode:string_of_abc ~decode:abc_of_string "abc"
 
   let create_type_abc = (unit -->! unit) @@ fun _ ->
@@ -351,7 +357,18 @@ struct
           test_times tfs
       in
       test_times [0.0; -1.2e-5; 1.23e-3; -1.001; 1.23e2; -1.23e5]
-    end
+    end >>= fun () ->
+
+    (* Prepared: compound option *)
+    let check x y z =
+      Db.find Q.select_compound_option (x, y) >>= Sys.or_fail
+        >|= fun (a, b, c) ->
+      assert (a = -1 && b = z && c = -2);
+    in
+    check None None None >>= fun () ->
+    check None (Some 3) (Some (None, Some 4, None)) >>= fun () ->
+    check (Some 7) None (Some (Some 8, None, Some 8)) >>= fun () ->
+    check (Some 7) (Some 3) (Some (Some 8, Some 4, Some 8))
 
   let test_enum (module Db : Caqti_sys.CONNECTION) =
     let with_type_abc f =

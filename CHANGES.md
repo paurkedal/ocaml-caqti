@@ -1,3 +1,8 @@
+## v1.5.1 - 2021-04-18
+
+- Fix option recognition in PostgreSQL driver (GPR#67 mefyl).
+- Fix option recognition in MariaDB driver and add test (Petter A. Urkedal).
+
 ## v1.5.0 - 2021-04-11
 
 - Request the full UTF-8 character for the MariaDB connection.

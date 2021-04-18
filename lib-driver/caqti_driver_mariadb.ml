@@ -268,7 +268,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
    | Caqti_type.Option t ->
       let j = i + Caqti_type.length t in
       let rec null_only k =
-        k = j || Mdb.Field.null_value row.(k) && null_only (i + 1) in
+        k = j || Mdb.Field.null_value row.(k) && null_only (k + 1) in
       if null_only i then Ok (j, None) else
       (match decode_row ~uri row i t with
        | Ok (j, y) -> Ok (j, Some y)

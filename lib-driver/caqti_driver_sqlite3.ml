@@ -371,7 +371,21 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error _ as r -> r) in
         Preemptive.detach retrieve ()
 
-      let find_opt resp = Preemptive.detach fetch_row resp
+      let find_opt resp =
+        let retrieve () =
+          (match fetch_row resp with
+           | Ok None -> Ok None
+           | Ok (Some y) ->
+              (match fetch_row resp with
+               | Ok None -> Ok (Some y)
+               | Ok (Some _) ->
+                  let msg = "Received multiple rows for find_opt." in
+                  let msg = Caqti_error.Msg msg in
+                  let query = resp.query in
+                  Error (Caqti_error.response_rejected ~uri ~query msg)
+               | Error _ as r -> r)
+           | Error _ as r -> r) in
+        Preemptive.detach retrieve ()
 
       let fold f resp acc =
         let rec retrieve acc =

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,10 @@ module System = struct
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
+  let finally f g =
+    (match f () with
+     | m -> m >>= fun y -> g () >|= fun () -> y
+     | exception exn -> g () >|= fun () -> raise exn)
   let join = Deferred.all_unit
 
   module Mvar = struct

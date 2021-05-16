@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +22,10 @@ module System = struct
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
+  let finally f g =
+    (match f () with
+     | y -> g (); y
+     | exception exn -> g (); raise exn)
   let join (_ : unit list) = ()
 
   module Mvar = struct

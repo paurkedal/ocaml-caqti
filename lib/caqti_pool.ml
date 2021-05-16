@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -115,13 +115,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
-    try
-      f e >>=
-      (function
-       | Ok y -> release p e >|= fun () -> Ok y
-       | Error err -> release p e >|= fun () -> Error err)
-    with exn ->
-      release p e >|= fun () -> raise exn
+    finally (fun () -> f e) (fun () -> release p e)
 
   let dispose p e = p.free e >|= fun () -> p.cur_size <- p.cur_size - 1
 

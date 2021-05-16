@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +22,7 @@ module System = struct
   let (>>=) = Lwt.(>>=)
   let (>|=) = Lwt.(>|=)
   let return = Lwt.return
+  let finally = Lwt.finalize
   let join = Lwt.join
 
   module Mvar = struct

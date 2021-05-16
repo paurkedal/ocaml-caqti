@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,7 @@ module type System_common = sig
   val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
   val (>|=) : 'a future -> ('a -> 'b) -> 'b future
   val return : 'a -> 'a future
+  val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
   val join : unit future list -> unit future
 
   module Mvar : sig

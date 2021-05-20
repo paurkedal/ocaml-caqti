@@ -73,7 +73,7 @@ module Field = struct
 
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
 
-  let pp_value : type a. _ -> a field * a -> unit = fun ppf -> function
+  let rec pp_value : type a. _ -> a field * a -> unit = fun ppf -> function
    | Bool, x -> Format.pp_print_bool ppf x
    | Int, x -> Format.pp_print_int ppf x
    | Int16, x -> Format.pp_print_int ppf x
@@ -88,9 +88,19 @@ module Field = struct
    | Ptime, x -> pp_ptime ppf x
    | Ptime_span, x -> Ptime.Span.pp ppf x
    | Enum _, x -> Format.pp_print_string ppf x
-   | ft ->
-      Format.fprintf ppf "<%s>"
-        (Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft))
+   | (ft, x) ->
+      (match coding Caqti_driver_info.dummy ft with
+       | Some (Coding {rep; encode; _}) ->
+          (match encode x with
+           | Ok y -> pp_value ppf (rep, y)
+           | Error _ ->
+              Format.fprintf ppf "<%s,invalid>"
+                (Obj.Extension_constructor.name
+                  (Obj.Extension_constructor.of_val ft)))
+       | None ->
+          Format.fprintf ppf "<%s>"
+            (Obj.Extension_constructor.name
+              (Obj.Extension_constructor.of_val ft)))
 end
 
 type _ t =

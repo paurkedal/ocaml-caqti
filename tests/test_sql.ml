@@ -172,7 +172,7 @@ module Q = struct
     | `Mysql  -> "SELECT CAST(? AS datetime)"
     | _ -> failwith "Unimplemented."
   let compare_to_known_time = (ptime --> bool) @@ function
-    | `Pgsql  -> "SELECT ? = '2017-01-29T12:00:00.001002'"
+    | `Pgsql  -> "SELECT ? = '2017-01-29T12:00:00.001002Z'"
     | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.001'"
     | `Mysql  -> "SELECT CAST(? AS datetime) \
                        = CAST('2017-01-29T12:00:00.001002' AS datetime)"

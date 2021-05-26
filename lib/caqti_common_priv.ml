@@ -84,18 +84,17 @@ let string_of_rfc3339_error ~input err =
 
 let ptime_of_rfc3339_utc s =
   let n = String.length s in
-  let s =
+  let s' =
     if n < 13 then s else
     if s.[n - 1] = 'Z' then s else
     if s.[n - 3] = '+' || s.[n - 3] = '-' then s ^ ":00" else
     if s.[n - 6] = '+' || s.[n - 6] = '-' then s else
-    s ^ "Z" in
-  (match Ptime.of_rfc3339 s with
-   | Ok (t, (None | Some 0), _) -> Ok t
-   | Ok (_, Some _, _) ->
-      Error "Non-UTC time."
+    s ^ "Z"
+  in
+  (match Ptime.of_rfc3339 s' with
+   | Ok (t, _, _) -> Ok t
    | Error (`RFC3339 (_, err)) ->
-      Error (string_of_rfc3339_error ~input:s err))
+      Error (string_of_rfc3339_error ~input:s' err))
 
 let pdate_of_iso8601 s =
   (match Ptime.of_date (datetuple_of_iso8601 s) with

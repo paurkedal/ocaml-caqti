@@ -1,3 +1,16 @@
+## v1.6.0 - unreleased
+
+- Set the time zone of PostgreSQL connections to UTC to mitigate an
+  undesirable implicit conversion to the local time zone for `timestamp`.
+  This issue was exposed by the specification of field types introduced in
+  version 1.4.0.  Earlier versions worked as expected, if only accidentally,
+  since the time zone is ignored when a string is converted to a
+  `timestamp`.  While this change makes `timestamp` more usable again for
+  storing UTC time stamps, I strongly recommend using `timestamp with time
+  zone` since it's interpretation is unambiguous.  The API reference is now
+  updated with details about how the `ptime` OCaml type is mapped for
+  different database systems.
+
 ## v1.5.1 - 2021-04-18
 
 - Fix option recognition in PostgreSQL driver (GPR#67 mefyl).

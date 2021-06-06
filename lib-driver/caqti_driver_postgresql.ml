@@ -34,6 +34,8 @@ let commit_req = Caqti_request.exec Caqti_type.unit "COMMIT"
 let rollback_req = Caqti_request.exec Caqti_type.unit "ROLLBACK"
 let type_oid_req = Caqti_request.find_opt Caqti_type.string Caqti_type.int
   "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
+let set_timezone_to_utc_req = Caqti_request.exec ~oneshot:true Caqti_type.unit
+  "SET TimeZone TO 'UTC'"
 
 type Caqti_error.msg += Pg_msg of Pg.error
 let () =
@@ -917,16 +919,17 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      | exception Pg.Error msg ->
         return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
      | db ->
-        Pg_io.communicate db (fun () -> db#connect_poll) >|=
+        Pg_io.communicate db (fun () -> db#connect_poll) >>=
         (function
-         | Error msg -> Error (Caqti_error.connect_failed ~uri (Pg_msg msg))
+         | Error msg ->
+            return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
          | Ok () ->
             (match db#status <> Pg.Ok with
              | exception Pg.Error msg ->
-                Error (Caqti_error.connect_failed ~uri (Pg_msg msg))
+                return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
              | true ->
-                let msg = db#error_message in
-                Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg))
+                let msg = Caqti_error.Msg db#error_message in
+                return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
                 let module B =
@@ -937,7 +940,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                   include B
                   include Caqti_connection.Make_convenience (System) (B)
                 end in
-                Ok (module Connection : CONNECTION))))
+                Connection.exec set_timezone_to_utc_req () >|=
+                (function
+                 | Ok () -> Ok (module Connection : CONNECTION)
+                 | Error err -> Error (`Post_connect err)))))
 end
 
 let () =

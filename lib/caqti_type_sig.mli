@@ -91,7 +91,43 @@ module type Std = sig
 
   val ptime : Ptime.t t
   (** An absolute time with driver-dependent precision. This corresponds to an
-      SQL [timestamp] type with UTC time zone. *)
+      SQL [timestamp with time zone] or a suitable alternative where not
+      available:
+
+        - MariaDB has [datetime] which is similar to the SQL [timestamp] and
+          [timestamp] which is similar to the SQL [timestamp with time zone],
+          but the driver does not make the distinction.  Caqti sets the session
+          time zone to UTC to avoid misinterpretation, since time values are
+          passed in both directions without time zones.  Values have microsecond
+          precision, but you will need to specify the desired precision in the
+          database schema to avoid truncation.
+
+        - PostgreSQL supports this type and it's a good option to avoid any time
+          zone issues if used conistently both on the client side, in SQL
+          expressions, and in the database schema.  Note that [timestamp with
+          time zone] is stored as UTC without time zone, taking up no more space
+          then [timestamp].  The PostgreSQL [timestamp] type is problematic
+          since how conversions work and the manual indicate that it is meant to
+          be a local time, and since database columns of this type stores the
+          value without conversion to UTC, it becomes prone to time zone
+          changes.  To mitigate the issue, Caqti sets the time zone of sessions
+          to UTC.
+
+        - Sqlite3 does not have a dedicated type for absolute time.  The date
+          and time is sent as strings expressed at the UTC time zone using same
+          format that the SQLite {{:https://sqlite.org/lang_datefunc.html}
+          datetime} function and [CURRENT_TIMESTAMP] return, except for an
+          additional three decimals to achive millisecond precision.
+
+          It might seem better to use standard RFC3339 format, since it is
+          accepted by the SQLite functions, but that would misorder some time
+          values if mixed with the results of these functions, even just the "Z"
+          suffix would misorder values with different precision.
+
+      Date and time values which comes from the database without time zone are
+      interpreted as UTC. This is not necessarily correct, and it is highly
+      recommended to use SQL types which are transmitted with time zone
+      information, even if this is UTC. *)
 
   val ptime_span : Ptime.span t
   (** A period of time. If the database lacks a dedicated representation, the

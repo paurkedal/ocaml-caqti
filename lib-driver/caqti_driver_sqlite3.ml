@@ -193,7 +193,9 @@ let rec encode_null_param
       encode_null_param ~uri stmt t0 %>? encode_null_param ~uri stmt t1 %>?
       encode_null_param ~uri stmt t2 %>? encode_null_param ~uri stmt t3
    | Caqti_type.Custom {rep; _} ->
-      encode_null_param ~uri stmt rep)
+      encode_null_param ~uri stmt rep
+   | Caqti_type.Annot (_, t0) ->
+      encode_null_param ~uri stmt t0)
 
 let rec encode_param
     : type a. uri: Uri.t -> Sqlite3.stmt -> a Caqti_type.t -> a ->
@@ -223,7 +225,9 @@ let rec encode_param
        | Ok y -> encode_param ~uri stmt rep y i
        | Error msg ->
           let msg = Caqti_error.Msg msg in
-          Error (Caqti_error.encode_rejected ~uri ~typ:t msg)))
+          Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
+   | Caqti_type.Annot (_, t0), x0 ->
+      encode_param ~uri stmt t0 x0)
 
 let rec decode_row
     : type b. uri: Uri.t -> Sqlite3.stmt -> int -> b Caqti_type.t ->
@@ -266,7 +270,9 @@ let rec decode_row
            | Error msg ->
               let msg = Caqti_error.Msg msg in
               Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r))
+       | Error _ as r -> r)
+   | Caqti_type.Annot (_, t0) ->
+      decode_row ~uri stmt i t0)
 
 module Q = struct
   let start = Caqti_request.exec Caqti_type.unit "BEGIN"

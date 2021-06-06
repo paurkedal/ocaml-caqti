@@ -13,6 +13,8 @@
 - Drop specification of OCaml `string` as SQL `text` for PostgreSQL. This is
   due to issues with implicit conversions and function overloading when the
   desired type on the SQL side is `char`, `varchar`, or `jsonb`.
+- Add `Caqti_type.redact` to protect sensitive information from being
+  logged.
 
 ## v1.5.1 - 2021-04-18
 

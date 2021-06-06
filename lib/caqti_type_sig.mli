@@ -54,6 +54,10 @@ module type Std = sig
       {b Note.} This should be considered experimental and may be revised or
       removed in a future version. *)
 
+  val redacted : 'a t -> 'a t
+  (** [redacted t] is the same type as [t] but sealed as potentially containing
+      sensitive information to be redacted from pretty-printers and logs. *)
+
   (** {3 Singular} *)
 
   val bool : bool t

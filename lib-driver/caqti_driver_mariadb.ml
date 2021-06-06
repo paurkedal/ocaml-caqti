@@ -253,7 +253,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | Ok y -> encode_param ~uri params rep y i
          | Error msg ->
             let msg = Caqti_error.Msg msg in
-            Error (Caqti_error.encode_rejected ~uri ~typ:t msg)))
+            Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
+     | Caqti_type.Annot (_, t0), x0 ->
+        encode_param ~uri params t0 x0)
 
   let rec decode_row
       : type b. uri: Uri.t -> Mdb.Field.t array -> int -> b Caqti_type.t ->
@@ -296,7 +298,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
            | Error msg ->
               let msg = Caqti_error.Msg msg in
               Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r))
+       | Error _ as r -> r)
+   | Caqti_type.Annot (_, t0) ->
+      decode_row ~uri row i t0)
 
   module Make_connection_base (Db : sig val uri : Uri.t val db : Mdb.t end) =
   struct

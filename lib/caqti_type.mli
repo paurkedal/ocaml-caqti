@@ -81,6 +81,7 @@ type _ t = private
       encode: 'a -> ('b, string) result;
       decode: 'b -> ('a, string) result;
     } -> 'a t
+  | Annot : [`Redacted] * 'a t -> 'a t
 
 (** {!t} with existentially wrapped static type. *)
 type any = Any : 'a t -> any

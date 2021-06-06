@@ -115,6 +115,7 @@ type _ t =
       encode: 'a -> ('b, string) result;
       decode: 'b -> ('a, string) result;
     } -> 'a t
+  | Annot : [`Redacted] * 'a t -> 'a t
 
 type any = Any : 'a t -> any
 
@@ -126,6 +127,7 @@ let rec length : type a. a t -> int = function
  | Tup3 (t0, t1, t2) -> length t0 + length t1 + length t2
  | Tup4 (t0, t1, t2, t3) -> length t0 + length t1 + length t2 + length t3
  | Custom {rep; _} -> length rep
+ | Annot (_, t) -> length t
 
 let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     fun prec ppf -> function
@@ -160,6 +162,9 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     Format.pp_print_string ppf "</";
     pp_at 0 ppf rep;
     Format.pp_print_string ppf "/>"
+ | Annot (`Redacted, t) ->
+    Format.pp_print_string ppf "redacted ";
+    pp_at 2 ppf t
 
 let pp ppf = pp_at 1 ppf
 let pp_any ppf (Any t) = pp_at 1 ppf t
@@ -199,6 +204,8 @@ let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
     (match encode x with
      | Ok y -> pp_value ppf (rep, y)
      | Error _ -> Format.pp_print_string ppf "INVALID")
+ | Annot (`Redacted, _), _ ->
+    Format.pp_print_string ppf "#redacted#"
 
 let show t =
   let buf = Buffer.create 64 in
@@ -216,6 +223,7 @@ module Std = struct
   let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
   let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
   let custom ~encode ~decode rep = Custom {rep; encode; decode}
+  let redacted t = Annot (`Redacted, t)
   let enum ~encode ~decode name =
     Custom {rep = Field (Enum name); encode = (fun x -> Ok (encode x)); decode}
 

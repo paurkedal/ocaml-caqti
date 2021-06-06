@@ -232,6 +232,8 @@ let init_param_types ~uri ~type_oid_cache =
       recurse pt bp t2 %>? recurse pt bp t3
    | Caqti_type.Custom {rep; _} ->
       recurse pt bp rep
+   | Caqti_type.Annot (_, t0) ->
+      recurse pt bp t0
   in
   fun pt bp t ->
     recurse pt bp t 0 |>? fun np ->
@@ -307,7 +309,9 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
             encode' ~uri params rep y i
          | Error msg ->
             let msg = Caqti_error.Msg msg in
-            Error (Caqti_error.encode_rejected ~uri ~typ:t msg)))
+            Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
+     | Caqti_type.Annot (_, t0), x0 ->
+        encode' ~uri params t0 x0)
 
   let encode ~uri params t x =
     (match encode' ~uri params t x 0 with
@@ -415,7 +419,9 @@ let rec decode_row'
            | Error msg ->
               let msg = Caqti_error.Msg msg in
               Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r))
+       | Error _ as r -> r)
+   | Caqti_type.Annot (_, t0) -> fun j ->
+      decode_row' ~uri row t0 j)
 
 let decode_row ~uri resp row_type =
   (match decode_row' ~uri resp row_type 0 with
@@ -800,6 +806,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         fetch_type_oids t3 >>=? fun () ->
         fetch_type_oids t4
      | Caqti_type.Custom {rep; _} -> fetch_type_oids rep
+     | Caqti_type.Annot (_, t0) -> fetch_type_oids t0
 
     let call ~f req param = using_db @@ fun () ->
       fetch_type_oids (Caqti_request.param_type req) >>=? fun () ->

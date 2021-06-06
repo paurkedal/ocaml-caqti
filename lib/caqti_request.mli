@@ -187,7 +187,13 @@ val pp_with_param :
 (** [pp_with_param ppf (req, param)] prints [req] and the associated [param] to
     [ppf].  This functions is meant for debugging; the output is neither
     guaranteed to be consistent across releases nor to contain a complete record
-    of the data. *)
+    of the data.
+
+    Due to concerns about exposure of sensitive data in debug logs, this
+    function reverts to {!pp} unless the environment varibale
+    [CAQTI_DEBUG_PARAM] is set to [true]. If you enable it for applications
+    which do not consistenly annotate sensitive parameters with
+    {!Caqti_type.redact}, make sure your debug logs are well secured. *)
 
 (** {2 How to Dynamically Assemble Queries and Parameters}
 

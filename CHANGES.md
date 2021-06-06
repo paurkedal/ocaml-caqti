@@ -15,6 +15,7 @@
   desired type on the SQL side is `char`, `varchar`, or `jsonb`.
 - Add `Caqti_type.redact` to protect sensitive information from being
   logged.
+- Only log parameters if `$CAQTI_DEBUG_PARAM` is set to "`true`".
 
 ## v1.5.1 - 2021-04-18
 

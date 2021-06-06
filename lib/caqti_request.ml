@@ -187,7 +187,20 @@ let pp ppf req =
     Caqti_type.pp req.row_type
     Caqti_query.pp (req.query Caqti_driver_info.dummy)
 
+let pp_with_param_enabled =
+  (match Sys.getenv "CAQTI_DEBUG_PARAM" with
+   | "true" -> true
+   | "false" -> false
+   | s ->
+      Alog.err (fun f ->
+        f "Invalid value %s for CAQTI_DEBUG_PARAM, assuming false." s);
+      false
+   | exception Not_found -> false)
+
 let pp_with_param ?(driver_info = Caqti_driver_info.dummy) ppf (req, param) =
-  Format.fprintf ppf "{|%a|} %a"
-    Caqti_query.pp (req.query driver_info)
-    Caqti_type.pp_value (req.param_type, param)
+  if pp_with_param_enabled then
+    Format.fprintf ppf "{|%a|} %a"
+      Caqti_query.pp (req.query driver_info)
+      Caqti_type.pp_value (req.param_type, param)
+  else
+    pp ppf req

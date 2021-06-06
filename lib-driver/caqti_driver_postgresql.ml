@@ -185,11 +185,11 @@ let int2_oid = Pg.oid_of_ftype Pg.INT2
 let int4_oid = Pg.oid_of_ftype Pg.INT4
 let int8_oid = Pg.oid_of_ftype Pg.INT8
 let float8_oid = Pg.oid_of_ftype Pg.FLOAT8
-let text_oid = Pg.oid_of_ftype Pg.TEXT
 let bytea_oid = Pg.oid_of_ftype Pg.BYTEA
 let date_oid = Pg.oid_of_ftype Pg.DATE
 let timestamp_oid = Pg.oid_of_ftype Pg.TIMESTAMPTZ
 let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
+let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 
 let init_param_types ~uri ~type_oid_cache =
   let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
@@ -199,7 +199,7 @@ let init_param_types ~uri ~type_oid_cache =
    | Caqti_type.Int32 -> Ok int4_oid
    | Caqti_type.Int64 -> Ok int8_oid
    | Caqti_type.Float -> Ok float8_oid
-   | Caqti_type.String -> Ok text_oid
+   | Caqti_type.String -> Ok unknown_oid
    | Caqti_type.Octets -> Ok bytea_oid
    | Caqti_type.Pdate -> Ok date_oid
    | Caqti_type.Ptime -> Ok timestamp_oid

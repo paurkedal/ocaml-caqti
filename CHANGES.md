@@ -10,6 +10,9 @@
   zone` since it's interpretation is unambiguous.  The API reference is now
   updated with details about how the `ptime` OCaml type is mapped for
   different database systems.
+- Drop specification of OCaml `string` as SQL `text` for PostgreSQL. This is
+  due to issues with implicit conversions and function overloading when the
+  desired type on the SQL side is `char`, `varchar`, or `jsonb`.
 
 ## v1.5.1 - 2021-04-18
 

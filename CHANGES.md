@@ -1,4 +1,4 @@
-## v1.6.0 - unreleased
+## Unreleased
 
 - Set the time zone of PostgreSQL connections to UTC to mitigate an
   undesirable implicit conversion to the local time zone for `timestamp`.

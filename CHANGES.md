@@ -1,4 +1,4 @@
-## Unreleased
+## v1.6.0 - 2021-06-10
 
 - Set the time zone of PostgreSQL connections to UTC to mitigate an
   undesirable implicit conversion to the local time zone for `timestamp`.
@@ -16,6 +16,9 @@
 - Add `Caqti_type.redact` to protect sensitive information from being
   logged.
 - Only log parameters if `$CAQTI_DEBUG_PARAM` is set to "`true`".
+- When logging requests, show underlying values for custom types.
+- Reject multi-row response in `find_opt` implementation for sqlite3.
+- Tolerate Lwt promise rejections in `Pool.use`.
 
 ## v1.5.1 - 2021-04-18
 

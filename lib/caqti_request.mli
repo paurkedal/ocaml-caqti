@@ -58,7 +58,7 @@ val create :
     database, while other differences must be handled by [f].
 
     @param oneshot
-      Disables caching of a prepared statement on connections for this query.
+      Disables caching of a prepared statements on connections for this query.
 
         - If false (the default), the statement is prepared and a handle is
           permanently attached to the connection object right before the first
@@ -105,8 +105,8 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
     - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
 
     Either case works independent of the style used by the database system; if
-    non-linear substitutions are used with a database which does not support it,
-    the parameter values will be reorderd and duplicated as needed.
+    non-linear substitutions are used with a database system which does not
+    support it, the parameter values will be reorderd and duplicated as needed.
     Mixing the two styles in the same query string is not permitted.  Note that
     numbering of non-linear parameters is offset by one compared to
     {!Caqti_query.P}, in order to be consistent with PostgreSQL conventions.
@@ -154,7 +154,7 @@ val create_p :
     described in the introduction of this section.
 
     @param oneshot
-      Disables caching of a prepared statement on connections for this query.
+      Disables caching of a prepared statements on connections for this query.
       See {!create} for details.
 
     @param env

@@ -167,32 +167,32 @@ val exec :
   ?oneshot: bool ->
   'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
-(** [exec_p arg_type s] is a shortcut for
-    [create_p arg_type Caqti_type.unit Caqti_mult.zero (fun _ -> s)]. *)
+(** [exec_p ?env ?oneshot arg_type s] is a shortcut for [create_p ?env ?oneshot
+    arg_type Caqti_type.unit Caqti_mult.zero (fun _ -> s)]. *)
 
 val find :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
-(** [find_p arg_type row_type s] is a shortcut for
-    [create_p arg_type row_type Caqti_mult.one (fun _ -> s)]. *)
+(** [find_p ?env ?oneshot arg_type row_type s] is a shortcut for
+    [create_p ?env ?oneshot arg_type row_type Caqti_mult.one (fun _ -> s)]. *)
 
 val find_opt :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
-(** [find_opt_p arg_type row_type s] is a shortcut for
-    [create_p arg_type row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
+(** [find_opt_p arg_type ?env ?oneshot row_type s] is a shortcut for [create_p
+    ?env ?oneshot arg_type row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
 
 val collect :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
-(** [collect_p arg_type row_type s] is a shortcut for
-    [create_p arg_type row_type Caqti_mult.many (fun _ -> s)]. *)
+(** [collect_p arg_type ?env ?oneshot row_type s] is a shortcut for
+    [create_p arg_type ?env ?oneshot row_type Caqti_mult.many (fun _ -> s)]. *)
 
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human

@@ -72,7 +72,8 @@ val create :
       is dynamically generated, whether it is within a function or a dynamic
       module, since there will otherwise be a memory leak associated with
       long-lived connections.  You might as well also pass [~oneshot:true] if
-      you know that the query will only executed be once on each connection. *)
+      you know that the query will only executed at most once (or a very few
+      times) on each connection. *)
 
 val param_type : ('a, _, _) t -> 'a Caqti_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)

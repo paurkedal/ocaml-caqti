@@ -136,8 +136,8 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 
     {b Deprecation of undocumented feature.} It has been possible to quote the
     dollar sign by doubling it. This was undocumented and is hereby deprecated.
-    If you need a plain dollar sign outside a quoted strings, you can add a
-    variable to your environment, which expands to the dollar sign. *)
+    If you need a literal dollar signs outside quoted strings, add a variable
+    which expands to the dollar sign to the environment. *)
 
 val create_p :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->

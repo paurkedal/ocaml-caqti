@@ -55,7 +55,24 @@ val create :
     [row_mult], and which sends query strings generated from the query [f di],
     where [di] is the {!Caqti_driver_info.t} of the target driver.  The driver
     is responsible for turning parameter references into a form accepted by the
-    database, while other differences must be handled by [f]. *)
+    database, while other differences must be handled by [f].
+
+    @param oneshot
+      Disables caching of a prepared statement on connections for this query.
+
+        - If false (the default), the statement is prepared and a handle is
+          permanently attached to the connection object right before the first
+          time it is executed.
+
+        - If true, everything allocated in order to execute the statement is
+          released after use.
+
+      In other words, the default is suitable for queries which are bound to
+      static modules.  Conversely, you should pass [~oneshot:true] if the query
+      is dynamically generated, whether it is within a function or a dynamic
+      module, since there will otherwise be a memory leak associated with
+      long-lived connections.  You might as well also pass [~oneshot:true] if
+      you know that the query will only executed be once on each connection. *)
 
 val param_type : ('a, _, _) t -> 'a Caqti_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)
@@ -134,9 +151,8 @@ val create_p :
     described in the introduction of this section.
 
     @param oneshot
-      For queries generated on-demand or which are otherwise executed only once,
-      pass [true] do make the query non-prepared.  By default queries are
-      prepared, which is suitable for requests defined at the module level.
+      Disables caching of a prepared statement on connections for this query.
+      See {!create} for details.
 
     @param env
       [env driver_info key] shall provide the value to substitute for a

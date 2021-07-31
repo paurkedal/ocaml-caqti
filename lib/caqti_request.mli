@@ -104,10 +104,12 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
     - ["?"] for linear substitutions (like Sqlite and MariaDB), or
     - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
 
+    Either case works independent of the style used by the database system; if
+    non-linear substitutions are used with a database which does not support it,
+    the parameter values will be reorderd and duplicated as needed.
     Mixing the two styles in the same query string is not permitted.  Note that
-    numbering of non-linear parameters is offset by one compared to the {!P}
-    parameters of the query objects defined in the previous section, in order to
-    be consistent with PostgreSQL conventions.
+    numbering of non-linear parameters is offset by one compared to
+    {!Caqti_query.P}, in order to be consistent with PostgreSQL conventions.
 
     {b Static references} are references to the [?env] argument of the functions
     below, and thus fixed once the query has been constructed.  The query parser

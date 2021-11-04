@@ -10,8 +10,9 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
+  "benchmark" {with-test}
   "cppo" {build & >= "1.1.0"}
-  "dune" {>= "1.11"}
+  "dune" {>= "2.0"}
   "logs"
   "ocaml" {>= "4.04.0"}
   "ptime"

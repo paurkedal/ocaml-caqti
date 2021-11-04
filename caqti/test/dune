@@ -1,0 +1,25 @@
+(test
+ (name test_heap)
+ (package caqti)
+ (modules Test_heap)
+ (libraries caqti))
+
+(test
+ (name test_query)
+ (package caqti)
+ (modules Test_query)
+ (libraries caqti))
+
+(test
+ (name test_request)
+ (package caqti)
+ (modules Test_request)
+ (libraries caqti))
+
+; Benchmarks, run manually
+
+(executable
+  (name bench_stream)
+  (modules Bench_stream)
+  (preprocess (pps lwt_ppx))
+  (libraries benchmark caqti lwt lwt.unix))

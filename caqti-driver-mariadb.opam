@@ -9,7 +9,7 @@ bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "ocaml"
   "caqti" {>= "1.6.0" & < "1.7.0~"}
-  "dune" {>= "1.11"}
+  "dune" {>= "2.0"}
   "mariadb" {>= "1.1.1"}
 ]
 build: [

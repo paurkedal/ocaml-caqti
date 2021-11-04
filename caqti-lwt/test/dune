@@ -1,0 +1,5 @@
+(test
+ (name test_pool_lwt)
+ (package caqti-lwt)
+ (modules Test_pool_lwt)
+ (libraries caqti-lwt testkit))

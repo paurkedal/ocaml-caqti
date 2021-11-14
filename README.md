@@ -110,6 +110,6 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
 
 [API]: http://paurkedal.github.io/ocaml-caqti/index.html
 [BP-2018]: https://medium.com/@bobbypriambodo/interfacing-ocaml-and-postgresql-with-caqti-a92515bdaa11
-[bikereg]: tests/bikereg.ml
+[bikereg]: test/bikereg.ml
 [odig]: http://erratique.ch/software/odig
 [topkg-care]: http://erratique.ch/software/topkg

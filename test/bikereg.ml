@@ -29,11 +29,12 @@ module Bike = struct
     frameno: string;
     owner: string;
     stolen: Ptime.t option;
+    description: string option;
   }
   let t =
-    let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
-    let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
-    let rep = Caqti_type.(tup3 string string (option ptime)) in
+    let encode {frameno; owner; stolen; description} = Ok (frameno, owner, stolen, description) in
+    let decode (frameno, owner, stolen, description) = Ok {frameno; owner; stolen; description} in
+    let rep = Caqti_type.(tup4 string string (option ptime) (option string)) in
     Caqti_type.custom ~encode ~decode rep
 end
 
@@ -52,7 +53,8 @@ module Q = struct
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
         owner text NOT NULL,
-        stolen timestamp NULL
+        stolen timestamp NULL,
+        description text NULL
       )
     |eos}
 
@@ -71,6 +73,11 @@ module Q = struct
   let select_owner = Caqti_request.find_opt
     Caqti_type.string Caqti_type.string
     "SELECT owner FROM bikereg WHERE frameno = ?"
+
+  let select_by_description = Caqti_request.collect
+    Caqti_type.(option string) Bike.t
+    "SELECT * FROM bikereg WHERE ?1 IS NULL OR description = ?1"
+
 end
 
 (* Wrappers around the Generic Execution Functions
@@ -97,6 +104,9 @@ let find_bike_owner frameno (module Db : Caqti_lwt.CONNECTION) =
 (* Db.iter_s iterates sequentially over the set of result rows of a query. *)
 let iter_s_stolen (module Db : Caqti_lwt.CONNECTION) f =
   Db.iter_s Q.select_stolen f ()
+
+let iter_s_description desc (module Db : Caqti_lwt.CONNECTION) f =
+  Db.iter_s Q.select_by_description f desc
 
 (* There is also a Db.iter_p for parallel processing, and Db.fold and
  * Db.fold_s for accumulating information from the result rows. *)
@@ -132,6 +142,14 @@ let test db =
   (* An example multi-row query. *)
   Lwt_io.printf "Stolen:" >>= fun () ->
   iter_s_stolen db
+    (fun bike ->
+      let stolen =
+        match bike.Bike.stolen with Some x -> x | None -> assert false in
+      Lwt_io.printf "\t%s %s %s\n" bike.Bike.frameno
+                    (Ptime.to_rfc3339 stolen) bike.Bike.owner >>= Lwt.return_ok)
+  >>=? fun () ->
+  Lwt_io.printf "'nice' bikes:" >>= fun () ->
+  iter_s_description (Some "nice") db
     (fun bike ->
       let stolen =
         match bike.Bike.stolen with Some x -> x | None -> assert false in

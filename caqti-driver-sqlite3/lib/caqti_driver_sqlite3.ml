@@ -178,11 +178,15 @@ let rec encode_null_param
   fun ~uri stmt ->
   (function
    | Caqti_type.Unit -> fun os -> Ok os
-   | Caqti_type.Field ft -> fun os ->
-      assert (os <> []);
-      (match encode_null_field ~uri stmt ft (List.hd os) with
-       | Ok () -> Ok (List.tl os)
-       | Error _ as r -> r)
+   | Caqti_type.Field ft ->
+      (function
+       | [] ->
+          failwith "Too few arguments passed to query; \
+                    check that the paramater type is correct."
+       | o :: os ->
+          (match encode_null_field ~uri stmt ft o with
+           | Ok () -> Ok os
+           | Error _ as r -> r))
    | Caqti_type.Option t ->
       encode_null_param ~uri stmt t
    | Caqti_type.Tup2 (t0, t1) ->
@@ -204,11 +208,15 @@ let rec encode_param
   fun ~uri stmt t x ->
   (match t, x with
    | Caqti_type.Unit, () -> fun os -> Ok os
-   | Caqti_type.Field ft, fv -> fun os ->
-      assert (os <> []);
-      (match encode_field ~uri stmt ft fv (List.hd os) with
-       | Ok () -> Ok (List.tl os)
-       | Error _ as r -> r)
+   | Caqti_type.Field ft, fv ->
+      (function
+       | [] ->
+          failwith "Too few arguments passed to query; \
+                    check that the paramater type is correct."
+       | o :: os ->
+          (match encode_field ~uri stmt ft fv o with
+           | Ok () -> Ok os
+           | Error _ as r -> r))
    | Caqti_type.Option t, None ->
       encode_null_param ~uri stmt t
    | Caqti_type.Option t, Some x ->
@@ -472,10 +480,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (* CHECKME: Does binding involve IO? *)
       return (bind_quotes ~uri ~query stmt oq) >>=? fun () ->
       (match encode_param ~uri stmt param_type param os with
-       | Ok os ->
-          assert (os = []);
+       | Ok [] ->
           return (Ok Response.{stmt; query; row_type;
                                has_been_executed=false; affected_count = -1; })
+       | Ok _ ->
+          failwith "Too many arguments passed to query; \
+                    check that the parameter type is correct."
        | Error _ as r -> return r)
       >>=? fun resp ->
 

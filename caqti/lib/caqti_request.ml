@@ -93,7 +93,10 @@ let format_query ~env qs =
      | '?' ->
         if p < 0 then invalid_arg "Mixed ? and $i style parameters." else
         let acc = L (String.sub qs i (j - i)) :: acc in
-        loop (p + 1) (j + 1) (j + 1) (P p :: acc)
+        if j + 1 < n && (match qs.[j+1] with '0'..'9' -> true | _ -> false) then
+          invalid_arg "?i is not allowed"
+        else
+          loop (p + 1) (j + 1) (j + 1) (P p :: acc)
      | '$' ->
         if j + 1 = n then invalid_arg "$ at end of query" else
         let acc = L (String.sub qs i (j - i)) :: acc in

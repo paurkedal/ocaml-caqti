@@ -109,7 +109,9 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
 
 ## Sponsor
 
-[![OCSF logo](https://ocaml-sf.org/assets/ocsf_logo.svg)](https://ocaml-sf.org)
+<a href="https://ocaml-sf.org">
+<img align="left" alt="OCSF logo" src="https://ocaml-sf.org/assets/ocsf_logo.svg"/>
+</a>
 Thanks to the [OCaml Software Foundation](https://ocaml-sf.org) for
 economic support to the development of Caqti.
 

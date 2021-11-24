@@ -107,6 +107,12 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
   - [ppx\_rapper](https://github.com/roddyyaga/ppx_rapper) - a syntax
     extension for Caqti/PostgreSQL queries
 
+## Sponsor
+
+[![OCSF logo](https://ocaml-sf.org/assets/ocsf_logo.svg)](https://ocaml-sf.org)
+Thanks to the [OCaml Software Foundation](https://ocaml-sf.org) for
+economic support to the development of Caqti.
+
 
 [API]: http://paurkedal.github.io/ocaml-caqti/index.html
 [BP-2018]: https://medium.com/@bobbypriambodo/interfacing-ocaml-and-postgresql-with-caqti-a92515bdaa11

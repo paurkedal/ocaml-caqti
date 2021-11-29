@@ -50,6 +50,14 @@ module List = struct
    | [] -> Ok ()
    | x :: xs -> (match f x with Ok () -> iter_r f xs | Error _ as r -> r)
 
+  let iteri_r f xs =
+    let rec loop i = function
+     | [] -> Ok ()
+     | x :: xs ->
+        (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
+    in
+    loop 0 xs
+
   let rec equal f xs ys =
     (match xs, ys with
      | [], [] -> true

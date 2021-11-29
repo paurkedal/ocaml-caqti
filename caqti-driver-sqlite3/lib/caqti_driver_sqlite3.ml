@@ -54,6 +54,28 @@ let () =
    | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Rc]
 
+let query_quotes q =
+  let rec loop = function
+   | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
+   | Caqti_query.Q quote -> List.cons quote
+   | Caqti_query.S qs -> List.fold loop qs
+  in
+  List.rev (loop q [])
+
+let query_string q =
+  let quotes = query_quotes q in
+  let buf = Buffer.create 64 in
+  let iQ = ref 1 in
+  let iP0 = List.length quotes + 1 in
+  let rec loop = function
+   | Caqti_query.L s -> Buffer.add_string buf s
+   | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
+   | Caqti_query.S qs -> List.iter loop qs
+  in
+  loop q;
+  (quotes, Buffer.contents buf)
+
 let rec data_of_value
     : type a. uri: Uri.t -> a Caqti_type.field -> a ->
       (Sqlite3.Data.t, _) result =
@@ -145,48 +167,40 @@ let rec value_of_data
            | Error _ as r -> r)))
 
 let bind_quotes ~uri ~query stmt oq =
-  let aux (j, x) =
+  let aux j x =
     (match Sqlite3.bind stmt (j + 1) (Sqlite3.Data.TEXT x) with
      | Sqlite3.Rc.OK -> Ok ()
-     | rc -> Error (Caqti_error.request_rejected ~uri ~query (Rc rc))) in
-  List.iter_r aux oq
+     | rc -> Error (Caqti_error.request_rejected ~uri ~query (Rc rc)))
+  in
+  List.iteri_r aux oq
 
-let encode_null_field ~uri stmt field_type o =
-  let aux i =
-    (match Sqlite3.bind stmt (i + 1) Sqlite3.Data.NULL with
-     | Sqlite3.Rc.OK -> Ok ()
-     | rc ->
-        let typ = Caqti_type.field field_type in
-        Error (Caqti_error.encode_failed ~uri ~typ (Rc rc))) in
-  List.iter_r aux o
+let encode_null_field ~uri stmt field_type iP =
+  (match Sqlite3.bind stmt (iP + 1) Sqlite3.Data.NULL with
+   | Sqlite3.Rc.OK -> Ok ()
+   | rc ->
+      let typ = Caqti_type.field field_type in
+      Error (Caqti_error.encode_failed ~uri ~typ (Rc rc)))
 
-let encode_field ~uri stmt field_type field_value o =
+let encode_field ~uri stmt field_type field_value iP =
   (match data_of_value ~uri field_type field_value with
    | Ok d ->
-      let aux i =
-        (match Sqlite3.bind stmt (i + 1) d with
-         | Sqlite3.Rc.OK -> Ok ()
-         | rc ->
-            let typ = Caqti_type.field field_type in
-            Error (Caqti_error.encode_failed ~uri ~typ (Rc rc))) in
-      List.iter_r aux o
+      (match Sqlite3.bind stmt (iP + 1) d with
+       | Sqlite3.Rc.OK -> Ok ()
+       | rc ->
+          let typ = Caqti_type.field field_type in
+          Error (Caqti_error.encode_failed ~uri ~typ (Rc rc)))
    | Error _ as r -> r)
 
 let rec encode_null_param
     : type a. uri: Uri.t -> Sqlite3.stmt -> a Caqti_type.t ->
-      int list list -> (int list list, _) result =
+      int -> (int, _) result =
   fun ~uri stmt ->
   (function
-   | Caqti_type.Unit -> fun os -> Ok os
-   | Caqti_type.Field ft ->
-      (function
-       | [] ->
-          failwith "Too few arguments passed to query; \
-                    check that the paramater type is correct."
-       | o :: os ->
-          (match encode_null_field ~uri stmt ft o with
-           | Ok () -> Ok os
-           | Error _ as r -> r))
+   | Caqti_type.Unit -> fun iP -> Ok iP
+   | Caqti_type.Field ft -> fun iP ->
+      (match encode_null_field ~uri stmt ft iP with
+       | Ok () -> Ok (iP + 1)
+       | Error _ as r -> r)
    | Caqti_type.Option t ->
       encode_null_param ~uri stmt t
    | Caqti_type.Tup2 (t0, t1) ->
@@ -204,19 +218,14 @@ let rec encode_null_param
 
 let rec encode_param
     : type a. uri: Uri.t -> Sqlite3.stmt -> a Caqti_type.t -> a ->
-      int list list -> (int list list, _) result =
+      int -> (int, _) result =
   fun ~uri stmt t x ->
   (match t, x with
-   | Caqti_type.Unit, () -> fun os -> Ok os
-   | Caqti_type.Field ft, fv ->
-      (function
-       | [] ->
-          failwith "Too few arguments passed to query; \
-                    check that the paramater type is correct."
-       | o :: os ->
-          (match encode_field ~uri stmt ft fv o with
-           | Ok () -> Ok os
-           | Error _ as r -> r))
+   | Caqti_type.Unit, () -> fun iP -> Ok iP
+   | Caqti_type.Field ft, fv -> fun iP ->
+      (match encode_field ~uri stmt ft fv iP with
+       | Ok () -> Ok (iP + 1)
+       | Error _ as r -> r)
    | Caqti_type.Option t, None ->
       encode_null_param ~uri stmt t
    | Caqti_type.Option t, Some x ->
@@ -229,9 +238,9 @@ let rec encode_param
    | Caqti_type.Tup4 (t0, t1, t2, t3), (x0, x1, x2, x3) ->
       encode_param ~uri stmt t0 x0 %>? encode_param ~uri stmt t1 x1 %>?
       encode_param ~uri stmt t2 x2 %>? encode_param ~uri stmt t3 x3
-   | Caqti_type.Custom {rep; encode; _}, x -> fun i ->
+   | Caqti_type.Custom {rep; encode; _}, x -> fun iP ->
       (match encode x with
-       | Ok y -> encode_param ~uri stmt rep y i
+       | Ok y -> encode_param ~uri stmt rep y iP
        | Error msg ->
           let msg = Caqti_error.Msg msg in
           Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
@@ -454,10 +463,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       in
 
       let templ = Caqti_request.query req driver_info in
-      let query = linear_query_string templ in
-      let os, oq = linear_param_order templ in
+      let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
-      Ok (stmt, os, oq, query)
+      Ok (stmt, quotes, query)
 
     let call ~f req param = using_db @@ fun () ->
       Log.debug ~src:request_log_src (fun f ->
@@ -475,17 +483,24 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               prepare req >|=? fun pcache_entry ->
               Hashtbl.add pcache id pcache_entry;
               Ok pcache_entry))
-      >>=? fun (stmt, os, oq, query) ->
+      >>=? fun (stmt, quotes, query) ->
 
       (* CHECKME: Does binding involve IO? *)
-      return (bind_quotes ~uri ~query stmt oq) >>=? fun () ->
-      (match encode_param ~uri stmt param_type param os with
-       | Ok [] ->
+      return (bind_quotes ~uri ~query stmt quotes) >>=? fun () ->
+      let nQ = List.length quotes in
+      (match encode_param ~uri stmt param_type param nQ with
+       | Ok nQP ->
+          let nP = Caqti_type.length param_type in
+          if nQP > nQ + nP then
+            failwith "Too many arguments passed to query; \
+                      check that the parameter type is correct."
+          else
+          if nQP < nQ + nP then
+            failwith "Too few arguments passed to query; \
+                      check that the parameter type is correct."
+          else
           return (Ok Response.{stmt; query; row_type;
                                has_been_executed=false; affected_count = -1; })
-       | Ok _ ->
-          failwith "Too many arguments passed to query; \
-                    check that the parameter type is correct."
        | Error _ as r -> return r)
       >>=? fun resp ->
 
@@ -514,7 +529,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Some query_id ->
           (match Hashtbl.find pcache query_id with
            | exception Not_found -> return (Ok ())
-           | (stmt, _, _, _) ->
+           | (stmt, _, _) ->
               Preemptive.detach begin fun () ->
                 (match Sqlite3.finalize stmt with
                  | Sqlite3.Rc.OK -> Ok (Hashtbl.remove pcache query_id)
@@ -532,7 +547,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let finalize_error_count = ref 0 in
       let not_busy = ref false in
       Preemptive.detach begin fun () ->
-        let uncache _ (stmt, _, _, _) =
+        let uncache _ (stmt, _, _) =
           (match Sqlite3.finalize stmt with
            | Sqlite3.Rc.OK -> ()
            | _ -> finalize_error_count := !finalize_error_count + 1) in

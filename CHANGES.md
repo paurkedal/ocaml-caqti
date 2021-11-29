@@ -1,3 +1,12 @@
+## unreleased
+
+- The Caqti license now uses the LGPL-3.0 Linking Exception instead of a
+  rephrasing of the OCaml LGPL Linking Exception, which was not designed for
+  LGPL-3.0.
+- Changed Sqlite3 driver to use non-linear parameters and improve error
+  reporting when the wrong number of arguments are received (#77 & GPR#79
+  Reynir Björnsson).
+
 ## v1.6.0 - 2021-06-10
 
 - Set the time zone of PostgreSQL connections to UTC to mitigate an

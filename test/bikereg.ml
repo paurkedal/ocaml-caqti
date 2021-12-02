@@ -143,8 +143,15 @@ let report_error = function
  | Error err ->
     Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
 
-let () = Lwt_main.run begin
+let main uris = Lwt_main.run begin
   Lwt_list.iter_s
     (fun uri -> Caqti_lwt.with_connection uri test >>= report_error)
-    (Testkit.parse_common_args ())
+    uris
 end
+
+let main_cmd =
+  let open Cmdliner.Term in
+  let doc = "Caqti bikereg example." in
+  (const main $ Testkit.common_args, info ~doc "bikereg")
+
+let () = Cmdliner.Term.(eval main_cmd |> exit)

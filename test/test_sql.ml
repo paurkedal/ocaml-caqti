@@ -184,28 +184,14 @@ module Q = struct
     | _ -> failwith "Unimplemented"
 end
 
-module type Sys = sig
-  type +'a future
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
-  val return : 'a -> 'a future
-  module Infix : sig
-    val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-    val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  end
-end
+module Make (Ground : Testkit_sig.Ground) = struct
+  open Ground
 
-module Make
-    (Sys : Sys)
-    (Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a Sys.future) =
-struct
-
-  open Sys.Infix
-
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Sys.return r
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
 
   let repeat n f =
     let rec loop i =
-      if i = n then Sys.return () else
+      if i = n then return () else
       f i >>= fun () -> loop (i + 1) in
     loop 0
 
@@ -215,15 +201,15 @@ struct
      | Error err -> Error (`Post_connect err)
 
   let test_post_connect (module Db : Caqti_sys.CONNECTION) =
-    Db.exec Q.insert_into_post_connect "swallow" >>= Sys.or_fail
+    Db.exec Q.insert_into_post_connect "swallow" >>= or_fail
 
   let test_expr (module Db : Caqti_sys.CONNECTION) =
 
     let maybe_deallocate q =
       if Random.int 50 = 0 then
-        Db.deallocate q >>= Sys.or_fail
+        Db.deallocate q >>= or_fail
       else
-        Sys.return ()
+        return ()
     in
 
     (* Non-prepared and prepared with non-linear parameters and quotes. *)
@@ -252,9 +238,9 @@ struct
             P 0; L " + 10";       (* first paramater last *)
           ])
       in
-      Db.find req (i + 1, i + 2) >>= Sys.or_fail
+      Db.find req (i + 1, i + 2) >>= or_fail
         >>= fun (i12, i22, (i', s1', si', s2'), i11) ->
-      (if oneshot then Sys.return () else Db.deallocate req >>= Sys.or_fail)
+      (if oneshot then return () else Db.deallocate req >>= or_fail)
         >|= fun () ->
       assert (i12 = i + 12);
       assert (i22 = i + 22);
@@ -268,15 +254,15 @@ struct
     (* Prepared: null *)
     repeat 3 (fun _ ->
       maybe_deallocate Q.select_null_etc >>= fun () ->
-      Db.find Q.select_null_etc (None, None) >>= Sys.or_fail >>= fun (c1, c2) ->
+      Db.find Q.select_null_etc (None, None) >>= or_fail >>= fun (c1, c2) ->
       assert (c1 && c2 = None);
-      Sys.return ()
+      return ()
     ) >>= fun () ->
 
     (* Prepared: bool *)
     let ck_and a b =
       maybe_deallocate Q.select_and >>= fun () ->
-      Db.find Q.select_and (a, b) >>= Sys.or_fail >|= fun c ->
+      Db.find Q.select_and (a, b) >>= or_fail >|= fun c ->
       assert (c = (a && b)) in
     ck_and false false >>= fun () -> ck_and false true >>= fun () ->
     ck_and true  false >>= fun () -> ck_and true  true >>= fun () ->
@@ -284,8 +270,8 @@ struct
     (* Prepared: int *)
     let ck_plus_int i j =
       maybe_deallocate Q.select_plus_int >>= fun () ->
-      Db.find Q.select_plus_int (i, j) >>= Sys.or_fail >>= fun k ->
-      assert (k = (i + j)); Sys.return () in
+      Db.find Q.select_plus_int (i, j) >>= or_fail >>= fun k ->
+      assert (k = (i + j)); return () in
     repeat 200 (fun _ ->
       let i, j = Random.int (1 lsl 29), Random.int (1 lsl 29) in
       ck_plus_int i j
@@ -294,7 +280,7 @@ struct
     (* Prepared: int64 *)
     let ck_plus_int64 i j =
       maybe_deallocate Q.select_plus_int64 >>= fun () ->
-      Db.find Q.select_plus_int64 (i, j) >>= Sys.or_fail >|= fun k ->
+      Db.find Q.select_plus_int64 (i, j) >>= or_fail >|= fun k ->
       assert (k = Int64.add i j) in
     repeat 200 (fun _ ->
       let i = Random.int64 Int64.(shift_left one 29) in
@@ -305,9 +291,9 @@ struct
     (* Prepared: float *)
     let ck_plus_float x y =
       maybe_deallocate Q.select_plus_float >>= fun () ->
-      Db.find Q.select_plus_float (x, y) >>= Sys.or_fail >>= fun z ->
+      Db.find Q.select_plus_float (x, y) >>= or_fail >>= fun z ->
       assert (abs_float (z -. (x +. y)) < 1e-6 *. (x +. y));
-      Sys.return () in
+      return () in
     repeat 200 (fun _ ->
       let i, j = Random.float 1e8, Random.float 1e8 in
       ck_plus_float i j
@@ -316,8 +302,8 @@ struct
     (* Prepared: string *)
     let ck_string x y =
       maybe_deallocate Q.select_cat >>= fun () ->
-      Db.find Q.select_cat (x, y) >>= Sys.or_fail >>= fun s ->
-      assert (s = x ^ y); Sys.return () in
+      Db.find Q.select_cat (x, y) >>= or_fail >>= fun s ->
+      assert (s = x ^ y); return () in
     repeat 200 (fun _ ->
       let x = sprintf "%x" (Random.int (1 lsl 29)) in
       let y = sprintf "%x" (Random.int (1 lsl 29)) in
@@ -327,8 +313,8 @@ struct
     (* Prepared: octets *)
     let ck_octets x =
       maybe_deallocate Q.select_cat >>= fun () ->
-      Db.find Q.select_octets_identity x >>= Sys.or_fail >>= fun s ->
-      assert (s = x); Sys.return () in
+      Db.find Q.select_octets_identity x >>= or_fail >>= fun s ->
+      assert (s = x); return () in
     repeat 256 (fun i ->
       let x = sprintf "%c" (Char.chr i) in
       ck_octets x
@@ -337,23 +323,23 @@ struct
     (* Prepared: time *)
     begin
       let t0 = Ptime_clock.now () in
-      Db.find Q.select_current_time () >>= Sys.or_fail >>= fun t ->
+      Db.find Q.select_current_time () >>= or_fail >>= fun t ->
       let t1 = Ptime_clock.now () in
       assert (Ptime.to_float_s t0 -. 1.1 <= Ptime.to_float_s t &&
               Ptime.to_float_s t <= Ptime.to_float_s t1 +. 1.1);
-      Db.find Q.select_given_time t >>= Sys.or_fail >>= fun t' ->
+      Db.find Q.select_given_time t >>= or_fail >>= fun t' ->
       assert (Ptime.Span.to_float_s (Ptime.Span.abs (Ptime.diff t t')) < 1.1);
       Db.find Q.compare_to_known_time (Ptime.v (17195, 43200_001_002_000_000L))
-               >>= Sys.or_fail >>= fun r ->
+               >>= or_fail >>= fun r ->
       assert r;
       let rec test_times = function
-       | [] -> Sys.return ()
+       | [] -> return ()
        | tf :: tfs ->
           let t =
             (match Ptime.Span.of_float_s tf with
              | Some t -> t
              | None -> assert false) in
-          Db.find Q.select_interval t >>= Sys.or_fail >>= fun t' ->
+          Db.find Q.select_interval t >>= or_fail >>= fun t' ->
           assert Ptime.Span.(equal (round ~frac_s:6 t) (round ~frac_s:6 t'));
           test_times tfs
       in
@@ -362,7 +348,7 @@ struct
 
     (* Prepared: compound option *)
     let check x y z =
-      Db.find Q.select_compound_option (x, y) >>= Sys.or_fail
+      Db.find Q.select_compound_option (x, y) >>= or_fail
         >|= fun (a, b, c) ->
       assert (a = -1 && b = z && c = -2);
     in
@@ -387,39 +373,39 @@ struct
       Db.collect_list Q.select_from_test_abc () >>=? fun rows ->
       assert (rows = [`Bee, "bee"]);
       Db.exec Q.drop_table_test_abc ()
-    end >>= Sys.or_fail
+    end >>= or_fail
 
   let test_table (module Db : Caqti_sys.CONNECTION) =
 
     (* Create, insert, select *)
-    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
     begin
       if Caqti_driver_info.can_transact Db.driver_info then
-        Db.start () >>= Sys.or_fail >>= fun () ->
+        Db.start () >>= or_fail >>= fun () ->
         Db.exec Q.insert_into_tmp (1, "one", "one")
-        >>= Sys.or_fail >>= fun () ->
-        Db.rollback () >>= Sys.or_fail
+        >>= or_fail >>= fun () ->
+        Db.rollback () >>= or_fail
       else
-        Sys.return ()
+        return ()
     end >>= fun () ->
-    Db.start () >>= Sys.or_fail >>= fun () ->
+    Db.start () >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (2, "two", "two")
-    >>= Sys.or_fail >>= fun () ->
+    >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (3, "three", "three")
-    >>= Sys.or_fail >>= fun () ->
+    >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (5, "five", "five")
-    >>= Sys.or_fail >>= fun () ->
-    Db.commit () >>= Sys.or_fail >>= fun () ->
+    >>= or_fail >>= fun () ->
+    Db.commit () >>= or_fail >>= fun () ->
     Db.fold Q.select_from_tmp
       (fun (i, s, o) (i_acc, s_acc, o_acc) ->
         i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o)
       ()
       (0, "zero", "zero")
-    >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
+    >>= or_fail >>= fun (i_acc, s_acc, o_acc) ->
     assert (i_acc = 10);
     assert (s_acc = "zero+two+three+five");
     assert (o_acc = "zero+two+three+five");
-    Db.exec Q.drop_tmp () >>= Sys.or_fail
+    Db.exec Q.drop_tmp () >>= or_fail
 
   let test_affected_count (module Db : Caqti_sys.CONNECTION) =
     let select_all exp_i exp_s exp_o =
@@ -428,67 +414,67 @@ struct
           i_acc + i, s_acc ^ "+" ^ s, o_acc ^ "+" ^ o)
         ()
         (0, "zero", "zero")
-      >>= Sys.or_fail >>= fun (i_acc, s_acc, o_acc) ->
+      >>= or_fail >>= fun (i_acc, s_acc, o_acc) ->
       assert (i_acc = exp_i);
       assert (s_acc = exp_s);
       assert (o_acc = exp_o);
-      Sys.return ()
+      return ()
     in
     (* prepare db *)
-    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
-    Db.start () >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
+    Db.start () >>= or_fail >>= fun () ->
     Db.exec_with_affected_count Q.insert_into_tmp (2, "two", "X")
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 1);
     Db.exec Q.insert_into_tmp (3, "three", "Y")
-    >>= Sys.or_fail >>= fun () ->
+    >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (5, "five", "Z")
-    >>= Sys.or_fail >>= fun () ->
+    >>= or_fail >>= fun () ->
     select_all 10 "zero+two+three+five" "zero+X+Y+Z" >>= fun () ->
 
     (* update where i = 1 -> 0 affected rows *)
     Db.exec_with_affected_count Q.update_in_tmp_where_i ("null", 0)
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 0);
     select_all 10 "zero+two+three+five" "zero+X+Y+Z" >>= fun () ->
 
     (* update where i = 3 -> 1 affected row*)
     Db.exec_with_affected_count Q.update_in_tmp_where_i ("drei", 3)
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 1);
     select_all 10 "zero+two+three+five" "zero+X+drei+Z" >>= fun () ->
 
     (* update w/o id -> 3 affected rows *)
     Db.exec_with_affected_count Q.update_in_tmp ()
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 3);
     select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
 
     (* delete where i = 1 -> no affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 1
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 0);
     select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
 
     (* delete where i = 3 -> one affected row *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 1);
     select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
 
     (* delete where i = 3 -> no affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 0);
     select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
 
     (* delete w/o condition -> 2 affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp ()
-    >>= Sys.or_fail >>= fun nrows ->
+    >>= or_fail >>= fun nrows ->
     assert (nrows = 2);
     select_all 0 "zero" "zero" >>= fun () ->
-    Db.commit () >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.drop_tmp () >>= Sys.or_fail
+    Db.commit () >>= or_fail >>= fun () ->
+    Db.exec Q.drop_tmp () >>= or_fail
 
   let test_stream (module Db : Caqti_sys.CONNECTION) =
     let assert_stream_is expected =
@@ -497,18 +483,18 @@ struct
             let open Db.Response in
             Caqti_sys.Stream.to_list @@ to_stream response >>= fun actual ->
             assert (actual = expected);
-            Sys.return (Ok ()))
+            return (Ok ()))
         Q.select_from_tmp
         ()
     in
-    Db.exec Q.create_tmp () >>= Sys.or_fail >>= fun () ->
-    assert_stream_is (Ok []) >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (1, "one", "one") >>= Sys.or_fail >>= fun () ->
-    assert_stream_is (Ok [(1, "one", "one")]) >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (2, "two", "two") >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
+    assert_stream_is (Ok []) >>= or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (1, "one", "one") >>= or_fail >>= fun () ->
+    assert_stream_is (Ok [(1, "one", "one")]) >>= or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp (2, "two", "two") >>= or_fail >>= fun () ->
     assert_stream_is (Ok [(1, "one", "one"); (2, "two", "two")])
-    >>= Sys.or_fail >>= fun () ->
-    Db.exec Q.drop_tmp () >>= Sys.or_fail
+    >>= or_fail >>= fun () ->
+    Db.exec Q.drop_tmp () >>= or_fail
 
   let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
     let show_string_option = function
@@ -517,15 +503,15 @@ struct
     in
     let assert_stream_both_ways expected =
       let input_stream = Caqti_sys.Stream.of_list expected in
-      Db.exec Q.create_tmp_nullable () >>= Sys.or_fail >>= fun () ->
+      Db.exec Q.create_tmp_nullable () >>= or_fail >>= fun () ->
       Db.populate
         ~table:"test_sql"
         ~columns:["i"; "s"; "o"]
         Caqti_type.(tup3 int (option string) (option octets))
         input_stream
-      >|= Caqti_error.uncongested >>= Sys.or_fail >>= fun () ->
+      >|= Caqti_error.uncongested >>= or_fail >>= fun () ->
       Db.collect_list Q.select_from_tmp_nullable ()
-      >>= Sys.or_fail >>= fun actual ->
+      >>= or_fail >>= fun actual ->
       if actual <> expected then
         begin
           let repr a = a
@@ -542,18 +528,18 @@ struct
       Db.exec Q.drop_tmp ()
     in
     assert_stream_both_ways
-      [] >>= Sys.or_fail >>= fun () ->
+      [] >>= or_fail >>= fun () ->
     assert_stream_both_ways
-      [(1, Some "one", Some "one")] >>= Sys.or_fail >>= fun () ->
+      [(1, Some "one", Some "one")] >>= or_fail >>= fun () ->
     assert_stream_both_ways
       [(1, Some "one", Some "one");
-       (2, Some "two", Some "two")] >>= Sys.or_fail >>= fun () ->
+       (2, Some "two", Some "two")] >>= or_fail >>= fun () ->
     assert_stream_both_ways
       [(1, Some "bad1\"\"", Some "bad1\"\"");
        (2, Some "bad2,\"\n", Some "bad2,\"\n");
        (3, None, None);
        (4, Some "", Some "");
-       (5, Some "\\\"", Some "\\\"")] >>= Sys.or_fail
+       (5, Some "\\\"", Some "\\\"")] >>= or_fail
 
   let test_stream_binary (module Db : Caqti_sys.CONNECTION) =
     (* Insert and retrieve all pairs of bytes as strings *)
@@ -567,15 +553,15 @@ struct
     let all_pairs_len = List.length all_pairs in
     assert (all_pairs_len = 65536);
     let input_stream = Caqti_sys.Stream.of_list all_pairs in
-    Db.exec Q.create_tmp_binary () >>= Sys.or_fail >>= fun () ->
+    Db.exec Q.create_tmp_binary () >>= or_fail >>= fun () ->
     Db.populate
       ~table:"test_sql"
       ~columns:["data"]
       Caqti_type.octets
       input_stream
-    >|= Caqti_error.uncongested >>= Sys.or_fail >>= fun () ->
+    >|= Caqti_error.uncongested >>= or_fail >>= fun () ->
     Db.collect_list Q.select_from_tmp_binary ()
-    >>= Sys.or_fail >>= fun actual ->
+    >>= or_fail >>= fun actual ->
     if actual <> all_pairs then
       begin
         let actual_len = List.length actual in
@@ -594,31 +580,22 @@ struct
             (List.combine actual all_pairs)
       end;
     assert (actual = all_pairs);
-    Db.exec Q.drop_tmp () >>= Sys.or_fail
+    Db.exec Q.drop_tmp () >>= or_fail
 
-  let run (module Db : Caqti_sys.CONNECTION) =
-    test_expr (module Db) >>= fun () ->
-    test_table (module Db) >>= fun () ->
-    test_affected_count (module Db) >>= fun () ->
-    test_stream (module Db) >>= fun () ->
-    test_stream_both_ways (module Db) >>= fun () ->
-    test_stream_binary (module Db) >>= fun () ->
-    Db.disconnect ()
+  let test_drain pool = Caqti_sys.Pool.drain pool
 
-  let run_pool pool =
-    Caqti_sys.Pool.use
-      begin fun (module Db : Caqti_sys.CONNECTION) ->
-        test_post_connect (module Db) >>= fun () ->
-        test_expr (module Db) >>= fun () ->
-        test_enum (module Db) >>= fun () ->
-        test_table (module Db) >>= fun () ->
-        test_affected_count (module Db) >>= fun () ->
-        test_stream (module Db) >>= fun () ->
-        test_stream_both_ways (module Db) >>= fun () ->
-        test_stream_binary (module Db) >|= fun () ->
-        Ok ()
-      end
-      pool >>= Sys.or_fail >>= fun () ->
-    Caqti_sys.Pool.drain pool
+  let connection_test_cases = [
+    "post_connect", `Quick, test_post_connect;
+    "expr", `Quick, test_expr;
+    "enum", `Quick, test_enum;
+    "table", `Quick, test_table;
+    "affected_count", `Quick, test_affected_count;
+    "stream", `Quick, test_stream;
+    "stream_both_ways", `Quick, test_stream_both_ways;
+    "stream_binary", `Quick, test_stream_binary;
+  ]
+  let pool_test_cases = [
+    "drain", `Quick, test_drain;
+  ]
 
 end

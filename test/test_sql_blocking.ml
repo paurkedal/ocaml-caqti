@@ -15,33 +15,53 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Printf
+open Caqti_common_priv
+open Testkit
 
-module Sys = struct
+module Ground = struct
+
   type 'a future = 'a
   let return x = x
   let or_fail = Caqti_blocking.or_fail
-  module Infix = struct
-    let (>>=) x f = f x
-    let (>|=) x f = f x
-  end
+  let (>>=) x f = f x
+  let (>|=) x f = f x
+
+  module Caqti_sys = Caqti_blocking
+
+  module Alcotest =
+    Testkit.Make_alcotest
+      (Alcotest.Unix_platform)
+      (Alcotest_engine.Monad.Identity)
+
 end
 
-module Test = Test_sql.Make (Sys) (Caqti_blocking)
+module Test = Test_sql.Make (Ground)
 
-let test_on uri =
-  try
-    Caqti_blocking.connect uri |> Sys.or_fail |> Test.run;
+let mk_test (name, pool) =
+  let pass_conn pool (name, speed, f) =
+    let f' () =
+      Caqti_blocking.Pool.use (fun c -> Ok (f c)) pool |> function
+       | Ok () -> ()
+       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+    in
+    (name, speed, f')
+  in
+  let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
+  let test_cases =
+    List.map (pass_conn pool) Test.connection_test_cases @
+    List.map (pass_pool pool) Test.pool_test_cases
+  in
+  (name, test_cases)
+
+let mk_tests uris =
+  let connect_pool uri =
     (match Caqti_blocking.connect_pool ~post_connect:Test.post_connect uri with
-     | Error err -> raise (Caqti_error.Exn err)
-     | Ok pool -> Test.run_pool pool)
-  with
-   | Caqti_error.Exn err ->
-      eprintf "%s\n" (Caqti_error.show err);
-      exit 2
-   | exn ->
-      eprintf "%s raised during test on %s\n"
-        (Printexc.to_string exn) (Uri.to_string uri);
-      exit 2
+     | Ok pool -> (test_name_of_uri uri, pool)
+     | Error err -> raise (Caqti_error.Exn err))
+  in
+  let pools = List.map connect_pool uris in
+  List.map mk_test pools
 
-let () = List.iter test_on (Testkit.parse_common_args ())
+let () =
+  Ground.Alcotest.run_with_args_dependency "test_sql_blocking"
+    Testkit.common_args mk_tests

@@ -15,26 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let common_uri_r = ref None
-
-let common_args =
-  let set_uri uri_str = common_uri_r := Some (Uri.of_string uri_str) in
-  let set_log_level level_str =
-    (match Logs.level_of_string level_str with
-     | Error (`Msg msg) -> raise (Arg.Bad msg)
-     | Ok level -> Logs.set_level level)
-  in
-  [ "-u", Arg.String set_uri, "URI Test against URI.";
-    "--log-level", Arg.String set_log_level, "LEVEL Log level."; ]
-
-let common_uri () =
-  match !common_uri_r with
-  | None ->
-      Uri.of_string
-        (try Unix.getenv "CAQTI_URI" with
-         | Not_found -> "sqlite3:test.db?busy_timeout=60000")
-  | Some uri -> uri
-
 let load_uris () =
   (match open_in "uris.conf" with
    | exception Sys_error _ ->
@@ -51,17 +31,57 @@ let load_uris () =
               loop (Uri.of_string uri :: acc)) in
       loop [])
 
-let parse_common_args () =
-  Arg.parse common_args
-    (fun _ -> raise (Arg.Bad "No positional arguments expected."))
-    Sys.argv.(0);
-  (match !common_uri_r with
-   | Some uri -> [uri]
-   | None -> load_uris ())
+let common_args =
+  let open Cmdliner in
+  let uri =
+    let doc = "Database URI(s) to be used for conducting the tests." in
+    Arg.(value @@ opt_all string [] @@ info ~doc ["u"])
+  in
+  let log_level =
+    let doc = "Log level." in
+    let conv' =
+      let pp ppf level =
+        Format.pp_print_string ppf (Logs.level_to_string level)
+      in
+      Arg.conv (Logs.level_of_string, pp)
+    in
+    let env = Cmdliner.Term.env_info "CAQTI_TEST_LOG_LEVEL" in
+    Arg.(value @@ opt conv' (Some Logs.Info) @@ info ~doc ~env ["log-level"])
+  in
+  let preprocess log_level uris =
+    Logs.set_level log_level;
+    (match uris with
+     | [] -> load_uris ()
+     | uris -> List.map Uri.of_string uris)
+  in
+  Term.(const preprocess $ log_level $ uri)
+
+let test_name_of_uri uri =
+  (match Uri.scheme uri with
+   | Some scheme -> scheme
+   | None -> Uri.to_string uri)
 
 let init_list n f = (* List.init is available from OCaml 4.6.0 *)
  let rec loop acc i = if i < 0 then acc else loop (f i :: acc) (i - 1) in
  loop [] (n - 1)
+
+module Make_alcotest
+  (Platform : Alcotest_engine.Platform.MAKER)
+  (Monad : Alcotest_engine.Monad.S) =
+struct
+  include Alcotest_engine.V1.Cli.Make (Platform) (Monad)
+
+  let test_case_sync name speed f =
+    test_case name speed (fun x -> Monad.return (f x))
+
+  let run_with_args_dependency ?argv name term make_tests =
+    let tests =
+      (match Cmdliner.Term.eval_peek_opts ~version_opt:true ?argv term with
+       | Some arg, _ -> make_tests arg
+       | _ -> [])
+    in
+    run_with_args ?argv name Cmdliner.Term.(const ignore $ term) tests
+end
 
 let () =
   Random.self_init ();

@@ -19,7 +19,10 @@ open Async_kernel
 open Async_unix
 open Core_kernel
 
-module Sys = struct
+open Caqti_common_priv
+open Testkit
+
+module Ground = struct
   type 'a future = 'a Deferred.t
 
   let return = return
@@ -29,28 +32,56 @@ module Sys = struct
    | Error (#Caqti_error.t as err) ->
       Error.raise (Error.of_exn (Caqti_error.Exn err))
 
-  module Infix = struct
-    let (>>=) = (>>=)
-    let (>|=) = (>>|)
-  end
+  let (>>=) = (>>=)
+  let (>|=) = (>>|)
+
+  module Caqti_sys = Caqti_async
+
+  module Alcotest =
+    Testkit.Make_alcotest
+      (Alcotest.Unix_platform)
+      (struct
+        include Deferred
+        let bind m f = bind m ~f
+        let catch t on_error =
+          try_with t >>= function Ok a -> return a | Error exn -> on_error exn
+      end)
+
 end
 
-module Test = Test_sql.Make (Sys) (Caqti_async)
+module Test = Test_sql.Make (Ground)
 
-let main uris () =
-  let open Deferred in
-  let rec loop = function
-   | [] -> return ()
-   | uri :: uris ->
-      Caqti_async.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
-      (match Caqti_async.connect_pool ~post_connect:Test.post_connect uri with
-       | Ok pool ->
-          Test.run_pool pool >>= fun () ->
-          loop uris
-       | Error err ->
-          Error.raise (Error.of_exn (Caqti_error.Exn err))) in
-  upon (loop uris) (fun () -> Shutdown.shutdown 0)
+let mk_test (name, pool) =
+  let pass_conn pool (name, speed, f) =
+    let f' () =
+      Caqti_async.Pool.use (fun c -> f c >>| fun () -> Ok ()) pool >>| function
+       | Ok () -> ()
+       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+    in
+    (name, speed, f')
+  in
+  let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
+  let test_cases =
+    List.map (pass_conn pool) Test.connection_test_cases @
+    List.map (pass_pool pool) Test.pool_test_cases
+  in
+  (name, test_cases)
 
-let () =
-  let uris = Testkit.parse_common_args () in
-  never_returns (Scheduler.go_main ~main:(main uris) ())
+let mk_tests uris =
+  let connect_pool uri =
+    (match Caqti_async.connect_pool ~post_connect:Test.post_connect uri with
+     | Ok pool ->
+        (test_name_of_uri uri, pool)
+     | Error err ->
+        Error.raise (Error.of_exn (Caqti_error.Exn err)))
+  in
+  let pools = List.map connect_pool uris in
+  List.map mk_test pools
+
+let main () =
+  Deferred.upon
+    (Ground.Alcotest.run_with_args_dependency "test_sql_async"
+      Testkit.common_args mk_tests)
+    (fun () -> Shutdown.shutdown 0)
+
+let () = never_returns (Scheduler.go_main ~main ())

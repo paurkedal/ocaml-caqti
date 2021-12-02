@@ -16,30 +16,55 @@
  *)
 
 open Lwt.Infix
-open Printf
 
-module Sys = struct
-  include Lwt
+open Caqti_common_priv
+open Testkit
+
+module Ground = struct
+
   type 'a future = 'a Lwt.t
+  let return = Lwt.return
   let or_fail = Caqti_lwt.or_fail
+  let (>>=) = Lwt.(>>=)
+  let (>|=) = Lwt.(>|=)
+
+  module Caqti_sys = Caqti_lwt
+
+  module Alcotest = Testkit.Make_alcotest (Alcotest.Unix_platform) (Lwt)
+
 end
 
-module Test = Test_sql.Make (Sys) (Caqti_lwt)
+module Test = Test_sql.Make (Ground)
 
-let test_on uri =
-  Lwt.catch
-    (fun () ->
-      Caqti_lwt.connect uri >>= Sys.or_fail >>= Test.run >>= fun () ->
-      (match Caqti_lwt.connect_pool ~post_connect:Test.post_connect uri with
-       | Error err -> raise (Caqti_error.Exn err)
-       | Ok pool -> Test.run_pool pool))
-    (function
-     | Caqti_error.Exn err ->
-        eprintf "%s\n" (Caqti_error.show err);
-        exit 2
-     | exn ->
-        eprintf "%s raised during test on %s\n"
-          (Printexc.to_string exn) (Uri.to_string uri);
-        exit 2)
+let mk_test (name, pool) =
+  let pass_conn pool (name, speed, f) =
+    let f' () =
+      Caqti_lwt.Pool.use (fun c -> Lwt_result.ok (f c)) pool >|= function
+       | Ok () -> ()
+       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+    in
+    (name, speed, f')
+  in
+  let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
+  let test_cases =
+    List.map (pass_conn pool) Test.connection_test_cases @
+    List.map (pass_pool pool) Test_parallel_lwt.test_cases @
+    List.map (pass_conn pool) Test_param.test_cases @
+    List.map (pass_pool pool) Test.pool_test_cases
+  in
+  (name, test_cases)
 
-let () = Lwt_main.run (Lwt_list.iter_s test_on (Testkit.parse_common_args ()))
+let mk_tests uris =
+  let connect_pool uri =
+    (match Caqti_lwt.connect_pool
+              ~max_size:16 ~post_connect:Test.post_connect uri with
+     | Ok pool -> (test_name_of_uri uri, pool)
+     | Error err -> raise (Caqti_error.Exn err))
+  in
+  let pools = List.map connect_pool uris in
+  List.map mk_test pools
+
+let () = Lwt_main.run begin
+  Ground.Alcotest.run_with_args_dependency "test_sql_lwt"
+    Testkit.common_args mk_tests
+end

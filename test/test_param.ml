@@ -16,7 +16,6 @@
  *)
 
 open Lwt.Infix
-open Testkit
 
 let (>>=?) m mf =
   m >>= (function Ok x -> mf x | Error err -> Lwt.return (Error err))
@@ -39,8 +38,9 @@ let test_nonlin (module Db : Caqti_lwt.CONNECTION) =
     let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
     (Db.find nonlin1_q p >|=? fun y -> Ok (assert (y = nonlin p))) >>=? fun() ->
     (Db.find nonlin2_q p >|=? fun y -> Ok (assert (y = nonlin p))) >>=? fun() ->
-    loop (n - 1) in
-  loop 1000
+    loop (n - 1)
+  in
+  loop 1000 >>= Caqti_lwt.or_fail
 
 let env1_q =
   let env _ = function
@@ -50,19 +50,9 @@ let env1_q =
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int "SELECT $. - $(fourty)"
 
 let test_env (module Db : Caqti_lwt.CONNECTION) =
-  Db.find env1_q () >|=? fun y -> Ok (assert (y = 60))
+  Db.find env1_q () >>= Caqti_lwt.or_fail >|= fun y -> assert (y = 60)
 
-let test db =
-  test_nonlin db >>=? fun () ->
-  test_env db
-
-let report_error = function
- | Error err ->
-    Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
- | Ok () ->
-    Lwt.return_unit
-
-let () = Lwt_main.run @@
-  Lwt_list.iter_s
-    (fun uri -> Caqti_lwt.connect uri >>=? test >>= report_error)
-    (parse_common_args ())
+let test_cases = [
+  "nonlinear", `Quick, test_nonlin;
+  "environment", `Quick, test_env;
+]

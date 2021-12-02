@@ -1,8 +1,8 @@
 (library
   (name testkit)
-  (modules Testkit)
+  (modules Testkit Testkit_sig)
   (wrapped false)
-  (libraries caqti dynlink logs uri))
+  (libraries alcotest caqti dynlink logs uri))
 
 ; Tests Using DBs
 
@@ -30,7 +30,7 @@
   (name test_sql_blocking)
   (package caqti-dynload)
   (modules Test_sql_blocking)
-  (libraries caqti caqti.blocking caqti-dynload testkit test_sql)
+  (libraries alcotest caqti caqti.blocking caqti-dynload testkit test_sql)
   (deps (alias drivers) uris.conf)
   (locks /db/test_sql)
   (action (setenv OCAMLPATH . (run %{test}))))
@@ -39,35 +39,18 @@
   (name test_sql_async)
   (package caqti-async)
   (modules Test_sql_async)
-  (libraries caqti caqti-dynload caqti-async testkit test_sql)
+  (libraries alcotest-async caqti caqti-dynload caqti-async testkit test_sql)
   (deps (alias drivers) uris.conf)
   (locks /db/test_sql)
-  (action (setenv OCAMLPATH . (run %{test}))))
-
-(test
-  (name test_parallel_lwt)
-  (package caqti-lwt)
-  (modules Test_parallel_lwt)
-  (libraries caqti caqti-dynload caqti-lwt testkit)
-  (deps (alias drivers) uris.conf)
-  (locks /db/test_parallel_lwt)
   (action (setenv OCAMLPATH . (run %{test}))))
 
 (test
   (name test_sql_lwt)
   (package caqti-lwt)
-  (modules Test_sql_lwt)
-  (libraries caqti caqti-dynload caqti-lwt testkit test_sql)
+  (modules Test_sql_lwt Test_parallel_lwt Test_param)
+  (libraries alcotest-lwt caqti caqti-dynload caqti-lwt testkit test_sql)
   (deps (alias drivers) uris.conf)
   (locks /db/test_sql)
-  (action (setenv OCAMLPATH . (run %{test}))))
-
-(test
-  (name test_param)
-  (package caqti-lwt)
-  (modules Test_param)
-  (libraries caqti caqti-dynload caqti-lwt testkit)
-  (deps (alias drivers) uris.conf)
   (action (setenv OCAMLPATH . (run %{test}))))
 
 ; Fake META Files - used for dynamic linking of drivers

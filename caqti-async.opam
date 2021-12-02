@@ -7,11 +7,14 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
+  "alcotest"
+  "alcotest-async"
   "async_kernel" {>= "v0.11.0"}
   "async_unix" {>= "v0.11.0"}
   "caqti" {>= "1.6.0" & < "1.7.0~"}
   "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
   "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
+  "cmdliner" {with-test}
   "core_kernel"
   "dune" {>= "2.0"}
   "ocaml"

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -65,39 +65,38 @@ let rec list_diff f = function
   | [_] -> []
   | [] -> invalid_arg "list_diff"
 
-let merge f xs acc =
+let reduce f xs acc =
   let rec loop = function
     | [] -> Lwt.return_ok
-    | x :: xs -> fun acc -> x >>=? fun y -> loop xs (f y acc) in
+    | mx :: mxs -> fun acc -> mx >>=? fun x -> loop mxs (f x acc)
+  in
   loop xs acc
 
-let rec test2 pool n =
+let rec test_parallel' pool n =
   if n = 0 then Lwt.return_ok 0 else
   if n = 1 then do_query pool else
-  let ns = Array.init (Random.int n * (Random.int n + 1) / n + 1)
-                      (fun _ -> Random.int n)
+  let thread_count = Random.int n * (Random.int n + 1) / n + 1 in
+  let ns = Array.init thread_count (fun _ -> Random.int n)
     |> Array.to_list |> (fun xs -> n :: xs)
     |> List.sort compare
     |> list_diff (-)
-    |> List.filter ((<>) 0) in
-  let xs = List.map (test2 pool) ns in
-  merge (+) xs 0
+    |> List.filter ((<>) 0)
+  in
+  let xs = List.map (test_parallel' pool) ns in
+  reduce (+) xs 0
 
-let test uri =
-  let n_r = ref 1000 in
-  let max_size = if Uri.scheme uri = Some "sqlite3" then 1 else 4 in
-  Lwt.return (Caqti_lwt.connect_pool ~max_size uri) >>=? fun pool ->
-  Caqti_lwt.Pool.use
-    (fun (module C : Caqti_lwt.CONNECTION) ->
-      C.exec drop_q () >>=? fun () ->
-      C.exec create_q ())
-    pool >>=? fun () ->
-  test2 pool !n_r >>=? fun _ ->
-  Caqti_lwt.Pool.use
-    (fun (module C : Caqti_lwt.CONNECTION) -> C.exec drop_q ())
-    pool
+let test_parallel pool =
+  begin
+    Caqti_lwt.Pool.use
+      (fun (module C : Caqti_lwt.CONNECTION) ->
+        C.exec drop_q () >>=? fun () ->
+        C.exec create_q ())
+      pool >>=? fun () ->
+    test_parallel' pool 1000
+  end >|= function
+   | Ok _ -> ()
+   | Error err -> Alcotest.failf "%a" Caqti_error.pp err
 
-let () = Lwt_main.run begin
-  Lwt_list.iter_s (fun uri -> test uri >>= report_error)
-    (Testkit.parse_common_args ())
-end
+let test_cases = [
+  "parallel", `Slow, test_parallel;
+]

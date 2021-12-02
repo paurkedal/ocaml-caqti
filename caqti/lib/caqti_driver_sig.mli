@@ -29,6 +29,7 @@ module type System_common = sig
   val (>|=) : 'a future -> ('a -> 'b) -> 'b future
   val return : 'a -> 'a future
   val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
+  val cleanup : (unit -> 'a future) -> (unit -> unit future) -> 'a future
   val join : unit future list -> unit future
 
   module Mvar : sig

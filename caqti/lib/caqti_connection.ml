@@ -42,6 +42,8 @@ module Make_convenience
 struct
   open System
   module Response = C.Response
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let (>|=?) m f = m >|= function Ok r -> Ok (f r) | Error _ as r -> r
 
   let exec q p = C.call ~f:Response.exec q p
   let find q p = C.call ~f:Response.find q p
@@ -63,6 +65,15 @@ struct
       | Ok () -> Response.affected_count response
       | Error x -> return (Error x) in
     C.call ~f q p
+
+  let with_transaction f =
+    C.start () >>=? fun () ->
+    cleanup
+      (fun () ->
+        f () >>= (function
+         | Ok y -> C.commit () >|=? fun () -> y
+         | Error _ as r -> C.rollback () >|= fun _ -> r))
+      (fun () -> C.rollback () >|= ignore)
 end
 
 module Make_populate

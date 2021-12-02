@@ -27,10 +27,17 @@ module System = struct
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
+
   let finally f g =
     (match f () with
      | m -> m >>= fun y -> g () >|= fun () -> y
      | exception exn -> g () >|= fun () -> raise exn)
+
+  let cleanup f g =
+    (try f () with
+     | exn ->
+        g () >>= fun () -> raise exn)
+
   let join = Deferred.all_unit
 
   module Mvar = struct

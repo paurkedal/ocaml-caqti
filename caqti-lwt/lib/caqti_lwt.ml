@@ -24,6 +24,9 @@ module System = struct
   let (>|=) = Lwt.(>|=)
   let return = Lwt.return
   let finally = Lwt.finalize
+
+  let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
+
   let join = Lwt.join
 
   module Mvar = struct

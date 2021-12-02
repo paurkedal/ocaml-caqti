@@ -23,10 +23,14 @@ module System = struct
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
+
   let finally f g =
     (match f () with
      | y -> g (); y
      | exception exn -> g (); raise exn)
+
+  let cleanup f g = try f () with exn -> g (); raise exn
+
   let join (_ : unit list) = ()
 
   module Mvar = struct

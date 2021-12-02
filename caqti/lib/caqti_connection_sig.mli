@@ -183,6 +183,15 @@ module type Convenience = sig
       extracting the result as a reversed list.  This is more efficient than
       {!collect_list} and fits well with a subsequent {!List.rev_map}, though it
       may not matter much in practise. *)
+
+
+  (** {2 Transactions} *)
+
+  val with_transaction :
+    (unit -> (unit, 'e) result future) ->
+    (unit, [> Caqti_error.transact] as 'e) result future
+  (** [with_txn f] wraps [f] in a transaction which is committed iff [f] returns
+      [Ok _]. *)
 end
 
 module type Populate = sig

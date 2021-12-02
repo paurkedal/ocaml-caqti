@@ -7,17 +7,19 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "ocaml"
   "caqti" {>= "1.6.0" & < "1.7.0~"}
   "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
   "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
   "dune" {>= "2.0"}
   "logs"
   "lwt" {>= "3.2.0"}
+  "ocaml"
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
 synopsis: "Lwt support for Caqti"

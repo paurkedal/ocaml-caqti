@@ -10,11 +10,13 @@ depends: [
   "ocaml"
   "caqti" {>= "1.6.0" & < "1.7.0~"}
   "dune" {>= "2.0"}
+  "odoc" {with-doc}
   "sqlite3"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
 synopsis: "Sqlite3 driver for Caqti using C bindings"

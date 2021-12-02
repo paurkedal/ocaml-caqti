@@ -7,7 +7,6 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "ocaml"
   "async_kernel" {>= "v0.11.0"}
   "async_unix" {>= "v0.11.0"}
   "caqti" {>= "1.6.0" & < "1.7.0~"}
@@ -15,10 +14,13 @@ depends: [
   "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
   "core_kernel"
   "dune" {>= "2.0"}
+  "ocaml"
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
 synopsis: "Async support for Caqti"

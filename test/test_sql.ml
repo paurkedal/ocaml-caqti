@@ -187,8 +187,6 @@ end
 module Make (Ground : Testkit_sig.Ground) = struct
   open Ground
 
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
-
   let repeat n f =
     let rec loop i =
       if i = n then return () else

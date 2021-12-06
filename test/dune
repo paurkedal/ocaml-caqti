@@ -23,7 +23,7 @@
 (library
   (name test_sql)
   (wrapped false)
-  (modules Test_sql)
+  (modules Test_parallel Test_param Test_sql)
   (libraries caqti ptime.clock.os testkit))
 
 (test
@@ -47,7 +47,7 @@
 (test
   (name test_sql_lwt)
   (package caqti-lwt)
-  (modules Test_sql_lwt Test_parallel_lwt Test_param)
+  (modules Test_sql_lwt)
   (libraries alcotest-lwt caqti caqti-dynload caqti-lwt testkit test_sql)
   (deps (alias drivers) uris.conf)
   (locks /db/test_sql)

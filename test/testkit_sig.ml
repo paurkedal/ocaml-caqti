@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type Alcotest = sig
+module type Alcotest_cli = sig
   include Alcotest_engine.V1.Cli.S
 
   val test_case :
@@ -34,11 +34,20 @@ module type Ground = sig
 
   val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
   val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+
+  val (>>=?) :
+    ('a, 'e) result future -> ('a -> ('b, 'e) result future) ->
+    ('b, 'e) result future
+
+  val (>|=?) :
+    ('a, 'e) result future -> ('a -> 'b) ->
+    ('b, 'e) result future
+
   val return : 'a -> 'a future
   val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
 
   module Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a future
 
-  module Alcotest : Alcotest with type return = unit future
+  module Alcotest_cli : Alcotest_cli with type return = unit future
 
 end

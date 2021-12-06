@@ -34,11 +34,13 @@ module Ground = struct
 
   let (>>=) = (>>=)
   let (>|=) = (>>|)
+  let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
+  let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
 
   module Caqti_sys = Caqti_async
 
-  module Alcotest =
-    Testkit.Make_alcotest
+  module Alcotest_cli =
+    Testkit.Make_alcotest_cli
       (Alcotest.Unix_platform)
       (struct
         include Deferred
@@ -49,7 +51,9 @@ module Ground = struct
 
 end
 
-module Test = Test_sql.Make (Ground)
+module Test_parallel = Test_parallel.Make (Ground)
+module Test_param = Test_param.Make (Ground)
+module Test_sql = Test_sql.Make (Ground)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -62,14 +66,16 @@ let mk_test (name, pool) =
   in
   let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
   let test_cases =
-    List.map (pass_conn pool) Test.connection_test_cases @
-    List.map (pass_pool pool) Test.pool_test_cases
+    List.map (pass_conn pool) Test_sql.connection_test_cases @
+    List.map (pass_pool pool) Test_parallel.test_cases @
+    List.map (pass_conn pool) Test_param.test_cases @
+    List.map (pass_pool pool) Test_sql.pool_test_cases
   in
   (name, test_cases)
 
 let mk_tests uris =
   let connect_pool uri =
-    (match Caqti_async.connect_pool ~post_connect:Test.post_connect uri with
+    (match Caqti_async.connect_pool ~post_connect:Test_sql.post_connect uri with
      | Ok pool ->
         (test_name_of_uri uri, pool)
      | Error err ->
@@ -80,7 +86,7 @@ let mk_tests uris =
 
 let main () =
   Deferred.upon
-    (Ground.Alcotest.run_with_args_dependency "test_sql_async"
+    (Ground.Alcotest_cli.run_with_args_dependency "test_sql_async"
       Testkit.common_args mk_tests)
     (fun () -> Shutdown.shutdown 0)
 

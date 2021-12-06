@@ -25,16 +25,20 @@ module Ground = struct
   type 'a future = 'a Lwt.t
   let return = Lwt.return
   let or_fail = Caqti_lwt.or_fail
-  let (>>=) = Lwt.(>>=)
-  let (>|=) = Lwt.(>|=)
+  let (>>=) = Lwt.Infix.(>>=)
+  let (>|=) = Lwt.Infix.(>|=)
+  let (>>=?) = Lwt_result.Infix.(>>=)
+  let (>|=?) = Lwt_result.Infix.(>|=)
 
   module Caqti_sys = Caqti_lwt
 
-  module Alcotest = Testkit.Make_alcotest (Alcotest.Unix_platform) (Lwt)
+  module Alcotest_cli = Testkit.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)
 
 end
 
-module Test = Test_sql.Make (Ground)
+module Test_parallel = Test_parallel.Make (Ground)
+module Test_param = Test_param.Make (Ground)
+module Test_sql = Test_sql.Make (Ground)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -47,17 +51,17 @@ let mk_test (name, pool) =
   in
   let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
   let test_cases =
-    List.map (pass_conn pool) Test.connection_test_cases @
-    List.map (pass_pool pool) Test_parallel_lwt.test_cases @
+    List.map (pass_conn pool) Test_sql.connection_test_cases @
+    List.map (pass_pool pool) Test_parallel.test_cases @
     List.map (pass_conn pool) Test_param.test_cases @
-    List.map (pass_pool pool) Test.pool_test_cases
+    List.map (pass_pool pool) Test_sql.pool_test_cases
   in
   (name, test_cases)
 
 let mk_tests uris =
   let connect_pool uri =
     (match Caqti_lwt.connect_pool
-              ~max_size:16 ~post_connect:Test.post_connect uri with
+              ~max_size:16 ~post_connect:Test_sql.post_connect uri with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in
@@ -65,6 +69,6 @@ let mk_tests uris =
   List.map mk_test pools
 
 let () = Lwt_main.run begin
-  Ground.Alcotest.run_with_args_dependency "test_sql_lwt"
+  Ground.Alcotest_cli.run_with_args_dependency "test_sql_lwt"
     Testkit.common_args mk_tests
 end

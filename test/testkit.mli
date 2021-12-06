@@ -21,7 +21,7 @@ val test_name_of_uri : Uri.t -> string
 
 val init_list : int -> (int -> 'a) -> 'a list
 
-module Make_alcotest :
+module Make_alcotest_cli :
   functor (Platform : Alcotest_engine.Platform.MAKER) ->
   functor (Monad : Alcotest_engine.Monad.S) ->
-  Testkit_sig.Alcotest with type return = unit Monad.t
+  Testkit_sig.Alcotest_cli with type return = unit Monad.t

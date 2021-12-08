@@ -47,5 +47,5 @@ jobs:
             echo "
                 sqlite3:test.db?busy_timeout=60000
                 postgresql://test@localhost/test
-            " > test/uris.conf
+            " > testsuite/uris.conf
             opam config exec -- dune runtest

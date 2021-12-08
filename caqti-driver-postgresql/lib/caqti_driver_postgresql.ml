@@ -574,10 +574,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let encode_octets s = encode_string (db#escape_bytea s)
     end)
 
-    let using_db_ref = ref false
-    let using_db f =
-      H.assert_single_use ~what:"PostgreSQL connection" using_db_ref f
-
+    let in_use = ref false
     let in_transaction = ref false
     let prepare_cache : prepared Int_hashtbl.t = Int_hashtbl.create 19
 
@@ -808,6 +805,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         fetch_type_oids t4
      | Caqti_type.Custom {rep; _} -> fetch_type_oids rep
      | Caqti_type.Annot (_, t0) -> fetch_type_oids t0
+
+    let using_db f =
+      if !in_use then
+        failwith "Invalid concurrent usage of PostgreSQL connection detected.";
+      in_use := true;
+      cleanup
+        (fun () -> f () >|= fun res -> in_use := false; res)
+        (fun () -> reset () >|= fun _ -> in_use := false)
 
     let call ~f req param = using_db @@ fun () ->
       fetch_type_oids (Caqti_request.param_type req) >>=? fun () ->

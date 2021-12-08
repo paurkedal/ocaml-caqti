@@ -519,10 +519,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
              | _ ->
                 Log.warn (fun p ->
                   p "Dropping cache statement due to error.") >|= fun () ->
-                Hashtbl.remove pcache id)) in
-
-      (try f resp >>= fun r -> cleanup () >|= fun () -> r
-       with exn -> cleanup () >|= fun () -> raise exn (* should not happen *))
+                Hashtbl.remove pcache id))
+      in
+      finally (fun () -> f resp) cleanup
 
     let deallocate req = using_db @@ fun () ->
       (match Caqti_request.query_id req with

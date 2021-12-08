@@ -22,6 +22,8 @@ module Ground = struct
 
   type 'a future = 'a
   let return x = x
+  let catch f g = try f () with exn -> g exn
+  let fail = raise
   let or_fail = Caqti_blocking.or_fail
   let (>>=) x f = f x
   let (>|=) x f = f x
@@ -39,6 +41,7 @@ end
 
 module Test_param = Test_param.Make (Ground)
 module Test_sql = Test_sql.Make (Ground)
+module Test_failure = Test_failure.Make (Ground)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -53,6 +56,7 @@ let mk_test (name, pool) =
   let test_cases =
     List.map (pass_conn pool) Test_sql.connection_test_cases @
     List.map (pass_conn pool) Test_param.test_cases @
+    List.map (pass_conn pool) Test_failure.test_cases @
     List.map (pass_pool pool) Test_sql.pool_test_cases
   in
   (name, test_cases)

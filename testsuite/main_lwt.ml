@@ -24,6 +24,8 @@ module Ground = struct
 
   type 'a future = 'a Lwt.t
   let return = Lwt.return
+  let catch = Lwt.catch
+  let fail = Lwt.fail
   let or_fail = Caqti_lwt.or_fail
   let (>>=) = Lwt.Infix.(>>=)
   let (>|=) = Lwt.Infix.(>|=)
@@ -39,6 +41,7 @@ end
 module Test_parallel = Test_parallel.Make (Ground)
 module Test_param = Test_param.Make (Ground)
 module Test_sql = Test_sql.Make (Ground)
+module Test_failure = Test_failure.Make (Ground)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -54,6 +57,7 @@ let mk_test (name, pool) =
     List.map (pass_conn pool) Test_sql.connection_test_cases @
     List.map (pass_pool pool) Test_parallel.test_cases @
     List.map (pass_conn pool) Test_param.test_cases @
+    List.map (pass_conn pool) Test_failure.test_cases @
     List.map (pass_pool pool) Test_sql.pool_test_cases
   in
   (name, test_cases)

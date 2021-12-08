@@ -44,6 +44,11 @@ module type Ground = sig
     ('b, 'e) result future
 
   val return : 'a -> 'a future
+
+  val catch : (unit -> 'a future) -> (exn -> 'a future) -> 'a future
+
+  val fail : exn -> 'a future
+
   val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
 
   module Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a future

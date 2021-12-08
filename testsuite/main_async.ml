@@ -27,6 +27,13 @@ module Ground = struct
 
   let return = return
 
+  let catch f g =
+    try_with ~extract_exn:true f >>= function
+     | Ok y -> return y
+     | Error exn -> g exn
+
+  let fail exn = Error.raise (Error.of_exn exn)
+
   let or_fail = function
    | Ok x -> return x
    | Error (#Caqti_error.t as err) ->
@@ -45,8 +52,10 @@ module Ground = struct
       (struct
         include Deferred
         let bind m f = bind m ~f
-        let catch t on_error =
-          try_with t >>= function Ok a -> return a | Error exn -> on_error exn
+        let catch f g =
+          try_with ~extract_exn:true f >>= function
+           | Ok y -> return y
+           | Error exn -> g exn
       end)
 
 end
@@ -54,6 +63,7 @@ end
 module Test_parallel = Test_parallel.Make (Ground)
 module Test_param = Test_param.Make (Ground)
 module Test_sql = Test_sql.Make (Ground)
+module Test_failure = Test_failure.Make (Ground)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -69,6 +79,7 @@ let mk_test (name, pool) =
     List.map (pass_conn pool) Test_sql.connection_test_cases @
     List.map (pass_pool pool) Test_parallel.test_cases @
     List.map (pass_conn pool) Test_param.test_cases @
+    List.map (pass_conn pool) Test_failure.test_cases @
     List.map (pass_pool pool) Test_sql.pool_test_cases
   in
   (name, test_cases)

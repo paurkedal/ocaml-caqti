@@ -29,14 +29,14 @@ module System = struct
   let return = Deferred.return
 
   let finally f g =
-    (match f () with
-     | m -> m >>= fun y -> g () >|= fun () -> y
-     | exception exn -> g () >|= fun () -> raise exn)
+    try_with ~extract_exn:true f >>= function
+     | Ok y -> g () >|= fun () -> y
+     | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
 
   let cleanup f g =
-    (try f () with
-     | exn ->
-        g () >>= fun () -> raise exn)
+    try_with ~extract_exn:true f >>= function
+     | Ok y -> return y
+     | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
 
   let join = Deferred.all_unit
 

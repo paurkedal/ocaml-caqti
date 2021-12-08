@@ -26,12 +26,10 @@ struct
   let assert_single_use ~what in_use f =
     if !in_use then
       failwith ("Invalid concurrent usage of " ^ what ^ " detected.");
-    assert (not !in_use);
     in_use := true;
-    f () >|= fun y ->
-    assert !in_use;
-    in_use := false;
-    y
+    cleanup
+      (fun () -> f () >|= fun res -> in_use := false; res)
+      (fun () -> in_use := false; return ())
 end
 
 module Make_convenience

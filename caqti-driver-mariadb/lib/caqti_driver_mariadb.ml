@@ -489,7 +489,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | None ->
           failwith "deallocate called on oneshot request")
 
-    let disconnect () =
+    let disconnect () = using_db @@ fun () ->
       let close_stmt _ pcache_entry prologue =
         prologue >>= fun () ->
         Mdb.Stmt.close pcache_entry.stmt >>=

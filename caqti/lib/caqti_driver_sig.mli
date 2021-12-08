@@ -24,13 +24,29 @@
 module type System_common = sig
 
   type +'a future
+  (** A concurrency monad with an optional failure monad, or just the identity
+      type constructor for blocking operation. *)
 
   val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  (** Bind operation of the concurrency monad. *)
+
   val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+  (** Map operation of the concurrency monad. *)
+
   val return : 'a -> 'a future
+  (** Return operation of the  concurrency monad. *)
+
   val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
+  (** [finally f g] runs [f ()] and then runs [g ()] whether the former
+      finished, failed with an exception, or failed with a monadic failure. *)
+
   val cleanup : (unit -> 'a future) -> (unit -> unit future) -> 'a future
+  (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
+      and only if [f ()] failed with an exception or a monadic failure. *)
+
   val join : unit future list -> unit future
+  (** [join ms] runs the elements of [ms] in parallel if supported by the
+      concurrency implementation. *)
 
   module Mvar : sig
     type 'a t

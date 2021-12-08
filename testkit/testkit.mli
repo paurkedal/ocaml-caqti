@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module Sig = Sig
+
 val common_args : Uri.t list Cmdliner.Term.t
 
 val test_name_of_uri : Uri.t -> string
@@ -24,4 +26,4 @@ val init_list : int -> (int -> 'a) -> 'a list
 module Make_alcotest_cli :
   functor (Platform : Alcotest_engine.Platform.MAKER) ->
   functor (Monad : Alcotest_engine.Monad.S) ->
-  Testkit_sig.Alcotest_cli with type return = unit Monad.t
+  Sig.Alcotest_cli with type return = unit Monad.t

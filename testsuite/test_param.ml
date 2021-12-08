@@ -23,7 +23,7 @@ let nonlin2_q = Caqti_request.find
   Caqti_type.(tup3 int int int) Caqti_type.int
   "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
-module Make (Ground : Testkit_sig.Ground) = struct
+module Make (Ground : Testkit.Sig.Ground) = struct
   open Ground
 
   let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1

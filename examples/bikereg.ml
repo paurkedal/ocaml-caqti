@@ -152,6 +152,8 @@ end
 let main_cmd =
   let open Cmdliner.Term in
   let doc = "Caqti bikereg example." in
+  (* If you wish to play with this outside the Caqti distribution, replace
+     "Testkit.common_args" with the "uris" definition from that function. *)
   (const main $ Testkit.common_args, info ~doc "bikereg")
 
 let () = Cmdliner.Term.(eval main_cmd |> exit)

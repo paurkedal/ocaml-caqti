@@ -184,7 +184,7 @@ module Q = struct
     | _ -> failwith "Unimplemented"
 end
 
-module Make (Ground : Testkit_sig.Ground) = struct
+module Make (Ground : Testkit.Sig.Ground) = struct
   open Ground
 
   let repeat n f =

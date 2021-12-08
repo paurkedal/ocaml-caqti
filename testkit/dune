@@ -1,0 +1,3 @@
+(library
+ (name testkit)
+ (libraries alcotest caqti dynlink logs uri))

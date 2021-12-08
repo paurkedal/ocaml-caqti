@@ -7,4 +7,4 @@
 /caqti-lwt.install
 /caqti-driver-*.install
 /caqti-type-*.install
-/test/uris.conf
+/testsuite/uris.conf

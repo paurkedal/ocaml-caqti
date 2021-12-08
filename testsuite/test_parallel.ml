@@ -32,7 +32,7 @@ let select_2_q = Caqti_request.find Caqti_type.int Caqti_type.(option int)
 
 let random_int () = Random.int (1 + Random.int 16)
 
-module Make (Ground : Testkit_sig.Ground) = struct
+module Make (Ground : Testkit.Sig.Ground) = struct
   open Ground
 
   let do_query pool =

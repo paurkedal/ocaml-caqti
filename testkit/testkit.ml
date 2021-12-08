@@ -15,8 +15,10 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let load_uris () =
-  (match open_in "uris.conf" with
+module Sig = Sig
+
+let load_uris uris_file =
+  (match open_in uris_file with
    | exception Sys_error _ ->
       failwith "No -u option provided and missing tests/uris.conf."
    | ic ->
@@ -33,9 +35,14 @@ let load_uris () =
 
 let common_args =
   let open Cmdliner in
-  let uri =
+  let uris =
     let doc = "Database URI(s) to be used for conducting the tests." in
     Arg.(value @@ opt_all string [] @@ info ~doc ["u"])
+  in
+  let uris_file =
+    let doc = "File from which to load URI(s) if no -u option is passed." in
+    let env = Term.env_info "CAQTI_TEST_URIS_FILE" in
+    Arg.(value @@ opt file "uris.conf" @@ info ~doc ~env ["U"])
   in
   let log_level =
     let doc = "Log level." in
@@ -48,13 +55,13 @@ let common_args =
     let env = Cmdliner.Term.env_info "CAQTI_TEST_LOG_LEVEL" in
     Arg.(value @@ opt conv' (Some Logs.Info) @@ info ~doc ~env ["log-level"])
   in
-  let preprocess log_level uris =
+  let preprocess log_level uris uris_file =
     Logs.set_level log_level;
     (match uris with
-     | [] -> load_uris ()
+     | [] -> load_uris uris_file
      | uris -> List.map Uri.of_string uris)
   in
-  Term.(const preprocess $ log_level $ uri)
+  Term.(const preprocess $ log_level $ uris $ uris_file)
 
 let test_name_of_uri uri =
   (match Uri.scheme uri with

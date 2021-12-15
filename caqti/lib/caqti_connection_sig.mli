@@ -68,6 +68,13 @@ module type Base = sig
       during the call to [f], and must not be returned or operated on by other
       threads. *)
 
+  val set_statement_timeout :
+    float option -> (unit, [> Caqti_error.call]) result future
+  (** Set or clear the timeout after which a running SQL statement will be
+      terminated if supported by the driver.
+      This is currently supported for MariaDB (using [max_statement_time]) and
+      PostgreSQL (using [statement_timeout]) and has no effect for SQLite3. *)
+
 
   (** {2 Transactions} *)
 

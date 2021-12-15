@@ -15,10 +15,21 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Caqti_common_priv
+
+let (-->) tA tR f =
+  Caqti_request.create_p tA tR Caqti_mult.one
+    (f % Caqti_driver_info.dialect_tag)
+
 let select_two_q =
   Caqti_request.find Caqti_type.unit Caqti_type.int "SELECT 2"
 let select_twice_q =
   Caqti_request.find Caqti_type.int Caqti_type.int "SELECT 2 * ?"
+
+let sleep_q =
+  Caqti_type.(unit --> option int) @@ function
+   | `Pgsql -> "SELECT pg_sleep(2)"
+   | _ -> "SELECT sleep(2)"
 
 module Make (Ground : Testkit.Sig.Ground) = struct
   open Ground
@@ -40,8 +51,28 @@ module Make (Ground : Testkit.Sig.Ground) = struct
     test 5 >>= fun () ->
     test 15
 
+  let test_statement_timeout (module Db : Caqti_sys.CONNECTION) =
+    if Caqti_driver_info.dialect_tag Db.driver_info = `Sqlite then
+      return () (* Does not support statement timeout. *)
+    else
+    let check_timed_out = function
+      | Error (`Request_failed _) -> ()
+      | Error err -> failwith ("unexpected error: " ^ Caqti_error.show err)
+      | Ok _ -> assert false
+    in
+    let test i =
+      Db.find sleep_q () >|= check_timed_out >>= fun () ->
+      Db.find select_twice_q i
+        >|= (function Ok j -> assert (j = 2 * i) | _ -> assert false)
+    in
+    Db.set_statement_timeout (Some 0.1) >>= or_fail >>= fun () ->
+    test 3 >>= fun () ->
+    test 5 >>= fun () ->
+    Db.set_statement_timeout None >>= or_fail
+
   let test_cases = [
     "raise in call", `Quick, test_raise_in_call raise;
     "fail in call", `Quick, test_raise_in_call fail;
+    "statement timeout", `Quick, test_statement_timeout;
   ]
 end

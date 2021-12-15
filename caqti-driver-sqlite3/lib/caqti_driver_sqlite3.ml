@@ -569,6 +569,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let start () = exec Q.start ()
     let commit () = exec Q.commit ()
     let rollback () = exec Q.rollback ()
+    let set_statement_timeout _ = return (Ok ())
   end
 
   let connect uri =

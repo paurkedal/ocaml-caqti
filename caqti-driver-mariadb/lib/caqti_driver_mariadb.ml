@@ -28,6 +28,8 @@ let () =
 
 let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"
+let set_statement_timeout_req =
+  Caqti_request.exec ~oneshot:true Caqti_type.float "SET max_statement_time = ?"
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
@@ -528,6 +530,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (function
        | Ok () -> return (Ok ())
        | Error err -> transaction_failed "# ROLLBACK" err)
+
+    let set_statement_timeout t =
+      call ~f:Response.exec set_statement_timeout_req
+        (match t with
+         | None -> 0.0
+         | Some t -> max 0.000001 t)
   end
 
   type conninfo = {

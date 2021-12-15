@@ -852,6 +852,19 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let commit () = in_transaction := false; exec commit_req ()
     let rollback () = in_transaction := false; exec rollback_req ()
 
+    let set_statement_timeout t =
+      let t_arg =
+        (match t with
+         | None -> 0
+         | Some t -> max 1 (int_of_float (t *. 1000.0 +. 500.0)))
+      in
+      let req =
+        (* Parameters are not supported for SET. *)
+        Caqti_request.exec ~oneshot:true Caqti_type.unit
+          (Printf.sprintf "SET statement_timeout TO %d" t_arg)
+      in
+      call ~f:Response.exec req ()
+
     let populate ~table ~columns row_type data =
       let query =
         sprintf "COPY %s (%s) FROM STDIN" table (String.concat "," columns)

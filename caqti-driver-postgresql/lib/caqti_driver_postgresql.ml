@@ -587,15 +587,18 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let send_query ?params ?param_types ?binary_params query =
       wrap_pg ~query @@ fun () ->
-      db#send_query ?params ?param_types ?binary_params query
+      db#send_query ?params ?param_types ?binary_params query;
+      db#consume_input
 
     let send_prepare ?param_types query_id query =
       wrap_pg ~query @@ fun () ->
-      db#send_prepare ?param_types (query_name_of_id query_id) query
+      db#send_prepare ?param_types (query_name_of_id query_id) query;
+      db#consume_input
 
     let send_query_prepared ?params ?binary_params query_id query =
       wrap_pg ~query @@ fun () ->
-      db#send_query_prepared ?params ?binary_params (query_name_of_id query_id)
+      db#send_query_prepared ?params ?binary_params (query_name_of_id query_id);
+      db#consume_input
 
     let reset () =
       Log.warn (fun p ->

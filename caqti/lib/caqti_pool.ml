@@ -20,6 +20,8 @@ open Caqti_compat [@@warning "-33"]
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
+let default_log_src = Logs.Src.create "Caqti_pool"
+
 module Make (System : Caqti_driver_sig.System_common) = struct
   open System
 
@@ -38,6 +40,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     free: 'a -> unit future;
     check: 'a -> (bool -> unit) -> unit;
     validate: 'a -> bool future;
+    log_src: Logs.Src.t;
     max_idle_size: int;
     max_size: int;
     mutable cur_size: int;
@@ -50,10 +53,11 @@ module Make (System : Caqti_driver_sig.System_common) = struct
         ?(max_idle_size = max_size)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
+        ?(log_src = default_log_src)
         create free =
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
-    { create; free; check; validate; max_idle_size; max_size;
+    { create; free; check; validate; log_src; max_idle_size; max_size;
       cur_size = 0; pool = Queue.create (); waiting = Taskq.empty }
 
   let size {cur_size; _} = cur_size
@@ -94,8 +98,11 @@ module Make (System : Caqti_driver_sig.System_common) = struct
       p.validate e >>= fun ok ->
       if ok then
         return (Ok e)
-      else
+      else begin
+        Log.warn ~src:p.log_src (fun f ->
+          f "Dropped pooled connection due to invalidation.") >>= fun () ->
         realloc p
+      end
     end
 
   let release p e =
@@ -107,8 +114,11 @@ module Make (System : Caqti_driver_sig.System_common) = struct
       p.check e begin fun ok ->
         if ok then
           Queue.add e p.pool
-        else
-          p.cur_size <- p.cur_size - 1;
+        else begin
+          Logs.warn ~src:p.log_src (fun f ->
+            f "Will not repool connection due to invalidation.");
+          p.cur_size <- p.cur_size - 1
+        end;
         schedule p
       end;
       return ()

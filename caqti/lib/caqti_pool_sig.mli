@@ -28,6 +28,7 @@ module type S = sig
     ?max_idle_size: int ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool future) ->
+    ?log_src: Logs.Src.t ->
     (unit -> ('a, 'e) result future) -> ('a -> unit future) -> ('a, 'e) t
   (** {b Internal:} [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily intended for implementing

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -195,8 +195,8 @@ module type Convenience = sig
   (** {2 Transactions} *)
 
   val with_transaction :
-    (unit -> (unit, 'e) result future) ->
-    (unit, [> Caqti_error.transact] as 'e) result future
+    (unit -> ('a, 'e) result future) ->
+    ('a, [> Caqti_error.transact] as 'e) result future
   (** [with_txn f] wraps [f] in a transaction which is committed iff [f] returns
       [Ok _]. *)
 end

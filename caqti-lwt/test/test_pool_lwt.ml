@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,7 +32,7 @@ module Resource = struct
   let free i = assert (Hashtbl.mem ht i); Hashtbl.remove ht i; Lwt.return_unit
 end
 
-let test n =
+let test_n n =
   let max_idle_size = Random.int 11 in
   let max_size = max 1 (max_idle_size + Random.int 5) in
   let pool =
@@ -83,14 +83,16 @@ let test n =
   assert (Pool.size pool = 0);
   assert (Hashtbl.length Resource.ht = 0)
 
-let () =
-  Lwt_main.run begin
-    test 0 >>= fun () ->
-    test 1 >>= fun () ->
-    let rec loop n_it =
-      if n_it = 0 then Lwt.return_unit else
-      test (Random.int (1 lsl Random.int 12)) >>= fun () ->
-      loop (n_it - 1)
-    in
-    loop 500
-  end
+let test _ () =
+  test_n 0 >>= fun () ->
+  test_n 1 >>= fun () ->
+  let rec loop n_it =
+    if n_it = 0 then Lwt.return_unit else
+    test_n (Random.int (1 lsl Random.int 12)) >>= fun () ->
+    loop (n_it - 1)
+  in
+  loop 500
+
+let test_cases = [
+  Alcotest_lwt.V1.test_case "basic usage" `Quick test;
+]

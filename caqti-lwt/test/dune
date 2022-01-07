@@ -1,5 +1,4 @@
 (test
- (name test_pool_lwt)
+ (name main)
  (package caqti-lwt)
- (modules Test_pool_lwt)
- (libraries caqti-lwt testkit))
+ (libraries alcotest alcotest-lwt caqti caqti-lwt testkit))

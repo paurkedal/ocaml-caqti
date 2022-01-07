@@ -1,13 +1,4 @@
 (test
  (name main)
  (package caqti)
- (modules main test_heap test_query test_request)
  (libraries alcotest caqti))
-
-; Benchmarks, run manually
-
-(executable
-  (name bench_stream)
-  (modules Bench_stream)
-  (preprocess (pps lwt_ppx))
-  (libraries benchmark caqti lwt lwt.unix))

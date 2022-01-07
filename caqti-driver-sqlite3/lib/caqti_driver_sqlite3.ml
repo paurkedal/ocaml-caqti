@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -510,9 +510,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | None ->
             (match Sqlite3.finalize stmt with
              | Sqlite3.Rc.OK -> return ()
-             | _ ->
+             | rc ->
                 Log.warn (fun p ->
-                  p "Ignoring error when finalizing statement."))
+                  p "Ignoring error %s when finalizing statement."
+                    (Sqlite3.Rc.to_string rc)))
          | Some id ->
             (match Sqlite3.reset stmt with
              | Sqlite3.Rc.OK -> return ()

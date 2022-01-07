@@ -1,4 +1,4 @@
-(* Copyright (C) 2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2020--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,5 +40,6 @@ let test_request_parse () =
   expect_parse ~env "$(alpha) $QUOTE$ $beta. $(gamma) $delta."
     Q.(L"α $QUOTE$ β[dot] γ δ.")
 
-let () =
-  test_request_parse ()
+let test_cases = [
+  "parse", `Quick, test_request_parse;
+]

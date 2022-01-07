@@ -1,20 +1,8 @@
 (test
- (name test_heap)
+ (name main)
  (package caqti)
- (modules Test_heap)
- (libraries caqti))
-
-(test
- (name test_query)
- (package caqti)
- (modules Test_query)
- (libraries caqti))
-
-(test
- (name test_request)
- (package caqti)
- (modules Test_request)
- (libraries caqti))
+ (modules main test_heap test_query test_request)
+ (libraries alcotest caqti))
 
 ; Benchmarks, run manually
 

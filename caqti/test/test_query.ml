@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,7 +32,7 @@ and random_queries n =
   let m = Random.int (n + 1) in
   random_queries m @ random_queries (n - m)
 
-let test () =
+let test_show_and_hash_once () =
   let q1 = random_query (Random.int 8 + Random.int (1 lsl Random.int 8)) in
   let q2 = random_query (Random.int 8 + Random.int (1 lsl Random.int 8)) in
   let s1 = Query.show q1 in
@@ -40,9 +40,13 @@ let test () =
   if Query.equal q1 q2 then assert (Query.hash q1 = Query.hash q2);
   assert ((s1 = s2) = (Query.(equal (normal q1) (normal q2))))
 
-let () =
+let test_show_and_hash () =
   try
-    for _ = 0 to 9999 do test () done
+    for _ = 0 to 9999 do test_show_and_hash_once () done
   with Failure msg ->
     Printf.eprintf "%s\n" msg;
     exit 1
+
+let test_cases = [
+  "show, hash", `Quick, test_show_and_hash;
+]

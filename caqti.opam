@@ -10,6 +10,7 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
+  "angstrom"
   "cmdliner" {with-test}
   "cppo" {build & >= "1.1.0"}
   "dune" {>= "2.0"}
@@ -17,6 +18,7 @@ depends: [
   "ocaml" {>= "4.04.0"}
   "odoc" {with-doc}
   "ptime"
+  "re" {with-test}
   "uri" {>= "1.9.0"}
 ]
 build: [

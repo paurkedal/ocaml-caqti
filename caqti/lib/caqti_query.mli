@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,7 @@ type t =
                     the client library, otherwise passed as an additional
                     parameter. *)
   | P of int    (** [P i] refers to parameter number [i], counting from 0. *)
+  | E of string (** [E name] is expanded by the environemnt lookup function. *)
   | S of t list (** [S frags] is the concatenation of [frags]. *)
 (** A representation of a query string to send to a database, abstracting over
     parameter references and providing nested concatenation to simplify
@@ -58,3 +59,17 @@ val show : t -> string
 val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
     and the empty string of [frags] is empty. *)
+
+val angstrom_parser : t Angstrom.t
+(** Matches a single expression terminated by the end of input or a semicolon
+    lookahead. *)
+
+val of_string : string -> (t, [`Invalid of int * string]) result
+(** Parses a single expression without semicolon.  The error indicates the byte
+    position of the input string where the parse failure occurred in addition to
+    an error message. *)
+
+val of_string_exn : string -> t
+(** Parses a single expression without semicolon.
+
+    @raise Failure if parsing failed. *)

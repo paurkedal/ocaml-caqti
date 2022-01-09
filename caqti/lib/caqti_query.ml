@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,20 +22,21 @@ type t =
   | L of string
   | Q of string
   | P of int
+  | E of string
   | S of t list
 
 let normal =
   let rec collect acc = function
    | [] -> List.rev acc
    | ((L"" | S[]) :: qs) -> collect acc qs
-   | ((P _ | Q _ as q) :: qs) -> collect (q :: acc) qs
+   | ((P _ | Q _ | E _ as q) :: qs) -> collect (q :: acc) qs
    | (S (q' :: qs') :: qs) -> collect acc (q' :: S qs' :: qs)
    | (L s :: qs) -> collectL acc [s] qs
   and collectL acc accL = function
    | ((L"" | S[]) :: qs) -> collectL acc accL qs
    | (L s :: qs) -> collectL acc (s :: accL) qs
    | (S (q' :: qs') :: qs) -> collectL acc accL (q' :: S qs' :: qs)
-   | [] | ((P _ | Q _) :: _) as qs ->
+   | [] | ((P _ | Q _ | E _) :: _) as qs ->
       collect (L (String.concat "" (List.rev accL)) :: acc) qs
   in
   fun q ->
@@ -49,10 +50,12 @@ let rec equal t1 t2 =
   | L s1, L s2 -> String.equal s1 s2
   | Q s1, Q s2 -> String.equal s1 s2
   | P i1, P i2 -> Int.equal i1 i2
+  | E n1, E n2 -> String.equal n1 n2
   | S ts1, S ts2 -> List.equal equal ts1 ts2
   | L _, _ -> false
   | Q _, _ -> false
   | P _, _ -> false
+  | E _, _ -> false
   | S _, _ -> false
 
 let hash = Hashtbl.hash
@@ -75,6 +78,7 @@ let rec pp ppf = function
     done;
     Format.pp_print_char ppf '\''
  | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
+ | E n -> Format.fprintf ppf "$(%s)" n
  | S qs -> List.iter (pp ppf) qs
 
 let show q =
@@ -91,3 +95,125 @@ let concat =
   fun sep -> function
    | [] -> S[]
    | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
+
+
+module Angstrom_parsers = struct
+  open Angstrom
+  open Angstrom.Let_syntax
+
+  let failf = Printf.ksprintf fail
+  let ign p = p >>| fun _ -> ()
+
+  let is_digit = function '0'..'9' -> true | _ -> false
+  let is_digit_nz = function '1'..'9' -> true | _ -> false
+  let is_idrfst = function 'a'..'z'|'A'..'Z' | '_' -> true | _ -> false
+  let is_idrcnt = function 'a'..'z'|'A'..'Z' | '_' | '0'..'9' -> true | _ -> false
+
+  let single_quoted = skip_many (ign (not_char '\'') <|> ign (string "''"))
+  let double_quoted = skip_many (ign (not_char '"') <|> ign (string "\"\""))
+
+  let tagged_quote_cont =
+    consumed (skip is_idrfst *> skip_while is_idrcnt) <* char '$' >>= fun tag ->
+    many_till any_char (char '$' *> string tag <* char '$') >>| (fun _ -> ())
+
+  let verbatim =
+    let fragment = any_char >>= function
+     | '\'' -> single_quoted <* char '\''
+     | '"' -> double_quoted <* char '"'
+     | '-' ->
+        (peek_char >>= function
+         | Some '-' -> skip_while ((<>) '\n') <* char '\n'
+         | _ -> return ())
+     | '$' -> tagged_quote_cont
+     | '?' | ';' as c -> failf "%C is not valid here" c
+     | _ -> return ()
+    in
+    consumed (many1 fragment) >>| (fun s -> (L s))
+
+  let skip_idr = skip is_idrfst *> skip_while is_idrcnt
+  let identifier_dot = consumed (skip_idr *> char '.')
+  let identifier_dotopt = consumed (option () skip_idr *> option ' ' (char '.'))
+  let parameter_number = consumed (skip is_digit_nz *> skip_while is_digit)
+
+  let lookup =
+    choice ~failure_msg:"invalid environment lookup" [
+      string "$(" *> identifier_dotopt <* char ')' >>| (fun v -> E v);
+      string "$." >>| (fun _ -> E ".");
+      char '$' *> identifier_dot >>| (fun v -> E v);
+    ]
+
+  let untagged_quote =
+    let nonlookup =
+      consumed (many1 (satisfy (function '$' -> false | _ -> true)))
+        >>| (fun s -> (L s))
+    in
+    string "$$" *> many_till (lookup <|> nonlookup) (string "$$") >>| fun qs ->
+    normal (S ([L "$$"] @ qs @ [L "$$"]))
+
+  let atom =
+    peek_char_fail >>= function
+     | '$' ->
+        choice ~failure_msg:"invalid dollar sequence" [
+          char '$' *> parameter_number >>| (fun iP -> P (int_of_string iP - 1));
+          lookup;
+          untagged_quote;
+          verbatim;
+        ]
+     | '?' ->
+        let valid_lookahead = peek_char >>= function
+         | Some ('A'..'Z' | 'a'..'z' | '0'..'9' | '_'
+               | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.'
+               | ':' | '<' | '=' | '>' | '?' | '@' | '^' | '`'
+               | '|' | '~' as c) ->
+            failf "%C is not allowed after parameter reference '?'" c
+         | None | Some _ ->
+            return ()
+        in
+        char '?' >>| (fun _ -> P (-1)) <* valid_lookahead
+     | _ ->
+        verbatim
+
+  let reindex atoms =
+    if List.for_all (function P (-1) -> false | _ -> true) atoms then
+      return atoms
+    else
+    let rec loop iP acc = function
+     | [] -> return (List.rev acc)
+     | P (-1) :: frags -> loop (iP + 1) (P iP :: acc) frags
+     | P _ :: _ -> fail "Inconsistent parameter style."
+     | frag :: frags -> loop iP (frag :: acc) frags
+    in
+    loop 0 [] atoms
+
+  let expression =
+    let stop =
+      peek_char >>= function
+       | None | Some ';' -> return ()
+       | _ -> fail "unterminated"
+    in
+    fix (fun p -> (stop *> return []) <|> (List.cons <$> atom <*> p))
+      >>= reindex >>| (function [q] -> q | qs -> S qs)
+end
+
+let angstrom_parser = Angstrom_parsers.expression
+
+let of_string s =
+  let open Angstrom.Unbuffered in
+  (match parse angstrom_parser with
+   | Partial {committed = 0; continue} ->
+      let len = String.length s in
+      let bs = Bigstringaf.of_string ~off:0 ~len s in
+      (match continue bs ~off:0 ~len Complete with
+       | Done (committed, q) when committed = len -> Ok q
+       | Done (committed, _) | Partial {committed; _} ->
+          Error (`Invalid (committed, "Expression cannot contain semicolon."))
+       | Fail (committed, _, msg) ->
+          Error (`Invalid (committed, msg)))
+   | Partial _ | Done _ | Fail _ ->
+      assert false)
+
+let of_string_exn s =
+  (match of_string s with
+   | Ok q -> q
+   | Error (`Invalid (pos, msg)) ->
+      Printf.kprintf failwith "Parse error at byte %d: %s" pos msg)

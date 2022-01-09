@@ -56,13 +56,15 @@ let () =
 
 let query_quotes q =
   let rec loop = function
-   | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
+   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
    | Caqti_query.Q quote -> List.cons quote
    | Caqti_query.S qs -> List.fold loop qs
   in
   List.rev (loop q [])
 
-let query_string q =
+let no_env _ _ = raise Not_found
+
+let query_string ?(env = no_env) q =
   let quotes = query_quotes q in
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
@@ -71,6 +73,7 @@ let query_string q =
    | Caqti_query.L s -> Buffer.add_string buf s
    | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
    | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
+   | Caqti_query.E v -> loop (env driver_info v)
    | Caqti_query.S qs -> List.iter loop qs
   in
   loop q;

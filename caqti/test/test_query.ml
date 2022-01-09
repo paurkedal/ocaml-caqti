@@ -17,6 +17,24 @@
 
 module Query = Caqti_query
 
+module A = struct
+  include Alcotest.V1
+
+  let query = testable Query.pp (fun x y -> Query.(equal (normal x) (normal y)))
+
+  let approx_query_string =
+    let pp ppf x = Fmt.pf ppf "%S" x in
+    let normalize =
+      let re = Re.Pcre.regexp {|\$([0-9]|[A-Za-z0-9_]*\.)|} in
+      let f g =
+        let s = Re.Group.get g 1 in
+        if s.[String.length s - 1] = '.' then "$(" ^ s ^ ")" else "?"
+      in
+      Re.replace re ~f
+    in
+    testable pp (fun x y -> String.equal (normalize x) (normalize y))
+end
+
 let random_letter () = Char.chr (Char.code 'a' + Random.int 26)
 
 let rec random_query n =
@@ -47,6 +65,75 @@ let test_show_and_hash () =
     Printf.eprintf "%s\n" msg;
     exit 1
 
+let random_query_string () =
+  let random_char _ = Char.chr (0x20 + Random.int 0x60) in
+  String.init (Random.int 128) random_char
+
+let test_parse_special_cases () =
+  let check_reject ~pos s =
+    (match Caqti_query.of_string s with
+     | Ok _ ->
+        A.failf "Invalid expression %S accepted by parser." s
+     | Error (`Invalid (pos', msg)) ->
+        if pos' <> pos then
+          A.failf "Position %d should be %d for error %S while parsing %s"
+                  pos' pos msg s)
+  in
+  let check_normal' s =
+    (match Caqti_query.of_string_exn s with
+     | q ->
+        A.(check string) "same" s (Caqti_query.show q)
+     | exception Failure msg ->
+        A.failf "Failed to parse %S: %s" s msg)
+  in
+  let check_normal s =
+    check_normal' s;
+    check_normal' (" " ^ s);
+    check_normal' (s ^ " ")
+  in
+  let check_expect q s =
+    A.(check query "same" q (Caqti_query.of_string_exn s))
+  in
+  check_reject ~pos:0 {|$0|}; check_reject ~pos:1 {|x$01|};
+  check_reject ~pos:1 {|?0|}; check_reject ~pos:2 {|x?1x|};
+  List.iter check_normal [
+    {||}; {|a|}; {|ab|}; {| a b |};
+    {|''|}; {|'a'|}; {|'''a''b'''|};
+    {|""|}; {|"a"|}; {|"""a""b"""|};
+    {|$(.)|}; {|$(a.)|}; {|$(ab.)|}; {|$(a)|}; {|$(ab)|};
+    {|$$ a $(x.) $(y) b $$|};
+    {|$$"$$|}; {|$$'$$|}; {|$QUOTE$ ' " $QUOTE$|};
+    {|$QUOTE$ a $x. $. $( z) b ?0 $QUOTE $$QUOTE$|};
+  ];
+  check_expect (S[L"$$ "; E"x"; L" $$"]) "$$ $(x) $$";
+  check_expect (S[L"$Q$ $(x) $Q$"]) "$Q$ $(x) $Q$";
+  check_expect (S[P 0; L" $$ ? $$ "; P 1; L" "; P 2]) "? $$ ? $$ ? ?"
+
+let test_parse_random_strings () =
+  let check_normal_or_exn s =
+    (match Caqti_query.of_string s with
+     | Ok q ->
+        A.(check approx_query_string) "same" s (Caqti_query.show q)
+     | Error (`Invalid (_, "Inconsistent parameter style.")) -> ()
+     | Error (`Invalid (ok_len, _)) ->
+        if ok_len > 0 && ok_len < String.length s then begin
+          let s' = String.sub s 0 ok_len in
+          (match Caqti_query.of_string s' with
+           | Ok q ->
+              A.(check approx_query_string) "same" s' (Caqti_query.show q)
+           | Error (`Invalid (_, "Inconsistent parameter style.")) ->
+              () (* only checked after successful parse *)
+           | Error (`Invalid (pos, msg)) ->
+              A.failf "Supposed valid substring [0, %d) of %S fails at %d: %s"
+                ok_len s pos msg)
+        end)
+  in
+  for _ = 1 to 50_000 do
+    check_normal_or_exn (random_query_string ())
+  done
+
 let test_cases = [
-  "show, hash", `Quick, test_show_and_hash;
+  A.test_case "show, hash" `Quick test_show_and_hash;
+  A.test_case "parse special cases" `Quick test_parse_special_cases;
+  A.test_case "parse random strings" `Quick test_parse_random_strings;
 ]

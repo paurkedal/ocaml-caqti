@@ -17,37 +17,47 @@
 
 open Caqti_common_priv
 
-let linear_param_length templ =
+let no_env _ = raise Not_found
+
+let linear_param_length ?(env = no_env) templ =
   let rec loop = function
    | Caqti_query.L _ -> ident
    | Caqti_query.Q _ -> succ
    | Caqti_query.P _ -> succ
-   | Caqti_query.S frags -> List.fold loop frags in
+   | Caqti_query.E v -> loop (env v)
+   | Caqti_query.S frags -> List.fold loop frags
+  in
   loop templ 0
 
-let nonlinear_param_length templ =
+let nonlinear_param_length ?(env = no_env) templ =
   let rec loop = function
    | Caqti_query.L _ -> ident
    | Caqti_query.Q _ -> ident
    | Caqti_query.P n -> max (n + 1)
-   | Caqti_query.S frags -> List.fold loop frags in
+   | Caqti_query.E v -> loop (env v)
+   | Caqti_query.S frags -> List.fold loop frags
+  in
   loop templ 0
 
-let linear_param_order templ =
+let linear_param_order ?(env = no_env) templ =
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
    | Caqti_query.L _ -> ident
    | Caqti_query.Q s -> fun (j, quotes) -> (j + 1, (j, s) :: quotes)
    | Caqti_query.P i -> fun (j, quotes) -> a.(i) <- j :: a.(i); (j + 1, quotes)
-   | Caqti_query.S frags -> List.fold loop frags in
+   | Caqti_query.E v -> loop (env v)
+   | Caqti_query.S frags -> List.fold loop frags
+  in
   let _, quotes = loop templ (0, []) in
   (Array.to_list a, List.rev quotes)
 
-let linear_query_string templ =
+let linear_query_string ?(env = no_env) templ =
   let buf = Buffer.create 64 in
   let rec loop = function
    | Caqti_query.L s -> Buffer.add_string buf s
    | Caqti_query.Q _ | Caqti_query.P _ -> Buffer.add_char buf '?'
-   | Caqti_query.S frags -> List.iter loop frags in
+   | Caqti_query.E v -> loop (env v)
+   | Caqti_query.S frags -> List.iter loop frags
+  in
   loop templ;
   Buffer.contents buf

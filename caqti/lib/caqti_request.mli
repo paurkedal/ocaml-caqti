@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,6 +35,7 @@ type query = Caqti_query.t =
   | L of string [@deprecated "Moved to Caqti_query"]
   | Q of string [@deprecated "Moved to Caqti_query"]
   | P of int [@deprecated "Moved to Caqti_query"]
+  | E of string [@deprecated "Moved to Caqti_query"]
   | S of query list [@deprecated "Moved to Caqti_query"]
 [@@deprecated "Moved to Caqti_query.t"]
 [@@@warning "+3"]

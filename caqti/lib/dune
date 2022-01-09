@@ -38,7 +38,7 @@
   (private_modules
     Caqti_compat)
   (library_flags (:standard -linkall))
-  (libraries logs ptime uri))
+  (libraries angstrom bigstringaf logs ptime uri))
 
 (rule
   (target caqti_compat.ml)

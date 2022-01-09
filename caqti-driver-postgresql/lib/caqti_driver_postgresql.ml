@@ -57,6 +57,8 @@ let driver_info =
     ~describe_has_typed_fields:true
     ()
 
+let no_env _ _ = raise Not_found
+
 module Pg_ext = struct
 
   let bool_of_string = function
@@ -66,7 +68,7 @@ module Pg_ext = struct
 
   let string_of_bool = function true -> "t" | false -> "f"
 
-  let query_string (db : Pg.connection) templ =
+  let query_string ?(env = no_env) (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
     let rec loop = function
      | Caqti_query.L s -> Buffer.add_string buf s
@@ -75,7 +77,9 @@ module Pg_ext = struct
         Buffer.add_string buf (db#escape_string s);
         Buffer.add_char buf '\''
      | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
-     | Caqti_query.S frags -> List.iter loop frags in
+     | Caqti_query.E v -> loop (env driver_info v)
+     | Caqti_query.S frags -> List.iter loop frags
+    in
     loop templ;
     Buffer.contents buf
 

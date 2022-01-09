@@ -17,11 +17,15 @@
 
 (** {b Internal:} Library for Drivers *)
 
-val linear_param_length : Caqti_query.t -> int
+val linear_param_length :
+  ?env: (string -> Caqti_query.t) ->
+  Caqti_query.t -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a
     query represented by [templ]. *)
 
-val linear_param_order : Caqti_query.t -> int list list * (int * string) list
+val linear_param_order :
+  ?env: (string -> Caqti_query.t) ->
+  Caqti_query.t -> int list list * (int * string) list
 (** [linear_param_order templ] describes the parameter bindings expected for
     [templ] after linearizing parameters and lifting quoted strings out of the
     query:
@@ -35,6 +39,8 @@ val linear_param_order : Caqti_query.t -> int list list * (int * string) list
 
     All positions are zero-based. *)
 
-val linear_query_string : Caqti_query.t -> string
+val linear_query_string :
+  ?env: (string -> Caqti_query.t) ->
+  Caqti_query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)

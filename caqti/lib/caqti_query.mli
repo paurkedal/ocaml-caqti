@@ -62,14 +62,16 @@ val concat : string -> t list -> t
 
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon
-    lookahead. *)
+    lookahead. The accepted languages is described in {{!query_template} The
+    Syntax of Query Templates}. *)
 
 val of_string : string -> (t, [`Invalid of int * string]) result
 (** Parses a single expression without semicolon.  The error indicates the byte
     position of the input string where the parse failure occurred in addition to
-    an error message. *)
+    an error message. See {{!query_template} The Syntax
+    of Query Templates} for how the input string is interpreted. *)
 
 val of_string_exn : string -> t
-(** Parses a single expression without semicolon.
+(** Parses the same strings as {!of_string}.
 
     @raise Failure if parsing failed. *)

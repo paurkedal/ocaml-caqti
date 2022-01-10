@@ -99,7 +99,10 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 
     In the following functions, queries are written out as plain strings with
     the following syntax, which is parsed by Caqti into a {!Caqti_query.t}
-    object before being passed to drivers.
+    object before being passed to drivers.  In the near future the syntax here
+    will be replaced by {{!query_template}a new slightly modified syntax}.  The
+    main difference is in the treatment of dollar quotes, so you may want to
+    avoid using them for future compatibility.
 
     {b Parameters} are specified as either
 

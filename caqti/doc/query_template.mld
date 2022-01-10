@@ -1,0 +1,98 @@
+{1 The Syntax of Query Templates}
+
+In order to help even out common difference between database systems and
+provide additional features, Caqti uses a lightweight template syntax parsed
+into the internal form {!Caqti_query.t} by the
+{!Caqti_query.angstrom_parser} and related utility functions.  Query strings
+are written almost as you expect them to be sent to the database, but with
+some in-text special syntax.
+
+{2 Semicolon and End-of-Input}
+
+The {!Caqti_query.t} type represents a single statement. To allow reading
+statements from a script file and sending them to database one by one, the
+parser will stop at the first {{!quotes} unquoted} semicolon, as well as at
+the end of input.  The semicolon itself will not be parsed, but you can
+create your own parser from the {!Caqti_query.anstrom_parser} which does.
+
+{2 Parameter References}
+
+Parameters are specified as either
+
+  - ["?"] for linear substitutions (like Sqlite and MariaDB), or
+  - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
+
+Either case works independent of the style used by the database system; if
+non-linear substitutions are used with a database system which does not
+support it, the parameter values will be reorderd and duplicated as needed.
+Mixing the two styles in the same query string is not permitted.  Note that
+numbering of non-linear parameters is offset by one compared to
+{!Caqti_query.P}, in order to be consistent with PostgreSQL conventions.
+
+The following characters are not permitted immediately after a [?]
+reference:
+{[
+    'A'..'Z' | 'a'..'z' | '0'..'9' | '_'
+  | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.' | ':'
+  | '<' | '=' | '>' | '?' | '@' | '^' | '`' | '|' | '~'
+]}
+
+{!quotes} are not scanned for parameter references, to avoid accidental
+transformation of string literals within query strings.
+
+{2 Environment References}
+
+Functions processing queries take an [?env] argument which provides
+substitutions for the references which can have one of the following
+syntaxes:
+
+  - ["$(<var>)"] is substituted by [env driver_info "<var>"].
+  - ["$(<var>.)"], if not found by the first rule, is substituted by
+    [env driver_info "<var>"] followed by a dot iff that result is nonempty.
+  - ["$<var>."] is a shortcut for ["$(<var>.)"].
+
+These aid in substituting configurable fragments into the queries, like
+database schemas or table names.  The forms involving a period are
+suggested for qualifying tables, sequences, and other database objects with
+the database schema.
+
+Environment references are not parsed inside quotes, except for one kind;
+see {!quotes} for details.
+
+{2:quotes Quotes}
+
+In order to avoid accidental conversion of parameter references or undesired
+expansion of environment lookups, the parser recognizes several kinds of
+quotations used by database systems.  The following common kinds of
+quotations are recognized:
+
+  - ['<text>'] where ['] may be escapes as ['']
+  - ["<text>"] where ["] may be escaped as [""]
+  - [`<text>`] with no escape mechanism
+
+In addition the parser recognizes PostgreSQL style tagged quotations:
+
+  - [$<tag>$<text>$<tag>$] where the tag has the form of an identifier
+  - [$$<text>$$] as above but with an emtpy tag
+
+The former is treated like the other quotations, i.e. the text inside is
+passed on as-is.  In the latter form, environment references are expanded,
+while parameter references are not recognized.
+
+The motivation for this exception is that dollar quotes are often used in
+PostgreSQL schemas to define saved procedures, where it is useful to
+substitute schema names and possibly other code fragments.  On the other
+hand, the dollar quotes are useful for other purposes, and when a tag is
+provided, whether it is around a saved procedure or elsewhere, it is
+typically to avoid a clashes with dollar signs in the text.  Therefore, the
+exception to expand environment references is only made for the tagless
+variant of the dollar quotes.
+
+Note that nested quotes are not recognized inside [$$<text>$$], so
+substitutions apply unconditionally.  That is, the [$(x)] substring will
+
+  - in [SELECT '$(x)'] be interpreted literally due to the single quotes,
+    and
+  - in [$q$SELECT '$(x)'$q$] be interpreted literally due to the tagged
+    quotes, but will
+  - in [$$SELECT '$(x)'$$] be expanded.

@@ -120,6 +120,7 @@ module Angstrom_parsers = struct
     let fragment = any_char >>= function
      | '\'' -> single_quoted <* char '\''
      | '"' -> double_quoted <* char '"'
+     | '`' -> skip_many (not_char '`') <* char '`'
      | '-' ->
         (peek_char >>= function
          | Some '-' -> skip_while ((<>) '\n') <* char '\n'
@@ -162,9 +163,8 @@ module Angstrom_parsers = struct
      | '?' ->
         let valid_lookahead = peek_char >>= function
          | Some ('A'..'Z' | 'a'..'z' | '0'..'9' | '_'
-               | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.'
-               | ':' | '<' | '=' | '>' | '?' | '@' | '^' | '`'
-               | '|' | '~' as c) ->
+               | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.' | ':'
+               | '<' | '=' | '>' | '?' | '@' | '^' | '`' | '|' | '~' as c) ->
             failf "%C is not allowed after parameter reference '?'" c
          | None | Some _ ->
             return ()

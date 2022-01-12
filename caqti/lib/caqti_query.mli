@@ -60,6 +60,10 @@ val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
     and the empty string of [frags] is empty. *)
 
+val expand : (string -> t) -> t -> t
+(** [expand f q] replaces each occurrence of [E v] some some [v] with [f v] or
+    leaves it unchanged where [f v] raises [Not_found]. *)
+
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon
     lookahead. The accepted languages is described in {{!query_template} The

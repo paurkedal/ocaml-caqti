@@ -96,6 +96,10 @@ let concat =
    | [] -> S[]
    | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
 
+let rec expand f = function
+ | L _ | Q _ | P _ as q -> q
+ | E var as q -> (try f var with Not_found -> q)
+ | S qs -> S (List.map (expand f) qs)
 
 module Angstrom_parsers = struct
   open Angstrom

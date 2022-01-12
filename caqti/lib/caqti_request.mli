@@ -95,56 +95,100 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 (** [query req] is the function which generates the query of this request
     possibly tailored for the given driver. *)
 
-(** {2 Convenience}
+
+(** {2 New Convenience Interface} *)
+
+module Infix : sig
+  (** The following operators provides a more visually appealing way of
+      expressing requests.  They are implemented in terms of {!create} and
+      {!Caqti_query.of_string_exn}.
+
+      The [?oneshot] argument defaults to [false], so when not constructing
+      one-shot queries, the full application [(pt --> rt) f] can be written [pt
+      --> rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
+
+      Example:
+      {[
+        let bounds_upto_req =
+          let open Caqti_type in
+          let open Caqti_request.Infix in
+          tup2 int float --> option (tup2 float float) @:-
+          "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
+      ]} *)
+
+  val (-->.) :
+    'a Caqti_type.t -> unit Caqti_type.t ->
+    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
+    ('a, unit, [`Zero]) t
+  (** [(pt -->. Caqti_type.unit) ?oneshot f] is the request which sends the
+      query string returned by [f], encodes parameters according to [pt], and
+      expects no result rows. See {!create} for the meaning of [oneshot]. *)
+
+  val (-->) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
+    ('a, 'b, [`One]) t
+  (** [(pt --> rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes a
+      single result row according to [rt]. See {!create} for the meaning of
+      [oneshot]. *)
+
+  val (-->?) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
+    ('a, 'b, [`Zero | `One]) t
+  (** [(pt -->? rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes zero or
+      one result row according to [rt]. See {!create} for the meaning of
+      [oneshot]. *)
+
+  val (-->*) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
+    ('a, 'b, [`Zero | `One | `Many]) t
+  (** [(pt -->* rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes any
+      number of result rows according to [rt]. See {!create} for the meaning of
+      [oneshot]. *)
+
+  (** {2 Specialized Application Operators}
+
+      As an alternative to using plain application (or [@@]) for the third
+      positional argument of the above arrow operators, the following
+      application operators transform the argument from a form which is often
+      more convenient.  In particular, they accept queries expressed as
+      {{!query_template} strings} instead of the {!Caqti_query.t} constructors
+      which are more suitable for dynamically generated queries. *)
+
+  val (@:-) :
+    ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
+    string -> ('a, 'b, 'm) t
+  (** Applies a dialect-independent query string which is parsed with
+      {!Caqti_query.of_string_exn}. *)
+
+  val (@@:-) :
+    ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
+    (Caqti_driver_info.dialect_tag -> string) -> ('a, 'b, 'm) t
+  (** Applies a dialect-dependent query string which is parsed with
+      {!Caqti_query.of_string_exn}. *)
+
+end
+
+
+(** {2 Old Convenience Interface}
+
+    The following interface will likely be deprecated in the near future and
+    removed in the next major release.  For new code it is recommendable to use
+    {!Infix} operators for high-level usage and {!create} for low-level usage.
 
     In the following functions, queries are written out as plain strings with
     the following syntax, which is parsed by Caqti into a {!Caqti_query.t}
-    object before being passed to drivers.  In the near future the syntax here
-    will be replaced by {{!query_template}a new slightly modified syntax}.  The
-    main difference is in the treatment of dollar quotes, so you may want to
-    avoid using them for future compatibility.
-
-    {b Parameters} are specified as either
-
-    - ["?"] for linear substitutions (like Sqlite and MariaDB), or
-    - ["$1"], ["$2"], ... for non-linear substitutions (like PostgreSQL).
-
-    Either case works independent of the style used by the database system; if
-    non-linear substitutions are used with a database system which does not
-    support it, the parameter values will be reorderd and duplicated as needed.
-    Mixing the two styles in the same query string is not permitted.  Note that
-    numbering of non-linear parameters is offset by one compared to
-    {!Caqti_query.P}, in order to be consistent with PostgreSQL conventions.
-
-    {b Static references} are references to the [?env] argument of the functions
-    below, and thus fixed once the query has been constructed.  The query parser
-    accepts two forms:
-
-    - ["$(<var>)"] is substituted by [env driver_info "<var>"].
-    - ["$(<var>.)"], if not found by the first rule, is substituted by
-      [env driver_info "<var>"] followed by a dot iff that result is nonempty.
-    - ["$<var>."] is a shortcut for ["$(<var>.)"].
-
-    These aid in substituting configurable fragments, like database schemas or
-    table names.  The latter form is suggested for qualifying tables, sequences,
-    etc. with the main database schema.  It should expand to a schema name
-    followed by a dot, so that the empty string can be returned if the database
-    does not support schemas or no schema is requested by the user.
-
-    Finally,
-
-    - Dollar signs in single-quoted strings are left unchanged.
-    - ["$<var>$"] is left unchanged.
-    - ["$$"] will be left unchanged in future versions, see the notice below.
-
-    Apart from the more generic {!create_p}, these function match up with
-    retrieval functions of {!Caqti_connection_sig.S} and {!Caqti_response_sig.S}
-    according to the multiplicity parameter of their types.
-
-    {b Deprecation of undocumented feature.} It has been possible to quote the
-    dollar sign by doubling it. This was undocumented and is hereby deprecated.
-    If you need a literal dollar signs outside quoted strings, add a variable
-    which expands to the dollar sign to the environment. *)
+    object before being passed to drivers.  The syntax used by these functions
+    are similar but not the same as the {{!Caqti_query.angstrom_parser} new
+    parser} used by the {!Infix} operators, but it is less strict about which
+    characters may follow a [?] parameter reference, and it treats dollar quotes
+    differently in that ["$<var>$"] is left unchanged, and ["$$"] is translated
+    as a literal ["$"]. *)
 
 val create_p :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -200,6 +244,9 @@ val collect :
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
 (** [collect_p arg_type ?env ?oneshot row_type s] is a shortcut for
     [create_p arg_type ?env ?oneshot row_type Caqti_mult.many (fun _ -> s)]. *)
+
+
+(** {2 Printing} *)
 
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human

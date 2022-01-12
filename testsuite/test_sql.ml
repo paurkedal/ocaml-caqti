@@ -33,13 +33,7 @@ let abc_of_string = function
 
 module Q = struct
   open Caqti_type
-
-  let create_p tA tB mB f =
-    Caqti_request.create_p tA tB mB (f % Caqti_driver_info.dialect_tag)
-
-  let (-->!) tA (tR : unit t) f = create_p tA tR Caqti_mult.zero f
-  let (-->) tA tR f = create_p tA tR Caqti_mult.one f
-  let (-->*) tA tR f = create_p tA tR Caqti_mult.zero_or_more f
+  open Caqti_request.Infix
 
   let select_null_etc = Caqti_request.find
     (tup2 (option int) (option int))
@@ -48,16 +42,16 @@ module Q = struct
 
   let select_and = Caqti_request.find (tup2 bool bool) bool "SELECT ? AND ?"
 
-  let select_plus_int = (tup2 int int --> int) @@ fun _ ->
+  let select_plus_int = tup2 int int --> int @:-
     "SELECT ? + ?"
-  let select_plus_int64 = (tup2 int64 int64 --> int64) @@ fun _ ->
+  let select_plus_int64 = tup2 int64 int64 --> int64 @:-
     "SELECT ? + ?"
-  let select_plus_float = (tup2 float float --> float) @@ fun _ ->
+  let select_plus_float = tup2 float float --> float @:-
     "SELECT ? + ?"
-  let select_cat = (tup2 string string --> string) @@ function
+  let select_cat = tup2 string string --> string @@:- function
    | `Mysql -> "SELECT concat(?, ?)"
    | _ -> "SELECT ? || ?"
-  let select_octets_identity = (octets --> octets) @@ function
+  let select_octets_identity = octets --> octets @@:- function
    | `Mysql -> "SELECT CAST(? AS binary)"
    | `Pgsql -> "SELECT ?"
    | `Sqlite -> "SELECT CAST(? AS blob)"
@@ -65,17 +59,16 @@ module Q = struct
 
   let select_compound_option =
     (tup2 (option int) (option int) -->
-     tup3 int (option (tup3 (option int) (option int) (option int))) int)
-      @@ fun _ ->
+     tup3 int (option (tup3 (option int) (option int) (option int))) int) @:-
     "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
 
   let abc = enum ~encode:string_of_abc ~decode:abc_of_string "abc"
 
-  let create_type_abc = (unit -->! unit) @@ fun _ ->
+  let create_type_abc = unit -->. unit @:-
     "CREATE TYPE abc AS ENUM ('aye', 'bee', 'cee')"
-  let drop_type_abc = (unit -->! unit) @@ fun _ ->
+  let drop_type_abc = unit -->. unit @:-
     "DROP TYPE IF EXISTS abc"
-  let create_table_test_abc = (unit -->! unit) @@ function
+  let create_table_test_abc = unit -->. unit @@:- function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_abc (e abc PRIMARY KEY, s char(3) NOT NULL)"
    | `Mysql ->
@@ -84,20 +77,20 @@ module Q = struct
    | `Sqlite ->
       "CREATE TEMPORARY TABLE test_abc (e text PRIMARY KEY, s char(3) NOT NULL)"
    | _ -> failwith "Unimplemented."
-  let drop_table_test_abc = (unit -->! unit) @@ fun _ ->
+  let drop_table_test_abc = unit -->. unit @:-
     "DROP TABLE test_abc"
-  let insert_into_test_abc = (tup2 abc string -->! unit) @@ fun _ ->
+  let insert_into_test_abc = tup2 abc string -->. unit @:-
     "INSERT INTO test_abc VALUES (?, ?)"
-  let select_from_test_abc = (unit -->* tup2 abc string) @@ fun _ ->
+  let select_from_test_abc = unit -->* tup2 abc string @:-
     "SELECT * FROM test_abc"
 
-  let create_post_connect = (unit -->! unit) @@ fun _ ->
+  let create_post_connect = unit -->. unit @:-
     "CREATE TEMPORARY TABLE test_post_connect \
       (id serial PRIMARY KEY, word text NOT NULL)"
-  let insert_into_post_connect = (string -->! unit) @@ fun _ ->
+  let insert_into_post_connect = string -->. unit @:-
     "INSERT INTO test_post_connect (word) VALUES (?)"
 
-  let create_tmp = (unit -->! unit) @@ function
+  let create_tmp = unit -->. unit @@:- function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_sql \
          (id SERIAL NOT NULL, \
@@ -117,7 +110,7 @@ module Q = struct
           s TEXT NOT NULL, \
           o BLOB NOT NULL)"
    | _ -> failwith "Unimplemented."
-  let create_tmp_nullable = (unit -->! unit) @@ function
+  let create_tmp_nullable = unit -->. unit @@:- function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT, o BYTEA)"
@@ -128,7 +121,7 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT, o BLOB)"
    | _ -> failwith "Unimplemented."
-  let create_tmp_binary = (unit -->! unit) @@ function
+  let create_tmp_binary = unit -->. unit @@:- function
    | `Pgsql ->
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, data BYTEA NOT NULL)"
@@ -139,7 +132,7 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, data BLOB NOT NULL)"
    | _ -> failwith "Unimplemented"
-  let drop_tmp = (unit -->! unit) @@ function
+  let drop_tmp = unit -->. unit @@:- function
    | _ -> "DROP TABLE test_sql"
   let insert_into_tmp = Caqti_request.exec (tup3 int string octets)
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
@@ -168,17 +161,17 @@ module Q = struct
 
   let select_current_time = Caqti_request.find unit ptime
     "SELECT current_timestamp"
-  let select_given_time = (ptime --> ptime) @@ function
+  let select_given_time = ptime --> ptime @@:- function
     | `Pgsql | `Sqlite -> "SELECT ?"
     | `Mysql  -> "SELECT CAST(? AS datetime)"
     | _ -> failwith "Unimplemented."
-  let compare_to_known_time = (ptime --> bool) @@ function
+  let compare_to_known_time = ptime --> bool @@:- function
     | `Pgsql  -> "SELECT ? = '2017-01-29T12:00:00.001002Z'"
     | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.001'"
     | `Mysql  -> "SELECT CAST(? AS datetime) \
                        = CAST('2017-01-29T12:00:00.001002' AS datetime)"
     | _ -> failwith "Unimplemented."
-  let select_interval = (ptime_span --> ptime_span) @@ function
+  let select_interval = ptime_span --> ptime_span @@:- function
     | `Pgsql | `Sqlite -> "SELECT ?"
     | `Mysql -> "SELECT CAST(? AS double)"
     | _ -> failwith "Unimplemented"

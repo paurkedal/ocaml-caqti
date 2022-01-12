@@ -46,7 +46,25 @@ let row_mult request = request.row_mult
 let query_id request = request.id
 let query request = request.query
 
-(* Convenience *)
+
+(* Convenience Interface *)
+
+module Infix = struct
+  let (-->.) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero f
+  let (-->)  pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.one f
+  let (-->?) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero_or_one f
+  let (-->*) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero_or_more f
+
+  let (@:-) f s =
+    let q = Caqti_query.of_string_exn s in
+    f (fun _ -> q)
+
+  let (@@:-) f g =
+    f (Caqti_query.of_string_exn % g % Caqti_driver_info.dialect_tag)
+end
+
+
+(* Old Convenience Interface *)
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
 

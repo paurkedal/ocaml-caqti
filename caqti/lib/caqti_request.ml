@@ -200,10 +200,10 @@ let collect ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)
 
 let pp ppf req =
-  Format.fprintf ppf "(%a -%s-> %a) {|%a|}"
+  Format.fprintf ppf "(%a -->%s %a) {|%a|}"
     Caqti_type.pp req.param_type
     (match Caqti_mult.expose req.row_mult with
-     | `Zero -> "!"
+     | `Zero -> "."
      | `One -> ""
      | `Zero_or_one -> "?"
      | `Zero_or_more -> "*")

@@ -103,7 +103,6 @@ let rec expand f = function
 
 module Angstrom_parsers = struct
   open Angstrom
-  open Angstrom.Let_syntax
 
   let failf = Printf.ksprintf fail
   let ign p = p >>| fun _ -> ()

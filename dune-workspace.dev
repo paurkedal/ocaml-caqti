@@ -3,7 +3,10 @@
 (context (opam (switch 4.12.0)))
 (context (opam (switch 4.09.0)))
 (context (opam (switch 4.08.1)))
-(context (opam (switch 4.07.1)))
+
+; Earlier OCaml switches will fail to build caqti-driver-postgresql due to
+; the version constraint on postgresql >=5.0.0; other packages should work
+; down to 4.04.
 (context (opam (switch 4.06.1)))
 (context (opam (switch 4.05.0)))
 (context (opam (switch 4.04.2)))

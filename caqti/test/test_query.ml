@@ -132,8 +132,39 @@ let test_parse_random_strings () =
     check_normal_or_exn (random_query_string ())
   done
 
+let test_expand () =
+  let env1 = function
+   | "" -> Caqti_query.L"default"
+   | "alt" -> Caqti_query.L"other"
+   | _ -> raise Not_found
+  in
+  let env2 = function
+   | "." -> Caqti_query.L"default."
+   | "alt." -> Caqti_query.L"other."
+   | _ -> raise Not_found
+  in
+  let env3 = function
+   | "." -> Caqti_query.L"dot"
+   | "cat" -> Caqti_query.L"mouse"
+   | "cat." -> Caqti_query.L"dog"
+   | _ -> raise Not_found
+  in
+  let q1 = Caqti_query.of_string_exn
+    " $. $(.) $alt. $(alt.) $cat. $(cat) "
+  in
+  let q1' = Caqti_query.of_string_exn
+    " default. default. other. other. $cat. $(cat) "
+  in
+  let q1'3 = Caqti_query.of_string_exn
+    " dot dot $alt. $(alt.) dog mouse "
+  in
+  A.(check query) "same" q1' (Caqti_query.expand env1 q1);
+  A.(check query) "same" q1' (Caqti_query.expand env2 q1);
+  A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)
+
 let test_cases = [
   A.test_case "show, hash" `Quick test_show_and_hash;
   A.test_case "parse special cases" `Quick test_parse_special_cases;
   A.test_case "parse random strings" `Quick test_parse_random_strings;
+  A.test_case "expand" `Quick test_expand;
 ]

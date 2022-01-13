@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -203,12 +203,14 @@ let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err
  | `Response_rejected err -> pp_query_msg ppf "Unexpected result from <%a>" err
 
-let show err =
+let show_of_pp pp err =
   let buf = Buffer.create 128 in
   let ppf = Format.formatter_of_buffer buf in
   pp ppf err;
   Format.pp_print_flush ppf ();
   Buffer.contents buf
+
+let show err = show_of_pp pp err
 
 let uncongested = function
  | Error #t | Ok _ as x -> x
@@ -216,5 +218,10 @@ let uncongested = function
 
 exception Exn of t
 
-let () =
-  Printexc.register_printer (function Exn err -> Some (show err) | _ -> None)
+let () = Printexc.register_printer @@ function
+ | Exn err ->
+    Some (show err)
+ | Caqti_query.Expand_error err ->
+    Some (show_of_pp Caqti_query.pp_expand_error err)
+ | _ ->
+    None

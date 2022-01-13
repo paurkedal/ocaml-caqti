@@ -60,9 +60,29 @@ val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
     and the empty string of [frags] is empty. *)
 
-val expand : (string -> t) -> t -> t
+type expand_error
+(** A description of the error caused during {!expand} if the environment lookup
+    function returns an invalid result or raises [Not_found] for a variable when
+    the expansion is final. *)
+
+val pp_expand_error : Format.formatter -> expand_error -> unit
+(** Prints an informative error. *)
+
+exception Expand_error of expand_error
+
+val expand : ?final: bool -> (string -> t) -> t -> t
 (** [expand f q] replaces each occurrence of [E v] some some [v] with [f v] or
-    leaves it unchanged where [f v] raises [Not_found]. *)
+    leaves it unchanged where [f v] raises [Not_found]. The [Not_found]
+    exception will not escape this call.
+
+    @param final
+      If [true], then an error is raised instead of leaving environment
+      references unexpended if [f] raises [Not_found].  This is used by drivers
+      for performing the final expansion.  Defaults to [false].
+
+    @raise Expand_error
+      if [~final:true] is passed and [f] raise [Not_found] or if [f] returns a
+      query containing environment references. *)
 
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon

@@ -96,10 +96,54 @@ let concat =
    | [] -> S[]
    | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
 
-let rec expand f = function
- | L _ | Q _ | P _ as q -> q
- | E var as q -> (try f var with Not_found -> q)
- | S qs -> S (List.map (expand f) qs)
+type expand_error = {
+  query: t;
+  var: string;
+  reason: [`Undefined | `Invalid of t];
+}
+
+let pp_expand_error ppf {query; var; reason} =
+  let open Format in
+  (match reason with
+   | `Undefined ->
+      fprintf ppf "Undefined variable %s in query %a" var pp query
+   | `Invalid expansion ->
+      fprintf ppf
+        "While expanding %a, lookup of %s gives %a, which is invalid \
+         because it contains an environment or parameter reference."
+        pp query var pp expansion)
+
+exception Expand_error of expand_error
+
+let expand ?(final = false) f query =
+  let rec is_valid = function
+   | L _ | Q _ -> true
+   | P _ | E _ -> false
+   | S qs -> List.for_all is_valid qs
+  in
+  let rec recurse = function
+   | L _ | Q _ | P _ as q -> q
+   | E var as q ->
+      let not_found () =
+        if not final then q else
+        raise (Expand_error {query; var; reason = `Undefined})
+      in
+      (match f var with
+       | q' ->
+          if is_valid q' then q' else
+          raise (Expand_error {query; var; reason = `Invalid q'})
+       | exception Not_found ->
+          let l = String.length var in
+          if l > 0 && var.[l - 1] = '.' then
+            (match normal (f (String.sub var 0 (l - 1))) with
+             | S[] as q' -> q'
+             | q' -> S[q'; L"."]
+             | exception Not_found -> not_found ())
+          else
+            not_found ())
+   | S qs -> S (List.map recurse qs)
+  in
+  recurse query
 
 module Angstrom_parsers = struct
   open Angstrom

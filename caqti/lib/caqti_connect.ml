@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -83,16 +83,16 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   type connection = (module CONNECTION)
 
-  let connect uri : ((module CONNECTION), _) result future =
+  let connect ?env uri : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect uri
+        Driver.connect ?env uri
      | Error err ->
         return (Error err))
 
-  let with_connection uri f =
-    connect uri >>=? fun ((module Db) as conn) ->
+  let with_connection ?env uri f =
+    connect ?env uri >>=? fun ((module Db) as conn) ->
     try
       f conn >>= fun result -> Db.disconnect () >|= fun () -> result
     with exn ->
@@ -101,7 +101,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
   module Pool = Caqti_pool.Make (System)
   module Stream = System.Stream
 
-  let connect_pool ?max_size ?max_idle_size ?post_connect uri =
+  let connect_pool ?max_size ?max_idle_size ?post_connect ?env uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make_unix.connect_pool"
     in
@@ -119,10 +119,10 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect uri :> (connection, _) result future)
+                (Driver.connect ?env uri :> (connection, _) result future)
            | Some post_connect ->
               fun () ->
-                (Driver.connect uri :> (connection, _) result future)
+                (Driver.connect ?env uri :> (connection, _) result future)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)
         in

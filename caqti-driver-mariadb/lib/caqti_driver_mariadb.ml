@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,6 +30,8 @@ let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"
 let set_statement_timeout_req =
   Caqti_request.exec ~oneshot:true Caqti_type.float "SET max_statement_time = ?"
+
+let no_env _ _ = raise Not_found
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   open System
@@ -305,9 +307,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
    | Caqti_type.Annot (_, t0) ->
       decode_row ~uri row i t0)
 
-  module Make_connection_base (Db : sig val uri : Uri.t val db : Mdb.t end) =
+  module Make_connection_base
+    (Connection_arg : sig
+      val env : string -> Caqti_query.t
+      val uri : Uri.t
+      val db : Mdb.t
+    end) =
   struct
-    open Db
+    open Connection_arg
 
     let using_db_ref = ref false
     let using_db f =
@@ -430,6 +437,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match Caqti_request.query_id req with
        | None ->
           let templ = Caqti_request.query req driver_info in
+          let templ = Caqti_query.expand ~final:true env templ in
           let query = linear_query_string templ in
           Mdb.prepare db query >>=
           (function
@@ -451,6 +459,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           (try return (Ok (Hashtbl.find pcache id)) with
            | Not_found ->
               let templ = Caqti_request.query req driver_info in
+              let templ = Caqti_query.expand ~final:true env templ in
               let query = linear_query_string templ in
               Mdb.prepare db query >|=
               (function
@@ -562,13 +571,17 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           Ok (Some (Filename.basename path))) |>? fun db ->
     Ok {host; user; pass; port; db; flags = None}
 
-  let connect_prim ~uri {host; user; pass; port; db; flags} =
+  let connect_prim ~env ~uri {host; user; pass; port; db; flags} =
     let socket = Uri.get_query_param uri "socket" in
     Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
     (function
      | Ok db ->
-        let module B =
-          Make_connection_base (struct let uri = uri let db = db end)
+        let module B = Make_connection_base
+          (struct
+            let env = env driver_info
+            let uri = uri
+            let db = db
+          end)
         in
         let module C = struct
           let driver_info = driver_info
@@ -594,10 +607,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      | Error err ->
         return (Error (Caqti_error.connect_failed ~uri (Mdb_msg err))))
 
-  let connect uri =
+  let connect ?(env = no_env) uri =
     (match parse_uri uri with
      | Error _ as r -> return r
-     | Ok conninfo -> connect_prim ~uri conninfo)
+     | Ok conninfo -> connect_prim ~env ~uri conninfo)
 end
 
 let () = Caqti_connect.define_unix_driver "mariadb" (module Connect_functor)

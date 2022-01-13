@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -68,7 +68,7 @@ module Pg_ext = struct
 
   let string_of_bool = function true -> "t" | false -> "f"
 
-  let query_string ?(env = no_env) (db : Pg.connection) templ =
+  let query_string ~env (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
     let rec loop = function
      | Caqti_query.L s -> Buffer.add_string buf s
@@ -77,10 +77,10 @@ module Pg_ext = struct
         Buffer.add_string buf (db#escape_string s);
         Buffer.add_char buf '\''
      | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
-     | Caqti_query.E v -> loop (env driver_info v)
+     | Caqti_query.E _ -> assert false
      | Caqti_query.S frags -> List.iter loop frags
     in
-    loop templ;
+    loop (Caqti_query.expand ~final:true env templ);
     Buffer.contents buf
 
   let escaped_connvalue s =
@@ -557,9 +557,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   module Make_connection_base
-          (Db : sig val uri : Uri.t val db : Pg.connection end) =
+    (Connection_arg : sig
+      val env : string -> Caqti_query.t
+      val uri : Uri.t
+      val db : Pg.connection
+    end) =
   struct
-    open Db
+    open Connection_arg
 
     module Copy_encoder = Make_encoder (struct
 
@@ -733,7 +737,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match Caqti_request.query_id req with
        | None ->
           let templ = Caqti_request.query req driver_info in
-          let query = Pg_ext.query_string Db.db templ in
+          let query = Pg_ext.query_string ~env db templ in
           let param_length = Caqti_type.length param_type in
           let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
@@ -752,7 +756,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             try Ok (Int_hashtbl.find prepare_cache query_id) with
              | Not_found ->
                 let templ = Caqti_request.query req driver_info in
-                let query = Pg_ext.query_string Db.db templ in
+                let query = Pg_ext.query_string ~env db templ in
                 let param_length = Caqti_type.length param_type in
                 let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
@@ -946,7 +950,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       end
   end
 
-  let connect uri =
+  let connect ?(env = no_env) uri =
     return (Pg_ext.parse_uri uri) >>=? fun (conninfo, notice_processing) ->
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error msg ->
@@ -965,8 +969,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
-                let module B =
-                  Make_connection_base (struct let uri = uri let db = db end)
+                let module B = Make_connection_base
+                  (struct
+                    let env = env driver_info
+                    let uri = uri
+                    let db = db
+                  end)
                 in
                 let module Connection = struct
                   let driver_info = driver_info

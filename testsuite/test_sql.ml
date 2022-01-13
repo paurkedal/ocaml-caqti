@@ -84,6 +84,10 @@ module Q = struct
   let select_from_test_abc = unit -->* tup2 abc string @:-
     "SELECT * FROM test_abc"
 
+  let select_expanded = unit --> tup2 int string @@:- function
+   | `Mysql -> "SELECT $(x1), CAST($(x2) AS char)"
+   | _ -> "SELECT $(x1), $(x2)"
+
   let create_post_connect = unit -->. unit @:-
     "CREATE TEMPORARY TABLE test_post_connect \
       (id serial PRIMARY KEY, word text NOT NULL)"
@@ -185,6 +189,16 @@ module Make (Ground : Testkit.Sig.Ground) = struct
       if i = n then return () else
       f i >>= fun () -> loop (i + 1) in
     loop 0
+
+  let env _ = let open Caqti_query in function
+   | "x1" -> L"734"
+   | "x2" -> Q"I'm quoted."
+   | _ -> raise Not_found
+
+  let test_expand (module Db : Caqti_sys.CONNECTION) =
+    Db.find Q.select_expanded () >>= or_fail >|= fun (x1, x2) ->
+    Alcotest.(check int) "expanded int" 734 x1;
+    Alcotest.(check string) "expanded quote" "I'm quoted." x2
 
   let post_connect (module Db : Caqti_sys.CONNECTION) =
     Db.exec Q.create_post_connect () >|= function
@@ -577,6 +591,7 @@ module Make (Ground : Testkit.Sig.Ground) = struct
 
   let connection_test_cases = [
     "post_connect", `Quick, test_post_connect;
+    "expand", `Quick, test_expand;
     "expr", `Quick, test_expr;
     "enum", `Quick, test_enum;
     "table", `Quick, test_table;

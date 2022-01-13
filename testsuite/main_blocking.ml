@@ -63,8 +63,12 @@ let mk_test (name, pool) =
 
 let mk_tests uris =
   let connect_pool uri =
-    (match Caqti_blocking.connect_pool
-              ~max_size:1 ~post_connect:Test_sql.post_connect uri with
+    (match
+      Caqti_blocking.connect_pool uri
+        ~max_size:1
+        ~post_connect:Test_sql.post_connect
+        ~env:Test_sql.env
+     with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

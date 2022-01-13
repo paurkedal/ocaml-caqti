@@ -64,7 +64,7 @@ let query_quotes q =
 
 let no_env _ _ = raise Not_found
 
-let query_string ?(env = no_env) q =
+let query_string q =
   let quotes = query_quotes q in
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
@@ -73,7 +73,7 @@ let query_string ?(env = no_env) q =
    | Caqti_query.L s -> Buffer.add_string buf s
    | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
    | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
-   | Caqti_query.E v -> loop (env driver_info v)
+   | Caqti_query.E _ -> assert false
    | Caqti_query.S qs -> List.iter loop qs
   in
   loop q;
@@ -315,9 +315,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   module Make_connection_base
-    (Db : sig val uri : Uri.t val db : Sqlite3.db end) =
+    (Connection_arg : sig
+      val env : string -> Caqti_query.t
+      val uri : Uri.t
+      val db : Sqlite3.db
+    end) =
   struct
-    open Db
+    open Connection_arg
 
     let using_db_ref = ref false
     let using_db f =
@@ -466,6 +470,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       in
 
       let templ = Caqti_request.query req driver_info in
+      let templ = Caqti_query.expand env templ in
       let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       Ok (stmt, quotes, query)
@@ -576,7 +581,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let set_statement_timeout _ = return (Ok ())
   end
 
-  let connect uri =
+  let connect ?(env = no_env) uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");
@@ -599,7 +604,11 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match busy_timeout with
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);
-      let module Arg = struct let uri = uri let db = db end in
+      let module Arg = struct
+        let env = env driver_info
+        let uri = uri
+        let db = db
+      end in
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct
         let driver_info = driver_info

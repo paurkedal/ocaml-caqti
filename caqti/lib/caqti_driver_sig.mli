@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -95,6 +95,7 @@ module type S = sig
   val driver_info : Caqti_driver_info.t
 
   val connect :
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
 end
 

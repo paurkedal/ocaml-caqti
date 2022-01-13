@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,16 +35,24 @@ module type S = sig
   type connection = (module CONNECTION)
   (** Shortcut for the connection API passed as a value. *)
 
-  val connect : Uri.t ->
+  val connect :
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result future
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
       first-class module implementing {!Caqti_connection_sig.S}.
 
       If you use preemptive threading, note that the connection must only be
-      used from the thread where it was created. *)
+      used from the thread where it was created.
+
+      @param env
+        If provided, this function will do a final expansion of environment
+        variables which occurs in the query templates of the requests executed
+        on the connection. *)
 
   val with_connection :
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t ->
     (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
       ('a, 'e) result future
@@ -56,6 +64,7 @@ module type S = sig
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t ->
     ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
      [> Caqti_error.load]) result
@@ -69,6 +78,9 @@ module type S = sig
       If you use preemptive threading, note that the connection pool must only
       be used from the thread where it was created. Use thread local storage to
       create a separate pool per thread if necessary.
+
+      @param env
+        Passed along to {!connect} when creating new connections in the pool.
 
       @param max_size
         The maximum number of open connections. Must be at least [1].

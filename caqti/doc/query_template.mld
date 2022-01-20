@@ -13,7 +13,7 @@ The {!Caqti_query.t} type represents a single statement. To allow reading
 statements from a script file and sending them to database one by one, the
 parser will stop at the first {{!quotes} unquoted} semicolon, as well as at
 the end of input.  The semicolon itself will not be parsed, but you can
-create your own parser from the {!Caqti_query.anstrom_parser} which does.
+create your own parser from the {!Caqti_query.angstrom_parser} which does.
 
 {2 Parameter References}
 

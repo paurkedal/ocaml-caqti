@@ -107,14 +107,60 @@ module Infix : sig
       one-shot queries, the full application [(pt --> rt) f] can be written [pt
       --> rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
 
-      Example:
+      In the simplest case you can use this module directly together with
+      {!Caqti_type}:
       {[
         let bounds_upto_req =
           let open Caqti_type in
           let open Caqti_request.Infix in
-          tup2 int float --> option (tup2 float float) @:-
+          tup2 int32 float --> option (tup2 float float) @:-
           "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
-      ]} *)
+      ]}
+      For more complex applications it may be to provide a custom module, to
+      avoid the double open and to customize the operators, e.g.
+      {[
+        module Caqtireq = struct
+          include Caqti_type.Std
+          include Caqti_type_calendar (* if needed, link caqti-type-calendar *)
+          include Caqti_request.Infix
+
+          (* Any additional types. *)
+          let password = redacted string
+          let uri =
+            custom ~encode:(fun x -> Ok (Uri.to_string x))
+                   ~decode:(fun s -> Ok (Uri.of_string s)) string
+
+          (* Optionally define a custom environment providing two schema names.
+           * The references should only be assigned at startup. *)
+          let myapp_schema = ref "myapp"
+          let mylib_schema = ref "mylib"
+          let env = function
+           | "" -> Caqti_query.L !myapp_schema
+           | "mylib" -> Caqti_query.L !mylib_schema
+           | _ -> raise Not_found
+
+          (* Since we have a custom environment, override the definitions of the
+           * following operators to perform the substitution. *)
+          let (@:-) t qs =
+            let q = Caqti_query.expand env (Caqti_query.of_string_exn qs) in
+            t (fun _ -> q)
+          let (@@:-) t qsf =
+            t (fun driver_info ->
+              let qs = qsf (Caqti_driver_info.dialect_tag driver_info) in
+              Caqti_query.expand env (Caqti_query.of_string_exn qs))
+        end
+      ]}
+      If you don't like using global references, or you need to work with
+      different enviroments for different connections, you should instead pass
+      the environment function when connecting to the database.  We can now
+      simplify and schema-qualify the previous request:
+      {[
+        let bounds_upto_req =
+          let open Caqtireq in
+          tup2 int32 float --> option (tup2 float float) @:-
+          "SELECT min(y), max(y) FROM $.samples WHERE series_id = ? AND x < ?"
+      ]}
+   *)
 
   val (-->.) :
     'a Caqti_type.t -> unit Caqti_type.t ->
@@ -264,7 +310,7 @@ val pp_with_param :
     function reverts to {!pp} unless the environment varibale
     [CAQTI_DEBUG_PARAM] is set to [true]. If you enable it for applications
     which do not consistenly annotate sensitive parameters with
-    {!Caqti_type.redact}, make sure your debug logs are well secured. *)
+    {!Caqti_type.redacted}, make sure your debug logs are well secured. *)
 
 (** {2 How to Dynamically Assemble Queries and Parameters}
 

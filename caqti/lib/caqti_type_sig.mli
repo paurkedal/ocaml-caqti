@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,17 @@ module type Std = sig
       wider tuple types, use nested application. *)
 
   val option : 'a t -> 'a option t
+  (** [option t] turns a set of fields encoded as [t] into a correspending set
+      of nullable fields.  The encoder will encode [None] as into a tuple of
+      [NULL] values and the decoder will return [None] if all fields are [NULL].
+
+      If the type [t] itself is [option t'] for some [t'], or contains nested
+      tuples and options such that all field types are nested under an option
+      type, then it would have been possible to decode an all-[NULL] segment of
+      a row as [Some x] where [x] is a corresponding tuple-option-tree
+      terminating in [None] values.  The above paragraph resolves this ambiguity
+      since it implies that the outermost option possible will be decoded as
+      [None]. *)
 
   val unit : unit t
   (** A type holding no fields. This is used to pass no parameters and as the

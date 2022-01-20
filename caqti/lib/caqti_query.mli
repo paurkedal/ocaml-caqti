@@ -39,7 +39,7 @@ val normal : t -> t
     {!hash}. *)
 
 val equal : t -> t -> bool
-(** Equality predicate for {!query}. *)
+(** Equality predicate for {!t}. *)
 
 val hash : t -> int
 (** A hash function compatible with {!equal}.  This is currently
@@ -69,6 +69,8 @@ val pp_expand_error : Format.formatter -> expand_error -> unit
 (** Prints an informative error. *)
 
 exception Expand_error of expand_error
+(** The exception raised by {!expand} when there are issues expanding an
+    environment variable using the provided callback. *)
 
 val expand : ?final: bool -> (string -> t) -> t -> t
 (** [expand f q] replaces each occurrence of [E v] some some [v] with [f v] or

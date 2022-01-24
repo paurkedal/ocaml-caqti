@@ -111,7 +111,7 @@ module Infix : sig
       {!Caqti_type}:
       {[
         let bounds_upto_req =
-          let open Caqti_type in
+          let open Caqti_type.Std in
           let open Caqti_request.Infix in
           tup2 int32 float --> option (tup2 float float) @:-
           "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"

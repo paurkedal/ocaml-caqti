@@ -32,7 +32,7 @@ let abc_of_string = function
   | _ -> Error "abc_of_string"
 
 module Q = struct
-  open Caqti_type
+  open Caqti_type.Std
   open Caqti_request.Infix
 
   let select_null_etc = Caqti_request.find

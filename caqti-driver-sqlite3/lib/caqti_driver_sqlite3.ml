@@ -194,106 +194,41 @@ let encode_field ~uri stmt field_type field_value iP =
           Error (Caqti_error.encode_failed ~uri ~typ (Rc rc)))
    | Error _ as r -> r)
 
-let rec encode_null_param
-    : type a. uri: Uri.t -> Sqlite3.stmt -> a Caqti_type.t ->
-      int -> (int, _) result =
-  fun ~uri stmt ->
-  (function
-   | Caqti_type.Unit -> fun iP -> Ok iP
-   | Caqti_type.Field ft -> fun iP ->
-      (match encode_null_field ~uri stmt ft iP with
-       | Ok () -> Ok (iP + 1)
-       | Error _ as r -> r)
-   | Caqti_type.Option t ->
-      encode_null_param ~uri stmt t
-   | Caqti_type.Tup2 (t0, t1) ->
-      encode_null_param ~uri stmt t0 %>? encode_null_param ~uri stmt t1
-   | Caqti_type.Tup3 (t0, t1, t2) ->
-      encode_null_param ~uri stmt t0 %>? encode_null_param ~uri stmt t1 %>?
-      encode_null_param ~uri stmt t2
-   | Caqti_type.Tup4 (t0, t1, t2, t3) ->
-      encode_null_param ~uri stmt t0 %>? encode_null_param ~uri stmt t1 %>?
-      encode_null_param ~uri stmt t2 %>? encode_null_param ~uri stmt t3
-   | Caqti_type.Custom {rep; _} ->
-      encode_null_param ~uri stmt rep
-   | Caqti_type.Annot (_, t0) ->
-      encode_null_param ~uri stmt t0)
+let encode_param ~uri stmt t x =
+  let write_value ~uri ft fv iP =
+    (match encode_field ~uri stmt ft fv iP with
+     | Ok () -> Ok (iP + 1)
+     | Error _ as r -> r)
+  in
+  let write_null ~uri ft iP =
+    (match encode_null_field ~uri stmt ft iP with
+     | Ok () -> Ok (iP + 1)
+     | Error _ as r -> r)
+  in
+  Caqti_driver_lib.encode_param ~uri {write_value; write_null} t x
 
-let rec encode_param
-    : type a. uri: Uri.t -> Sqlite3.stmt -> a Caqti_type.t -> a ->
-      int -> (int, _) result =
-  fun ~uri stmt t x ->
-  (match t, x with
-   | Caqti_type.Unit, () -> fun iP -> Ok iP
-   | Caqti_type.Field ft, fv -> fun iP ->
-      (match encode_field ~uri stmt ft fv iP with
-       | Ok () -> Ok (iP + 1)
-       | Error _ as r -> r)
-   | Caqti_type.Option t, None ->
-      encode_null_param ~uri stmt t
-   | Caqti_type.Option t, Some x ->
-      encode_param ~uri stmt t x
-   | Caqti_type.Tup2 (t0, t1), (x0, x1) ->
-      encode_param ~uri stmt t0 x0 %>? encode_param ~uri stmt t1 x1
-   | Caqti_type.Tup3 (t0, t1, t2), (x0, x1, x2) ->
-      encode_param ~uri stmt t0 x0 %>? encode_param ~uri stmt t1 x1 %>?
-      encode_param ~uri stmt t2 x2
-   | Caqti_type.Tup4 (t0, t1, t2, t3), (x0, x1, x2, x3) ->
-      encode_param ~uri stmt t0 x0 %>? encode_param ~uri stmt t1 x1 %>?
-      encode_param ~uri stmt t2 x2 %>? encode_param ~uri stmt t3 x3
-   | Caqti_type.Custom {rep; encode; _}, x -> fun iP ->
-      (match encode x with
-       | Ok y -> encode_param ~uri stmt rep y iP
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
-   | Caqti_type.Annot (_, t0), x0 ->
-      encode_param ~uri stmt t0 x0)
-
-let rec decode_row
-    : type b. uri: Uri.t -> Sqlite3.stmt -> int -> b Caqti_type.t ->
-      (int * b, _) result =
-  fun ~uri stmt i ->
-  (function
-   | Caqti_type.Unit -> Ok (i, ())
-   | Caqti_type.Field ft ->
-      (match value_of_data ~uri ft (Sqlite3.column stmt i) with
-       | Ok fv -> Ok (i + 1, fv)
-       | Error _ as r -> r)
-   | Caqti_type.Option t ->
-      let j = i + Caqti_type.length t in
-      let rec null_only k = k = j ||
-        (Sqlite3.column stmt k = Sqlite3.Data.NULL && null_only (k + 1)) in
-      if null_only i then Ok (j, None) else
-      (match decode_row ~uri stmt i t with
-       | Ok (j, y) -> Ok (j, Some y)
-       | Error _ as r -> r)
-   | Caqti_type.Tup2 (t0, t1) ->
-      decode_row ~uri stmt i t0 |>? fun (i, y0) ->
-      decode_row ~uri stmt i t1 |>? fun (i, y1) ->
-      Ok (i, (y0, y1))
-   | Caqti_type.Tup3 (t0, t1, t2) ->
-      decode_row ~uri stmt i t0 |>? fun (i, y0) ->
-      decode_row ~uri stmt i t1 |>? fun (i, y1) ->
-      decode_row ~uri stmt i t2 |>? fun (i, y2) ->
-      Ok (i, (y0, y1, y2))
-   | Caqti_type.Tup4 (t0, t1, t2, t3) ->
-      decode_row ~uri stmt i t0 |>? fun (i, y0) ->
-      decode_row ~uri stmt i t1 |>? fun (i, y1) ->
-      decode_row ~uri stmt i t2 |>? fun (i, y2) ->
-      decode_row ~uri stmt i t3 |>? fun (i, y3) ->
-      Ok (i, (y0, y1, y2, y3))
-   | Caqti_type.Custom {rep; decode; _} as typ ->
-      (match decode_row ~uri stmt i rep with
-       | Ok (j, y) ->
-          (match decode y with
-           | Ok z -> Ok (j, z)
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r)
-   | Caqti_type.Annot (_, t0) ->
-      decode_row ~uri stmt i t0)
+let decode_row ~uri ~query stmt row_type =
+  let read_value ~uri ft j =
+    (match value_of_data ~uri ft (Sqlite3.column stmt j) with
+     | Ok fv -> Ok (fv, j + 1)
+     | Error _ as r -> r)
+  in
+  let skip_null n j =
+    let j' = j + n in
+    let rec check k =
+      k = j' || Sqlite3.column stmt k = Sqlite3.Data.NULL && check (k + 1)
+    in
+    if check j then Some j' else None
+  in
+  let field_decoder = {read_value; skip_null} in
+  (match Caqti_driver_lib.decode_row ~uri field_decoder row_type 0 with
+   | Ok (y, n) ->
+      let n' = Sqlite3.data_count stmt in
+      if n = n' then Ok (Some y) else
+      let msg = sprintf "Decoded only %d of %d fields." n n' in
+      let msg = Caqti_error.Msg msg in
+      Error (Caqti_error.response_rejected ~uri ~query msg)
+   | Error _ as r -> r)
 
 module Q = struct
   let start = Caqti_request.exec Caqti_type.unit "BEGIN"
@@ -357,18 +292,10 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
       let fetch_row ({stmt; row_type; query; _} as response) =
         (match run_step response with
-         | Sqlite3.Rc.DONE -> Ok None
+         | Sqlite3.Rc.DONE ->
+            Ok None
          | Sqlite3.Rc.ROW ->
-            (match decode_row ~uri stmt 0 row_type with
-             | Ok (n, y) ->
-                let n' = Sqlite3.data_count stmt in
-                if n = n' then
-                  Ok (Some y)
-                else
-                  let msg = sprintf "Decoded only %d of %d fields." n n' in
-                  let msg = Caqti_error.Msg msg in
-                  Error (Caqti_error.response_rejected ~uri ~query msg)
-             | Error _ as r -> r)
+            decode_row ~uri ~query stmt row_type
          | rc ->
             Error (Caqti_error.response_failed ~uri ~query (Rc rc)))
 

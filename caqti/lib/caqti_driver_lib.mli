@@ -44,3 +44,26 @@ val linear_query_string :
   Caqti_query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)
+
+type ('a, 'e) field_encoder = {
+  write_value:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'b -> 'a -> ('a, 'e) result;
+  write_null:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> ('a, 'e) result;
+}
+constraint 'e = [> `Encode_rejected of Caqti_error.coding_error]
+
+val encode_param :
+  uri: Uri.t -> ('a, 'e) field_encoder ->
+  'b Caqti_type.t -> 'b -> 'a -> ('a, 'e) result
+
+type ('a, 'e) field_decoder = {
+  read_value:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> ('b * 'a, 'e) result;
+  skip_null: int -> 'a -> 'a option;
+}
+constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
+
+val decode_row :
+  uri: Uri.t -> ('a, 'e) field_decoder ->
+  'b Caqti_type.t -> 'a -> ('b * 'a, 'e) result

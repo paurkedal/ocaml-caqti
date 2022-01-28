@@ -283,45 +283,15 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
                 let typ = Caqti_type.field field_type in
                 Error (Caqti_error.encode_rejected ~uri ~typ msg))))
 
-  let rec encode'
-      : type a. uri: Uri.t -> string array ->
-        a Caqti_type.t -> a -> int -> (int, _) result =
-    fun ~uri params t x ->
-    (match t, x with
-     | Caqti_type.Unit, () -> fun i -> Ok i
-     | Caqti_type.Field ft, fv -> fun i ->
-        (match encode_field ~uri ft fv with
-         | Ok s -> params.(i) <- s; Ok (i + 1)
-         | Error _ as r -> r)
-     | Caqti_type.Option t, None -> fun i -> Ok (i + Caqti_type.length t)
-     | Caqti_type.Option t, Some x ->
-        encode' ~uri params t x
-     | Caqti_type.Tup2 (t0, t1), (x0, x1) ->
-        encode' ~uri params t0 x0 %>?
-        encode' ~uri params t1 x1
-     | Caqti_type.Tup3 (t0, t1, t2), (x0, x1, x2) ->
-        encode' ~uri params t0 x0 %>?
-        encode' ~uri params t1 x1 %>?
-        encode' ~uri params t2 x2
-     | Caqti_type.Tup4 (t0, t1, t2, t3), (x0, x1, x2, x3) ->
-        encode' ~uri params t0 x0 %>?
-        encode' ~uri params t1 x1 %>?
-        encode' ~uri params t2 x2 %>?
-        encode' ~uri params t3 x3
-     | Caqti_type.Custom {rep; encode = encode_custom; _}, x -> fun i ->
-        (match encode_custom x with
-         | Ok y ->
-            encode' ~uri params rep y i
-         | Error msg ->
-            let msg = Caqti_error.Msg msg in
-            Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
-     | Caqti_type.Annot (_, t0), x0 ->
-        encode' ~uri params t0 x0)
-
   let encode ~uri params t x =
-    (match encode' ~uri params t x 0 with
-     | Ok n -> assert (n = Array.length params); Ok ()
-     | Error _ as r -> r)
+    let write_value ~uri ft fv i =
+      (match encode_field ~uri ft fv with
+       | Ok s -> params.(i) <- s; Ok (i + 1)
+       | Error _ as r -> r)
+    in
+    let write_null ~uri:_ _ i = Ok (i + 1) in
+    Caqti_driver_lib.encode_param ~uri {write_value; write_null} t x 0
+      |> Result.map (fun n -> assert (n = Array.length params))
 end
 
 module Param_encoder = Make_encoder (struct
@@ -383,55 +353,19 @@ let rec decode_field
                   Error (Caqti_error.decode_rejected ~uri ~typ msg))
            | Error _ as r -> r)))
 
-let rec decode_row'
-    : type b. uri: Uri.t -> Pg.result * int ->
-      b Caqti_type.t -> int -> (int * b, _) result =
-  fun ~uri ((resp, i) as row) t ->
-  (match t with
-   | Caqti_type.Unit -> fun j -> Ok (j, ())
-   | Caqti_type.Field ft -> fun j ->
-      (match decode_field ~uri ft (resp#getvalue i j) with
-       | Ok y -> Ok (j + 1, y)
-       | Error _ as r -> r)
-   | Caqti_type.Option t -> fun j ->
-      let j' = j + Caqti_type.length t in
-      let rec null_only k = k = j' ||
-        (resp#getisnull i k && null_only (k + 1)) in
-      if null_only j then Ok (j', None) else
-      (match decode_row' ~uri row t j with
-       | Ok (j'', y) -> assert (j' = j''); Ok (j'', Some y)
-       | Error _ as r -> r)
-   | Caqti_type.Tup2 (t0, t1) -> fun j ->
-      decode_row' ~uri row t0 j |>? fun (j, y0) ->
-      decode_row' ~uri row t1 j |>? fun (j, y1) ->
-      Ok (j, (y0, y1))
-   | Caqti_type.Tup3 (t0, t1, t2) -> fun j ->
-      decode_row' ~uri row t0 j |>? fun (j, y0) ->
-      decode_row' ~uri row t1 j |>? fun (j, y1) ->
-      decode_row' ~uri row t2 j |>? fun (j, y2) ->
-      Ok (j, (y0, y1, y2))
-   | Caqti_type.Tup4 (t0, t1, t2, t3) -> fun j ->
-      decode_row' ~uri row t0 j |>? fun (j, y0) ->
-      decode_row' ~uri row t1 j |>? fun (j, y1) ->
-      decode_row' ~uri row t2 j |>? fun (j, y2) ->
-      decode_row' ~uri row t3 j |>? fun (j, y3) ->
-      Ok (j, (y0, y1, y2, y3))
-   | Caqti_type.Custom {rep; decode; _} as typ -> fun j ->
-      (match decode_row' ~uri row rep j with
-       | Ok (j, y) ->
-          (match decode y with
-           | Ok z -> Ok (j, z)
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r)
-   | Caqti_type.Annot (_, t0) -> fun j ->
-      decode_row' ~uri row t0 j)
-
-let decode_row ~uri resp row_type =
-  (match decode_row' ~uri resp row_type 0 with
-   | Ok (j, y) -> assert (j = Caqti_type.length row_type); Ok y
-   | Error _ as r -> r)
+let decode_row ~uri row_type (resp, i) =
+  let read_value ~uri ft j =
+    (match decode_field ~uri ft (resp#getvalue i j) with
+     | Ok y -> Ok (y, j + 1)
+     | Error _ as r -> r)
+  in
+  let skip_null n j =
+    let j' = j + n in
+    let rec check k = k = j' || resp#getisnull i k && check (k + 1) in
+    if check j then Some j' else None
+  in
+  Caqti_driver_lib.decode_row ~uri {read_value; skip_null} row_type 0
+    |> Result.map (fun (y, j) -> assert (j = Caqti_type.length row_type); y)
 
 type prepared = {
   query: string;
@@ -678,12 +612,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let exec _ = return (Ok ())
 
       let find {row_type; result} =
-        return (decode_row ~uri (result, 0) row_type)
+        return (decode_row ~uri row_type(result, 0) )
 
       let find_opt {row_type; result} =
         return begin
           if result#ntuples = 0 then Ok None else
-          (match decode_row ~uri (result, 0) row_type with
+          (match decode_row ~uri row_type (result, 0) with
            | Ok y -> Ok (Some y)
            | Error _ as r -> r)
         end
@@ -692,7 +626,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         let n = result#ntuples in
         let rec loop i acc =
           if i = n then Ok acc else
-          (match decode_row ~uri (result, i) row_type with
+          (match decode_row ~uri row_type (result, i) with
            | Ok y -> loop (i + 1) (f y acc)
            | Error _ as r -> r) in
         return (loop 0 acc)
@@ -701,7 +635,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         let n = result#ntuples in
         let rec loop i acc =
           if i = n then return (Ok acc) else
-          (match decode_row ~uri (result, i) row_type with
+          (match decode_row ~uri row_type (result, i) with
            | Ok y -> f y acc >>=? loop (i + 1)
            | Error _ as r -> return r) in
         loop 0 acc
@@ -710,7 +644,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         let n = result#ntuples in
         let rec loop i () =
           if i = n then return (Ok ()) else
-          (match decode_row ~uri (result, i) row_type with
+          (match decode_row ~uri row_type (result, i) with
            | Ok y -> f y >>=? loop (i + 1)
            | Error _ as r -> return r) in
         loop 0 ()
@@ -719,7 +653,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         let n = result#ntuples in
         let rec f i () =
           if i = n then return Stream.Nil else
-          (match decode_row ~uri (result, i) row_type with
+          (match decode_row ~uri row_type (result, i) with
            | Ok y -> return @@ Stream.Cons (y, f (i + 1))
            | Error err -> return @@ Stream.Error err) in
         f 0

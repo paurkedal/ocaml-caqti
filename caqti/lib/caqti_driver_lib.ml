@@ -65,3 +65,111 @@ let linear_query_string ?(env = no_env) templ =
   in
   loop templ;
   Buffer.contents buf
+
+type ('a, 'e) field_encoder = {
+  write_value:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'b -> 'a -> ('a, 'e) result;
+  write_null:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> ('a, 'e) result;
+}
+constraint 'e = [> `Encode_rejected of Caqti_error.coding_error]
+
+let rec encode_null_param
+    : type a. uri: _ -> _ -> a Caqti_type.t -> _ =
+  fun ~uri f ->
+  let open Caqti_type in
+  (function
+   | Unit -> fun acc -> Ok acc
+   | Field ft -> f.write_null ~uri ft
+   | Option t -> encode_null_param ~uri f t
+   | Tup2 (t1, t2) ->
+          encode_null_param ~uri f t1
+      %>? encode_null_param ~uri f t2
+   | Tup3 (t1, t2, t3) ->
+          encode_null_param ~uri f t1
+      %>? encode_null_param ~uri f t2
+      %>? encode_null_param ~uri f t3
+   | Tup4 (t1, t2, t3, t4) ->
+          encode_null_param ~uri f t1
+      %>? encode_null_param ~uri f t2
+      %>? encode_null_param ~uri f t3
+      %>? encode_null_param ~uri f t4
+   | Custom {rep; _} -> encode_null_param ~uri f rep
+   | Annot (_, t) -> encode_null_param ~uri f t)
+
+let rec encode_param
+    : type a. uri: _ -> _ -> a Caqti_type.t -> a -> _ =
+  fun ~uri f ->
+  let open Caqti_type in
+  (function
+   | Unit -> fun () acc -> Ok acc
+   | Field ft -> f.write_value ~uri ft
+   | Option t ->
+      (function
+       | None -> encode_null_param ~uri f t
+       | Some x -> encode_param ~uri f t x)
+   | Tup2 (t1, t2) -> fun (x1, x2) ->
+          encode_param ~uri f t1 x1
+      %>? encode_param ~uri f t2 x2
+   | Tup3 (t1, t2, t3) -> fun (x1, x2, x3) ->
+          encode_param ~uri f t1 x1
+      %>? encode_param ~uri f t2 x2
+      %>? encode_param ~uri f t3 x3
+   | Tup4 (t1, t2, t3, t4) -> fun (x1, x2, x3, x4) ->
+          encode_param ~uri f t1 x1
+      %>? encode_param ~uri f t2 x2
+      %>? encode_param ~uri f t3 x3
+      %>? encode_param ~uri f t4 x4
+   | Custom {rep; encode; _} as t -> fun x acc ->
+      (match encode x with
+       | Ok y -> encode_param ~uri f rep y acc
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          Error (Caqti_error.encode_rejected ~uri ~typ:t msg))
+   | Annot (_, t) -> encode_param ~uri f t)
+
+type ('a, 'e) field_decoder = {
+  read_value:
+    'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> ('b * 'a, 'e) result;
+  skip_null: int -> 'a -> 'a option;
+}
+constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
+
+let rec decode_row
+    : type a. uri: _ -> _ -> a Caqti_type.t -> _ -> (a * _, _) result =
+  fun ~uri f ->
+  let open Caqti_type in
+  (function
+   | Unit -> fun acc -> Ok ((), acc)
+   | Field ft -> f.read_value ~uri ft
+   | Option t -> fun acc ->
+      (match f.skip_null (Caqti_type.length t) acc with
+       | Some acc -> Ok (None, acc)
+       | None ->
+          decode_row ~uri f t acc |> Result.map (fun (x, acc) -> (Some x, acc)))
+   | Tup2 (t1, t2) -> fun acc ->
+      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
+      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
+      Ok ((x1, x2), acc)
+   | Tup3 (t1, t2, t3) -> fun acc ->
+      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
+      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
+      decode_row ~uri f t3 acc |>? fun (x3, acc) ->
+      Ok ((x1, x2, x3), acc)
+   | Tup4 (t1, t2, t3, t4) -> fun acc ->
+      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
+      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
+      decode_row ~uri f t3 acc |>? fun (x3, acc) ->
+      decode_row ~uri f t4 acc |>? fun (x4, acc) ->
+      Ok ((x1, x2, x3, x4), acc)
+   | Custom {rep; decode; _} as typ -> fun acc ->
+      (match decode_row ~uri f rep acc with
+       | Ok (x, acc) ->
+          (match decode x with
+           | Ok y -> Ok (y, acc)
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              Error (Caqti_error.decode_rejected ~uri ~typ msg))
+       | Error _ as r -> r)
+   | Annot (_, t0) ->
+      decode_row ~uri f t0)

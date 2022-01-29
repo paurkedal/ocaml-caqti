@@ -1,4 +1,4 @@
-## v1.7.0 - 2022-01-24
+## v1.7.0 - unreleased
 
 - Added a new query string parser based on Angstrom.
 - Support passing a query environment to the connect and pool construction

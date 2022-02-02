@@ -31,3 +31,21 @@
     default) to suppress notices or to [stderr] to emit notices to standard
     error.  This option is interpreted by the Caqti driver and stripped off
     before passing the URI to libpq. *)
+
+type Caqti_error.msg +=
+  | Connect_error of {
+      error: Postgresql.error;
+        (** The exception raised by postgresql-ocaml. *)
+    }
+  | Communication_error of {
+      error: Postgresql.error;
+        (** The exception raised by postgresql-ocaml. *)
+      connection_status: Postgresql.connection_status;
+        (** The connection status reported by [PQstatus]. *)
+    }
+  | Result_error of {
+      error_message: string;
+        (** The error message from [PQresultErrorMessage]. *)
+      sqlstate: string;
+        (** The SQLSTATE error field. *)
+    }

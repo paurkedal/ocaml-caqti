@@ -38,12 +38,45 @@ let type_oid_req = Caqti_request.find_opt Caqti_type.string Caqti_type.int
 let set_timezone_to_utc_req = Caqti_request.exec ~oneshot:true Caqti_type.unit
   "SET TimeZone TO 'UTC'"
 
-type Caqti_error.msg += Pg_msg of Pg.error
+type Caqti_error.msg +=
+  | Connect_error of {
+      error: Pg.error;
+    }
+  | Communication_error of {
+      error: Pg.error;
+      connection_status: Pg.connection_status;
+    }
+  | Result_error of {
+      error_message: string;
+      sqlstate: string;
+    }
+
+let extract_connect_error error = Connect_error {error}
+
+let extract_communication_error connection error =
+  Communication_error {
+    error;
+    connection_status = connection#status;
+  }
+
+let extract_result_error result =
+  Result_error {
+    error_message = result#error;
+    sqlstate = result#error_field Pg.Error_field.SQLSTATE;
+  }
+
 let () =
   let pp ppf = function
-   | Pg_msg error -> Format.pp_print_string ppf (Pg.string_of_error error)
-   | _ -> assert false in
-  Caqti_error.define_msg ~pp [%extension_constructor Pg_msg]
+   | Connect_error {error; _} | Communication_error {error; _} ->
+      Format.pp_print_string ppf (Pg.string_of_error error)
+   | Result_error {error_message; _} ->
+      Format.pp_print_string ppf error_message
+   | _ ->
+      assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Connect_error];
+  Caqti_error.define_msg ~pp [%extension_constructor Communication_error];
+  Caqti_error.define_msg ~pp [%extension_constructor Result_error]
 
 let driver_info =
   Caqti_driver_info.create
@@ -416,8 +449,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           return (Ok db#get_result)
       in
       try Unix.wrap_fd retry (Obj.magic db#socket)
-      with Pg.Error msg ->
-        return (Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)))
+      with Pg.Error err ->
+        let msg = extract_communication_error db err in
+        return (Error (Caqti_error.request_failed ~uri ~query msg))
 
     let get_result ~uri ~query ?(ensure_single_result=true) db =
       get_next_result ~uri ~query db >>=
@@ -441,13 +475,13 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let check_query_result ~uri ~query result mult =
       let reject msg =
         let msg = Caqti_error.Msg msg in
-        Error (Caqti_error.response_rejected ~uri ~query msg) in
+        Error (Caqti_error.response_rejected ~uri ~query msg)
+      in
       let fail msg =
         let msg = Caqti_error.Msg msg in
-        Error (Caqti_error.request_failed ~uri ~query msg) in
+        Error (Caqti_error.request_failed ~uri ~query msg)
+      in
       (match result#status with
-       | exception Pg.Error msg ->
-          Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg))
        | Pg.Command_ok ->
           (match Caqti_mult.expose mult with
            | `Zero -> Ok ()
@@ -468,8 +502,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                        result#ntuples
            | `Zero_or_more -> Ok ())
        | Pg.Empty_query -> fail "The query was empty."
-       | Pg.Bad_response -> reject result#error
-       | Pg.Fatal_error -> fail result#error
+       | Pg.Bad_response ->
+          let msg = extract_result_error result in
+          Error (Caqti_error.response_rejected ~uri ~query msg)
+       | Pg.Fatal_error ->
+          let msg = extract_result_error result in
+          Error (Caqti_error.request_failed ~uri ~query msg)
        | Pg.Nonfatal_error -> Ok () (* TODO: Log *)
        | Pg.Copy_out | Pg.Copy_in | Pg.Copy_both ->
           reject "Received unexpected copy response."
@@ -525,7 +563,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let wrap_pg ~query f =
       try Ok (f ()) with
        | Postgresql.Error err ->
-          Error (Caqti_error.request_failed ~uri ~query (Pg_msg err))
+          let msg = extract_communication_error db err in
+          Error (Caqti_error.request_failed ~uri ~query msg)
 
     let send_query ?params ?param_types ?binary_params query =
       wrap_pg ~query @@ fun () ->
@@ -564,7 +603,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (function
        | Ok _ as r -> return r
        | Error (`Request_failed
-                {Caqti_error.msg = Pg_msg (Postgresql.Connection_failure _); _})
+            {Caqti_error.msg = Communication_error
+              {error = Postgresql.Connection_failure _; _}; _})
             as r when n > 0 ->
           reset () >>= fun reset_ok ->
           if reset_ok then
@@ -819,9 +859,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         return
           (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))
       in
-      let pg_error msg =
-        return
-          (Error (Caqti_error.request_failed ~uri ~query (Pg_msg msg)))
+      let pg_error err =
+        let msg = extract_communication_error db err in
+        return (Error (Caqti_error.request_failed ~uri ~query msg))
       in
       let put_copy_data data =
         let rec loop fd =
@@ -887,17 +927,20 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
   let connect ?(env = no_env) uri =
     return (Pg_ext.parse_uri uri) >>=? fun (conninfo, notice_processing) ->
     (match new Pg.connection ~conninfo () with
-     | exception Pg.Error msg ->
-        return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
+     | exception Pg.Error err ->
+        let msg = extract_connect_error err in
+        return (Error (Caqti_error.connect_failed ~uri msg))
      | db ->
         Pg_io.communicate db (fun () -> db#connect_poll) >>=
         (function
-         | Error msg ->
-            return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
+         | Error err ->
+            let msg = extract_communication_error db err in
+            return (Error (Caqti_error.connect_failed ~uri msg))
          | Ok () ->
             (match db#status <> Pg.Ok with
-             | exception Pg.Error msg ->
-                return (Error (Caqti_error.connect_failed ~uri (Pg_msg msg)))
+             | exception Pg.Error err ->
+                let msg = extract_communication_error db err in
+                return (Error (Caqti_error.connect_failed ~uri msg))
              | true ->
                 let msg = Caqti_error.Msg db#error_message in
                 return (Error (Caqti_error.connect_failed ~uri msg))

@@ -1,0 +1,14 @@
+(test
+ (name test_postgresql)
+ (package caqti-driver-postgresql)
+ (libraries
+    alcotest
+    caqti
+    caqti.blocking
+    caqti-driver-postgresql
+    testlib
+    testlib_blocking)
+ (deps ../../testsuite/uris.conf)
+ (action
+  (setenv CAQTI_TEST_URIS_FILE ../../testsuite/uris.conf
+   (run %{test}))))

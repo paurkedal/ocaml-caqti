@@ -19,12 +19,15 @@ open Caqti_driver_lib
 open Caqti_common_priv
 open Printf
 
-type Caqti_error.msg += Mdb_msg of (int * string)
+type Caqti_error.msg += Error_msg of {errno: int; error: string}
 let () =
   let pp ppf = function
-   | Mdb_msg (code, msg) -> Format.fprintf ppf "Error %d, %s." code msg
-   | _ -> assert false in
-  Caqti_error.define_msg ~pp [%extension_constructor Mdb_msg]
+   | Error_msg {errno; error} ->
+      Format.fprintf ppf "Error %d, %s." errno error
+   | _ ->
+      assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
 
 let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"
@@ -270,6 +273,15 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let using_db f =
       H.assert_single_use ~what:"MariaDB connection" using_db_ref f
 
+    let request_failed ~query (errno, error) =
+      Error (Caqti_error.request_failed ~uri ~query (Error_msg {errno; error}))
+
+    let response_failed ~query (errno, error) =
+      Error (Caqti_error.response_failed ~uri ~query (Error_msg {errno; error}))
+
+    let response_rejected ~query msg =
+      Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
+
     module Response = struct
       type ('b, +'m) t = {
         query: string;
@@ -277,10 +289,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         row_type: 'b Caqti_type.t;
       }
 
-      let reject ~query msg =
-        Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
-      let reject_f ~query fmt =
-        ksprintf (reject ~query) fmt
+      let reject_f ~query fmt = ksprintf (response_rejected ~query) fmt
 
       let affected_count {res; _} = return (Ok (Mdb.Res.affected_rows res))
       let returned_count {res; _} = return (Ok (Mdb.Res.num_rows res))
@@ -290,8 +299,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         (function
          | Ok None as r -> r
          | Ok (Some row) -> decode_row ~uri row_type row
-         | Error err ->
-            Error (Caqti_error.response_failed ~uri ~query (Mdb_msg err)))
+         | Error err -> response_failed ~query err)
 
       let exec {res; query; _} =
         (match Mdb.Res.num_rows res with
@@ -359,9 +367,6 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
 
-    let request_failed query err =
-      Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err))
-
     let call ~f req param = using_db @@ fun () ->
       Log.debug ~src:request_log_src (fun f ->
         f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
@@ -377,7 +382,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | Ok [] ->
             Mdb.Stmt.execute stmt params >>=
             (function
-             | Error err -> return (request_failed query err)
+             | Error err -> return (request_failed ~query err)
              | Ok res -> f Response.{query; res; row_type})
          | Ok (_ :: _) -> assert false) in
 
@@ -388,7 +393,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           let query = linear_query_string templ in
           Mdb.prepare db query >>=
           (function
-           | Error err -> return (request_failed query err)
+           | Error err -> return (request_failed ~query err)
            | Ok stmt ->
               let param_length = linear_param_length templ in
               let param_order, quotes = linear_param_order templ in
@@ -410,7 +415,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               let query = linear_query_string templ in
               Mdb.prepare db query >|=
               (function
-               | Error err -> request_failed query err
+               | Error err -> request_failed ~query err
                | Ok stmt ->
                   let param_length = linear_param_length templ in
                   let param_order, quotes = linear_param_order templ in
@@ -443,7 +448,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                   return (Ok ())
                | Error err ->
                   let query = sprintf "DEALLOCATE %d" query_id in
-                  return (request_failed query err)))
+                  return (request_failed ~query err)))
        | None ->
           failwith "deallocate called on oneshot request")
 
@@ -464,8 +469,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let check f = f true (* FIXME *)
 
-    let transaction_failed query err =
-      return (Error (Caqti_error.request_failed ~uri ~query (Mdb_msg err)))
+    let transaction_failed query (errno, error) =
+      let msg = Error_msg {errno; error} in
+      return (Error (Caqti_error.request_failed ~uri ~query msg))
 
     let start () = using_db @@ fun () ->
       Mdb.autocommit db false >>=
@@ -551,8 +557,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           (function
            | Ok () -> Ok (module C : CONNECTION)
            | Error err -> Error (`Post_connect err))
-     | Error err ->
-        return (Error (Caqti_error.connect_failed ~uri (Mdb_msg err))))
+     | Error (errno, error) ->
+        return @@
+          Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
 
   let connect ?(env = no_env) uri =
     (match parse_uri uri with

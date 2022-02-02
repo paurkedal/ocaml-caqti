@@ -20,7 +20,7 @@ module Sig = Sig
 let load_uris uris_file =
   (match open_in uris_file with
    | exception Sys_error _ ->
-      failwith "No -u option provided and missing tests/uris.conf."
+      failwith ("No -u option provided and missing " ^ uris_file)
    | ic ->
       let rec loop acc =
         (match input_line ic with

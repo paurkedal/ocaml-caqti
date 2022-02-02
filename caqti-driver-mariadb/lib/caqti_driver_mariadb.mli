@@ -24,3 +24,10 @@
     ]}
     where components are optional and present ones are passed on to the
     correspondingly named arguments to the [connect] function of MariaDB. *)
+
+type Caqti_error.msg += Error_msg of {
+  errno: int;
+    (** The error number returned by [mysql_errno] or [mysql_stmt_errno]. *)
+  error: string;
+    (** The error message returned by [mysql_error] or [mysql_stmt_errno]. *)
+}

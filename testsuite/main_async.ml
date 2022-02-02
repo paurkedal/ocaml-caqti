@@ -20,50 +20,13 @@ open Async_unix
 open Core_kernel
 
 open Caqti_common_priv
-open Testkit
+open Testlib
+open Testlib_async
 
-module Ground = struct
-  type 'a future = 'a Deferred.t
-
-  let return = return
-
-  let catch f g =
-    try_with ~extract_exn:true f >>= function
-     | Ok y -> return y
-     | Error exn -> g exn
-
-  let fail exn = Error.raise (Error.of_exn exn)
-
-  let or_fail = function
-   | Ok x -> return x
-   | Error (#Caqti_error.t as err) ->
-      Error.raise (Error.of_exn (Caqti_error.Exn err))
-
-  let (>>=) = (>>=)
-  let (>|=) = (>>|)
-  let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
-  let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
-
-  module Caqti_sys = Caqti_async
-
-  module Alcotest_cli =
-    Testkit.Make_alcotest_cli
-      (Alcotest.Unix_platform)
-      (struct
-        include Deferred
-        let bind m f = bind m ~f
-        let catch f g =
-          try_with ~extract_exn:true f >>= function
-           | Ok y -> return y
-           | Error exn -> g exn
-      end)
-
-end
-
-module Test_parallel = Test_parallel.Make (Ground)
-module Test_param = Test_param.Make (Ground)
-module Test_sql = Test_sql.Make (Ground)
-module Test_failure = Test_failure.Make (Ground)
+module Test_parallel = Test_parallel.Make (Testlib_async)
+module Test_param = Test_param.Make (Testlib_async)
+module Test_sql = Test_sql.Make (Testlib_async)
+module Test_failure = Test_failure.Make (Testlib_async)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -102,8 +65,8 @@ let mk_tests uris =
 
 let main () =
   Deferred.upon
-    (Ground.Alcotest_cli.run_with_args_dependency "test_sql_async"
-      Testkit.common_args mk_tests)
+    (Alcotest_cli.run_with_args_dependency "test_sql_async"
+      Testlib.common_args mk_tests)
     (fun () -> Shutdown.shutdown 0)
 
 let () = never_returns (Scheduler.go_main ~main ())

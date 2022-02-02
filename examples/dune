@@ -2,7 +2,7 @@
  (name bikereg)
  (package caqti-lwt)
  (modules bikereg)
- (libraries caqti caqti-dynload caqti-lwt testkit)
+ (libraries caqti caqti-dynload caqti-lwt testlib)
  (deps (alias ../testsuite/drivers) ../testsuite/uris.conf)
  (locks /db/bikereg)
  (action

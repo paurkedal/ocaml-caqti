@@ -11,7 +11,7 @@
   (name testsuite)
   (wrapped false)
   (modules test_failure test_parallel test_param test_sql)
-  (libraries caqti ptime.clock.os testkit))
+  (libraries caqti ptime.clock.os testlib))
 
 ; Instantiations of the testsuite.
 
@@ -21,7 +21,7 @@
   (modules main_blocking)
   (libraries
     caqti caqti.blocking caqti-dynload
-    alcotest testkit testsuite)
+    alcotest testlib testlib_blocking testsuite)
   (deps (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
@@ -32,7 +32,7 @@
   (modules main_async)
   (libraries
     caqti caqti-dynload caqti-async
-    alcotest-async testkit testsuite)
+    alcotest-async testlib testlib_async testsuite)
   (deps (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
@@ -43,7 +43,7 @@
   (modules main_lwt)
   (libraries
     caqti caqti-dynload caqti-lwt
-    alcotest-lwt testkit testsuite)
+    alcotest-lwt testlib testlib_lwt testsuite)
   (deps (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))

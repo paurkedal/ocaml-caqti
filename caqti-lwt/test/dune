@@ -1,4 +1,4 @@
 (test
  (name main)
  (package caqti-lwt)
- (libraries alcotest alcotest-lwt caqti caqti-lwt testkit))
+ (libraries alcotest alcotest-lwt caqti caqti-lwt testlib))

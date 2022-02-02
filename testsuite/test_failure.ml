@@ -31,7 +31,7 @@ let sleep_q =
    | `Pgsql -> "SELECT pg_sleep(2)"
    | _ -> "SELECT sleep(2)"
 
-module Make (Ground : Testkit.Sig.Ground) = struct
+module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
 
   let test_raise_in_call fail' (module Db : Caqti_sys.CONNECTION) =

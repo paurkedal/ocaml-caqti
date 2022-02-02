@@ -15,33 +15,14 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Lwt.Infix
-
 open Caqti_common_priv
-open Testkit
+open Testlib
+open Testlib_lwt
 
-module Ground = struct
-
-  type 'a future = 'a Lwt.t
-  let return = Lwt.return
-  let catch = Lwt.catch
-  let fail = Lwt.fail
-  let or_fail = Caqti_lwt.or_fail
-  let (>>=) = Lwt.Infix.(>>=)
-  let (>|=) = Lwt.Infix.(>|=)
-  let (>>=?) = Lwt_result.Infix.(>>=)
-  let (>|=?) = Lwt_result.Infix.(>|=)
-
-  module Caqti_sys = Caqti_lwt
-
-  module Alcotest_cli = Testkit.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)
-
-end
-
-module Test_parallel = Test_parallel.Make (Ground)
-module Test_param = Test_param.Make (Ground)
-module Test_sql = Test_sql.Make (Ground)
-module Test_failure = Test_failure.Make (Ground)
+module Test_parallel = Test_parallel.Make (Testlib_lwt)
+module Test_param = Test_param.Make (Testlib_lwt)
+module Test_sql = Test_sql.Make (Testlib_lwt)
+module Test_failure = Test_failure.Make (Testlib_lwt)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -77,6 +58,6 @@ let mk_tests uris =
   List.map mk_test pools
 
 let () = Lwt_main.run begin
-  Ground.Alcotest_cli.run_with_args_dependency "test_sql_lwt"
-    Testkit.common_args mk_tests
+  Alcotest_cli.run_with_args_dependency "test_sql_lwt"
+    Testlib.common_args mk_tests
 end

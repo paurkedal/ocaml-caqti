@@ -1,0 +1,9 @@
+(library
+ (name testlib_lwt)
+ (modules testlib_lwt)
+ (libraries
+    alcotest
+    caqti
+    caqti_lwt
+    lwt
+    testlib))

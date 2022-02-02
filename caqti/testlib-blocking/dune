@@ -1,0 +1,7 @@
+(library
+ (name testlib_blocking)
+ (libraries
+    alcotest
+    caqti
+    caqti_blocking
+    testlib))

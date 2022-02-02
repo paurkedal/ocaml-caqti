@@ -16,32 +16,12 @@
  *)
 
 open Caqti_common_priv
-open Testkit
+open Testlib
+open Testlib_blocking
 
-module Ground = struct
-
-  type 'a future = 'a
-  let return x = x
-  let catch f g = try f () with exn -> g exn
-  let fail = raise
-  let or_fail = Caqti_blocking.or_fail
-  let (>>=) x f = f x
-  let (>|=) x f = f x
-  let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
-  let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
-
-  module Caqti_sys = Caqti_blocking
-
-  module Alcotest_cli =
-    Testkit.Make_alcotest_cli
-      (Alcotest.Unix_platform)
-      (Alcotest_engine.Monad.Identity)
-
-end
-
-module Test_param = Test_param.Make (Ground)
-module Test_sql = Test_sql.Make (Ground)
-module Test_failure = Test_failure.Make (Ground)
+module Test_param = Test_param.Make (Testlib_blocking)
+module Test_sql = Test_sql.Make (Testlib_blocking)
+module Test_failure = Test_failure.Make (Testlib_blocking)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
@@ -76,5 +56,5 @@ let mk_tests uris =
   List.map mk_test pools
 
 let () =
-  Ground.Alcotest_cli.run_with_args_dependency "test_sql_blocking"
-    Testkit.common_args mk_tests
+  Alcotest_cli.run_with_args_dependency "test_sql_blocking"
+    Testlib.common_args mk_tests

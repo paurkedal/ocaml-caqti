@@ -181,7 +181,7 @@ module Q = struct
     | _ -> failwith "Unimplemented"
 end
 
-module Make (Ground : Testkit.Sig.Ground) = struct
+module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
 
   let repeat n f =
@@ -549,7 +549,7 @@ module Make (Ground : Testkit.Sig.Ground) = struct
   let test_stream_binary (module Db : Caqti_sys.CONNECTION) =
     (* Insert and retrieve all pairs of bytes as strings *)
     let all_bytes =
-      Testkit.init_list 256 (fun c -> String.make 1 (Char.chr c))
+      Testlib.init_list 256 (fun c -> String.make 1 (Char.chr c))
     in
     let all_pairs = all_bytes
       |> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)

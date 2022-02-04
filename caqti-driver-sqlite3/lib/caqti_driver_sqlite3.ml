@@ -47,12 +47,25 @@ let get_uri_int uri name =
           ksprintf invalid_arg "Integer expected for URI parameter %s." name)
    | None -> None)
 
-type Caqti_error.msg += Rc : Sqlite3.Rc.t -> Caqti_error.msg
+type Caqti_error.msg += Error_msg of {
+  errcode: Sqlite3.Rc.t;
+  errmsg: string option;
+}
+
 let () =
   let pp ppf = function
-   | Rc rc -> Format.fprintf ppf "%s." (Sqlite3.Rc.to_string rc)
-   | _ -> assert false in
-  Caqti_error.define_msg ~pp [%extension_constructor Rc]
+   | Error_msg {errmsg; errcode} ->
+      Format.fprintf ppf "%s."
+        (match errmsg with
+         | None -> Sqlite3.Rc.to_string errcode
+         | Some errmsg -> errmsg)
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
+
+let wrap_rc ?db errcode =
+  let errmsg = Option.map Sqlite3.errmsg db in
+  Error_msg {errcode; errmsg}
 
 let query_quotes q =
   let rec loop = function
@@ -173,7 +186,7 @@ let bind_quotes ~uri ~query stmt oq =
   let aux j x =
     (match Sqlite3.bind stmt (j + 1) (Sqlite3.Data.TEXT x) with
      | Sqlite3.Rc.OK -> Ok ()
-     | rc -> Error (Caqti_error.request_rejected ~uri ~query (Rc rc)))
+     | rc -> Error (Caqti_error.request_rejected ~uri ~query (wrap_rc rc)))
   in
   List.iteri_r aux oq
 
@@ -182,7 +195,7 @@ let encode_null_field ~uri stmt field_type iP =
    | Sqlite3.Rc.OK -> Ok ()
    | rc ->
       let typ = Caqti_type.field field_type in
-      Error (Caqti_error.encode_failed ~uri ~typ (Rc rc)))
+      Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
 
 let encode_field ~uri stmt field_type field_value iP =
   (match data_of_value ~uri field_type field_value with
@@ -191,7 +204,7 @@ let encode_field ~uri stmt field_type field_value iP =
        | Sqlite3.Rc.OK -> Ok ()
        | rc ->
           let typ = Caqti_type.field field_type in
-          Error (Caqti_error.encode_failed ~uri ~typ (Rc rc)))
+          Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
    | Error _ as r -> r)
 
 let encode_param ~uri stmt t x =
@@ -297,7 +310,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | Sqlite3.Rc.ROW ->
             decode_row ~uri ~query stmt row_type
          | rc ->
-            Error (Caqti_error.response_failed ~uri ~query (Rc rc)))
+            Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
 
       let exec ({row_type; query; _} as response) =
         assert (row_type = Caqti_type.unit);
@@ -308,7 +321,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
               let msg = Caqti_error.Msg "Received unexpected row for exec." in
               Error (Caqti_error.response_rejected ~uri ~query msg)
            | rc ->
-              Error (Caqti_error.response_failed ~uri ~query (Rc rc))) in
+              Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
+        in
         Preemptive.detach retrieve ()
 
       let find resp =
@@ -470,7 +484,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                  | Sqlite3.Rc.OK -> Ok (Hashtbl.remove pcache query_id)
                  | rc ->
                     let query = sprintf "DEALLOCATE %d" query_id in
-                    Error (Caqti_error.request_failed ~uri ~query (Rc rc))
+                    Error
+                      (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
                  | exception Sqlite3.Error msg ->
                     let query = sprintf "DEALLOCATE %d" query_id in
                     let msg = Caqti_error.Msg msg in

@@ -28,6 +28,7 @@ let rec ncompose n f acc = if n = 0 then acc else ncompose (n - 1) f (f acc)
 
 module Option = struct
   type 'a t = 'a option
+  let map f = function None -> None | Some x -> Some (f x)
   let fold f = function None -> ident | Some x -> f x
 end
 

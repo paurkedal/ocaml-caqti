@@ -25,3 +25,10 @@
     where [<path>] is passed to {!Sqlite3.db_open} and the query string is used
     to determine its [mode] parameter.  The [<bool>] parameters take the values
     [true] and [false], and default to [true]. *)
+
+type Caqti_error.msg += Error_msg of {
+  errcode: Sqlite3.Rc.t;
+    (** The OCaml encoding of the error code reported by [sqlite3_errcode]. *)
+  errmsg: string option;
+    (** The error message reportedy by [sqlite3_errmsg]. *)
+}

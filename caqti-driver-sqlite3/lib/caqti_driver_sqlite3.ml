@@ -186,7 +186,9 @@ let bind_quotes ~uri ~query stmt oq =
   let aux j x =
     (match Sqlite3.bind stmt (j + 1) (Sqlite3.Data.TEXT x) with
      | Sqlite3.Rc.OK -> Ok ()
-     | rc -> Error (Caqti_error.request_rejected ~uri ~query (wrap_rc rc)))
+     | rc ->
+        let typ = Caqti_type.string in
+        Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
   in
   List.iteri_r aux oq
 

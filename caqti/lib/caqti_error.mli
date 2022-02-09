@@ -115,6 +115,7 @@ val encode_failed : uri: Uri.t -> typ: 'a Caqti_type.t -> msg ->
 
 val request_rejected : uri: Uri.t -> query: string -> msg ->
   [> `Request_rejected of query_error]
+[@@deprecated]
 (** [request_rejected ~uri ~query msg] indicates that [query] was not accepted
     by the database or driver. *)
 
@@ -154,7 +155,7 @@ val response_rejected : uri: Uri.t -> query: string -> msg ->
 type call =
   [ `Encode_rejected of coding_error
   | `Encode_failed of coding_error
-  | `Request_rejected of query_error
+  | `Request_rejected of query_error (** [@deprecated No longer used.] *)
   | `Request_failed of query_error
   | `Response_rejected of query_error ]
 

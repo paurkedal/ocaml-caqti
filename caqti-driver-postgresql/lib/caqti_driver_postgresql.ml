@@ -39,44 +39,44 @@ let set_timezone_to_utc_req = Caqti_request.exec ~oneshot:true Caqti_type.unit
   "SET TimeZone TO 'UTC'"
 
 type Caqti_error.msg +=
-  | Connect_error of {
+  | Connect_error_msg of {
       error: Pg.error;
     }
-  | Communication_error of {
+  | Connection_error_msg of {
       error: Pg.error;
       connection_status: Pg.connection_status;
     }
-  | Result_error of {
+  | Result_error_msg of {
       error_message: string;
       sqlstate: string;
     }
 
-let extract_connect_error error = Connect_error {error}
+let extract_connect_error error = Connect_error_msg {error}
 
 let extract_communication_error connection error =
-  Communication_error {
+  Connection_error_msg {
     error;
     connection_status = connection#status;
   }
 
 let extract_result_error result =
-  Result_error {
+  Result_error_msg {
     error_message = result#error;
     sqlstate = result#error_field Pg.Error_field.SQLSTATE;
   }
 
 let () =
   let pp ppf = function
-   | Connect_error {error; _} | Communication_error {error; _} ->
+   | Connect_error_msg {error; _} | Connection_error_msg {error; _} ->
       Format.pp_print_string ppf (Pg.string_of_error error)
-   | Result_error {error_message; _} ->
+   | Result_error_msg {error_message; _} ->
       Format.pp_print_string ppf error_message
    | _ ->
       assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Connect_error];
-  Caqti_error.define_msg ~pp [%extension_constructor Communication_error];
-  Caqti_error.define_msg ~pp [%extension_constructor Result_error]
+  Caqti_error.define_msg ~pp [%extension_constructor Connect_error_msg];
+  Caqti_error.define_msg ~pp [%extension_constructor Connection_error_msg];
+  Caqti_error.define_msg ~pp [%extension_constructor Result_error_msg]
 
 let driver_info =
   Caqti_driver_info.create
@@ -603,7 +603,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (function
        | Ok _ as r -> return r
        | Error (`Request_failed
-            {Caqti_error.msg = Communication_error
+            {Caqti_error.msg = Connection_error_msg
               {error = Postgresql.Connection_failure _; _}; _})
             as r when n > 0 ->
           reset () >>= fun reset_ok ->

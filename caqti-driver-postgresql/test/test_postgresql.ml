@@ -30,7 +30,7 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
   (match C.find bad_select_req () with
    | Ok () -> Alcotest.fail "unexpected ok from bad_select"
    | Error (`Request_failed
-        {msg = Caqti_driver_postgresql.Result_error {sqlstate; _}; _}) ->
+        {msg = Caqti_driver_postgresql.Result_error_msg {sqlstate; _}; _}) ->
       assert (sqlstate = "42703")
    | Error err ->
       Alcotest.failf "unexpected error from bad_select: %a" Caqti_error.pp err)

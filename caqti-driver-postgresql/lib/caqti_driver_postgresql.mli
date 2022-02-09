@@ -33,19 +33,24 @@
     before passing the URI to libpq. *)
 
 type Caqti_error.msg +=
-  | Connect_error of {
+  | Connect_error_msg of {
       error: Postgresql.error;
         (** The exception raised by postgresql-ocaml. *)
     }
-  | Communication_error of {
+    (** An exception was raised while attempting to connect to the database. *)
+
+  | Connection_error_msg of {
       error: Postgresql.error;
         (** The exception raised by postgresql-ocaml. *)
       connection_status: Postgresql.connection_status;
         (** The connection status reported by [PQstatus]. *)
     }
-  | Result_error of {
+    (** An exception was raised while operating on the database connection. *)
+
+  | Result_error_msg of {
       error_message: string;
         (** The error message from [PQresultErrorMessage]. *)
       sqlstate: string;
         (** The SQLSTATE error field. *)
     }
+    (** An error was reported on the result from a database operation. *)

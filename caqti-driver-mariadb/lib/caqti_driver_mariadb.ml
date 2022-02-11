@@ -19,6 +19,23 @@ open Caqti_driver_lib
 open Caqti_common_priv
 open Printf
 
+let cause_of_errno = function
+ | 1022 -> `Unique_violation
+ | 1048 -> `Not_null_violation
+ | 1052 -> `Integrity_constraint_violation__don't_match
+ | 1062 -> `Unique_violation
+ | 1169 -> `Unique_violation
+ | 1216 -> `Foreign_key_violation
+ | 1217 -> `Foreign_key_violation
+ | 1451 -> `Foreign_key_violation
+ | 1452 -> `Foreign_key_violation
+ | 1557 -> `Integrity_constraint_violation__don't_match
+ | 1586 -> `Unique_violation
+ | 1761 -> `Integrity_constraint_violation__don't_match
+ | 1762 -> `Integrity_constraint_violation__don't_match
+ | 1859 -> `Integrity_constraint_violation__don't_match
+ | _ -> `Unspecified__don't_match
+
 type Caqti_error.msg += Error_msg of {errno: int; error: string}
 let () =
   let pp ppf = function
@@ -27,7 +44,11 @@ let () =
    | _ ->
       assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
+  let cause = function
+   | Error_msg {errno; _} -> cause_of_errno errno
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"

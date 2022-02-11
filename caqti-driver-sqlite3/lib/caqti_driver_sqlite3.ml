@@ -52,6 +52,12 @@ type Caqti_error.msg += Error_msg of {
   errmsg: string option;
 }
 
+let cause_of_rc : Sqlite3.Rc.t -> _ = function
+ | CONSTRAINT   -> `Integrity_constraint_violation__don't_match
+ | NOMEM        -> `Out_of_memory
+ | FULL         -> `Disk_full
+ | _            -> `Unspecified__don't_match
+
 let () =
   let pp ppf = function
    | Error_msg {errmsg; errcode} ->
@@ -61,7 +67,11 @@ let () =
          | Some errmsg -> errmsg)
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
+  let cause = function
+   | Error_msg {errcode; _} -> cause_of_rc errcode
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 let wrap_rc ?db errcode =
   let errmsg = Option.map Sqlite3.errmsg db in

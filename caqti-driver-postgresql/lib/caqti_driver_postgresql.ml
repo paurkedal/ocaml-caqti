@@ -65,6 +65,22 @@ let extract_result_error result =
     sqlstate = result#error_field Pg.Error_field.SQLSTATE;
   }
 
+let cause_of_sqlstate sqlstate =
+  (match sqlstate.[0], sqlstate.[1], sqlstate with
+   | '2', '3', "23001" -> `Restrict_violation
+   | '2', '3', "23502" -> `Not_null_violation
+   | '2', '3', "23503" -> `Foreign_key_violation
+   | '2', '3', "23505" -> `Unique_violation
+   | '2', '3', "23514" -> `Check_violation
+   | '2', '3', "23P01" -> `Exclusion_violation
+   | '2', '3', _ -> `Integrity_constraint_violation__don't_match
+   | '5', '3', "53100" -> `Disk_full
+   | '5', '3', "53200" -> `Out_of_memory
+   | '5', '3', "53300" -> `Too_many_connections
+   | '5', '3', "53400" -> `Configuration_limit_exceeded
+   | '5', '3', _ -> `Insufficient_resources__don't_match
+   | _ -> `Unspecified__don't_match)
+
 let () =
   let pp ppf = function
    | Connect_error_msg {error; _} | Connection_error_msg {error; _} ->
@@ -74,9 +90,13 @@ let () =
    | _ ->
       assert false
   in
+  let cause = function
+   | Result_error_msg {sqlstate; _} -> cause_of_sqlstate sqlstate
+   | _ -> assert false
+  in
   Caqti_error.define_msg ~pp [%extension_constructor Connect_error_msg];
   Caqti_error.define_msg ~pp [%extension_constructor Connection_error_msg];
-  Caqti_error.define_msg ~pp [%extension_constructor Result_error_msg]
+  Caqti_error.define_msg ~pp ~cause [%extension_constructor Result_error_msg]
 
 let driver_info =
   Caqti_driver_info.create

@@ -18,6 +18,33 @@
 (** Error descriptors. *)
 
 
+(** {2 Error Causes} *)
+
+type integrity_constraint_violation = [
+  | `Restrict_violation
+  | `Not_null_violation
+  | `Foreign_key_violation
+  | `Unique_violation
+  | `Check_violation
+  | `Exclusion_violation
+  | `Integrity_constraint_violation__don't_match
+]
+
+type insufficient_resources = [
+  | `Disk_full
+  | `Out_of_memory
+  | `Too_many_connections
+  | `Configuration_limit_exceeded
+  | `Insufficient_resources__don't_match
+]
+
+type cause = [
+  | integrity_constraint_violation
+  | insufficient_resources
+  | `Unspecified__don't_match
+]
+
+
 (** {2 Messages} *)
 
 type msg = ..
@@ -28,6 +55,7 @@ type msg = ..
 
 val define_msg :
   pp: (Format.formatter -> msg -> unit) ->
+  ?cause: (msg -> cause) ->
   extension_constructor -> unit
 (** Mandatory registration of pretty-printer for a driver-supplied error
     descriptor.  *)
@@ -193,6 +221,8 @@ val pp : Format.formatter -> [< t] -> unit
 
 val show : [< t] -> string
 (** [show error] is an explanation of [error]. *)
+
+val cause : [< `Request_failed of query_error] -> cause
 
 val uncongested :
   ('a, [< t | `Congested of Caqti_common.counit]) result ->

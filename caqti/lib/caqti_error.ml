@@ -17,22 +17,54 @@
 
 open Caqti_compat [@@warning "-33"]
 
+(* Error Cause *)
+
+type integrity_constraint_violation = [
+  | `Restrict_violation
+  | `Not_null_violation
+  | `Foreign_key_violation
+  | `Unique_violation
+  | `Check_violation
+  | `Exclusion_violation
+  | `Integrity_constraint_violation__don't_match
+]
+
+type insufficient_resources = [
+  | `Disk_full
+  | `Out_of_memory
+  | `Too_many_connections
+  | `Configuration_limit_exceeded
+  | `Insufficient_resources__don't_match
+]
+
+type cause = [
+  | integrity_constraint_violation
+  | insufficient_resources
+  | `Unspecified__don't_match
+]
+
 (* Driver *)
 
 type msg = ..
 
-let msg_pp = Hashtbl.create 7
+type msg_impl = {
+  msg_pp: Format.formatter -> msg -> unit;
+  msg_cause: msg -> cause;
+}
+let msg_impl = Hashtbl.create 7
 
-let define_msg ~pp ec = Hashtbl.add msg_pp ec pp
+let default_cause _ = `Unspecified__don't_match
 
-let pp_msg ppf msg =
+let define_msg ~pp ?(cause = default_cause) ec =
+  Hashtbl.add msg_impl ec {msg_pp = pp; msg_cause = cause}
+
+let find_impl msg =
   let c = Obj.Extension_constructor.of_val msg in
   try
-    let pp = Hashtbl.find msg_pp c in
-    pp ppf msg
+    Hashtbl.find msg_impl c
   with Not_found ->
-    Format.fprintf ppf
-      "[FIXME: missing printer for (%s _ : Caqti_error.msg)]"
+    Printf.ksprintf failwith
+      "Missing call to Caqti_error.define_msg for (%s _ : Caqti_error.msg)]"
       (Obj.Extension_constructor.name c)
 
 type msg += Msg : string -> msg
@@ -47,8 +79,12 @@ let () =
       Format.pp_print_string ppf s;
       if s <> "" && not (is_punct s.[String.length s - 1]) then
         Format.pp_print_char ppf '.'
-   | _ -> assert false in
-  define_msg ~pp [%extension_constructor Msg]
+   | _ -> assert false
+  in
+  define_msg ~pp ~cause:default_cause [%extension_constructor Msg]
+
+let pp_msg ppf msg =
+  (find_impl msg).msg_pp ppf msg
 
 (* We don't want to expose any DB password in error messages. *)
 let pp_uri ppf uri =
@@ -211,6 +247,9 @@ let show_of_pp pp err =
   Buffer.contents buf
 
 let show err = show_of_pp pp err
+
+let cause (`Request_failed (err : query_error)) =
+  (find_impl err.msg).msg_cause err.msg
 
 let uncongested = function
  | Error #t | Ok _ as x -> x

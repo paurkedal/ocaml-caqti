@@ -28,6 +28,7 @@ type msg = ..
 
 val define_msg :
   pp: (Format.formatter -> msg -> unit) ->
+  ?sqlstate: (msg -> string) ->
   extension_constructor -> unit
 (** Mandatory registration of pretty-printer for a driver-supplied error
     descriptor.  *)
@@ -193,6 +194,24 @@ val pp : Format.formatter -> [< t] -> unit
 
 val show : [< t] -> string
 (** [show error] is an explanation of [error]. *)
+
+val sqlstate :
+  [< `Request_failed of query_error] -> string
+(** [sqlstate error] returns the five-letter SQLSTATE classification of the
+    error to the extent that it is supported.  An unspecified dummy five-letter
+    string is used if the error is unmapped.  You can therefore safely project
+    out the first two letters to match the category.  Note that any code ending
+    in 000 may be specialized in future versions without prior notice, so you
+    should only rely on a category-match of these codes, e.g.
+    {[
+      let sqlstate = Caqti_error.sqlstate error in
+      (match sqlstate.[0], sqlstate.[1], sqlstate with
+       | '2', '3', "23514" -> handle_check_constraint_failure ()
+       | '2', '3', _ -> handle_constraint_failure ()
+       | _ -> handle_other_errors ())
+    ]}
+    avoids matching ["23000"] and suggests how to deal with more specific cases
+    if they need different handling. *)
 
 val uncongested :
   ('a, [< t | `Congested of Caqti_common.counit]) result ->

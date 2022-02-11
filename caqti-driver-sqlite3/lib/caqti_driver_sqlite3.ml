@@ -52,6 +52,15 @@ type Caqti_error.msg += Error_msg of {
   errmsg: string option;
 }
 
+let sqlstate_of_rc : Sqlite3.Rc.t -> string = function
+ | OK           -> "00000"
+ | NOMEM        -> "53200"
+ | READONLY     -> "2F002"
+ | FULL         -> "53100"
+ | CONSTRAINT   -> "23000"
+ | AUTH         -> "2F003"
+ | _            -> "?????"
+
 let () =
   let pp ppf = function
    | Error_msg {errmsg; errcode} ->
@@ -61,7 +70,11 @@ let () =
          | Some errmsg -> errmsg)
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
+  let sqlstate = function
+   | Error_msg {errcode; _} -> sqlstate_of_rc errcode
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp ~sqlstate [%extension_constructor Error_msg]
 
 let wrap_rc ?db errcode =
   let errmsg = Option.map Sqlite3.errmsg db in

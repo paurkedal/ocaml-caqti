@@ -74,9 +74,13 @@ let () =
    | _ ->
       assert false
   in
+  let sqlstate = function
+   | Result_error_msg {sqlstate; _} -> sqlstate
+   | _ -> assert false
+  in
   Caqti_error.define_msg ~pp [%extension_constructor Connect_error_msg];
   Caqti_error.define_msg ~pp [%extension_constructor Connection_error_msg];
-  Caqti_error.define_msg ~pp [%extension_constructor Result_error_msg]
+  Caqti_error.define_msg ~pp ~sqlstate [%extension_constructor Result_error_msg]
 
 let driver_info =
   Caqti_driver_info.create

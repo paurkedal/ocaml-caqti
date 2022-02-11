@@ -19,6 +19,23 @@ open Caqti_driver_lib
 open Caqti_common_priv
 open Printf
 
+let sqlstate_of_errno = function
+ | 1022 -> "23505"
+ | 1048 -> "23502"
+ | 1052 -> "23000"
+ | 1062 -> "23505"
+ | 1169 -> "23505"
+ | 1216 -> "23503"
+ | 1217 -> "23503"
+ | 1451 -> "23503"
+ | 1452 -> "23503"
+ | 1557 -> "23000"
+ | 1586 -> "23505"
+ | 1761 -> "23000"
+ | 1762 -> "23000"
+ | 1859 -> "23000"
+ | _ -> "?????"
+
 type Caqti_error.msg += Error_msg of {errno: int; error: string}
 let () =
   let pp ppf = function
@@ -27,7 +44,11 @@ let () =
    | _ ->
       assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Error_msg]
+  let sqlstate = function
+   | Error_msg {errno; _} -> sqlstate_of_errno errno
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp ~sqlstate [%extension_constructor Error_msg]
 
 let set_utc_req =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"

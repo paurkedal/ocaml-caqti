@@ -21,18 +21,24 @@ open Caqti_compat [@@warning "-33"]
 
 type msg = ..
 
-let msg_pp = Hashtbl.create 7
+type msg_impl = {
+  msg_pp: Format.formatter -> msg -> unit;
+  msg_sqlstate: msg -> string;
+}
+let msg_impl = Hashtbl.create 7
 
-let define_msg ~pp ec = Hashtbl.add msg_pp ec pp
+let default_sqlstate _ = "?????"
 
-let pp_msg ppf msg =
+let define_msg ~pp ?(sqlstate = default_sqlstate) ec =
+  Hashtbl.add msg_impl ec {msg_pp = pp; msg_sqlstate = sqlstate}
+
+let find_impl msg =
   let c = Obj.Extension_constructor.of_val msg in
   try
-    let pp = Hashtbl.find msg_pp c in
-    pp ppf msg
+    Hashtbl.find msg_impl c
   with Not_found ->
-    Format.fprintf ppf
-      "[FIXME: missing printer for (%s _ : Caqti_error.msg)]"
+    Printf.ksprintf failwith
+      "Missing call to Caqti_error.define_msg for (%s _ : Caqti_error.msg)]"
       (Obj.Extension_constructor.name c)
 
 type msg += Msg : string -> msg
@@ -48,7 +54,10 @@ let () =
       if s <> "" && not (is_punct s.[String.length s - 1]) then
         Format.pp_print_char ppf '.'
    | _ -> assert false in
-  define_msg ~pp [%extension_constructor Msg]
+  define_msg ~pp ~sqlstate:default_sqlstate [%extension_constructor Msg]
+
+let pp_msg ppf msg =
+  (find_impl msg).msg_pp ppf msg
 
 (* We don't want to expose any DB password in error messages. *)
 let pp_uri ppf uri =
@@ -211,6 +220,9 @@ let show_of_pp pp err =
   Buffer.contents buf
 
 let show err = show_of_pp pp err
+
+let sqlstate (`Request_failed (err : query_error)) =
+  (find_impl err.msg).msg_sqlstate err.msg
 
 let uncongested = function
  | Error #t | Ok _ as x -> x

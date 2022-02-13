@@ -1,30 +1,60 @@
-## v1.7.0 - unreleased
+## v1.7.0 - 2022-02-13
 
-- Added a new query string parser based on Angstrom.
-- Support passing a query environment to the connect and pool construction
-  functions.  This avoids using globals to modify the environment.
-- A new `Caqti_query.E` case was added to support the two above cases.  This
-  breaks existing code which creates a type alias, and causes a
-  non-exhaustiveness warning if pattern matching on it.
-- Added a new high-level API to construct queries which uses the new query
-  string parser.  It uses two-stage combinators, first to apply type
-  arguments then to apply the query string.
-- Fixed delayed recovery of connection pools after loosing connections to
-  PostgreSQL.  Due to a missing call to consume inputs, the pool validator
-  did not discover that a connection was lost before it was attempted
-  reused.
-- Support query timeouts for PostgreSQL and MariaDB (#74).
-- Improved resilience against exceptions and monadic errors in callbacks and
-  fixed in-use checking.
-- Added `with_transaction` function.
-- The test suite has been switch to use Alcotest and somewhat extended.
-- The Caqti license now uses the LGPL-3.0 Linking Exception instead of a
-  rephrasing of the OCaml LGPL Linking Exception, which was not designed for
-  LGPL-3.0.
-- Changed Sqlite3 driver to use non-linear parameters and improve error
-  reporting when the wrong number of arguments are received (#77 & GPR#79
-  Reynir Björnsson).
-- Improved documentation, pretty-printing, logging, and exceptions.
+New features:
+
+  - Added a new query-string parser based on Angstrom.  Its main advantage
+    is that it can be used stand-alone e.g. to load SQL schemas from files
+    split into individual statements which can be sent to the database.
+
+  - Support passing a query environment to the connect and pool construction
+    functions.  This avoids using globals to modify the environment and
+    facilitates e.g. targeting different database schemas with different
+    connetions or connection pools.
+
+  - A new `Caqti_query.E` case was added to support the two above cases.
+    This is a breaking change, but hopefully does not break existing code.
+    The exception (not counting `module type of`) would be if the
+    constructors are aliased along with an alias of the type.  On the other
+    hand, pattern matching should be compatible since the new constructor is
+    only emitted by newly introduced functions.
+
+  - Added a module `Caqti_request.Infix` providing a new high-level API for
+    constructing requests.  It uses two-stage combinators, first to apply
+    type arguments then to apply the query string.  Apart from allowing
+    nicer looking code, this solves the problem of switching to a the query
+    string parser while maintaining backwards compatibility.
+
+  - Added `set_statement_timeout` to connection modules, used to set query
+    timeout.  It is only supported for PostgreSQL and MariaDB. (#74)
+
+  - Added `with_transaction` function to connection modules.  This is just
+    fail-safed wrapper around `start`, `commit`, and `rollback`.
+
+Fixes:
+
+  - Fixed delayed recovery of connection pools after loosing connections to
+    PostgreSQL.  Due to a missing call to consume inputs, the pool validator
+    did not discover that a connection was lost before it was attempted
+    reused.
+
+  - Improved resilience against exceptions and monadic errors in callbacks
+    and fixed in-use checking.
+
+  - Changed Sqlite3 driver to use non-linear parameters and improve error
+    reporting when the wrong number of arguments are received (#77 & GPR#79
+    Reynir Björnsson).
+
+Other changes:
+
+  - The Caqti license now uses the LGPL-3.0 Linking Exception instead of a
+    rephrasing of the OCaml LGPL Linking Exception which was written for
+    LGPL-2.1.
+
+  - Improved documentation, pretty-printing, logging, and exception details.
+
+  - The test suite has been switched to use Alcotest; not without some
+    struggle due to the use of test harness and argument-dependent test
+    suite, but the result seems like a clear improvement.
 
 ## v1.6.0 - 2021-06-10
 

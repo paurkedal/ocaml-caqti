@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,10 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** SQL IO utility functions. *)
+(** SQL IO utility functions.
+
+    @deprecated New code should instead use {!Caqti_query.angstrom_parser} with
+    the appropriate parsing function from the Angstrom library. *)
 
 (** The concurrency monad assumed by {!Make}. *)
 module type MONAD = sig
@@ -38,7 +41,10 @@ module type S = sig
 
       This can be used e.g. to read in SQL schemas or schema updates from a file
       for automatic initialization and updates of tables, sequences, functions,
-      views, etc. *)
+      views, etc.
+
+      @deprecated New code should instead use {!Caqti_query.angstrom_parser}
+      with the appropriate parsing function from the Angstrom library. *)
 end
 
 (** The implementation. *)

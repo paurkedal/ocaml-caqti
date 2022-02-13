@@ -56,7 +56,7 @@ let () =
 
 let query_quotes q =
   let rec loop = function
-   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
+   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> ident
    | Caqti_query.Q quote -> List.cons quote
    | Caqti_query.S qs -> List.fold loop qs
   in

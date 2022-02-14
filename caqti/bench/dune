@@ -1,5 +1,4 @@
 (executable
  (name bench_stream)
  (modules bench_stream)
- (preprocess (pps lwt_ppx))
  (libraries benchmark caqti lwt lwt.unix))

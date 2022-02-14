@@ -1,4 +1,4 @@
-(* Copyright (C) 2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
  *)
 
 open Lwt.Infix
+open Lwt.Syntax
 
 let data = List.init 100_000 begin fun i ->
   let x = float_of_int (i + 1) in
@@ -64,7 +65,7 @@ let test_stream_blocking =
 let test_stream_lwt =
   let stream = Stream_lwt.of_list data in
   fun () -> Lwt_main.run begin
-    let%lwt (_ : float) =
+    let* (_ : float) =
       Stream_lwt.fold ~f:(+.) stream 0.0 >|= function
        | Ok x -> x
        | Error (`Congested err) -> Caqti_common.absurd err
@@ -76,7 +77,7 @@ let test_stream_lwt =
 let test_lwt_stream =
   let stream = Lwt_stream.of_list data in (* OBS: Not re-iterable. *)
   fun () -> Lwt_main.run begin
-    let%lwt (_ : float) = Lwt_stream.fold (+.) stream 0.0 in
+    let* (_ : float) = Lwt_stream.fold (+.) stream 0.0 in
     Lwt.return_unit
   end
 *)

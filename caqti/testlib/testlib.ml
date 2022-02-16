@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,19 +41,20 @@ let common_args =
   in
   let uris_file =
     let doc = "File from which to load URI(s) if no -u option is passed." in
-    let env = Term.env_info "CAQTI_TEST_URIS_FILE" in
+    let env = Cmd.Env.info "CAQTI_TEST_URIS_FILE" in
     Arg.(value @@ opt file "uris.conf" @@ info ~doc ~env ["U"])
+  in
+  let log_level_conv =
+    let pp ppf level =
+      Format.pp_print_string ppf (Logs.level_to_string level)
+    in
+    Arg.conv (Logs.level_of_string, pp)
   in
   let log_level =
     let doc = "Log level." in
-    let conv' =
-      let pp ppf level =
-        Format.pp_print_string ppf (Logs.level_to_string level)
-      in
-      Arg.conv (Logs.level_of_string, pp)
-    in
-    let env = Cmdliner.Term.env_info "CAQTI_TEST_LOG_LEVEL" in
-    Arg.(value @@ opt conv' (Some Logs.Info) @@ info ~doc ~env ["log-level"])
+    let env = Cmd.Env.info "CAQTI_TEST_LOG_LEVEL" in
+    Arg.(value @@ opt log_level_conv (Some Logs.Info) @@
+         info ~doc ~env ["log-level"])
   in
   let preprocess log_level uris uris_file =
     Logs.set_level log_level;
@@ -83,7 +84,7 @@ struct
 
   let run_with_args_dependency ?argv name term make_tests =
     let tests =
-      (match Cmdliner.Term.eval_peek_opts ~version_opt:true ?argv term with
+      (match Cmdliner.Cmd.eval_peek_opts ~version_opt:true ?argv term with
        | Some arg, _ -> make_tests arg
        | _ -> [])
     in

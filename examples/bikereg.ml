@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -150,10 +150,12 @@ let main uris = Lwt_main.run begin
 end
 
 let main_cmd =
-  let open Cmdliner.Term in
+  let open Cmdliner in
   let doc = "Caqti bikereg example." in
   (* If you wish to play with this outside the Caqti distribution, replace
      "Testlib.common_args" with the "uris" definition from that function. *)
-  (const main $ Testlib.common_args, info ~doc "bikereg")
+  let term = Term.(const main $ Testlib.common_args) in
+  let info = Cmd.info ~doc "bikereg" in
+  Cmd.v info term
 
-let () = Cmdliner.Term.(eval main_cmd |> exit)
+let () = exit (Cmdliner.Cmd.eval main_cmd)

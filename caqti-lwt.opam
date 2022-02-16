@@ -12,7 +12,7 @@ depends: [
   "caqti" {>= "1.7.0" & < "1.8.0~"}
   "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
   "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
-  "cmdliner" {with-test & < "1.1.0~"}
+  "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "2.0"}
   "logs"
   "lwt" {>= "3.2.0"}

@@ -24,7 +24,16 @@
     ]}
     where [<path>] is passed to {!Sqlite3.db_open} and the query string is used
     to determine its [mode] parameter.  The [<bool>] parameters take the values
-    [true] and [false], and default to [true]. *)
+    [true] and [false], and default to [true].
+
+    The interface provided by this module {e should normally not be used by
+    applications}, but provides access to some Sqlite3 specifics in case they
+    are needed. *)
+
+(** {1 Error Details}
+
+    The following provides access to diagnostics collected from the Sqlite3
+    connection. *)
 
 type Caqti_error.msg += Error_msg of {
   errcode: Sqlite3.Rc.t;

@@ -23,7 +23,16 @@
       mariadb://<user>:<password>@<host>:<port>/?socket=<socket>
     ]}
     where components are optional and present ones are passed on to the
-    correspondingly named arguments to the [connect] function of MariaDB. *)
+    correspondingly named arguments to the [connect] function of MariaDB.
+
+    The interface provided by this module {e should normally not be used by
+    applications}, but provides access to some MariaDB specifics in case they
+    are needed. *)
+
+(** {1 Error Details}
+
+    The following provides access to diagnostics collected from the MariaDB
+    connection and statement objects. *)
 
 type Caqti_error.msg += Error_msg of {
   errno: int;

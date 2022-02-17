@@ -30,7 +30,16 @@
     Additionally the query option [notice_processing] can be set to [quiet] (the
     default) to suppress notices or to [stderr] to emit notices to standard
     error.  This option is interpreted by the Caqti driver and stripped off
-    before passing the URI to libpq. *)
+    before passing the URI to libpq.
+
+    The interface provided by this module {e should normally not be used by
+    applications}, but provides access to some PostgreSQL specifics in case they
+    are needed. *)
+
+(** {1 Error Details}
+
+    The following gives access to diagnostics collected from the PostgreSQL
+    connection and result objects. *)
 
 type Caqti_error.msg +=
   | Connect_error_msg of {

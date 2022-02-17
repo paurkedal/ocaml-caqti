@@ -104,8 +104,8 @@ module Infix : sig
       {!Caqti_query.of_string_exn}.
 
       The [?oneshot] argument defaults to [false], so when not constructing
-      one-shot queries, the full application [(pt --> rt) f] can be written
-      [pt --> rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
+      one-shot queries, the full application [(pt -->! rt) f] can be written
+      [pt -->! rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
 
       In the simplest case you can use this module directly together with
       {!Caqti_type}:
@@ -113,11 +113,11 @@ module Infix : sig
         let bounds_upto_req =
           let open Caqti_type.Std in
           let open Caqti_request.Infix in
-          tup2 int32 float --> option (tup2 float float) @:-
+          tup2 int32 float -->! option (tup2 float float) @:-
           "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
-      For more complex applications it may be to provide a custom module, to
-      avoid the double open and to customize the operators, e.g.
+      For more complex applications it may be convenient to provide a custom
+      module, to avoid the double open and to customize the operators, e.g.
       {[
         module Caqtireq = struct
           include Caqti_type.Std
@@ -153,14 +153,62 @@ module Infix : sig
       If you don't like using global references, or you need to work with
       different enviroments for different connections, you should instead pass
       the environment function when connecting to the database.  We can now
-      simplify and schema-qualify the previous request:
+      simplify and schema-qualify the previous request,
       {[
         let bounds_upto_req =
           let open Caqtireq in
-          tup2 int32 float --> option (tup2 float float) @:-
+          tup2 int32 float -->! option (tup2 float float) @:-
+          "SELECT min(y), max(y) FROM $.samples WHERE series_id = ? AND x < ?"
+      ]}
+      {!section:indep} also provides alternative arrow operators for this common
+      case, which allows using short-from local open,
+      {[
+        let bounds_upto_req =
+          Caqtireq.(tup2 int32 float ->! option (tup2 float float))
           "SELECT min(y), max(y) FROM $.samples WHERE series_id = ? AND x < ?"
       ]}
    *)
+
+  (** {2:indep Constructors for Driver-Independent Requests} *)
+
+  val (->.) :
+    'a Caqti_type.t -> unit Caqti_type.t ->
+    ?oneshot: bool -> string -> ('a, unit, [`Zero]) t
+  (** [(pt ->. Caqti_type.unit) ?oneshot s] is the request which sends the
+      equery string [s], encodes parameters according to [pt], and expects no
+      result rows. See {!create} for the meaning of [oneshot]. *)
+
+  val (->!) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`One]) t
+  (** [(pt ->! rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes a single result row
+      according to [rt]. See {!create} for the meaning of [oneshot]. *)
+
+  val (->?) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One]) t
+  (** [(pt ->? rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes zero or one result row
+      according to [rt]. See {!create} for the meaning of [oneshot]. *)
+
+  val (->*) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One | `Many]) t
+  (** [(pt ->* rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes any number of result
+      rows according to [rt]. See {!create} for the meaning of [oneshot]. *)
+
+  (** {2 Constructors for Driver-Dependent Requests}
+
+      The below arrow operators takes a function instead of a string as their
+      third argument.  The function receives information about the current
+      driver and returns a {!Caqti_query.t}.  This is the most general way of
+      providing the query string.
+
+      As an alternative to using plain application (or [@@]) for the third
+      positional argument, additional application operators are provided for
+      convenience. *)
 
   val (-->.) :
     'a Caqti_type.t -> unit Caqti_type.t ->
@@ -170,7 +218,7 @@ module Infix : sig
       query string returned by [f], encodes parameters according to [pt], and
       expects no result rows. See {!create} for the meaning of [oneshot]. *)
 
-  val (-->) :
+  val (-->!) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`One]) t
@@ -197,20 +245,20 @@ module Infix : sig
       number of result rows according to [rt]. See {!create} for the meaning of
       [oneshot]. *)
 
-  (** {2 Specialized Application Operators}
-
-      As an alternative to using plain application (or [@@]) for the third
-      positional argument of the above arrow operators, the following
-      application operators transform the argument from a form which is often
-      more convenient.  In particular, they accept queries expressed as
-      {{!query_template} strings} instead of the {!Caqti_query.t} constructors
-      which are more suitable for dynamically generated queries. *)
+  (**/**)
+  val (-->) :
+    'a Caqti_type.t -> 'b Caqti_type.t ->
+    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
+    ('a, 'b, [`One]) t
+  [@deprecated "Renamed to (-->!) for consistency with (->!)."]
+  (**/**)
 
   val (@:-) :
     ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
     string -> ('a, 'b, 'm) t
   (** Applies a dialect-independent query string which is parsed with
-      {!Caqti_query.of_string_exn}. *)
+      {!Caqti_query.of_string_exn}.  Composition with arrow operators from this
+      section, gives the corresponding operators from {!section:indep}. *)
 
   val (@@:-) :
     ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->

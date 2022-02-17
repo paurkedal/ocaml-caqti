@@ -50,10 +50,12 @@ let query request = request.query
 (* Convenience Interface *)
 
 module Infix = struct
-  let (-->.) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero f
-  let (-->)  pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.one f
-  let (-->?) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero_or_one f
-  let (-->*) pt rt ?oneshot f = create ?oneshot pt rt Caqti_mult.zero_or_more f
+  let (-->.) t u ?oneshot f = create ?oneshot t u Caqti_mult.zero f
+  let (-->!) t u ?oneshot f = create ?oneshot t u Caqti_mult.one f
+  let (-->?) t u ?oneshot f = create ?oneshot t u Caqti_mult.zero_or_one f
+  let (-->*) t u ?oneshot f = create ?oneshot t u Caqti_mult.zero_or_more f
+
+  let (-->) = (-->!)
 
   let (@:-) f s =
     let q = Caqti_query.of_string_exn s in
@@ -61,6 +63,11 @@ module Infix = struct
 
   let (@@:-) f g =
     f (Caqti_query.of_string_exn % g % Caqti_driver_info.dialect_tag)
+
+  let (->.) t u ?oneshot s = create ?oneshot t u Caqti_mult.zero @:- s
+  let (->!) t u ?oneshot s = create ?oneshot t u Caqti_mult.one @:- s
+  let (->?) t u ?oneshot s = create ?oneshot t u Caqti_mult.zero_or_one @:- s
+  let (->*) t u ?oneshot s = create ?oneshot t u Caqti_mult.zero_or_more @:- s
 end
 
 

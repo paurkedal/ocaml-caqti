@@ -1,0 +1,43 @@
+name: Deploy API Documentation
+
+on:
+  push:
+    branches:
+      - deploy-doc
+
+jobs:
+  deploy-doc:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml 4.13.x
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.13.x
+          dune-cache: true
+          opam-pin: false
+          opam-depext: false
+
+      - name: Pin packages
+        run: |
+          version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
+          for f in *.opam; do
+            opam pin add -yn "${f%.opam}.${version}" .
+          done
+        shell: bash
+
+      - name: Install system dependencies
+        run: |
+          opam depext -y --with-doc $(ls -1 *.opam | sed -e 's/\.opam$//')
+          sudo apt-get install -y libmariadb-dev
+        shell: bash
+
+      - name: Install OCaml dependencies
+        run: opam install --deps-only -y --with-doc $(ls -1 *.opam | sed -e 's/\.opam$//')
+        shell: bash
+
+      - name: Deploy odoc to GitHub Pages
+        uses: ocaml/setup-ocaml/deploy-doc@v2

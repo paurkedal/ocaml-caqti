@@ -104,8 +104,8 @@ module Infix : sig
       {!Caqti_query.of_string_exn}.
 
       The [?oneshot] argument defaults to [false], so when not constructing
-      one-shot queries, the full application [(pt --> rt) f] can be written [pt
-      --> rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
+      one-shot queries, the full application [(pt --> rt) f] can be written
+      [pt --> rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
 
       In the simplest case you can use this module directly together with
       {!Caqti_type}:

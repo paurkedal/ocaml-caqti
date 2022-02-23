@@ -342,23 +342,45 @@ val collect :
 
 (** {2 Printing} *)
 
+val make_pp :
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+  ?driver_info: Caqti_driver_info.t ->
+  unit -> Format.formatter -> ('a, 'b, 'm) t -> unit
+(** [make_pp ?env ?driver_info ()] is a pretty-printer for a request, which
+    expands the query using [env] and [driver_info].
+
+    @param env
+      Used to partially expand the query string.  Defaults to the empty
+      environment.
+
+    @param driver_info
+      The driver info to pass to the call-back which returns the query.
+      Defaults to {!Caqti_driver_info.dummy}. *)
+
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human
     inspection. *)
 
+val make_pp_with_param :
+  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+  ?driver_info: Caqti_driver_info.t ->
+  unit -> Format.formatter -> ('a, 'b, 'm) t * 'a -> unit
+(** [make_pp_with_param ?env ?driver_info ()] is a pretty-printer for a
+    request and parameter pair.  See {!make_pp} for the optional arguments.
+    This functions is meant for debugging; the output is neither guaranteed to
+    be consistent across releases nor to contain a complete record of the data.
+    Lost database records cannot be reconstructed from the logs.
+
+    Due to concerns about exposure of sensitive data in debug logs, this
+    function only prints the parameter values if [CAQTI_DEBUG_PARAM] is set to
+    [true].  If you enable it for applications which do not consistenly annotate
+    sensitive parameters with {!Caqti_type.redacted}, make sure your debug logs
+    are well-secured. *)
+
 val pp_with_param :
   ?driver_info: Caqti_driver_info.t ->
   Format.formatter -> ('a, 'b, 'm) t * 'a -> unit
-(** [pp_with_param ppf (req, param)] prints [req] and the associated [param] to
-    [ppf].  This functions is meant for debugging; the output is neither
-    guaranteed to be consistent across releases nor to contain a complete record
-    of the data.
-
-    Due to concerns about exposure of sensitive data in debug logs, this
-    function reverts to {!pp} unless the environment varibale
-    [CAQTI_DEBUG_PARAM] is set to [true]. If you enable it for applications
-    which do not consistenly annotate sensitive parameters with
-    {!Caqti_type.redacted}, make sure your debug logs are well secured. *)
+[@@deprecated "Use make_pp_with_param."]
 
 (** {2 How to Dynamically Assemble Queries and Parameters}
 

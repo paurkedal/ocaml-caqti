@@ -550,12 +550,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val env : string -> Caqti_query.t
+      val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
       val db : Pg.connection
     end) =
   struct
     open Connection_arg
+
+    let env' = env driver_info
 
     module Copy_encoder = Make_encoder (struct
 
@@ -721,17 +723,19 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let type_oid_cache = Hashtbl.create 19
 
+    let pp_request_with_param ppf =
+      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+
     let call' ~f req param =
       Log.debug ~src:request_log_src (fun f ->
-        f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
-        >>= fun () ->
+        f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
 
       (* Prepare, if requested, and send the query. *)
       let param_type = Caqti_request.param_type req in
       (match Caqti_request.query_id req with
        | None ->
           let templ = Caqti_request.query req driver_info in
-          let query = Pg_ext.query_string ~env db templ in
+          let query = Pg_ext.query_string ~env:env' db templ in
           let param_length = Caqti_type.length param_type in
           let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
@@ -750,7 +754,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             try Ok (Int_hashtbl.find prepare_cache query_id) with
              | Not_found ->
                 let templ = Caqti_request.query req driver_info in
-                let query = Pg_ext.query_string ~env db templ in
+                let query = Pg_ext.query_string ~env:env' db templ in
                 let param_length = Caqti_type.length param_type in
                 let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
@@ -968,7 +972,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                 db#set_notice_processing notice_processing;
                 let module B = Make_connection_base
                   (struct
-                    let env = env driver_info
+                    let env = env
                     let uri = uri
                     let db = db
                   end)

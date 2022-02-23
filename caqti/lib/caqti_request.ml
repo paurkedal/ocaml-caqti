@@ -206,7 +206,9 @@ let find_opt ?env ?oneshot pt rt qs =
 let collect ?env ?oneshot pt rt qs =
   create_p ?env ?oneshot pt rt Caqti_mult.zero_or_more (fun _ -> qs)
 
-let pp ppf req =
+let make_pp ?(env = no_env) ?(driver_info = Caqti_driver_info.dummy) ()
+            ppf req =
+  let query = Caqti_query.expand (env driver_info) (req.query driver_info) in
   Format.fprintf ppf "(%a -->%s %a) {|%a|}"
     Caqti_type.pp req.param_type
     (match Caqti_mult.expose req.row_mult with
@@ -215,7 +217,9 @@ let pp ppf req =
      | `Zero_or_one -> "?"
      | `Zero_or_more -> "*")
     Caqti_type.pp req.row_type
-    Caqti_query.pp (req.query Caqti_driver_info.dummy)
+    Caqti_query.pp query
+
+let pp ppf = make_pp () ppf
 
 let pp_with_param_enabled =
   (match Sys.getenv "CAQTI_DEBUG_PARAM" with
@@ -226,6 +230,12 @@ let pp_with_param_enabled =
         f "Invalid value %s for CAQTI_DEBUG_PARAM, assuming false." s);
       false
    | exception Not_found -> false)
+
+let make_pp_with_param ?env ?driver_info () ppf (req, param) =
+  let pp = make_pp ?env ?driver_info () in
+  pp ppf req;
+  if pp_with_param_enabled then
+    Format.fprintf ppf " %a" Caqti_type.pp_value (req.param_type, param)
 
 let pp_with_param ?(driver_info = Caqti_driver_info.dummy) ppf (req, param) =
   if pp_with_param_enabled then

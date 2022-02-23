@@ -283,12 +283,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val env : string -> Caqti_query.t
+      val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
       val db : Mdb.t
     end) =
   struct
     open Connection_arg
+
+    let env' = env driver_info
 
     let using_db_ref = ref false
     let using_db f =
@@ -388,9 +390,12 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
     let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
 
+    let pp_request_with_param ppf =
+      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+
     let call ~f req param = using_db @@ fun () ->
       Log.debug ~src:request_log_src (fun f ->
-        f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
+        f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 
       let process {query; stmt; param_length; param_order; quotes} =
@@ -410,7 +415,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       (match Caqti_request.query_id req with
        | None ->
           let templ = Caqti_request.query req driver_info in
-          let templ = Caqti_query.expand ~final:true env templ in
+          let templ = Caqti_query.expand ~final:true env' templ in
           let query = linear_query_string templ in
           Mdb.prepare db query >>=
           (function
@@ -432,7 +437,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           (try return (Ok (Hashtbl.find pcache id)) with
            | Not_found ->
               let templ = Caqti_request.query req driver_info in
-              let templ = Caqti_query.expand ~final:true env templ in
+              let templ = Caqti_query.expand ~final:true env' templ in
               let query = linear_query_string templ in
               Mdb.prepare db query >|=
               (function
@@ -552,7 +557,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      | Ok db ->
         let module B = Make_connection_base
           (struct
-            let env = env driver_info
+            let env = env
             let uri = uri
             let db = db
           end)

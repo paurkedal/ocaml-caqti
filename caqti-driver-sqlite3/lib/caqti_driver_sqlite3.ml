@@ -276,12 +276,14 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val env : string -> Caqti_query.t
+      val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
       val db : Sqlite3.db
     end) =
   struct
     open Connection_arg
+
+    let env' = env driver_info
 
     let using_db_ref = ref false
     let using_db f =
@@ -423,14 +425,17 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       in
 
       let templ = Caqti_request.query req driver_info in
-      let templ = Caqti_query.expand env templ in
+      let templ = Caqti_query.expand env' templ in
       let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       Ok (stmt, quotes, query)
 
+    let pp_request_with_param ppf =
+      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+
     let call ~f req param = using_db @@ fun () ->
       Log.debug ~src:request_log_src (fun f ->
-        f "Sending %a" (Caqti_request.pp_with_param ~driver_info) (req, param))
+        f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 
       let param_type = Caqti_request.param_type req in
@@ -559,7 +564,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);
       let module Arg = struct
-        let env = env driver_info
+        let env = env
         let uri = uri
         let db = db
       end in

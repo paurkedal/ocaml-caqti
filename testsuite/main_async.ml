@@ -23,6 +23,7 @@ open Caqti_common_priv
 open Testlib
 open Testlib_async
 
+module Test_error_cause = Test_error_cause.Make (Testlib_async)
 module Test_parallel = Test_parallel.Make (Testlib_async)
 module Test_param = Test_param.Make (Testlib_async)
 module Test_sql = Test_sql.Make (Testlib_async)
@@ -40,6 +41,7 @@ let mk_test (name, pool) =
   let pass_pool pool (name, speed, f) = (name, speed, (fun () -> f pool)) in
   let test_cases =
     List.map (pass_conn pool) Test_sql.connection_test_cases @
+    List.map (pass_conn pool) Test_error_cause.test_cases @
     List.map (pass_pool pool) Test_parallel.test_cases @
     List.map (pass_conn pool) Test_param.test_cases @
     List.map (pass_conn pool) Test_failure.test_cases @
@@ -47,14 +49,18 @@ let mk_test (name, pool) =
   in
   (name, test_cases)
 
+let post_connect conn =
+  List_result_future.iter_s (fun f -> f conn) [
+    Test_sql.post_connect;
+  ]
+
+let env =
+  let (&) f g di var = try f di var with Stdlib.Not_found -> g di var in
+  Test_sql.env & Test_error_cause.env
+
 let mk_tests uris =
   let connect_pool uri =
-    (match
-        Caqti_async.connect_pool uri
-          ~max_size:16
-          ~post_connect:Test_sql.post_connect
-          ~env:Test_sql.env
-     with
+    (match Caqti_async.connect_pool uri ~max_size:16 ~post_connect ~env with
      | Ok pool ->
         (test_name_of_uri uri, pool)
      | Error err ->

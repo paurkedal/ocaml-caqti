@@ -28,3 +28,9 @@ let (>|=?) = Lwt_result.Infix.(>|=)
 module Caqti_sys = Caqti_lwt
 
 module Alcotest_cli = Testlib.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)
+
+module List_result_future = struct
+  let rec iter_s f = function
+   | [] -> return (Ok ())
+   | x :: xs -> f x >>=? fun () -> iter_s f xs
+end

@@ -52,3 +52,9 @@ module Alcotest_cli =
          | Ok y -> return y
          | Error exn -> g exn
     end)
+
+module List_result_future = struct
+  let rec iter_s f = function
+   | [] -> return (Ok ())
+   | x :: xs -> f x >>=? fun () -> iter_s f xs
+end

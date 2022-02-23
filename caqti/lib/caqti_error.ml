@@ -43,6 +43,22 @@ type cause = [
   | `Unspecified__don't_match
 ]
 
+let show_cause = function
+ | `Restrict_violation -> "RESTRICT violation"
+ | `Not_null_violation -> "NOT NULL constraint violation"
+ | `Foreign_key_violation -> "FOREIGN KEY constraint violation"
+ | `Unique_violation -> "UNIQUE constraint violation"
+ | `Check_violation -> "CHECK constraint violation"
+ | `Exclusion_violation -> "exclusion violation"
+ | `Integrity_constraint_violation__don't_match ->
+    "integrity constraint violation"
+ | `Disk_full -> "disk full"
+ | `Out_of_memory -> "out of memory"
+ | `Too_many_connections -> "too many connections"
+ | `Configuration_limit_exceeded -> "configuration limit exceeded"
+ | `Insufficient_resources__don't_match -> "insufficient resources"
+ | `Unspecified__don't_match -> "unknown cause"
+
 (* Driver *)
 
 type msg = ..
@@ -248,8 +264,9 @@ let show_of_pp pp err =
 
 let show err = show_of_pp pp err
 
-let cause (`Request_failed (err : query_error)) =
-  (find_impl err.msg).msg_cause err.msg
+let cause = function
+ | `Request_failed err | `Response_failed err ->
+    (find_impl (err : query_error).msg).msg_cause err.msg
 
 let uncongested = function
  | Error #t | Ok _ as x -> x

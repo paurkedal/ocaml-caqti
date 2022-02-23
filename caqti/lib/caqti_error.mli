@@ -44,6 +44,8 @@ type cause = [
   | `Unspecified__don't_match
 ]
 
+val show_cause : [< cause] -> string
+
 
 (** {2 Messages} *)
 
@@ -222,7 +224,8 @@ val pp : Format.formatter -> [< t] -> unit
 val show : [< t] -> string
 (** [show error] is an explanation of [error]. *)
 
-val cause : [< `Request_failed of query_error] -> cause
+val cause :
+  [< `Request_failed of query_error | `Response_failed of query_error] -> cause
 
 val uncongested :
   ('a, [< t | `Congested of Caqti_common.counit]) result ->

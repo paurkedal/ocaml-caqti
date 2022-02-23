@@ -55,4 +55,9 @@ module type Ground = sig
 
   module Alcotest_cli : Alcotest_cli with type return = unit future
 
+  module List_result_future : sig
+    val iter_s :
+      ('a -> (unit, 'e) result future) -> 'a list -> (unit, 'e) result future
+  end
+
 end

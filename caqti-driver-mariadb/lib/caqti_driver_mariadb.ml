@@ -34,6 +34,7 @@ let cause_of_errno = function
  | 1761 -> `Integrity_constraint_violation__don't_match
  | 1762 -> `Integrity_constraint_violation__don't_match
  | 1859 -> `Integrity_constraint_violation__don't_match
+ | 4025 -> `Check_violation
  | _ -> `Unspecified__don't_match
 
 type Caqti_error.msg += Error_msg of {errno: int; error: string}

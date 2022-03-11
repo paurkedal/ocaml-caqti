@@ -18,31 +18,88 @@
 (** Error descriptors. *)
 
 
-(** {2 Error Causes} *)
+(** {2 Error Causes}
+
+    The {!cause} type is an incomplete enumeration of consolidated causes of
+    errors between different database systems.  The selection includes the
+    causes which are believed to be useful to handle and excludes causes which
+    are specific to the implementation of a certain database system.
+
+    The causes are classified into subtypes to help matching them collectively.
+    Each subtype has a fall-back case which is used if the database system does
+    not clearly report one of the specific cases.  An condition which is
+    reported as the fall-back case may in a future version be reported as a
+    specific case, possibly adding a new case to the subtype.  Therefore, for
+    backwards compatibility you should match the full subtype rather than the
+    fall-back, e.g.
+    {[
+      (match Caqti_error.cause error with
+       | `Unique_violation -> handle_unique_violation ()
+       | #integrity_constraint_violation -> handle_other_constraint_violation ()
+       | _ -> handle_other_error ())
+    ]}
+    This ensures that your code stil compiles when a new case is added to
+    {!integrity_constraint_violation}, and that the error condition receiving
+    mapped to the new case is still handled by the subtype pattern when you link
+    to the new version of Caqti.
+
+    Currently we do not have access to the extended error codes from SQLite3,
+    meaning that all integrity constraint violation conditions will be reported
+    as [`Integrity_constraint_violation__don't_match].
+
+    Since the consolitation of each error condition requires some investitation
+    and testing, the selection made is very conservative.  If you need to handle
+    an error which is currently unlisted, please open an issue or create a pull
+    request.  A pull request should, if possible, include a extension of
+    [test_error_cause.ml] to demonstrate how the error is triggered by the
+    database systems. *)
 
 type integrity_constraint_violation = [
   | `Restrict_violation
+      (** This is meant to indicate that a deletion or update would cause a
+          foreign key violation, although this may be reported as a
+          [`Foreign_key_violation]. *)
   | `Not_null_violation
+      (** An insertion or update attempts to assign a [NULL] value to column
+          having a [NOT NULL] constraint. *)
   | `Foreign_key_violation
+      (** An modification would cause a column to reference a non-existing key.
+          This cause may also be reported for cases which should have been
+          covered by [`Restrict_violation]. *)
   | `Unique_violation
+      (** An insertion or update would duplicate a key as declared by a [UNIQUE]
+          or [PRIMARY KEY] constraint. *)
   | `Check_violation
+      (** A requested change would violate a [CHECK] constraint. *)
   | `Exclusion_violation
+      (** A requested insertion or update would cause an overlap of rows
+          according to an [EXCLUDE] constraint. *)
   | `Integrity_constraint_violation__don't_match
+      (** An yet unclassified cause; match the full subtype instead. *)
 ]
+(** A subtype of {!cause} informing about violation of SQL constraints. *)
 
 type insufficient_resources = [
   | `Disk_full
+      (** The server is out of disk space. *)
   | `Out_of_memory
+      (** The server is out of memory *)
   | `Too_many_connections
+      (** The server does not accept establishing more connections. *)
   | `Configuration_limit_exceeded
+      (** Some unspecific server limit is exceeded. *)
   | `Insufficient_resources__don't_match
+      (** An yet unclassified cause; match the full subtype instead. *)
 ]
+(** A subtype of {!cause} informing about insufficient resources on the server
+    side. *)
 
 type cause = [
   | integrity_constraint_violation
   | insufficient_resources
   | `Unspecified__don't_match
 ]
+(** The selection of causes of errors which have been mapped. *)
 
 val show_cause : [< cause] -> string
 
@@ -226,6 +283,7 @@ val show : [< t] -> string
 
 val cause :
   [< `Request_failed of query_error | `Response_failed of query_error] -> cause
+(** A matchable representation of the cause of the error, if available. *)
 
 val uncongested :
   ('a, [< t | `Congested of Caqti_common.counit]) result ->

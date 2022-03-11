@@ -1,3 +1,33 @@
+## unreleased
+
+New features:
+
+  - A matchable representation of common causes of errors on the database
+    side is now available, with limitations.  It focuses on conditions which
+    seem most likely useful to handle.  At the moment we lack extended error
+    codes from SQLite3 needed to make the cause fully precise.
+
+  - Expose the underlying error details from database client libraries.
+    This is meant to be use as a last resort, and requires directly linking
+    with the relevant drivers.
+
+  - A second set of request construction operators `->.`, `->?`, `->!`, and
+    `->*` due to aesthetical concerns when converting some existing code.
+
+  - The `-->` operator was renamed to `-->!`, with a deprecated alias, for
+    consistency with the above.
+
+  - Environment variables are now expanded in the debug log when using the
+    new request constructors introduced in 1.7.0.
+
+  - Enable foreign key constraint checks for SQLite3.
+
+Fixes:
+
+  - Fixed debug logging to pass the correct driver info to the query
+    callback instead of a dummy driver info which would cause a failure if
+    unsupported.
+
 ## v1.7.0 - 2022-02-13
 
 New features:

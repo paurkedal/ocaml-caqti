@@ -250,7 +250,7 @@ module Infix : sig
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`One]) t
-  [@deprecated "Renamed to (-->!) for consistency with (->!)."]
+  [@@deprecated "Renamed to (-->!) for consistency with (->!)."]
   (**/**)
 
   val (@:-) :

@@ -24,7 +24,7 @@ module Req = struct
 end
 
 let bad_select_req =
-  Req.(unit --> unit @:- "SELECT not_defined")
+  Req.(unit -->! unit @:- "SELECT not_defined")
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   (match C.find bad_select_req () with

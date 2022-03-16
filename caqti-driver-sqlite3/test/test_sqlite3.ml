@@ -27,7 +27,7 @@ let create_req =
   Req.(unit -->. unit @:- "CREATE TABLE tmp (integer primary key not null)")
 
 let bad_insert_req =
-  Req.(unit --> unit @:- "INSERT INTO tmp VALUES (1), (1)")
+  Req.(unit -->! unit @:- "INSERT INTO tmp VALUES (1), (1)")
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   C.exec create_req ()

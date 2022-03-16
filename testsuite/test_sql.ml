@@ -42,23 +42,23 @@ module Q = struct
 
   let select_and = Caqti_request.find (tup2 bool bool) bool "SELECT ? AND ?"
 
-  let select_plus_int = tup2 int int --> int @:-
+  let select_plus_int = tup2 int int -->! int @:-
     "SELECT ? + ?"
-  let select_plus_int64 = tup2 int64 int64 --> int64 @:-
+  let select_plus_int64 = tup2 int64 int64 -->! int64 @:-
     "SELECT ? + ?"
-  let select_plus_float = tup2 float float --> float @:-
+  let select_plus_float = tup2 float float -->! float @:-
     "SELECT ? + ?"
-  let select_cat = tup2 string string --> string @@:- function
+  let select_cat = tup2 string string -->! string @@:- function
    | `Mysql -> "SELECT concat(?, ?)"
    | _ -> "SELECT ? || ?"
-  let select_octets_identity = octets --> octets @@:- function
+  let select_octets_identity = octets -->! octets @@:- function
    | `Mysql -> "SELECT CAST(? AS binary)"
    | `Pgsql -> "SELECT ?"
    | `Sqlite -> "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
 
   let select_compound_option =
-    (tup2 (option int) (option int) -->
+    (tup2 (option int) (option int) -->!
      tup3 int (option (tup3 (option int) (option int) (option int))) int) @:-
     "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
 
@@ -84,7 +84,7 @@ module Q = struct
   let select_from_test_abc = unit -->* tup2 abc string @:-
     "SELECT * FROM test_abc"
 
-  let select_expanded = unit --> tup2 int string @@:- function
+  let select_expanded = unit -->! tup2 int string @@:- function
    | `Mysql -> "SELECT $(x1), CAST($(x2) AS char)"
    | _ -> "SELECT $(x1), $(x2)"
 
@@ -165,17 +165,17 @@ module Q = struct
 
   let select_current_time = Caqti_request.find unit ptime
     "SELECT current_timestamp"
-  let select_given_time = ptime --> ptime @@:- function
+  let select_given_time = ptime -->! ptime @@:- function
     | `Pgsql | `Sqlite -> "SELECT ?"
     | `Mysql  -> "SELECT CAST(? AS datetime)"
     | _ -> failwith "Unimplemented."
-  let compare_to_known_time = ptime --> bool @@:- function
+  let compare_to_known_time = ptime -->! bool @@:- function
     | `Pgsql  -> "SELECT ? = '2017-01-29T12:00:00.001002Z'"
     | `Sqlite -> "SELECT ? = '2017-01-29 12:00:00.001'"
     | `Mysql  -> "SELECT CAST(? AS datetime) \
                        = CAST('2017-01-29T12:00:00.001002' AS datetime)"
     | _ -> failwith "Unimplemented."
-  let select_interval = ptime_span --> ptime_span @@:- function
+  let select_interval = ptime_span -->! ptime_span @@:- function
     | `Pgsql | `Sqlite -> "SELECT ?"
     | `Mysql -> "SELECT CAST(? AS double)"
     | _ -> failwith "Unimplemented"

@@ -948,7 +948,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       end
   end
 
-  let connect ?(env = no_env) uri =
+  let connect ~tweaks_version:_ ?(env = no_env) uri =
     return (Pg_ext.parse_uri uri) >>=? fun (conninfo, notice_processing) ->
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error err ->

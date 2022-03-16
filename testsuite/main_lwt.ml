@@ -54,9 +54,10 @@ let env =
   let (&) f g di var = try f di var with Not_found -> g di var in
   Test_sql.env & Test_error_cause.env
 
-let mk_tests uris =
+let mk_tests {uris; tweaks_version} =
   let connect_pool uri =
-    (match Caqti_lwt.connect_pool uri ~max_size:16 ~post_connect ~env with
+    (match Caqti_lwt.connect_pool uri
+            ~max_size:16 ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

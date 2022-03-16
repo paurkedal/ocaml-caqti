@@ -17,7 +17,12 @@
 
 module Sig = Sig
 
-val common_args : Uri.t list Cmdliner.Term.t
+type common_args = {
+  uris: Uri.t list;
+  tweaks_version: (int * int) option;
+}
+
+val common_args : common_args Cmdliner.Term.t
 
 val test_name_of_uri : Uri.t -> string
 

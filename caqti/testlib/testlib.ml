@@ -33,6 +33,11 @@ let load_uris uris_file =
               loop (Uri.of_string uri :: acc)) in
       loop [])
 
+type common_args = {
+  uris: Uri.t list;
+  tweaks_version: (int * int) option;
+}
+
 let common_args =
   let open Cmdliner in
   let uris =
@@ -56,13 +61,36 @@ let common_args =
     Arg.(value @@ opt log_level_conv (Some Logs.Info) @@
          info ~doc ~env ["log-level"])
   in
-  let preprocess log_level uris uris_file =
-    Logs.set_level log_level;
-    (match uris with
-     | [] -> load_uris uris_file
-     | uris -> List.map Uri.of_string uris)
+  let tweaks_version_conv =
+    let parse s =
+      (match String.split_on_char '.' s with
+       | [a; b] ->
+          (try Ok (int_of_string a, int_of_string b) with
+           | Failure _ -> Error (`Msg "Invalid tweaks version."))
+       | _ -> Error (`Msg "Invalid tweaks version."))
+    in
+    let pp ppf (a, b) = Format.fprintf ppf "%d.%d" a b in
+    Arg.conv (parse, pp)
   in
-  Term.(const preprocess $ log_level $ uris $ uris_file)
+  let tweaks_version =
+    let doc =
+      "Enable all tweaks introduced in the given Caqti version, \
+       specified as MAJOR.MINOR"
+    in
+    let env = Cmd.Env.info "CAQTI_COMPAT_VERSION" in
+    Arg.(value @@ opt (some tweaks_version_conv) (Some (1, 8)) @@
+         info ~doc ~env ["tweaks-version"])
+  in
+  let preprocess tweaks_version log_level uris uris_file =
+    Logs.set_level log_level;
+    let uris =
+      (match uris with
+       | [] -> load_uris uris_file
+       | uris -> List.map Uri.of_string uris)
+    in
+    {uris; tweaks_version}
+  in
+  Term.(const preprocess $ tweaks_version $ log_level $ uris $ uris_file)
 
 let test_name_of_uri uri =
   (match Uri.scheme uri with

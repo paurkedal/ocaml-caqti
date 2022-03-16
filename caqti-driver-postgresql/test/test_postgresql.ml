@@ -51,9 +51,9 @@ let mk_test (name, pool) =
   let test_cases = List.map pass_conn test_cases_on_connection in
   (name, test_cases)
 
-let mk_tests uris =
+let mk_tests {uris; tweaks_version} =
   let connect_pool uri =
-    (match Caqti_blocking.connect_pool uri ~max_size:1 with
+    (match Caqti_blocking.connect_pool uri ~max_size:1 ?tweaks_version with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

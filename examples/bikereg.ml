@@ -143,10 +143,10 @@ let report_error = function
  | Error err ->
     Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
 
-let main uris = Lwt_main.run begin
-  Lwt_list.iter_s
-    (fun uri -> Caqti_lwt.with_connection uri test >>= report_error)
-    uris
+let main {Testlib.uris; tweaks_version} = Lwt_main.run begin
+  uris |> Lwt_list.iter_s begin fun uri ->
+    Caqti_lwt.with_connection ?tweaks_version uri test >>= report_error
+  end
 end
 
 let main_cmd =

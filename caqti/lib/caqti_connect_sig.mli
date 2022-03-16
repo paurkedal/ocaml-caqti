@@ -36,6 +36,7 @@ module type S = sig
   (** Shortcut for the connection API passed as a value. *)
 
   val connect :
+    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result future
@@ -46,12 +47,22 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created.
 
+      @param tweaks_version
+        Request compatibility with the given Caqti version with respect to
+        interaction with the database system for this connection.  This
+        typically affects sesson parameters.  The argument is the major and
+        minor version of Caqti in which the change was or will be introduced, so
+        it is okay to use a yet unreleased version here.  Production code should
+        either omit this for a conservative choice, or pass the latest version
+        of Caqti on which the application has been tested.
+
       @param env
         If provided, this function will do a final expansion of environment
         variables which occurs in the query templates of the requests executed
         on the connection. *)
 
   val with_connection :
+    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t ->
     (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
@@ -59,11 +70,15 @@ module type S = sig
   (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
       to [Ok connection], [with_connection] passes the connection to [f]. Once
       [f] either evaluates to a [result], or raises an exception,
-      [with_connection] closes the database connection. *)
+      [with_connection] closes the database connection.
+
+      @param tweaks_version Passed to {!connect}.
+      @param env Passed to {!connect}. *)
 
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
+    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t ->
     ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
@@ -79,8 +94,11 @@ module type S = sig
       be used from the thread where it was created. Use thread local storage to
       create a separate pool per thread if necessary.
 
+      @param tweaks_version
+        Passed to {!connect} when creating new connections.
+
       @param env
-        Passed along to {!connect} when creating new connections in the pool.
+        Passed to {!connect} when creating new connections.
 
       @param max_size
         The maximum number of open connections. Must be at least [1].

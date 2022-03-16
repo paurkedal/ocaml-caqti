@@ -540,14 +540,15 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let set_statement_timeout _ = return (Ok ())
   end
 
-  let prepare db =
+  let prepare ~tweaks_version db =
+    if tweaks_version < (1, 8) then return () else
     Preemptive.detach (Sqlite3.exec db) "PRAGMA foreign_keys = ON"
       >>= fun rc ->
     if rc = Sqlite3.Rc.OK then return () else
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ?(env = no_env) uri =
+  let connect ~tweaks_version ?(env = no_env) uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");
@@ -567,7 +568,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         (fun () ->
           Sqlite3.db_open ~mutex:`FULL ?mode (Uri.path uri |> Uri.pct_decode))
         () >>= fun db ->
-      prepare db >|= fun () ->
+      prepare ~tweaks_version db >|= fun () ->
       (match busy_timeout with
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);

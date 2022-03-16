@@ -95,6 +95,7 @@ module type S = sig
   val driver_info : Caqti_driver_info.t
 
   val connect :
+    tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
 end

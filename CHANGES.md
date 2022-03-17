@@ -20,7 +20,13 @@ New features:
   - Environment variables are now expanded in the debug log when using the
     new request constructors introduced in 1.7.0.
 
-  - Enable foreign key constraint checks for SQLite3.
+  - A new `?tweaks_version` connection parameter has been added to control
+    when the client is ready to adapt to changes in database session
+    parameters or other adjustments of the interaction with specific
+    database systems.
+
+  - Enable foreign key constraint checks for SQLite3 starting at tweaks
+    version 1.7.
 
 Fixes:
 

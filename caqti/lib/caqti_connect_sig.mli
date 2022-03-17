@@ -47,14 +47,13 @@ module type S = sig
       If you use preemptive threading, note that the connection must only be
       used from the thread where it was created.
 
+      See {{!tweaks} Database Tweaks} for details about the [tweaks_version]
+      parameter.
+
       @param tweaks_version
-        Request compatibility with the given Caqti version with respect to
-        interaction with the database system for this connection.  This
-        typically affects sesson parameters.  The argument is the major and
-        minor version of Caqti in which the change was or will be introduced, so
-        it is okay to use a yet unreleased version here.  Production code should
-        either omit this for a conservative choice, or pass the latest version
-        of Caqti on which the application has been tested.
+        Declares compatibility with database tweaks introduced up to the given
+        version of Caqti.  Defaults to a conservative value.  See the above
+        reference for more info (not linked here due to odoc issue).
 
       @param env
         If provided, this function will do a final expansion of environment

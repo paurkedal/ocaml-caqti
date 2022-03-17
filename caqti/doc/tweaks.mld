@@ -1,0 +1,37 @@
+{1 Database Tweaks}
+
+{2 TL;DR}
+
+The [?tweaks_version] parameter tells Caqti drivers to enable all tweaks
+introduced up to and including the given major and minor version of Caqti.
+
+{2 The Tweaks Parameter}
+
+Occasionally Caqti makes changes to the database session parameters or
+otherwise how it interacts with specific database systems.  This may be done
+to improve consistency across databases, to make it easier to detect
+mistakes, to avoid obsolete behaviour, etc.  However, this can break
+backwards compatibility with applications, sometimes in subtle ways, which
+is the motivation for the [?tweaks_version] parameter of the connecting
+functions.
+
+Passing [~tweaks_version:(major_version, minor_verson)] declares that the
+application is compatible with all tweaks introduced up to and including
+that version of Caqti.  The default is to omit all tweaks introduced since
+the last major version.  On each major release, all tweaks up to that point
+becomes permanent and requesting an earlier tweaks version will have no
+effect.
+
+Production code should either omit the parameter or pass the largest major
+and minor version pair for which the code has been tested.  This offers the
+choice of adapting only on major versions or incrementally.
+
+Code in development can declare a progressive value, like the next major
+version, in order to always use the latest set of tweaks.
+
+{2 Current Tweaks}
+
+{3 Introduced with [(1, 8)] and later}
+
+  - SQLite3: Checking of foreign key constraints has been enabled by issuing
+    a [PRAGMA foreign_keys = ON] for the session.

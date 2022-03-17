@@ -36,8 +36,8 @@ module type S = sig
   (** Shortcut for the connection API passed as a value. *)
 
   val connect :
-    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result future
   (** [connect uri] locates and loads a driver which can handle [uri], passes
@@ -61,8 +61,8 @@ module type S = sig
         on the connection. *)
 
   val with_connection :
-    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     Uri.t ->
     (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
       ('a, 'e) result future
@@ -77,8 +77,8 @@ module type S = sig
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
-    ?tweaks_version: int * int ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     Uri.t ->
     ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
      [> Caqti_error.load]) result

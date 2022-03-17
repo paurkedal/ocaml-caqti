@@ -551,7 +551,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           Ok (Some (Filename.basename path))) |>? fun db ->
     Ok {host; user; pass; port; db; flags = None}
 
-  let connect_prim ~tweaks_version:_ ~env ~uri
+  let connect_prim ~env ~tweaks_version:_ ~uri
         {host; user; pass; port; db; flags} =
     let socket = Uri.get_query_param uri "socket" in
     Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
@@ -589,7 +589,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         return @@
           Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
 
-  let connect ~tweaks_version ?(env = no_env) uri =
+  let connect ?(env = no_env) ~tweaks_version uri =
     (match parse_uri uri with
      | Error _ as r -> return r
      | Ok conninfo -> connect_prim ~tweaks_version ~env ~uri conninfo)

@@ -548,7 +548,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ~tweaks_version ?(env = no_env) uri =
+  let connect ?(env = no_env) ~tweaks_version uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");

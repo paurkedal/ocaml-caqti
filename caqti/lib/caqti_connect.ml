@@ -85,17 +85,17 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   type connection = (module CONNECTION)
 
-  let connect ?(tweaks_version = default_tweaks_version) ?env uri
+  let connect ?env ?(tweaks_version = default_tweaks_version) uri
       : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect ~tweaks_version ?env uri
+        Driver.connect ?env ~tweaks_version uri
      | Error err ->
         return (Error err))
 
-  let with_connection ?(tweaks_version = default_tweaks_version) ?env uri f =
-    connect ~tweaks_version ?env uri >>=? fun ((module Db) as conn) ->
+  let with_connection ?env ?(tweaks_version = default_tweaks_version) uri f =
+    connect ?env ~tweaks_version uri >>=? fun ((module Db) as conn) ->
     try
       f conn >>= fun result -> Db.disconnect () >|= fun () -> result
     with exn ->
@@ -106,7 +106,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
 
   let connect_pool
         ?max_size ?max_idle_size ?post_connect
-        ?(tweaks_version = default_tweaks_version) ?env uri =
+        ?env ?(tweaks_version = default_tweaks_version) uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make_unix.connect_pool"
     in
@@ -124,11 +124,11 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ~tweaks_version ?env uri
+                (Driver.connect ?env ~tweaks_version uri
                     :> (connection, _) result future)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ~tweaks_version ?env uri
+                (Driver.connect ?env ~tweaks_version uri
                     :> (connection, _) result future)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)

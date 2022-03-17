@@ -1,6 +1,10 @@
 version: 2
 jobs:
   build:
+    branches:
+      ignore:
+        - deploy-doc
+        - gh-pages
     docker:
       - image: ocaml/opam:debian-ocaml-4.13
         environment:

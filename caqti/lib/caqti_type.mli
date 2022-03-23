@@ -61,6 +61,8 @@ module Field : sig
   val coding : Caqti_driver_info.t -> 'a field -> 'a coding option
 
   val to_string : 'a t -> string
+
+  val pp : Format.formatter -> 'a t -> unit
 end
 
 (** {2:row_types Row Types} *)

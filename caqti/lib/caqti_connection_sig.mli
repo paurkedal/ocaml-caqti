@@ -129,7 +129,7 @@ module type Convenience = sig
 
   val exec_with_affected_count :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (int, [> Caqti_error.call_or_retrieve ] as 'e) result future
+    (int, [> Caqti_error.call_or_retrieve | `Unsupported] as 'e) result future
   (** Combining {!call} with {!Response.exec} and {!Response.affected_count},
       this sends a request to the database, checks that no rows are returned and
       returns the number of affected rows. *)

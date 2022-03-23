@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,7 @@ module System = struct
   let (>>=) = Lwt.(>>=)
   let (>|=) = Lwt.(>|=)
   let return = Lwt.return
+  let catch = Lwt.catch
   let finally = Lwt.finalize
 
   let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
@@ -44,29 +45,6 @@ module System = struct
     let debug ?(src = default_log_src) = Logs_lwt.debug ~src
   end
 
-  module Unix = struct
-    type file_descr = Lwt_unix.file_descr
-
-    let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
-
-    let poll ?(read = false) ?(write = false) ?timeout fd =
-      let choices =
-        [] |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
-           |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
-           |> Option.fold (fun t acc -> Lwt_unix.timeout t :: acc) timeout in
-      if choices = [] then
-        Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
-      else
-        begin
-          Lwt.catch
-            (fun () -> Lwt.choose choices >|= fun _ -> false)
-            (function
-             | Lwt_unix.Timeout -> Lwt.return_true
-             | exn -> Lwt.fail exn)
-        end >>= fun timed_out ->
-        Lwt.return (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
-  end
-
   module Preemptive = Lwt_preemptive
 
   module Stream = Caqti_stream.Make (struct
@@ -76,9 +54,79 @@ module System = struct
     let return = Lwt.return
   end)
 
+  (* Cf. pgx_lwt. *)
+  module Sequencer = struct
+    type 'a t = 'a * Lwt_mutex.t
+    let create m = (m, Lwt_mutex.create ())
+    let enqueue (m, mutex) f = Lwt_mutex.with_lock mutex (fun () -> f m)
+  end
+
+  module Networking = struct
+    type in_channel = Lwt_io.input_channel
+    type out_channel = Lwt_io.output_channel
+    type sockaddr = Unix of string | Inet of string * int
+
+    let resolve host =
+      (* TODO: Error handling. *)
+      Lwt_unix.gethostbyname host >|= fun {h_addr_list; _} ->
+      h_addr_list.(Random.int (Array.length h_addr_list))
+
+    let open_connection sockaddr =
+      (match sockaddr with
+       | Unix path ->
+          return (Unix.ADDR_UNIX path)
+       | Inet (host, port) ->
+          resolve host >|= fun addr -> Unix.ADDR_INET (addr, port))
+      >>= Lwt_io.open_connection
+
+    let output_char = Lwt_io.write_char
+    let output_string = Lwt_io.write
+    let flush = Lwt_io.flush
+    let input_char = Lwt_io.read_char
+    let really_input = Lwt_io.read_into_exactly
+    let close_in = Lwt_io.close
+  end
+
+  module Unix = struct
+    type file_descr = Lwt_unix.file_descr
+
+    let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
+
+    let poll ?(read = false) ?(write = false) ?timeout fd =
+      let choices = []
+        |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
+        |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
+        |> Option.fold (fun t acc -> Lwt_unix.timeout t :: acc) timeout
+      in
+      if choices = [] then
+        Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
+      else
+      Lwt.catch
+        (fun () -> Lwt.choose choices >|= fun _ -> false)
+        (function
+         | Lwt_unix.Timeout -> Lwt.return_true
+         | exn -> Lwt.fail exn)
+        >|= fun timed_out ->
+      (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
+  end
 end
 
-include Caqti_connect.Make_unix (System)
+module Loader = struct
+  module Platform_unix = Caqti_platform_unix.Make (System)
+  module Platform_net = Caqti_platform_net.Make (System)
+
+  module type DRIVER = Platform_unix.DRIVER
+
+  let load_driver ~uri scheme =
+    (match Platform_net.load_driver ~uri scheme with
+     | Ok _ as r -> r
+     | Error (`Load_rejected _) as r -> r
+     | Error (`Load_failed _) ->
+        (* TODO: Summarize errors. *)
+        Platform_unix.load_driver ~uri scheme)
+end
+
+include Caqti_connect.Make (System) (Loader)
 
 let or_fail = function
  | Ok x -> Lwt.return x

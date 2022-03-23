@@ -72,6 +72,8 @@ module Field = struct
    | Enum name -> name
    | ft -> Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft)
 
+  let pp ppf ft = Format.pp_print_string ppf (to_string ft)
+
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
 
   let rec pp_value : type a. _ -> a field * a -> unit = fun ppf -> function

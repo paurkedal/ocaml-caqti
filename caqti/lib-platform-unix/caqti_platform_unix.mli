@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,22 +15,17 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Connection functor and backend registration. *)
+(** Connection functor and registration for driver using the Unix module. *)
 
-val define_loader : (string -> (unit, string) result) -> unit
-(** Defines the function used to dynamically load driver libraries. This is
-    normally called during initialization by the [caqti-dynload] library, if
-    linked into the application. *)
+module Sig = Sig
 
-val load_library : string -> (unit, string) result
+val define_driver : string -> (module Sig.Driver_of_system) -> unit
+(** [define_unix_driver scheme m] installs [m] as a handler for the URI scheme
+    [scheme].  This call must be done by a backend installed with findlib name
+    caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make :
-  functor (System : Caqti_driver_sig.System_common) ->
-  functor (Loader : Caqti_driver_sig.Loader
-            with type 'a future := 'a System.future
-             and module Stream := System.Stream) ->
-  Caqti_connect_sig.S
-    with type 'a future = 'a System.future
-     and module Stream = System.Stream
+module Make (System : Sig.System) : Caqti_driver_sig.Loader
+  with type 'a future := 'a System.future
+   and module Stream := System.Stream
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

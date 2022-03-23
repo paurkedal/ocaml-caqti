@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,12 +33,12 @@ module type S = sig
   val returned_count :
     ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result future
   (** [returned_count resp] is the number of rows returned by [resp].  This
-      function may not be available for all databases. *)
+      function may not be available for all drivers. *)
 
   val affected_count :
-    ('b, 'm) t -> (int, [> Caqti_error.retrieve ]) result future
+    ('b, 'm) t -> (int, [> Caqti_error.retrieve | `Unsupported]) result future
   (** [affected_count resp] is the number of rows affected by the updated the
-      produced [resp]. *)
+      produced [resp].  This function may not be available for all drivers. *)
 
   (** {2 Result retrieval} *)
 

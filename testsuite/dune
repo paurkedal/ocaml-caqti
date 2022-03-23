@@ -124,3 +124,19 @@
     (progn
       (echo "directory = \"../caqti-driver-postgresql/lib\"\n")
       (cat %{first-dep})))))
+
+(alias
+  (name drivers)
+  (package caqti-driver-pgx)
+  (deps
+    META.caqti-driver-pgx
+    %{cma:../caqti-driver-pgx/lib/caqti_driver_pgx}
+    ../caqti-driver-pgx/lib/caqti_driver_pgx.cmxs))
+(rule
+  (targets META.caqti-driver-pgx)
+  (deps (:first-dep ../META.caqti-driver-pgx))
+  (action
+   (with-stdout-to %{targets}
+    (progn
+      (echo "directory = \"../caqti-driver-pgx/lib\"\n")
+      (cat %{first-dep})))))

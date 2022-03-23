@@ -25,35 +25,52 @@ let dynload_library = ref @@ fun lib ->
 
 let define_loader f = dynload_library := f
 
-let drivers = Hashtbl.create 11
-let define_unix_driver scheme p = Hashtbl.add drivers scheme p
+let load_library name = !dynload_library name
 
 let scheme_driver_name = function
-  | "postgres" | "postgresql" -> "caqti-driver-postgresql"
-  | s -> "caqti-driver-" ^ s
+ | "postgres" | "postgresql" -> "caqti-driver-postgresql"
+ | s -> "caqti-driver-" ^ s
 
-let load_driver_functor ~uri scheme =
-  (try Ok (Hashtbl.find drivers scheme) with
-   | Not_found ->
-      (match !dynload_library (scheme_driver_name scheme) with
+let retry_with_library load_driver ~uri scheme =
+  (match load_driver ~uri scheme with
+   | Error (`Load_failed _) ->
+      let driver_name = scheme_driver_name scheme in
+      (match load_library driver_name with
        | Ok () ->
-          (try Ok (Hashtbl.find drivers scheme) with
-           | Not_found ->
-              let msg = sprintf "The driver for %s did not register itself \
-                                 after apparently loading." scheme in
-              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+          (match load_driver ~uri scheme with
+           | Error (`Load_failed _) ->
+              let msg = Printf.sprintf
+                "The %s did not register a handler for the URI scheme %s."
+                driver_name scheme
+              in
+              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
+           | r -> r)
        | Error msg ->
-          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
+          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+   | r -> r)
 
-module Make_unix (System : Caqti_driver_sig.System_unix) = struct
+module Make
+    (System : Caqti_driver_sig.System_common)
+    (Loader : Caqti_driver_sig.Loader
+      with type 'a future := 'a System.future
+       and module Stream := System.Stream) =
+struct
   open System
+
+  type 'a future = 'a System.future
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
 
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a future := 'a future
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
+
   module type DRIVER = Caqti_driver_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+    with type 'a future := 'a future
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
+
+  type connection = (module CONNECTION)
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -65,25 +82,11 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
      | Some scheme ->
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
-            (match load_driver_functor ~uri scheme with
-             | Ok make_driver ->
-                let module Make_driver =
-                  (val make_driver : Caqti_driver_sig.Of_system_unix) in
-                let module Driver = Make_driver (System) in
-                let driver = (module Driver : DRIVER) in
+            (match retry_with_library Loader.load_driver ~uri scheme with
+             | Ok driver ->
                 Hashtbl.add drivers scheme driver;
                 Ok driver
              | Error _ as r -> r)))
-
-  module type CONNECTION_BASE = Caqti_connection_sig.Base
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
-
-  module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
-
-  type connection = (module CONNECTION)
 
   let connect ?env ?(tweaks_version = default_tweaks_version) uri
       : ((module CONNECTION), _) result future =
@@ -108,7 +111,7 @@ module Make_unix (System : Caqti_driver_sig.System_unix) = struct
         ?max_size ?max_idle_size ?post_connect
         ?env ?(tweaks_version = default_tweaks_version) uri =
     let check_arg cond =
-      if not cond then invalid_arg "Caqti_connect.Make_unix.connect_pool"
+      if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
     (match max_size, max_idle_size with
      | None, None -> ()

@@ -46,6 +46,8 @@ module type S = sig
   val to_list : ('a, 'err) t -> ('a list, 'err) result future
 
   val of_list : 'a list -> ('a, 'err) t
+
+  val map_result : f: ('a -> ('b, 'err) result) -> ('a, 'err) t -> ('b, 'err) t
 end
 
 module type FUTURE = sig

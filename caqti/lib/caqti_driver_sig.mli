@@ -36,6 +36,8 @@ module type System_common = sig
   val return : 'a -> 'a future
   (** Return operation of the  concurrency monad. *)
 
+  val catch : (unit -> 'a future) -> (exn -> 'a future) -> 'a future
+
   val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
   (** [finally f g] runs [f ()] and then runs [g ()] whether the former
       finished, failed with an exception, or failed with a monadic failure. *)
@@ -66,24 +68,6 @@ module type System_common = sig
   module Stream : Caqti_stream.S with type 'a future := 'a future
 end
 
-module type System_unix = sig
-  include System_common
-
-  module Unix : sig
-    type file_descr
-    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
-    val poll :
-      ?read: bool -> ?write: bool -> ?timeout: float ->
-      file_descr -> (bool * bool * bool) future
-  end
-
-  module Preemptive : sig
-    val detach : ('a -> 'b) -> 'a -> 'b future
-    val run_in_main : (unit -> 'a future) -> 'a
-  end
-
-end
-
 module type S = sig
   type +'a future
   type (+'a, +'err) stream
@@ -100,7 +84,15 @@ module type S = sig
     Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
 end
 
-module type Of_system_unix =
-  functor (System : System_unix) ->
-  S with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+module type Loader = sig
+  type +'a future
+
+  module Stream : Caqti_stream.S with type 'a future := 'a future
+
+  module type DRIVER = S
+    with type 'a future := 'a future
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
+
+  val load_driver :
+    uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result
+end

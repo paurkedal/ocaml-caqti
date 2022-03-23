@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,8 @@ module System = struct
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
+
+  let catch f g = try f () with exn -> g exn
 
   let finally f g =
     (match f () with
@@ -51,6 +53,41 @@ module System = struct
     let debug ?(src = default_log_src) = Logs.debug ~src
   end
 
+  module Sequencer = struct
+    type 'a t = 'a
+    let create m = m
+    let enqueue m f = f m
+  end
+
+  module Networking = struct
+    type nonrec in_channel = in_channel
+    type nonrec out_channel = out_channel
+    type sockaddr = Unix of string | Inet of string * int
+
+    (* From pgx_unix. *)
+    let open_connection sockaddr =
+      let std_socket =
+        match sockaddr with
+        | Unix path -> Unix.ADDR_UNIX path
+        | Inet (hostname, port) ->
+          let hostent = Unix.gethostbyname hostname in
+          (* Choose a random address from the list. *)
+          let addrs = hostent.Unix.h_addr_list in
+          let len = Array.length addrs in
+          let i = Random.int len in
+          let addr = addrs.(i) in
+          Unix.ADDR_INET (addr, port)
+      in
+      Unix.open_connection std_socket
+
+    let output_char = output_char
+    let output_string = output_string
+    let flush = flush
+    let input_char = input_char
+    let really_input = really_input
+    let close_in = close_in
+  end
+
   module Unix = struct
     type file_descr = Unix.file_descr
     let wrap_fd f fd = f fd
@@ -72,10 +109,25 @@ module System = struct
     let (>|=) x f = f x
     let return x = x
   end)
+
 end
 
-type 'a future = 'a
-include Caqti_connect.Make_unix (System)
+module Loader = struct
+  module Platform_unix = Caqti_platform_unix.Make (System)
+  module Platform_net = Caqti_platform_net.Make (System)
+
+  module type DRIVER = Platform_unix.DRIVER
+
+  let load_driver ~uri scheme =
+    (match Platform_net.load_driver ~uri scheme with
+     | Ok _ as r -> r
+     | Error (`Load_rejected _) as r -> r
+     | Error (`Load_failed _) ->
+        (* TODO: Summarize errors. *)
+        Platform_unix.load_driver ~uri scheme)
+end
+
+include Caqti_connect.Make (System) (Loader)
 
 let or_fail = function
  | Ok x -> x

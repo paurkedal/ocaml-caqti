@@ -125,13 +125,7 @@ let driver_info =
 let no_env _ _ = raise Not_found
 
 module Pg_ext = struct
-
-  let bool_of_string = function
-   | "t" -> true
-   | "f" -> false
-   | _ -> invalid_arg "Pg_ext.bool_of_string"
-
-  let string_of_bool = function true -> "t" | false -> "f"
+  include Postgresql_conv
 
   let query_string ~env (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
@@ -176,78 +170,6 @@ module Pg_ext = struct
       String.concat " " (List.flatten (List.map mkparams (Uri.query uri')))
     in
     Ok (conninfo, notice_processing)
-
-  let string_of_ptime_span t =
-    let is_neg = Ptime.Span.compare t Ptime.Span.zero < 0 in
-    let d, ps = Ptime.Span.(to_d_ps (abs t ))in
-    let buf = Buffer.create 32 in
-    if d <> 0 then bprintf buf "%d days " (if is_neg then -d else d);
-    let s, ps = Int64.(div ps 1_000_000_000_000L |> to_int,
-                       rem ps 1_000_000_000_000L) in
-    let hour, s = s / 3600, s mod 3600 in
-    let minute, s = s / 60, s mod 60 in
-    if is_neg then Buffer.add_char buf '-';
-    bprintf buf "%02d:%02d:%02d" hour minute s;
-    if ps <> 0L then bprintf buf ".%06Ld" (Int64.div ps 1_000_000L);
-    Buffer.contents buf
-
-  let ps_of_decimal s =
-    try
-      (match String.length s with
-       | 2 ->
-          Ok (Int64.(mul (of_string s) 1_000_000_000_000L))
-       | n when n < 2 ->
-          Error "Missing digits in seconds of interval string."
-       | _ when s.[2] <> '.' ->
-          Error "Expected period after seconds in interval string."
-       | n ->
-          let buf = Bytes.make 14 '0' in
-          Bytes.blit_string s 0 buf 0 2;
-          Bytes.blit_string s 3 buf 2 (min 12 (n - 3));
-          Ok (Int64.of_string (Bytes.to_string buf)))
-    with Failure _ ->
-      Error "Seconds in interval string is not numeric."
-
-  let ps_of_hms s =
-    (match String.split_on_char ':' s with
-     | [hours; minutes; seconds] ->
-        (try
-          let hour = int_of_string hours in
-          let minute = int_of_string minutes in
-          (match ps_of_decimal seconds with
-           | Ok ps ->
-              let hm = Int64.of_int (abs hour * 60 + minute) in
-              let ps = Int64.(add ps (mul hm 60_000_000_000_000L)) in
-              Ok (if s.[0] = '-' then Int64.neg ps else ps)
-           | Error msg -> Error msg)
-         with Failure _ ->
-          Error "Non-integer hour or minute in interval string.")
-     | _ ->
-        Error "Expected HH:MM:SS[.F] in interval string.")
-
-  let ptime_span_of_string s =
-    let span_of_d_ps (d, ps) =
-      let d, ps =
-        if Int64.compare ps Int64.zero >= 0
-        then (d, ps)
-        else (d - 1, Int64.add ps 86_400_000_000_000_000L) in
-      (match Ptime.Span.of_d_ps (d, ps) with
-       | Some t -> Ok t
-       | None -> Error "Out for range for Ptime.span.") in
-    try
-      (match String.split_on_char ' ' s with
-       | [d; "days"] ->
-          span_of_d_ps (int_of_string d, 0L)
-       | [d; "days"; hms] ->
-          ps_of_hms hms |>? fun ps ->
-          span_of_d_ps (int_of_string d, ps)
-       | [hms] ->
-          ps_of_hms hms |>? fun ps ->
-          span_of_d_ps (0, ps)
-       | _ ->
-          Error "Unhandled interval format.")
-    with Failure _ ->
-      Error "Non-integer days in interval string."
 end
 
 let bool_oid = Pg.oid_of_ftype Pg.BOOL
@@ -323,7 +245,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
       : type a. uri: Uri.t -> a Caqti_type.field -> a -> (string, _) result =
     fun ~uri field_type x ->
     (match field_type with
-     | Caqti_type.Bool -> Ok (Pg_ext.string_of_bool x)
+     | Caqti_type.Bool -> Ok (Pg_ext.pgstring_of_bool x)
      | Caqti_type.Int -> Ok (string_of_int x)
      | Caqti_type.Int16 -> Ok (string_of_int x)
      | Caqti_type.Int32 -> Ok (Int32.to_string x)
@@ -333,10 +255,8 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
      | Caqti_type.Enum _ -> Ok (encode_string x)
      | Caqti_type.Octets -> Ok (encode_octets x)
      | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
-     | Caqti_type.Ptime ->
-        Ok (Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 ~frac_s:6 x)
-     | Caqti_type.Ptime_span ->
-        Ok (Pg_ext.string_of_ptime_span x)
+     | Caqti_type.Ptime -> Ok (Pg_ext.pgstring_of_pdate x)
+     | Caqti_type.Ptime_span -> Ok (Pg_ext.pgstring_of_ptime_span x)
      | _ ->
         (match Caqti_type.Field.coding driver_info field_type with
          | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
@@ -365,45 +285,37 @@ module Param_encoder = Make_encoder (struct
 end)
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.field -> string -> (a, _) result =
+    : type a. uri: Uri.t -> a Caqti_type.field -> string ->
+      (a, [> Caqti_error.retrieve]) result =
   fun ~uri field_type s ->
-  let conv f s =
-    try Ok (f s) with _ ->
-    let msg = Caqti_error.Msg (sprintf "Invalid value %S." s) in
-    let typ = Caqti_type.field field_type in
-    Error (Caqti_error.decode_rejected ~uri ~typ msg) in
+  let wrap_conv_exn f s =
+    (try Ok (f s) with
+     | _ ->
+        let msg = Caqti_error.Msg (sprintf "Invalid value %S." s) in
+        let typ = Caqti_type.field field_type in
+        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+  in
+  let wrap_conv_res f s =
+    (match f s with
+     | Ok _ as r -> r
+     | Error msg ->
+        let msg = Caqti_error.Msg msg in
+        let typ = Caqti_type.field field_type in
+        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+  in
   (match field_type with
-   | Caqti_type.Bool -> conv Pg_ext.bool_of_string s
-   | Caqti_type.Int -> conv int_of_string s
-   | Caqti_type.Int16 -> conv int_of_string s
-   | Caqti_type.Int32 -> conv Int32.of_string s
-   | Caqti_type.Int64 -> conv Int64.of_string s
-   | Caqti_type.Float -> conv float_of_string s
+   | Caqti_type.Bool -> wrap_conv_exn Pg_ext.bool_of_pgstring s
+   | Caqti_type.Int -> wrap_conv_exn int_of_string s
+   | Caqti_type.Int16 -> wrap_conv_exn int_of_string s
+   | Caqti_type.Int32 -> wrap_conv_exn Int32.of_string s
+   | Caqti_type.Int64 -> wrap_conv_exn Int64.of_string s
+   | Caqti_type.Float -> wrap_conv_exn float_of_string s
    | Caqti_type.String -> Ok s
    | Caqti_type.Enum _ -> Ok s
    | Caqti_type.Octets -> Ok (Postgresql.unescape_bytea s)
-   | Caqti_type.Pdate ->
-      (match pdate_of_iso8601 s with
-       | Ok _ as r -> r
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
-   | Caqti_type.Ptime ->
-      (* TODO: Improve parsing. *)
-      (match ptime_of_rfc3339_utc s with
-       | Ok _ as r -> r
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
-   | Caqti_type.Ptime_span ->
-      (match Pg_ext.ptime_span_of_string s with
-       | Ok _ as r -> r
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
+   | Caqti_type.Pdate -> wrap_conv_res pdate_of_iso8601 s
+   | Caqti_type.Ptime -> wrap_conv_res ptime_of_rfc3339_utc s
+   | Caqti_type.Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
@@ -439,7 +351,7 @@ type prepared = {
   binary_params: bool array;
 }
 
-module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
+module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
   open System
   module H = Caqti_connection.Make_helpers (System)
 
@@ -686,7 +598,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let exec _ = return (Ok ())
 
       let find {row_type; result} =
-        return (decode_row ~uri row_type(result, 0) )
+        return (decode_row ~uri row_type (result, 0))
 
       let find_opt {row_type; result} =
         return begin
@@ -803,7 +715,8 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             Log.warn (fun p ->
               p "Failed to query OID for enum %s." name) >|= fun () ->
             Error (Caqti_error.encode_missing ~uri ~field_type ())
-         | Error (`Encode_rejected _ | `Decode_rejected _ as err) ->
+         | Error (`Encode_rejected _ | `Decode_rejected _ |
+                  `Response_failed _ as err) ->
             Log.err (fun p ->
               p "Failed to fetch obtain OID for enum %s due to: %a"
                 name Caqti_error.pp err) >|= fun () ->
@@ -996,5 +909,5 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
 end
 
 let () =
-  Caqti_connect.define_unix_driver "postgres" (module Connect_functor);
-  Caqti_connect.define_unix_driver "postgresql" (module Connect_functor)
+  Caqti_platform_unix.define_driver "postgres" (module Connect_functor);
+  Caqti_platform_unix.define_driver "postgresql" (module Connect_functor)

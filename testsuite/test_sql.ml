@@ -420,12 +420,17 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       assert (o_acc = exp_o);
       return ()
     in
+    let check_affected n = function
+     | Ok nrows -> assert (nrows = n); return ()
+     | Error `Unsupported -> return ()
+     | Error #Caqti_error.t as err -> or_fail err
+    in
+
     (* prepare db *)
     Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
     Db.start () >>= or_fail >>= fun () ->
     Db.exec_with_affected_count Q.insert_into_tmp (2, "two", "X")
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 1);
+    >>= check_affected 1 >>= fun () ->
     Db.exec Q.insert_into_tmp (3, "three", "Y")
     >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (5, "five", "Z")
@@ -434,44 +439,37 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
     (* update where i = 1 -> 0 affected rows *)
     Db.exec_with_affected_count Q.update_in_tmp_where_i ("null", 0)
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 0);
+    >>= check_affected 0 >>= fun () ->
     select_all 10 "zero+two+three+five" "zero+X+Y+Z" >>= fun () ->
 
     (* update where i = 3 -> 1 affected row*)
     Db.exec_with_affected_count Q.update_in_tmp_where_i ("drei", 3)
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 1);
+    >>= check_affected 1 >>= fun () ->
     select_all 10 "zero+two+three+five" "zero+X+drei+Z" >>= fun () ->
 
     (* update w/o id -> 3 affected rows *)
     Db.exec_with_affected_count Q.update_in_tmp ()
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 3);
+    >>= check_affected 3 >>= fun () ->
     select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
 
     (* delete where i = 1 -> no affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 1
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 0);
+    >>= check_affected 0 >>= fun () ->
     select_all 10 "zero+ZERO+ZERO+ZERO" "zero+X+drei+Z" >>= fun () ->
 
     (* delete where i = 3 -> one affected row *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 1);
+    >>= check_affected 1 >>= fun () ->
     select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
 
     (* delete where i = 3 -> no affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp_where_i 3
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 0);
+    >>= check_affected 0 >>= fun () ->
     select_all 7 "zero+ZERO+ZERO" "zero+X+Z" >>= fun () ->
 
     (* delete w/o condition -> 2 affected rows *)
     Db.exec_with_affected_count Q.delete_from_tmp ()
-    >>= or_fail >>= fun nrows ->
-    assert (nrows = 2);
+    >>= check_affected 2 >>= fun () ->
     select_all 0 "zero" "zero" >>= fun () ->
     Db.commit () >>= or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= or_fail

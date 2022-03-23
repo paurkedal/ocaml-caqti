@@ -1,7 +1,7 @@
+(rule (copy# ../../shared/postgresql_conv.ml postgresql_conv.ml))
+
 (library
  (name caqti_driver_postgresql)
  (public_name caqti-driver-postgresql)
- (wrapped false)
- (modules Caqti_driver_postgresql)
  (library_flags (:standard -linkall))
- (libraries caqti postgresql))
+ (libraries caqti caqti.platform.unix postgresql))

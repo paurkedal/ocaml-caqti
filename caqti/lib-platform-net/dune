@@ -1,0 +1,4 @@
+(library
+ (name caqti_platform_net)
+ (public_name caqti.platform.net)
+ (libraries caqti))

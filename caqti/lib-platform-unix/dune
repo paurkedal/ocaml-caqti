@@ -1,0 +1,4 @@
+(library
+ (name caqti_platform_unix)
+ (public_name caqti.platform.unix)
+ (libraries caqti unix))

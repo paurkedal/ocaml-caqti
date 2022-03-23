@@ -46,6 +46,8 @@ module type S = sig
   val to_list : ('a, 'err) t -> ('a list, 'err) result future
 
   val of_list : 'a list -> ('a, 'err) t
+
+  val map_result : f: ('a -> ('b, 'err) result) -> ('a, 'err) t -> ('b, 'err) t
 end
 
 module type FUTURE = sig
@@ -101,4 +103,12 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
     fun () -> match l with
     | [] -> return Nil
     | hd::tl -> return (Cons (hd, (of_list tl)))
+
+  let rec map_result ~f xs () =
+    xs () >|= function
+     | Cons (x, xs') ->
+        (match f x with
+         | Result.Ok y -> Cons (y, map_result ~f xs')
+         | Result.Error e -> Error e)
+     | Nil | Error _ as r -> r
 end

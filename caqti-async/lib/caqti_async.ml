@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,11 @@ module System = struct
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
 
+  let catch f g =
+    try_with ~extract_exn:true f >>= function
+     | Ok y -> return y
+     | Error exn -> g exn
+
   let finally f g =
     try_with ~extract_exn:true f >>= function
      | Ok y -> g () >|= fun () -> y
@@ -45,42 +50,6 @@ module System = struct
     let create = Ivar.create
     let store x v = Ivar.fill v x
     let fetch v = Ivar.read v
-  end
-
-  module Unix = struct
-    type file_descr = Async_unix.Fd.t
-
-    let fdinfo = Info.of_string "Caqti_async file descriptor"
-
-    let wrap_fd f ufd =
-      let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
-      let open Deferred in
-      f fd >>= fun r ->
-      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd
-        >>= fun () ->
-      return r
-
-    let poll ?(read = false) ?(write = false) ?timeout fd =
-      let wait_read =
-        if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
-      let wait_write =
-        if write then Async_unix.Fd.ready_to fd `Write else Deferred.never () in
-      let wait_timeout =
-        (match timeout with
-         | Some t -> Clock.after (Time.Span.of_sec t)
-         | None -> Deferred.never ()) in
-      let did_read, did_write, did_timeout = ref false, ref false, ref false in
-      let is_ready = function
-        | `Ready -> true
-        | `Bad_fd | `Closed -> false in
-      Deferred.enabled [
-        Deferred.choice wait_read (fun st -> did_read := is_ready st);
-        Deferred.choice wait_write (fun st -> did_write := is_ready st);
-        Deferred.choice wait_timeout (fun () -> did_timeout := true);
-      ] >>|
-      (fun f ->
-        ignore (f ());
-        (!did_read, !did_write, !did_timeout))
   end
 
   module Log = struct
@@ -122,6 +91,96 @@ module System = struct
     let (>|=) = Deferred.(>>|)
     let return = Deferred.return
   end)
+
+  (* Cf. pgx_async. *)
+  module Sequencer = struct
+    type 'a t = 'a Sequencer.t
+    let create t = Sequencer.create ~continue_on_error:true t
+    let enqueue = Throttle.enqueue
+  end
+
+  module Networking = struct
+    type in_channel = Reader.t
+    type out_channel = Writer.t
+
+    type sockaddr = Unix of string | Inet of string * int
+
+    (* Cf. pgx_async *)
+    let open_connection sockaddr =
+      (match sockaddr with
+       | Unix path ->
+          Conduit_async.connect (`Unix_domain_socket path)
+       | Inet (host, port) ->
+          Conduit_async.V3.resolve_uri (Uri.make ~host ~port ())
+            >>= Conduit_async.V3.connect
+            >|= fun (_socket, ic, oc) -> (ic, oc))
+
+    let output_char oc c = return (Writer.write_char oc c)
+    let output_string oc s = return (Writer.write oc s)
+
+    let flush = Writer.flushed
+
+    let input_char ic =
+      Reader.read_char ic
+      >|= function `Ok c -> c | `Eof -> raise End_of_file
+
+    let really_input ic s pos len =
+      Reader.really_read ic ~pos ~len s
+      >|= function `Ok -> () | `Eof _ -> raise End_of_file
+
+    let close_in = Reader.close
+  end
+
+  module Unix = struct
+    type file_descr = Async_unix.Fd.t
+
+    let fdinfo = Info.of_string "Caqti_async file descriptor"
+
+    let wrap_fd f ufd =
+      let fd = Fd.create (Fd.Kind.Socket `Active) ufd fdinfo in
+      let open Deferred in
+      f fd >>= fun r ->
+      Fd.(close ~file_descriptor_handling:Do_not_close_file_descriptor) fd
+        >>= fun () ->
+      return r
+
+    let poll ?(read = false) ?(write = false) ?timeout fd =
+      let wait_read =
+        if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
+      let wait_write =
+        if write then Async_unix.Fd.ready_to fd `Write else Deferred.never () in
+      let wait_timeout =
+        (match timeout with
+         | Some t -> Clock.after (Time.Span.of_sec t)
+         | None -> Deferred.never ()) in
+      let did_read, did_write, did_timeout = ref false, ref false, ref false in
+      let is_ready = function
+        | `Ready -> true
+        | `Bad_fd | `Closed -> false in
+      Deferred.enabled [
+        Deferred.choice wait_read (fun st -> did_read := is_ready st);
+        Deferred.choice wait_write (fun st -> did_write := is_ready st);
+        Deferred.choice wait_timeout (fun () -> did_timeout := true);
+      ] >>|
+      (fun f ->
+        ignore (f ());
+        (!did_read, !did_write, !did_timeout))
+  end
 end
 
-include Caqti_connect.Make_unix (System)
+module Loader = struct
+  module Platform_unix = Caqti_platform_unix.Make (System)
+  module Platform_net = Caqti_platform_net.Make (System)
+
+  module type DRIVER = Platform_unix.DRIVER
+
+  let load_driver ~uri scheme =
+    (match Platform_net.load_driver ~uri scheme with
+     | Ok _ as r -> r
+     | Error (`Load_rejected _) as r -> r
+     | Error (`Load_failed _) ->
+        (* TODO: Summarize errors. *)
+        Platform_unix.load_driver ~uri scheme)
+end
+
+include Caqti_connect.Make (System) (Loader)

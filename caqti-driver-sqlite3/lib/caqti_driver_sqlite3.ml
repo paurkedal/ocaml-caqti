@@ -256,9 +256,12 @@ let decode_row ~uri ~query stmt row_type =
    | Error _ as r -> r)
 
 module Q = struct
-  let start = Caqti_request.exec Caqti_type.unit "BEGIN"
-  let commit = Caqti_request.exec Caqti_type.unit "COMMIT"
-  let rollback = Caqti_request.exec Caqti_type.unit "ROLLBACK"
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
+  let start = unit -->. unit @:- "BEGIN"
+  let commit = unit -->. unit @:- "COMMIT"
+  let rollback = unit -->. unit @:- "ROLLBACK"
 end
 
 module Connect_functor (System : Caqti_driver_sig.System_unix) = struct

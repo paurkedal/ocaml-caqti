@@ -30,11 +30,6 @@ module Bike = struct
     owner: string;
     stolen: Ptime.t option;
   }
-  let t =
-    let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
-    let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
-    let rep = Caqti_type.(tup3 string string (option ptime)) in
-    Caqti_type.custom ~encode ~decode rep
 end
 
 (* Query Strings
@@ -45,9 +40,18 @@ end
  * connection. *)
 
 module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
+  let bike =
+    let open Bike in
+    let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
+    let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
+    let rep = Caqti_type.(tup3 string string (option ptime)) in
+    custom ~encode ~decode rep
 
   let create_bikereg =
-    Caqti_request.exec Caqti_type.unit
+    unit ->. unit @@
     {eos|
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
@@ -56,20 +60,20 @@ module Q = struct
       )
     |eos}
 
-  let reg_bike = Caqti_request.exec
-    Caqti_type.(tup2 string string)
+  let reg_bike =
+    tup2 string string ->. unit @@
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
-  let report_stolen = Caqti_request.exec
-    Caqti_type.string
+  let report_stolen =
+    string ->. unit @@
     "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
 
-  let select_stolen = Caqti_request.collect
-    Caqti_type.unit Bike.t
+  let select_stolen =
+    unit ->* bike @@
     "SELECT * FROM bikereg WHERE NOT stolen IS NULL"
 
-  let select_owner = Caqti_request.find_opt
-    Caqti_type.string Caqti_type.string
+  let select_owner =
+    string ->? string @@
     "SELECT owner FROM bikereg WHERE frameno = ?"
 end
 

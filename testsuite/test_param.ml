@@ -15,13 +15,30 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let nonlin1_q = Caqti_request.create
-  Caqti_type.(tup3 int int int) Caqti_type.int Caqti_mult.one @@ fun _ ->
-  S[L"SELECT 2 * "; P 2; L" + "; P 2; L" - 3 * "; P 0; L" + 5 * "; P 1]
+module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
 
-let nonlin2_q = Caqti_request.find
-  Caqti_type.(tup3 int int int) Caqti_type.int
-  "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
+  let nonlin1 =
+    tup3 int int int -->! int @@ fun _ ->
+    S[L"SELECT 2 * "; P 2; L" + "; P 2; L" - 3 * "; P 0; L" + 5 * "; P 1]
+
+  let nonlin2 =
+    tup3 int int int -->! int @:-
+    "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
+
+  let env1 =
+    let env = function
+     | "." -> Caqti_query.L"100"
+     | "fourty" -> Caqti_query.L"40"
+     | _ -> raise Not_found
+    in
+    let q = "SELECT $. - $(fourty)"
+      |> Caqti_query.of_string_exn
+      |> Caqti_query.expand env
+    in
+    (Caqti_type.unit -->! Caqti_type.int) @@ fun _ -> q
+end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
@@ -32,23 +49,16 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let rec loop n =
       if n = 0 then return () else
       let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
-      (Db.find nonlin1_q p >>= or_fail >|= fun y -> assert (y = nonlin p))
+      (Db.find Q.nonlin1 p >>= or_fail >|= fun y -> assert (y = nonlin p))
         >>= fun () ->
-      (Db.find nonlin2_q p >>= or_fail >|= fun y -> assert (y = nonlin p))
+      (Db.find Q.nonlin2 p >>= or_fail >|= fun y -> assert (y = nonlin p))
         >>= fun () ->
       loop (n - 1)
     in
     loop 1000
 
-  let env1_q =
-    let env _ = function
-     | "." -> Caqti_query.L"100"
-     | "fourty" -> Caqti_query.L"40"
-     | _ -> raise Not_found in
-    Caqti_request.find ~env Caqti_type.unit Caqti_type.int "SELECT $. - $(fourty)"
-
   let test_env (module Db : Caqti_sys.CONNECTION) =
-    Db.find env1_q () >>= or_fail >|= fun y -> assert (y = 60)
+    Db.find Q.env1 () >>= or_fail >|= fun y -> assert (y = 60)
 
   let test_cases = [
     "nonlinear", `Quick, test_nonlin;

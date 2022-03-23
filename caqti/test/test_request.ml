@@ -19,8 +19,13 @@ open Printf
 
 module Q = Caqti_query
 
-let expect_parse ?env qs q' =
-  let rq = Caqti_request.exec ?env ~oneshot:true Caqti_type.unit qs in
+let expect_parse ~env qs q' =
+  let rq =
+    let open Caqti_request.Infix in
+    let open Caqti_type.Std in
+    let q = qs |> Caqti_query.of_string_exn |> Caqti_query.expand env in
+    (unit -->. unit) ~oneshot:true @@ fun _ -> q
+  in
   let q = Caqti_query.normal (Caqti_request.query rq Caqti_driver_info.dummy) in
   if not (Q.equal q q') then begin
     eprintf "Parsed:   %s\nExpected: %s\n"
@@ -29,7 +34,7 @@ let expect_parse ?env qs q' =
   end
 
 let test_request_parse () =
-  let env _ = function
+  let env = function
    | "alpha" -> Q.L "α"
    | "beta" -> Q.L "β"
    | "beta." -> Q.L "β[dot]"
@@ -37,8 +42,8 @@ let test_request_parse () =
    | "delta" -> Q.L "δ"
    | _ -> raise Not_found
   in
-  expect_parse ~env "$(alpha) $QUOTE$ $beta. $(gamma) $delta."
-    Q.(L"α $QUOTE$ β[dot] γ δ.")
+  expect_parse ~env "$(alpha) $$ $beta. $(gamma) $delta. $$ $Q$ $beta. $Q$"
+    Q.(L"α $$ β[dot] γ δ. $$ $Q$ $beta. $Q$")
 
 let test_cases = [
   "parse", `Quick, test_request_parse;

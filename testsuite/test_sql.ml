@@ -35,13 +35,12 @@ module Q = struct
   open Caqti_type.Std
   open Caqti_request.Infix
 
-  let select_null_etc = Caqti_request.find
-    (tup2 (option int) (option int))
-    (tup2 bool (option int))
+  let select_null_etc =
+    tup2 (option int) (option int) -->! tup2 bool (option int) @:-
     "SELECT ? IS NULL, ?"
 
-  let select_and = Caqti_request.find (tup2 bool bool) bool "SELECT ? AND ?"
-
+  let select_and = tup2 bool bool -->! bool @:-
+    "SELECT ? AND ?"
   let select_plus_int = tup2 int int -->! int @:-
     "SELECT ? + ?"
   let select_plus_int64 = tup2 int64 int64 -->! int64 @:-
@@ -138,32 +137,28 @@ module Q = struct
    | _ -> failwith "Unimplemented"
   let drop_tmp = unit -->. unit @@:- function
    | _ -> "DROP TABLE test_sql"
-  let insert_into_tmp = Caqti_request.exec (tup3 int string octets)
+  let insert_into_tmp = tup3 int string octets -->. unit @:-
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
-  let update_in_tmp_where_i = Caqti_request.exec (tup2 octets int)
+  let update_in_tmp_where_i = tup2 octets int -->. unit @:-
     "UPDATE test_sql SET o = ? WHERE i = ?"
-  let update_in_tmp = Caqti_request.exec unit
+  let update_in_tmp = unit -->. unit @:-
     "UPDATE test_sql SET s = 'ZERO'"
-  let delete_from_tmp_where_i = Caqti_request.exec int
+  let delete_from_tmp_where_i = int -->. unit @:-
     "DELETE FROM test_sql WHERE i = ?"
-  let delete_from_tmp = Caqti_request.exec unit
+  let delete_from_tmp = unit -->. unit @:-
     "DELETE FROM test_sql"
-  let select_from_tmp = Caqti_request.collect unit (tup3 int string octets)
+  let select_from_tmp = unit -->* tup3 int string octets @:-
     "SELECT i, s, o FROM test_sql ORDER BY i ASC"
   let select_from_tmp_where_i_lt =
-    Caqti_request.collect
-      int
-      (tup3 int string octets)
-      "SELECT i, s, o FROM test_sql WHERE i < ?"
+    int -->* tup3 int string octets @:-
+    "SELECT i, s, o FROM test_sql WHERE i < ?"
   let select_from_tmp_nullable =
-    Caqti_request.collect
-      unit
-      (tup3 int (option string) (option octets))
+    unit -->* tup3 int (option string) (option octets) @:-
       "SELECT i, s, o FROM test_sql"
-  let select_from_tmp_binary = Caqti_request.collect unit octets
+  let select_from_tmp_binary = unit -->* octets @:-
     "SELECT data FROM test_sql"
 
-  let select_current_time = Caqti_request.find unit ptime
+  let select_current_time = unit -->! ptime @:-
     "SELECT current_timestamp"
   let select_given_time = ptime -->! ptime @@:- function
     | `Pgsql | `Sqlite -> "SELECT ?"

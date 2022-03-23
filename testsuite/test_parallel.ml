@@ -15,20 +15,25 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let create_q = Caqti_request.exec Caqti_type.unit
-  "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"
-let drop_q = Caqti_request.exec Caqti_type.unit
-  "DROP TABLE IF EXISTS test_parallel"
-let insert_q = Caqti_request.exec Caqti_type.(tup2 int int)
-  "INSERT INTO test_parallel VALUES (?, ?)"
-let delete_q = Caqti_request.exec Caqti_type.int
-  "DELETE FROM test_parallel WHERE x = ?"
-let select_1_q = Caqti_request.collect Caqti_type.int Caqti_type.int
-  "SELECT y FROM test_parallel WHERE x < ?"
-let select_2_q = Caqti_request.find Caqti_type.int Caqti_type.(option int)
-  "SELECT sum(a.y*b.y) \
-   FROM test_parallel a JOIN test_parallel b ON a.x < b.x \
-   WHERE b.x < ?"
+module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
+  let create = unit -->. unit @:-
+    "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"
+  let drop = unit -->. unit @:-
+    "DROP TABLE IF EXISTS test_parallel"
+  let insert = tup2 int int -->. unit @:-
+    "INSERT INTO test_parallel VALUES (?, ?)"
+  let delete = int -->. unit @:-
+    "DELETE FROM test_parallel WHERE x = ?"
+  let select_1 = int -->* int @:-
+    "SELECT y FROM test_parallel WHERE x < ?"
+  let select_2 = int -->! option int @:-
+    "SELECT sum(a.y*b.y) \
+     FROM test_parallel a JOIN test_parallel b ON a.x < b.x \
+     WHERE b.x < ?"
+end
 
 let random_int () = Random.int (1 + Random.int 16)
 
@@ -39,15 +44,15 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     pool |> Caqti_sys.Pool.use @@ fun (module C : Caqti_sys.CONNECTION) ->
     (match Random.int 4 with
      | 0 ->
-        C.exec insert_q (random_int (), random_int ()) >>=? fun () ->
+        C.exec Q.insert (random_int (), random_int ()) >>=? fun () ->
         return (Ok 0)
      | 1 ->
-        C.exec delete_q (random_int ()) >>=? fun () ->
+        C.exec Q.delete (random_int ()) >>=? fun () ->
         return (Ok 0)
      | 2 ->
-        C.fold select_1_q (fun x acc -> x + acc) (random_int ()) 0
+        C.fold Q.select_1 (fun x acc -> x + acc) (random_int ()) 0
      | 3 ->
-        C.find select_2_q (random_int ())
+        C.find Q.select_2 (random_int ())
           >|=? (function None -> 0 | Some i -> i)
      | _ ->
         assert false)
@@ -81,8 +86,8 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     begin
       Caqti_sys.Pool.use
         (fun (module C : Caqti_sys.CONNECTION) ->
-          C.exec drop_q () >>=? fun () ->
-          C.exec create_q ())
+          C.exec Q.drop () >>=? fun () ->
+          C.exec Q.create ())
         pool >>=? fun () ->
       test_parallel' pool 1000
     end >|= function

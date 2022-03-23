@@ -51,10 +51,14 @@ let () =
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
-let set_utc_req =
-  Caqti_request.exec ~oneshot:true Caqti_type.unit "SET time_zone = '+00:00'"
-let set_statement_timeout_req =
-  Caqti_request.exec ~oneshot:true Caqti_type.float "SET max_statement_time = ?"
+module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+  let set_utc =
+    (unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
+  let set_statement_timeout =
+    (float ->. unit) ~oneshot:true "SET max_statement_time = ?"
+end
 
 let no_env _ _ = raise Not_found
 
@@ -521,7 +525,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
        | Error err -> transaction_failed "# ROLLBACK" err)
 
     let set_statement_timeout t =
-      call ~f:Response.exec set_statement_timeout_req
+      call ~f:Response.exec Q.set_statement_timeout
         (match t with
          | None -> 0.0
          | Some t -> max 0.000001 t)
@@ -581,7 +585,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
           >>= fun () ->
         (* MariaDB returns local times but without time zone, so change it to
          * UTC for Caqti sessions. *)
-        C.call ~f:(fun resp -> C.Response.exec resp) set_utc_req () >|=
+        C.call ~f:(fun resp -> C.Response.exec resp) Q.set_utc () >|=
           (function
            | Ok () -> Ok (module C : CONNECTION)
            | Error err -> Error (`Post_connect err))

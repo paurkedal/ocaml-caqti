@@ -15,21 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
 
-let (-->) tA tR f =
-  Caqti_request.create_p tA tR Caqti_mult.one
-    (f % Caqti_driver_info.dialect_tag)
+  let select_two = unit -->! int @:- "SELECT 2"
+  let select_twice = int -->! int @:- "SELECT 2 * ?"
 
-let select_two_q =
-  Caqti_request.find Caqti_type.unit Caqti_type.int "SELECT 2"
-let select_twice_q =
-  Caqti_request.find Caqti_type.int Caqti_type.int "SELECT 2 * ?"
-
-let sleep_q =
-  Caqti_type.(unit --> option int) @@ function
-   | `Pgsql -> "SELECT pg_sleep(2)"
-   | _ -> "SELECT sleep(2)"
+  let sleep =
+    unit -->! option int @@:- function
+     | `Pgsql -> "SELECT pg_sleep(2)"
+     | _ -> "SELECT sleep(2)"
+end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
@@ -38,13 +35,13 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let test i =
       catch
         (fun () ->
-          Db.call ~f:(fun _ -> fail' Not_found) select_two_q ()
+          Db.call ~f:(fun _ -> fail' Not_found) Q.select_two ()
             >|= fun _ -> assert false)
         (function
          | Not_found -> return ()
          | exn -> failwith ("unexpected exception: " ^ Printexc.to_string exn))
         >>= fun () ->
-      Db.find select_twice_q i
+      Db.find Q.select_twice i
         >|= (function Ok j -> assert (j = 2 * i) | _ -> assert false)
     in
     test 3 >>= fun () ->
@@ -61,8 +58,8 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       | Ok _ -> assert false
     in
     let test i =
-      Db.find sleep_q () >|= check_timed_out >>= fun () ->
-      Db.find select_twice_q i
+      Db.find Q.sleep () >|= check_timed_out >>= fun () ->
+      Db.find Q.select_twice i
         >|= (function Ok j -> assert (j = 2 * i) | _ -> assert false)
     in
     Db.set_statement_timeout (Some 0.1) >>= or_fail >>= fun () ->

@@ -30,13 +30,25 @@ end
 
 module Int_hashtbl = Hashtbl.Make (Int_hashable)
 
-let start_req = Caqti_request.exec Caqti_type.unit "BEGIN"
-let commit_req = Caqti_request.exec Caqti_type.unit "COMMIT"
-let rollback_req = Caqti_request.exec Caqti_type.unit "ROLLBACK"
-let type_oid_req = Caqti_request.find_opt Caqti_type.string Caqti_type.int
-  "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
-let set_timezone_to_utc_req = Caqti_request.exec ~oneshot:true Caqti_type.unit
-  "SET TimeZone TO 'UTC'"
+module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
+  let start = unit -->. unit @:- "BEGIN"
+  let commit = unit -->. unit @:- "COMMIT"
+  let rollback = unit -->. unit @:- "ROLLBACK"
+
+  let type_oid = string -->? int @:-
+    "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
+
+  let set_timezone_to_utc = (unit ->. unit) ~oneshot:true
+    "SET TimeZone TO 'UTC'"
+
+  let set_statement_timeout t =
+    (unit -->. unit) ~oneshot:true @@ fun _ ->
+    (* Parameters are not supported for SET. *)
+    S[L"SET statement_timeout TO "; L(string_of_int t)]
+end
 
 type Caqti_error.msg +=
   | Connect_error_msg of {
@@ -783,7 +795,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
      | Caqti_type.Unit -> return (Ok ())
      | Caqti_type.Field (Caqti_type.Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
-        call' ~f:Response.find_opt type_oid_req name >>=
+        call' ~f:Response.find_opt Q.type_oid name >>=
         (function
          | Ok (Some oid) ->
             return (Ok (Hashtbl.add type_oid_cache name oid))
@@ -857,9 +869,9 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
     let check f = f (try db#status = Pg.Ok with Pg.Error _ -> false)
 
     let exec q p = call ~f:Response.exec q p
-    let start () = exec start_req () >|=? fun () -> Ok (in_transaction := true)
-    let commit () = in_transaction := false; exec commit_req ()
-    let rollback () = in_transaction := false; exec rollback_req ()
+    let start () = exec Q.start () >|=? fun () -> Ok (in_transaction := true)
+    let commit () = in_transaction := false; exec Q.commit ()
+    let rollback () = in_transaction := false; exec Q.rollback ()
 
     let set_statement_timeout t =
       let t_arg =
@@ -867,12 +879,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
          | None -> 0
          | Some t -> max 1 (int_of_float (t *. 1000.0 +. 500.0)))
       in
-      let req =
-        (* Parameters are not supported for SET. *)
-        Caqti_request.exec ~oneshot:true Caqti_type.unit
-          (Printf.sprintf "SET statement_timeout TO %d" t_arg)
-      in
-      call ~f:Response.exec req ()
+      call ~f:Response.exec (Q.set_statement_timeout t_arg) ()
 
     let populate ~table ~columns row_type data =
       let query =
@@ -982,7 +989,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
                   include B
                   include Caqti_connection.Make_convenience (System) (B)
                 end in
-                Connection.exec set_timezone_to_utc_req () >|=
+                Connection.exec Q.set_timezone_to_utc () >|=
                 (function
                  | Ok () -> Ok (module Connection : CONNECTION)
                  | Error err -> Error (`Post_connect err)))))

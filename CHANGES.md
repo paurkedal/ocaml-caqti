@@ -1,4 +1,4 @@
-## unreleased
+## v1.8.0 - 2022-03-24
 
 New features:
 
@@ -12,10 +12,10 @@ New features:
     with the relevant drivers.
 
   - A second set of request construction operators `->.`, `->?`, `->!`, and
-    `->*` due to aesthetical concerns when converting some existing code.
-
-  - The `-->` operator was renamed to `-->!`, with a deprecated alias, for
-    consistency with the above.
+    `->*` were introduced after experience with converting existing code.
+    Given the parameter and result type they return a function which
+    constructs a request directly from a query string.  Avoiding the need to
+    compose with `@:-` simplifies local opens and usage with `List.map` etc.
 
   - Environment variables are now expanded in the debug log when using the
     new request constructors introduced in 1.7.0.
@@ -33,6 +33,17 @@ Fixes:
   - Fixed debug logging to pass the correct driver info to the query
     callback instead of a dummy driver info which would cause a failure if
     unsupported.
+
+Deprecations:
+
+  - The `-->` operator was renamed to `-->!`, with a deprecated alias, for
+    consistency with the new `->!` operator.
+
+  - The old convenience interface for creating requests has been deprecated
+    in favour of the new infix operators and the new query template parser.
+
+  - Documented-only deprecations of `Caqti_sql_io`, `Caqti_lwt_sql_io`, and
+    `Caqti_async_sql_io` have been annotated.
 
 ## v1.7.0 - 2022-02-13
 

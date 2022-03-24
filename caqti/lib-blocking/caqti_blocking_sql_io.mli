@@ -15,4 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@deprecated "Use Caqti_query.angstrom_parser."]
+[@@@warning "-3"]
+
 include Caqti_sql_io.S with type 'a future = 'a

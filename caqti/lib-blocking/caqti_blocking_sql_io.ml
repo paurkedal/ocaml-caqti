@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@warning "-3"]
+
 type 'a future = 'a
 
 include Caqti_sql_io.Make (struct

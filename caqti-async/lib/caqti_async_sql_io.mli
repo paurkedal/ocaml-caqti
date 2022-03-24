@@ -20,6 +20,9 @@
     @deprecated New code should instead use {!Caqti_query.angstrom_parser}
     with the appropriate parsing function from the Angstrom library. *)
 
+[@@@deprecated "Use Caqti_query.angstrom_parser."]
+[@@@warning "-3"]
+
 open Async_kernel
 
 include Caqti_sql_io.S with type 'a future := 'a Deferred.Or_error.t

@@ -15,4 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@warning "-3"]
+
 include Caqti_sql_io.Make (Async_kernel.Deferred.Or_error)

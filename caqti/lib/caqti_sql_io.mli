@@ -20,6 +20,8 @@
     @deprecated New code should instead use {!Caqti_query.angstrom_parser} with
     the appropriate parsing function from the Angstrom library. *)
 
+[@@@deprecated "Use Caqti_query.angstrom_parser."]
+
 (** The concurrency monad assumed by {!Make}. *)
 module type MONAD = sig
   type +'a t

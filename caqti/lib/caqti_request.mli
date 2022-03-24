@@ -171,28 +171,28 @@ module Infix : sig
 
   (** {2:indep Constructors for Driver-Independent Requests} *)
 
-  val (->.) :
+  val ( ->. ) :
     'a Caqti_type.t -> unit Caqti_type.t ->
     ?oneshot: bool -> string -> ('a, unit, [`Zero]) t
   (** [(pt ->. Caqti_type.unit) ?oneshot s] is the request which sends the
       equery string [s], encodes parameters according to [pt], and expects no
       result rows. See {!create} for the meaning of [oneshot]. *)
 
-  val (->!) :
+  val ( ->! ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> string -> ('a, 'b, [`One]) t
   (** [(pt ->! rt) ?oneshot s] is the request which sends the query string [s],
       encodes parameters according to [pt], and decodes a single result row
       according to [rt]. See {!create} for the meaning of [oneshot]. *)
 
-  val (->?) :
+  val ( ->? ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One]) t
   (** [(pt ->? rt) ?oneshot s] is the request which sends the query string [s],
       encodes parameters according to [pt], and decodes zero or one result row
       according to [rt]. See {!create} for the meaning of [oneshot]. *)
 
-  val (->*) :
+  val ( ->* ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One | `Many]) t
   (** [(pt ->* rt) ?oneshot s] is the request which sends the query string [s],
@@ -210,7 +210,7 @@ module Infix : sig
       positional argument, additional application operators are provided for
       convenience. *)
 
-  val (-->.) :
+  val ( -->. ) :
     'a Caqti_type.t -> unit Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, unit, [`Zero]) t
@@ -218,16 +218,16 @@ module Infix : sig
       query string returned by [f], encodes parameters according to [pt], and
       expects no result rows. See {!create} for the meaning of [oneshot]. *)
 
-  val (-->!) :
+  val ( -->! ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`One]) t
-  (** [(pt --> rt) ?oneshot f] is the request which sends the query string
+  (** [(pt -->! rt) ?oneshot f] is the request which sends the query string
       returned by [f], encodes parameters according to [pt], and decodes a
       single result row according to [rt]. See {!create} for the meaning of
       [oneshot]. *)
 
-  val (-->?) :
+  val ( -->? ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`Zero | `One]) t
@@ -236,7 +236,7 @@ module Infix : sig
       one result row according to [rt]. See {!create} for the meaning of
       [oneshot]. *)
 
-  val (-->*) :
+  val ( -->* ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`Zero | `One | `Many]) t
@@ -246,21 +246,21 @@ module Infix : sig
       [oneshot]. *)
 
   (**/**)
-  val (-->) :
+  val ( --> ) :
     'a Caqti_type.t -> 'b Caqti_type.t ->
     ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
     ('a, 'b, [`One]) t
   [@@deprecated "Renamed to (-->!) for consistency with (->!)."]
   (**/**)
 
-  val (@:-) :
+  val ( @:- ) :
     ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
     string -> ('a, 'b, 'm) t
   (** Applies a dialect-independent query string which is parsed with
       {!Caqti_query.of_string_exn}.  Composition with arrow operators from this
       section, gives the corresponding operators from {!section:indep}. *)
 
-  val (@@:-) :
+  val ( @@:- ) :
     ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
     (Caqti_driver_info.dialect_tag -> string) -> ('a, 'b, 'm) t
   (** Applies a dialect-dependent query string which is parsed with

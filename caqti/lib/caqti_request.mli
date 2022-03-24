@@ -96,12 +96,13 @@ val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
     possibly tailored for the given driver. *)
 
 
-(** {2 New Convenience Interface} *)
+(** {2 Convenience Interface} *)
 
 module Infix : sig
   (** The following operators provides a more visually appealing way of
       expressing requests.  They are implemented in terms of {!create} and
-      {!Caqti_query.of_string_exn}.
+      {!Caqti_query.of_string_exn}, meaning the the query string arguments
+      accepts {{!query_template} The Syntax of Query Templates}.
 
       The [?oneshot] argument defaults to [false], so when not constructing
       one-shot queries, the full application [(pt -->! rt) f] can be written
@@ -269,75 +270,38 @@ module Infix : sig
 end
 
 
-(** {2 Old Convenience Interface}
-
-    The following interface will likely be deprecated in the near future and
-    removed in the next major release.  For new code it is recommendable to use
-    {!Infix} operators for high-level usage and {!create} for low-level usage.
-
-    In the following functions, queries are written out as plain strings with
-    the following syntax, which is parsed by Caqti into a {!Caqti_query.t}
-    object before being passed to drivers.  The syntax used by these functions
-    are similar but not the same as the {{!Caqti_query.angstrom_parser} new
-    parser} used by the {!Infix} operators, but it is less strict about which
-    characters may follow a [?] parameter reference, and it treats dollar quotes
-    differently in that ["$<var>$"] is left unchanged, and ["$$"] is translated
-    as a literal ["$"]. *)
-
+(**/**)
 val create_p :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
   (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
-(** [create_p arg_type row_type row_mult f] is a request which takes parameters
-    of type [arg_type], returns rows of type [row_type] with multiplicity
-    [row_mult], and which sends a query string based on a preliminary form given
-    by [f di], where [di] is the {!Caqti_driver_info.t} of the target driver.
-    The preliminary query string may contain parameter and static references as
-    described in the introduction of this section.
-
-    @param oneshot
-      Disables caching of a prepared statements on connections for this query.
-      See {!create} for details.
-
-    @param env
-      [env driver_info key] shall provide the value to substitute for a
-      reference to [key] in the preliminary query string, or raise [Not_found]
-      to indicate the reference to [key] is invalid.  [Not_found] will be
-      re-raised as [Invalid_argument] with additional information to help locate
-      the bug. *)
-
+[@@deprecated "Use create and Caqti_query.of_string_exn or the Infix module."]
 val exec :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t ->
   string -> ('a, unit, [> `Zero]) t
-(** [exec_p ?env ?oneshot arg_type s] is a shortcut for [create_p ?env ?oneshot
-    arg_type Caqti_type.unit Caqti_mult.zero (fun _ -> s)]. *)
-
+[@@deprecated "Replaced by the Infix module."]
 val find :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `One]) t
-(** [find_p ?env ?oneshot arg_type row_type s] is a shortcut for
-    [create_p ?env ?oneshot arg_type row_type Caqti_mult.one (fun _ -> s)]. *)
-
+[@@deprecated "Replaced by the Infix module."]
 val find_opt :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One]) t
-(** [find_opt_p arg_type ?env ?oneshot row_type s] is a shortcut for [create_p
-    ?env ?oneshot arg_type row_type Caqti_mult.zero_or_one (fun _ -> s)]. *)
-
+[@@deprecated "Replaced by the Infix module."]
 val collect :
   ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
   ?oneshot: bool ->
   'a Caqti_type.t -> 'b Caqti_type.t ->
   string -> ('a, 'b, [> `Zero | `One | `Many]) t
-(** [collect_p arg_type ?env ?oneshot row_type s] is a shortcut for
-    [create_p arg_type ?env ?oneshot row_type Caqti_mult.many (fun _ -> s)]. *)
+[@@deprecated "Replaced by the Infix module."]
+(**/**)
 
 
 (** {2 Printing} *)

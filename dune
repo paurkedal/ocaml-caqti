@@ -1,0 +1,8 @@
+; Add CircleCI exclusion if build from a GitHub action
+(rule
+ (alias doc)
+ (enabled_if (<> %{env:GITHUB_ACTION=none} none))
+ (action
+  (progn
+   (run mkdir -p _doc/_html/.circleci)
+   (run cp -f ../../.circleci/config.yml "_doc/_html/.circleci/config.yml"))))

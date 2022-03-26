@@ -1,0 +1,44 @@
+version: 2
+jobs:
+  build:
+    branches:
+      ignore:
+        - deploy-doc
+        - gh-pages
+    docker:
+      - image: ocaml/opam:debian-ocaml-4.13
+        environment:
+          TERM: xterm
+      - image: cimg/postgres:14.1
+        environment:
+          POSTGRES_USER: test
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: ""
+
+    steps:
+      - checkout
+      - run:
+          name: Pin packages
+          command: |
+            version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
+            for f in *.opam; do
+              opam pin add -yn "${f%.opam}.${version}.dev" .
+            done
+      - run:
+          name: Install system dependencies
+          command: |
+            opam depext -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+      - run:
+          name: Install OCaml dependencies
+          command: opam install --deps-only -ty $(ls -1 *.opam | sed -e 's/\.opam$//')
+      - run:
+          name: Build
+          command: opam config exec -- dune build @install
+      - run:
+          name: Test
+          command: |
+            echo "
+                sqlite3:test.db?busy_timeout=60000
+                postgresql://test@localhost/test
+            " > testsuite/uris.conf
+            opam config exec -- dune runtest

@@ -26,7 +26,7 @@ New features:
     database systems.
 
   - Enable foreign key constraint checks for SQLite3 starting at tweaks
-    version 1.7.
+    version 1.8.
 
 Fixes:
 

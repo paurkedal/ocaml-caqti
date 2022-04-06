@@ -176,7 +176,7 @@ module Infix : sig
     'a Caqti_type.t -> unit Caqti_type.t ->
     ?oneshot: bool -> string -> ('a, unit, [`Zero]) t
   (** [(pt ->. Caqti_type.unit) ?oneshot s] is the request which sends the
-      equery string [s], encodes parameters according to [pt], and expects no
+      query string [s], encodes parameters according to [pt], and expects no
       result rows. See {!create} for the meaning of [oneshot]. *)
 
   val ( ->! ) :

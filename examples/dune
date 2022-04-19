@@ -1,9 +1,12 @@
-(test
+(executable
  (name bikereg)
- (package caqti-lwt)
  (modules bikereg)
- (libraries caqti caqti-dynload caqti-lwt testlib)
- (deps (alias ../testsuite/drivers) ../testsuite/uris.conf)
+ (libraries caqti caqti-dynload caqti-lwt testlib))
+
+(rule
+ (alias runtest)
+ (package caqti-lwt)
+ (deps (:test bikereg.exe) (alias ../testsuite/drivers) ../testsuite/uris.conf)
  (locks /db/bikereg)
  (action
   (setenv OCAMLPATH ../testsuite

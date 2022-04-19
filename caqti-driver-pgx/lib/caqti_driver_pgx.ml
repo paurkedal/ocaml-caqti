@@ -25,7 +25,13 @@ let () =
    | Pgx_msg (msg, _) -> Format.pp_print_string ppf msg
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Pgx_msg]
+  let cause = function
+   | Pgx_msg (_, error_response) ->
+      cause_of_sqlstate error_response.Pgx.Error_response.code
+   | _ ->
+      assert false
+  in
+  Caqti_error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
 
 let (|>?) r f = match r with Ok x -> f x | Error e -> Error e
 

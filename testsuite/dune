@@ -15,36 +15,45 @@
 
 ; Instantiations of the testsuite.
 
-(test
+(executable
   (name main_blocking)
-  (package caqti-dynload)
   (modules main_blocking)
   (libraries
     caqti caqti.blocking caqti-dynload
-    alcotest testlib testlib_blocking testsuite)
-  (deps (alias drivers) uris.conf)
+    alcotest testlib testlib_blocking testsuite))
+
+(rule
+  (alias runtest)
+  (package caqti-dynload)
+  (deps (:test main_blocking.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
 
-(test
+(executable
   (name main_async)
-  (package caqti-async)
   (modules main_async)
   (libraries
     caqti caqti-dynload caqti-async
-    alcotest-async testlib testlib_async testsuite)
-  (deps (alias drivers) uris.conf)
+    alcotest-async testlib testlib_async testsuite))
+
+(rule
+  (alias runtest)
+  (package caqti-async)
+  (deps (:test main_async.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
 
-(test
+(executable
   (name main_lwt)
-  (package caqti-lwt)
   (modules main_lwt)
   (libraries
     caqti caqti-dynload caqti-lwt
-    alcotest-lwt testlib testlib_lwt testsuite)
-  (deps (alias drivers) uris.conf)
+    alcotest-lwt testlib testlib_lwt testsuite))
+
+(rule
+  (alias runtest)
+  (package caqti-lwt)
+  (deps (:test main_lwt.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
 

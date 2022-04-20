@@ -197,7 +197,13 @@ let decode_row ~uri row_type fields =
     |> Result.map (fun (y, fields) -> assert (fields = []); y)
 
 module Q = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
   let select_type_oid = "SELECT oid FROM pg_catalog.pg_type WHERE typname = $1"
+
+  let set_timezone_to_utc =
+    (unit ->. unit) ~oneshot:true "SET TimeZone TO 'UTC'"
 end
 
 type connect_arg = {
@@ -607,12 +613,10 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-(*
   let setup (module Connection : CONNECTION) =
-    Connection.exec set_timezone_to_utc_req () >|= function
-     | Ok () -> Ok (module Connection : CONNECTION)
+    Connection.exec Q.set_timezone_to_utc () >|= function
+     | Ok () -> Ok ()
      | Error err -> Error (`Post_connect err)
-*)
 
   let connect ?(env = no_env) ~tweaks_version:_ uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
@@ -623,7 +627,7 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
         (Pgx_with_io.connect
           ?host ?port ?user ?password ?database ?unix_domain_socket_dir)
     in
-    let+ select_type_oid =
+    let* select_type_oid =
       Pgx_with_io.Prepared.prepare db ~query:Q.select_type_oid
     in
     let module B = Make_connection_base (struct
@@ -638,7 +642,8 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
       include Caqti_connection.Make_convenience (System) (B)
       include Caqti_connection.Make_populate (System) (B)
     end in
-    Ok (module Connection : CONNECTION)
+    let+? () = setup (module Connection) in
+    (module Connection : CONNECTION)
 end
 
 let () =

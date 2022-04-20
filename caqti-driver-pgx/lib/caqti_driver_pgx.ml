@@ -268,8 +268,6 @@ let parse_uri uri =
 module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
   open System
 
-  let ( let* ) = ( >>= )
-  let ( let+ ) = ( >|= )
   let ( let*? ) m f = m >>= function Ok x -> f x | Error _ as r -> return r
   let ( let+? ) m f = m >|= function Ok x -> Ok (f x) | Error _ as r -> r
   let ( >>=? ) = ( let*? )
@@ -573,8 +571,6 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
       using_db Pgx_with_io.alive
 
     let check f = f true
-
-    let exec q p = call ~f:Response.exec q p
 
     let start () =
       (match !db_txn with

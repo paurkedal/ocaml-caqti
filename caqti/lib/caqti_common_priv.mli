@@ -37,6 +37,7 @@ end
 
 module Result : sig
   val map : ('a -> 'b) -> ('a, 'c) result -> ('b, 'c) result
+  val map_error : ('d -> 'e) -> ('a, 'd) result -> ('a, 'e) result
 end
 
 module List : sig

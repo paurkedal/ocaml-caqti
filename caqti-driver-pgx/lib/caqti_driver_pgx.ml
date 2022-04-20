@@ -555,12 +555,23 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
 
     let disconnect () =
       using_db @@ fun _ ->
-      (match !db_txn with
-       | None -> return ()
-       | Some db -> Pgx_with_io.close db) >>= fun () ->
-      Pgx_with_io.close db_arg
+      catch
+        (fun () ->
+          (match !db_txn with
+           | None -> return ()
+           | Some db -> Pgx_with_io.close db) >>= fun () ->
+          Pgx_with_io.close db_arg)
+        (function
+         | Pgx.PostgreSQL_Error (msg, _) ->
+            Log.err (fun f -> f "Failed to disconnect %a: %s" Uri.pp uri msg)
+         | exn ->
+            raise exn)
 
-    let validate () = using_db Pgx_with_io.alive
+    let validate () =
+      (* No need to handle exceptions here, since alive is a catch-all wrapper
+       * around ping. *)
+      using_db Pgx_with_io.alive
+
     let check f = f true
 
     let exec q p = call ~f:Response.exec q p
@@ -627,8 +638,10 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
         (Pgx_with_io.connect
           ?host ?port ?user ?password ?database ?unix_domain_socket_dir)
     in
-    let* select_type_oid =
-      Pgx_with_io.Prepared.prepare db ~query:Q.select_type_oid
+    let*? select_type_oid =
+      intercept_request_failed ~uri ~query:Q.select_type_oid
+        (fun () -> Pgx_with_io.Prepared.prepare db ~query:Q.select_type_oid)
+      >|= Result.map_error (fun err -> `Post_connect err)
     in
     let module B = Make_connection_base (struct
       let env = env

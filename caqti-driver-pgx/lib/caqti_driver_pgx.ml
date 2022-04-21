@@ -488,55 +488,49 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
 
     let call ~f req param =
       using_db @@ fun db ->
-      let*? query, rows =
-        (match Caqti_request.query_id req with
-         | Some query_id ->
-            let param_type = Caqti_request.param_type req in
-            let*? pq =
-              (match Hashtbl.find_opt prepare_cache query_id with
-               | Some pq -> return (Ok pq)
-               | None ->
-                  let templ = Caqti_request.query req driver_info in
-                  let query, rev_quotes = query_string ~env:env' templ in
-                  let name = sprintf "q%d" query_id in
-                  let*? param_type_oids = type_oids param_type in
-                  let*? quote_type_oids =
-                    let+? string_oid = field_type_oid Caqti_type.String in
-                    List.rev_map (fun _ -> string_oid) rev_quotes
-                  in
-                  let types = List.rev_append quote_type_oids param_type_oids in
-                  let+? pgx_prepared =
-                    intercept_request_failed ~uri ~query (fun () ->
-                      Pgx_with_io.Prepared.prepare ~name ~query ~types db)
-                  in
-                  let pq = {query; pgx_prepared; rev_quotes} in
-                  Hashtbl.add prepare_cache query_id pq; pq)
-            in
-            (match encode_param ~uri param_type param with
-             | Error _ as r -> return r
-             | Ok regular_params ->
-                let params = List.rev_append pq.rev_quotes regular_params in
-                let+? rows =
-                  intercept_request_failed ~uri ~query:pq.query (fun () ->
-                    Pgx_with_io.Prepared.execute pq.pgx_prepared ~params)
-                in
-                (pq.query, rows))
-         | None ->
-            let templ = Caqti_request.query req driver_info in
-            let query, rev_quotes = query_string ~env:env' templ in
-            let param_type = Caqti_request.param_type req in
-            (match encode_param ~uri param_type param with
-             | Error _ as r -> return r
-             | Ok regular_params ->
-                let params = List.rev_append rev_quotes regular_params in
-                let+? rows =
-                  intercept_request_failed ~uri ~query (fun () ->
-                    Pgx_with_io.execute db query ~params)
-                in
-                (query, rows)))
+      let pre_prepare () =
+        let templ = Caqti_request.query req driver_info in
+        let query, rev_quotes = query_string ~env:env' templ in
+        let*? param_types = type_oids (Caqti_request.param_type req) in
+        let+? string_oid = field_type_oid Caqti_type.String in
+        let quote_types = List.rev_map (fun _ -> string_oid) rev_quotes in
+        let types = List.rev_append quote_types param_types in
+        (query, types, rev_quotes)
       in
-      let*? () = return (check_mult ~query req rows) in
-      f {Response.row_type = Caqti_request.row_type req; rows}
+      let post_prepare pq =
+        let*? query, rows =
+          (match encode_param ~uri (Caqti_request.param_type req) param with
+           | Error _ as r -> return r
+           | Ok regular_params ->
+              let params = List.rev_append pq.rev_quotes regular_params in
+              let+? rows =
+                intercept_request_failed ~uri ~query:pq.query (fun () ->
+                  Pgx_with_io.Prepared.execute pq.pgx_prepared ~params)
+              in
+              (pq.query, rows))
+        in
+        let*? () = return (check_mult ~query req rows) in
+        f {Response.row_type = Caqti_request.row_type req; rows}
+      in
+      (match Caqti_request.query_id req with
+       | Some query_id ->
+          (match Hashtbl.find_opt prepare_cache query_id with
+           | Some pq -> return (Ok pq)
+           | None ->
+              let*? query, types, rev_quotes = pre_prepare () in
+              let name = sprintf "q%d" query_id in
+              let+? pgx_prepared =
+                intercept_request_failed ~uri ~query (fun () ->
+                  Pgx_with_io.Prepared.prepare ~name ~query ~types db)
+              in
+              let pq = {query; pgx_prepared; rev_quotes} in
+              Hashtbl.add prepare_cache query_id pq; pq)
+          >>=? post_prepare
+       | None ->
+          let*? query, types, rev_quotes = pre_prepare () in
+          Pgx_with_io.Prepared.with_prepare db ~types ~query
+            ~f:(fun pgx_prepared ->
+                  post_prepare {query; pgx_prepared; rev_quotes}))
 
     let deallocate req =
       (match Caqti_request.query_id req with

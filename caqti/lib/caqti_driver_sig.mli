@@ -66,6 +66,13 @@ module type System_common = sig
   end
 
   module Stream : Caqti_stream.S with type 'a future := 'a future
+
+(*
+  val stream_of_iter : (('a -> unit future) -> unit future) -> 'a Stream.t
+  (** [stream_of_iter iter] turns an call-back based iterator into a stream.
+      For the blocking implementation, this means collecting all elements
+      up-front. *)
+*)
 end
 
 module type S = sig

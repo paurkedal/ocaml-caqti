@@ -486,7 +486,12 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
       in
       loop (Caqti_type.option param_type) []
 
+    let pp_request_with_param ppf =
+      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+
     let call ~f req param =
+      Log.debug ~src:request_log_src (fun f ->
+        f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
       using_db @@ fun db ->
       let pre_prepare () =
         let templ = Caqti_request.query req driver_info in

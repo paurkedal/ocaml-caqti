@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,11 +19,17 @@
 
     This driver is implemented in terms of the mariadb OPAM package.
     It handles URIs of the form
-    {[
-      mariadb://<user>:<password>@<host>:<port>/?socket=<socket>
-    ]}
-    where components are optional and present ones are passed on to the
-    correspondingly named arguments to the [connect] function of MariaDB.
+    [mariadb://<user>:<password>@<host>:<port>/?<query>]
+    with the following query arguments:
+
+      - [socket=<socket>] requests a UNIX domain socket connection
+      - [config-group=<name>] loads additional settings from the section
+        [<name>] of the default configuration file. Default: ["caqti"].
+
+    Except for the latter, options are passed to the correspondingly named
+    arguments to the [connect] function of MariaDB.
+    All parts of the URL are optional, except that the chosen combination must
+    suffice to establish a connection.
 
     The interface provided by this module {e should normally not be used by
     applications}, but provides access to some MariaDB specifics in case they

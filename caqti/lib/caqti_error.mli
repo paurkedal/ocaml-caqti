@@ -248,8 +248,12 @@ type call =
 
 type retrieve =
   [ `Decode_rejected of coding_error
+  | `Request_failed of query_error
   | `Response_failed of query_error
   | `Response_rejected of query_error ]
+(** Errors which may occur during retrival of result rows.  This includes
+    [`Request_failed] since the request is fused with retrieval for the pgx
+    driver. *)
 
 type call_or_retrieve = [call | retrieve]
 

@@ -205,6 +205,7 @@ type call =
 
 type retrieve =
   [ `Decode_rejected of coding_error
+  | `Request_failed of query_error
   | `Response_failed of query_error
   | `Response_rejected of query_error ]
 

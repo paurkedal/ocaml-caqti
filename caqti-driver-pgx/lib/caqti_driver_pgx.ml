@@ -338,62 +338,94 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
     module Response = struct
 
       type ('b, 'm) t = {
+        query: string;
         row_type: 'b Caqti_type.t;
-        rows: Pgx.Value.t list list;
+        prepared: Pgx_with_io.Prepared.s;
+        params: Pgx.Value.t list;
       }
 
-      let returned_count {rows; _} = return (Ok (List.length rows))
+      let returned_count _ = return (Error `Unsupported)
       let affected_count _ = return (Error `Unsupported)
 
-      let exec _ = return (Ok ())
+      let reject ~query msg =
+        Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
 
-      let find resp = return
-        (match resp.rows with
-         | [row] -> decode_row ~uri resp.row_type row
-         | _ -> assert false)
+      let exec {query; prepared; params; _} =
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute prepared ~params) >|=
+        (function
+         | Ok [] -> Ok ()
+         | Ok _ ->
+            reject ~query "Received multiple rows where none were expected."
+         | Error _ as r -> r)
 
-      let find_opt resp = return
-        (match resp.rows with
-         | [] -> Ok None
-         | [row] ->
-            (match decode_row ~uri resp.row_type row with
-             | Ok x -> Ok (Some x)
-             | Error _ as r -> r)
-         | _ -> assert false)
+      let find {query; row_type; prepared; params} =
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute prepared ~params) >|=
+        (function
+         | Ok [row] -> decode_row ~uri row_type row
+         | Ok [] ->
+            reject ~query "Received no rows where one was expected."
+         | Ok _ ->
+            reject ~query "Received more than one row where one was expected."
+         | Error _ as r -> r)
 
-      let fold f resp acc =
-        let rec loop = function
-         | [] -> Stdlib.Result.ok
-         | row :: rows -> fun acc ->
-            (match decode_row ~uri resp.row_type row with
-             | Ok x -> acc |> f x |> loop rows
-             | Error _ as r -> r)
+      let find_opt {query; row_type; prepared; params} =
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute prepared ~params) >|=
+        (function
+         | Ok [] -> Ok None
+         | Ok [row] ->
+            decode_row ~uri row_type row |> Result.map (fun x -> Some x)
+         | Ok _ ->
+            reject ~query
+              "Received two or more rows where at most one was expected."
+         | Error _ as r -> r)
+
+      let fold f {query; row_type; prepared; params} acc =
+        let f acc row =
+          return @@ match acc with
+           | Ok acc ->
+              (match decode_row ~uri row_type row with
+               | Ok row -> Ok (f row acc)
+               | Error _ as r -> r)
+           | Error _ as r -> r
         in
-        return (loop resp.rows acc)
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc))
+        >|= Stdlib.Result.join
 
-      let fold_s f resp acc =
-        let rec loop = function
-         | [] -> fun acc -> return (Ok acc)
-         | row :: rows -> fun acc ->
-            (match decode_row ~uri resp.row_type row with
-             | Ok x -> f x acc >>=? loop rows
-             | Error _ as r -> return r)
+      let fold_s f {query; row_type; prepared; params} acc =
+        let f acc row =
+          (match acc with
+           | Ok acc ->
+              (match decode_row ~uri row_type row with
+               | Ok row -> f row acc
+               | Error _ as r -> return r)
+           | Error _ as r -> return r)
         in
-        loop resp.rows acc
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc))
+        >|= Stdlib.Result.join
 
-      let iter_s f resp =
-        let rec loop = function
-         | [] -> return (Ok ())
-         | row :: rows ->
-            (match decode_row ~uri resp.row_type row with
-             | Ok x -> f x >>=? fun () -> loop rows
-             | Error _ as r -> return r)
+      let iter_s f {query; row_type; prepared; params} =
+        let f acc row =
+          (match acc with
+           | Ok () ->
+              (match decode_row ~uri row_type row with
+               | Ok row -> f row
+               | Error _ as r -> return r)
+           | Error _ as r -> return r)
         in
-        loop resp.rows
+        intercept_request_failed ~uri ~query (fun () ->
+          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok ()))
+        >|= Stdlib.Result.join
 
-      let to_stream resp =
-        Stream.of_list resp.rows
-          |> Stream.map_result ~f:(decode_row ~uri resp.row_type)
+      let to_stream resp () =
+        fold List.cons resp [] >|= Result.map List.rev >|= function
+         | Ok [] -> Stream.Nil
+         | Ok (row :: rows) -> Stream.Cons (row, Stream.of_list rows)
+         | Error err -> (Stream.Error err)
     end
 
     type prepared = {
@@ -415,24 +447,6 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
       cleanup
         (fun () -> f db >|= fun res -> in_use := false; res)
         (fun () -> reset db >|= fun _ -> in_use := false)
-
-    let check_mult ~query req rows =
-      let reject msg =
-        Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
-      in
-      (match Caqti_mult.expose (Caqti_request.row_mult req), rows with
-       | (`Zero | `Zero_or_one), []
-       | (`One | `Zero_or_one), [_]
-       | `Zero_or_more, _ ->
-          Ok ()
-       | `Zero, _ :: _ ->
-          reject "Received multiple rows where none expected."
-       | `One, [] ->
-          reject "Received no rows where one expected."
-       | `One, _ :: _ :: _ ->
-          reject "Received more than one row when one expected."
-       | `Zero_or_one, _ :: _ :: _ ->
-          reject "Received more than one row when at most one expected.")
 
     let type_oid_cache = Hashtbl.create 11
 
@@ -503,19 +517,16 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
         (query, types, rev_quotes)
       in
       let post_prepare pq =
-        let*? query, rows =
-          (match encode_param ~uri (Caqti_request.param_type req) param with
-           | Error _ as r -> return r
-           | Ok regular_params ->
-              let params = List.rev_append pq.rev_quotes regular_params in
-              let+? rows =
-                intercept_request_failed ~uri ~query:pq.query (fun () ->
-                  Pgx_with_io.Prepared.execute pq.pgx_prepared ~params)
-              in
-              (pq.query, rows))
-        in
-        let*? () = return (check_mult ~query req rows) in
-        f {Response.row_type = Caqti_request.row_type req; rows}
+        (match encode_param ~uri (Caqti_request.param_type req) param with
+         | Error _ as r -> return r
+         | Ok regular_params ->
+            let params = List.rev_append pq.rev_quotes regular_params in
+            f {
+              Response.row_type = Caqti_request.row_type req;
+              query = pq.query;
+              prepared = pq.pgx_prepared;
+              params;
+            })
       in
       (match Caqti_request.query_id req with
        | Some query_id ->

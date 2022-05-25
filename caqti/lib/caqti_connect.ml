@@ -49,28 +49,34 @@ let retry_with_library load_driver ~uri scheme =
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
 
-module Make
-    (System : Caqti_driver_sig.System_common)
-    (Loader : Caqti_driver_sig.Loader
-      with type 'a future := 'a System.future
-       and module Stream := System.Stream) =
-struct
-  open System
-
+module Make_without_connect (System : Caqti_driver_sig.System_common) = struct
   type 'a future = 'a System.future
 
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
-  let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
+  module Pool = Caqti_pool.Make (System)
+  module Stream = System.Stream
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
+  type connection = (module CONNECTION)
+end
+
+module Make
+  (System : Caqti_driver_sig.System_common)
+  (Loader : Caqti_driver_sig.Loader
+              with type 'a future := 'a System.future
+               and module Stream := System.Stream) =
+struct
+  include Make_without_connect (System)
+  open System
+
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
+
   module type DRIVER = Caqti_driver_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
-
-  type connection = (module CONNECTION)
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -103,9 +109,6 @@ struct
       f conn >>= fun result -> Db.disconnect () >|= fun () -> result
     with exn ->
       Db.disconnect () >|= fun () -> raise exn
-
-  module Pool = Caqti_pool.Make (System)
-  module Stream = System.Stream
 
   let connect_pool
         ?max_size ?max_idle_size ?post_connect

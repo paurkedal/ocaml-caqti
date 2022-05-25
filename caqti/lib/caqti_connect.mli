@@ -24,6 +24,12 @@ val define_loader : (string -> (unit, string) result) -> unit
 
 val load_library : string -> (unit, string) result
 
+module Make_without_connect :
+  functor (System : Caqti_driver_sig.System_common) ->
+  Caqti_connect_sig.S_without_connect
+    with type 'a future = 'a System.future
+     and module Stream = System.Stream
+
 module Make :
   functor (System : Caqti_driver_sig.System_common) ->
   functor (Loader : Caqti_driver_sig.Loader

@@ -279,6 +279,8 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
       (function
        | Pgx.PostgreSQL_Error (msg, err) ->
           return (Error (h (Pgx_msg (msg, err))))
+       | End_of_file ->
+          return (Error (h (Caqti_error.Msg "Unexpected EOF from server.")))
        | exn ->
           raise exn)
 

@@ -17,7 +17,7 @@
 
 (** Signature for establishing database connections. *)
 
-module type S = sig
+module type S_without_connect = sig
 
   type +'a future
   (** The type of a deferred value of type ['a]. *)
@@ -34,6 +34,11 @@ module type S = sig
 
   type connection = (module CONNECTION)
   (** Shortcut for the connection API passed as a value. *)
+
+end
+
+module type S = sig
+  include S_without_connect
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->

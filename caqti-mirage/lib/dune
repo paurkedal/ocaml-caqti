@@ -1,0 +1,13 @@
+(library
+ (name caqti_mirage)
+ (public_name caqti-mirage)
+ (libraries
+    caqti caqti.platform.net
+    conduit-mirage
+    dns-client dns-client.mirage
+    logs logs.lwt lwt
+    mirage-channel
+    mirage-clock
+    mirage-random
+    mirage-time
+    tcpip))

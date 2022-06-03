@@ -16,7 +16,7 @@
  *)
 
 open Async_kernel
-open Core_kernel
+open Core
 
 type 'a future = 'a Deferred.t
 

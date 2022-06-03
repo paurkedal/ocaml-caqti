@@ -87,6 +87,7 @@ the needed database driver.  E.g.
 # #require "caqti-lwt";;
 # #require "caqti-driver-postgresql";;
 # open Lwt.Infix;;
+# open Caqti_request.Infix;;
 
 (* Create a DB handle. *)
 # module Db = (val Caqti_lwt.connect (Uri.of_string "postgresql://") >>= Caqti_lwt.or_fail |> Lwt_main.run);;

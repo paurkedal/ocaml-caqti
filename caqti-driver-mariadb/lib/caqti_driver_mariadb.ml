@@ -538,6 +538,7 @@ module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
     port: int option;
     db: string option;
     flags: Mdb.flag list option;
+    config_group: string option;
   }
 
   let parse_uri uri =
@@ -545,20 +546,23 @@ module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
     let user = Uri.user uri in
     let pass = Uri.password uri in
     let port = Uri.port uri in
+    let config_group = Uri.get_query_param uri "config-group" in
     (match Uri.path uri with
-     | "/" -> Ok None
+     | "" | "/" -> Ok None
      | path ->
         if Filename.dirname path <> "/" then
           let msg = Caqti_error.Msg "Bad URI path." in
           Error (Caqti_error.connect_rejected ~uri msg)
         else
           Ok (Some (Filename.basename path))) |>? fun db ->
-    Ok {host; user; pass; port; db; flags = None}
+    Ok {host; user; pass; port; db; flags = None; config_group}
 
   let connect_prim ~env ~tweaks_version:_ ~uri
-        {host; user; pass; port; db; flags} =
+        {host; user; pass; port; db; flags; config_group} =
+    let config_group = match config_group with Some g -> g | None -> "caqti" in
     let socket = Uri.get_query_param uri "socket" in
-    Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags () >>=
+    let options = [Mdb.Read_default_group config_group] in
+    Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags ~options () >>=
     (function
      | Ok db ->
         let module B = Make_connection_base

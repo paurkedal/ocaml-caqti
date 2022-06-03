@@ -18,16 +18,17 @@
 include Caqti_connect_sig.S_without_connect
   with type 'a future := 'a Lwt.t
 
-module type S = Caqti_connect_sig.S
-  with type 'a future := 'a Lwt.t
-   and module Stream = Stream
-
 module Make :
   functor (RANDOM : Mirage_random.S) ->
   functor (TIME : Mirage_time.S) ->
   functor (MCLOCK : Mirage_clock.MCLOCK) ->
   functor (PCLOCK : Mirage_clock.PCLOCK) ->
   functor (STACK : Tcpip.Stack.V4V6) ->
-sig
-  val connect : STACK.t -> (module S)
-end
+  Caqti_connect_sig.Connect
+    with type 'a future := 'a Lwt.t
+     and type ('a, 'e) pool := ('a, 'e) Pool.t
+     and type connection := connection
+     and type 'a connect_fun :=
+        ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+        ?tweaks_version: int * int ->
+        STACK.t -> Uri.t -> 'a

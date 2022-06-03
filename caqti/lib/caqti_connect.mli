@@ -30,13 +30,18 @@ module Make_without_connect :
     with type 'a future = 'a System.future
      and module Stream = System.Stream
 
-module Make :
+module Make_connect :
   functor (System : Caqti_driver_sig.System_common) ->
   functor (Loader : Caqti_driver_sig.Loader
             with type 'a future := 'a System.future
              and module Stream := System.Stream) ->
-  Caqti_connect_sig.S
+  Caqti_connect_sig.Connect
     with type 'a future = 'a System.future
-     and module Stream = System.Stream
+     and type connection := Make_without_connect (System).connection
+     and type ('a, 'e) pool := ('a, 'e) Make_without_connect (System).Pool.t
+     and type 'a connect_fun :=
+        ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+        ?tweaks_version: int * int ->
+        Uri.t -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

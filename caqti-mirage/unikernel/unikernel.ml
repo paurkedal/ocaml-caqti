@@ -45,11 +45,9 @@ struct
     Logs.(set_level (Some Info));
     Logs_reporter.(create () |> run) @@ fun () ->
     begin
-      let* () = Log.info (fun f -> f "Connecting to network stack.") in
-      let (module Caqti_mirage_connected) = Caqti_mirage_connect.connect stack in
       let* () = Log.info (fun f -> f "Connecting to the database.") in
       let db_uri = Uri.of_string (Key_gen.database_uri ()) in
-      let*? db_conn = Caqti_mirage_connected.connect db_uri in
+      let*? db_conn = Caqti_mirage_connect.connect stack db_uri in
       let* () = Log.info (fun f -> f "Running tests.") in
       test db_conn
     end >>= function

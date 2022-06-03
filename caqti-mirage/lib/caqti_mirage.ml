@@ -155,7 +155,16 @@ struct
     end
   end
 
-  let connect stack =
+  module type CONNECT = Caqti_connect_sig.Connect
+    with type 'a future := 'a future
+     and type connection := connection
+     and type ('a, 'e) pool := ('a, 'e) Pool.t
+     and type 'a connect_fun :=
+      ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+      ?tweaks_version: int * int ->
+      Uri.t -> 'a
+
+  let connect_stack stack =
     let module System = System (struct let stack = stack end) in
     let module Loader = struct
       module Platform_net = Caqti_platform_net.Make (System)
@@ -164,6 +173,20 @@ struct
 
       let load_driver = Platform_net.load_driver
     end in
-    (module Caqti_connect.Make (System) (Loader) : S)
+    (module Caqti_connect.Make_connect (System_common) (Loader) : CONNECT)
+
+  let connect ?env ?tweaks_version stack uri =
+    let module C = (val connect_stack stack) in
+    C.connect ?env ?tweaks_version uri
+
+  let with_connection ?env ?tweaks_version stack uri f =
+    let module C = (val connect_stack stack) in
+    C.with_connection ?env ?tweaks_version uri f
+
+  let connect_pool ?max_size ?max_idle_size ?post_connect ?env ?tweaks_version
+                   stack uri =
+    let module C = (val connect_stack stack) in
+    C.connect_pool ?max_size ?max_idle_size ?post_connect ?env ?tweaks_version
+                   uri
 
 end

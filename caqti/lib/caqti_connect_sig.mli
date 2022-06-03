@@ -37,14 +37,14 @@ module type S_without_connect = sig
 
 end
 
-module type S = sig
-  include S_without_connect
+module type Connect = sig
+  type +'a future
+  type connection
+  type ('a, +'e) pool
+  type +'a connect_fun
 
   val connect :
-    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-    ?tweaks_version: int * int ->
-    Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result future
+    (connection, [> Caqti_error.load_or_connect]) result future connect_fun
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
       first-class module implementing {!Caqti_connection_sig.S}.
@@ -66,11 +66,9 @@ module type S = sig
         on the connection. *)
 
   val with_connection :
-    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-    ?tweaks_version: int * int ->
-    Uri.t ->
-    (connection -> ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
-      ('a, 'e) result future
+    ((connection ->
+      ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
+     ('a, 'e) result future) connect_fun
   (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
       to [Ok connection], [with_connection] passes the connection to [f]. Once
       [f] either evaluates to a [result], or raises an exception,
@@ -82,11 +80,8 @@ module type S = sig
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
-    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-    ?tweaks_version: int * int ->
-    Uri.t ->
-    ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
-     [> Caqti_error.load]) result
+    ((connection, [> Caqti_error.connect] as 'connect_error) pool,
+     [> Caqti_error.load]) result connect_fun
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].
 
@@ -117,4 +112,16 @@ module type S = sig
         value [0] used instead. For drivers which does not support concurrent
         connections, but supports pooling, the value will clipped to a maximum
         of [1]. *)
+end
+
+module type S = sig
+  include S_without_connect
+  include Connect
+    with type 'a future := 'a future
+     and type connection := connection
+     and type ('a, 'e) pool := ('a, 'e) Pool.t
+     and type 'a connect_fun :=
+      ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+      ?tweaks_version: int * int ->
+      Uri.t -> 'a
 end

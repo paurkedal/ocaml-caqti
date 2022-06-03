@@ -20,7 +20,7 @@
 open Async_kernel
 open Async_unix
 open Caqti_common_priv
-open Core_kernel
+open Core
 
 module System = struct
   type 'a future = 'a Deferred.t

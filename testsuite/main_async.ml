@@ -17,7 +17,7 @@
 
 open Async_kernel
 open Async_unix
-open Core_kernel
+open Core
 
 open Caqti_common_priv
 open Testlib

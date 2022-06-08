@@ -1,1 +1,1 @@
-(dirs :standard \ testkernel)
+(dirs :standard \ unikernel)

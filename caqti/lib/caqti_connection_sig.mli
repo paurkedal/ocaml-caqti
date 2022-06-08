@@ -63,10 +63,17 @@ module type Base = sig
     f: (('b, 'm) Response.t -> ('c, 'e) result future) ->
     ('a, 'b, 'm) Caqti_request.t -> 'a ->
     ('c, [> Caqti_error.call] as 'e) result future
-  (** [call ~f request params] performs [request] with parameters [params]
-      invoking [f] to process the result.  The argument of [f] is only valid
-      during the call to [f], and must not be returned or operated on by other
-      threads. *)
+  (** [call ~f request params] executes [request] with parameters [params]
+      invoking [f] to process the result; except the driver may postpone the
+      request until [f] attempts to retrieve the result.
+
+      One of the {{!Response.result_retrieval} result retrieval}
+      functions must be called exactly once before [f] returns a non-error
+      result.  If a result retrieval function is not called, it is unspecified
+      whether the database query has been issued.
+
+      The argument of [f] is only valid during the call to [f], and must not be
+      returned or operated on by other threads. *)
 
   val set_statement_timeout :
     float option -> (unit, [> Caqti_error.call]) result future

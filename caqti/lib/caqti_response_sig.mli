@@ -40,7 +40,7 @@ module type S = sig
   (** [affected_count resp] is the number of rows affected by the updated the
       produced [resp].  This function may not be available for all drivers. *)
 
-  (** {2 Result retrieval} *)
+  (** {2:result_retrieval Result retrieval} *)
 
   val exec :
     (unit, [< `Zero]) t -> (unit, [> Caqti_error.retrieve]) result future

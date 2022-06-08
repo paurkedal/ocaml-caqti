@@ -1,8 +1,7 @@
 (library
   (name caqti_lwt)
   (public_name caqti-lwt)
-  (wrapped false)
-  (modules Caqti_lwt Caqti_lwt_sql_io)
+  (modules Caqti_lwt)
   (libraries
     caqti caqti.platform.net caqti.platform.unix
     logs logs.lwt lwt lwt.unix))

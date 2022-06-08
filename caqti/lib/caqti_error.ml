@@ -175,8 +175,6 @@ let encode_rejected ~uri ~typ msg =
 let encode_failed ~uri ~typ msg =
   let typ = Caqti_type.Any typ in
   `Encode_failed ({uri; typ; msg} : coding_error)
-let request_rejected ~uri ~query msg =
-  `Request_rejected ({uri; query; msg} : query_error)
 let request_failed ~uri ~query msg =
   `Request_failed ({uri; query; msg} : query_error)
 
@@ -199,7 +197,6 @@ let response_rejected ~uri ~query msg =
 type call =
   [ `Encode_rejected of coding_error
   | `Encode_failed of coding_error
-  | `Request_rejected of query_error
   | `Request_failed of query_error
   | `Response_rejected of query_error ]
 
@@ -234,7 +231,6 @@ let rec uri : 'a. ([< t] as 'a) -> Uri.t = function
  | `Post_connect err -> uri err
  | `Encode_rejected ({uri; _} : coding_error) -> uri
  | `Encode_failed ({uri; _} : coding_error) -> uri
- | `Request_rejected ({uri; _} : query_error) -> uri
  | `Request_failed ({uri; _} : query_error) -> uri
  | `Decode_rejected ({uri; _} : coding_error) -> uri
  | `Response_failed ({uri; _} : query_error) -> uri
@@ -251,7 +247,6 @@ let rec pp : 'a. _ -> ([< t] as 'a) -> unit = fun ppf -> function
  | `Encode_rejected err -> pp_coding_error ppf "Cannot encode %a for <%a>" err
  | `Encode_failed err -> pp_coding_error ppf "Failed to bind %a for <%a>" err
  | `Decode_rejected err -> pp_coding_error ppf "Cannot decode %a from <%a>" err
- | `Request_rejected err -> pp_query_msg ppf "Request rejected by <%a>" err
  | `Request_failed err -> pp_query_msg ppf "Request to <%a> failed" err
  | `Response_failed err -> pp_query_msg ppf "Response from <%a> failed" err
  | `Response_rejected err -> pp_query_msg ppf "Unexpected result from <%a>" err

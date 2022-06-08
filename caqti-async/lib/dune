@@ -1,8 +1,7 @@
 (library
   (name caqti_async)
   (public_name caqti-async)
-  (wrapped false)
-  (modules Caqti_async Caqti_async_sql_io)
+  (modules Caqti_async)
   (libraries
     async_kernel async_unix
     caqti caqti.platform.net caqti.platform.unix

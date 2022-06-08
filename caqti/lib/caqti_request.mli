@@ -29,18 +29,6 @@
 
 (** {2 Primitives} *)
 
-(**/**)
-[@@@warning "-3"]
-type query = Caqti_query.t =
-  | L of string [@deprecated "Moved to Caqti_query"]
-  | Q of string [@deprecated "Moved to Caqti_query"]
-  | P of int [@deprecated "Moved to Caqti_query"]
-  | E of string [@deprecated "Moved to Caqti_query"]
-  | S of query list [@deprecated "Moved to Caqti_query"]
-[@@deprecated "Moved to Caqti_query.t"]
-[@@@warning "+3"]
-(**/**)
-
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.
@@ -246,14 +234,6 @@ module Infix : sig
       number of result rows according to [rt]. See {!create} for the meaning of
       [oneshot]. *)
 
-  (**/**)
-  val ( --> ) :
-    'a Caqti_type.t -> 'b Caqti_type.t ->
-    ?oneshot: bool -> (Caqti_driver_info.t -> Caqti_query.t) ->
-    ('a, 'b, [`One]) t
-  [@@deprecated "Renamed to (-->!) for consistency with (->!)."]
-  (**/**)
-
   val ( @:- ) :
     ((Caqti_driver_info.t -> Caqti_query.t) -> ('a, 'b, 'm) t) ->
     string -> ('a, 'b, 'm) t
@@ -268,40 +248,6 @@ module Infix : sig
       {!Caqti_query.of_string_exn}. *)
 
 end
-
-
-(**/**)
-val create_p :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t -> 'm Caqti_mult.t ->
-  (Caqti_driver_info.t -> string) -> ('a, 'b, 'm) t
-[@@deprecated "Use create and Caqti_query.of_string_exn or the Infix module."]
-val exec :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?oneshot: bool ->
-  'a Caqti_type.t ->
-  string -> ('a, unit, [> `Zero]) t
-[@@deprecated "Replaced by the Infix module."]
-val find :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t ->
-  string -> ('a, 'b, [> `One]) t
-[@@deprecated "Replaced by the Infix module."]
-val find_opt :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t ->
-  string -> ('a, 'b, [> `Zero | `One]) t
-[@@deprecated "Replaced by the Infix module."]
-val collect :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?oneshot: bool ->
-  'a Caqti_type.t -> 'b Caqti_type.t ->
-  string -> ('a, 'b, [> `Zero | `One | `Many]) t
-[@@deprecated "Replaced by the Infix module."]
-(**/**)
 
 
 (** {2 Printing} *)
@@ -340,11 +286,6 @@ val make_pp_with_param :
     [true].  If you enable it for applications which do not consistenly annotate
     sensitive parameters with {!Caqti_type.redacted}, make sure your debug logs
     are well-secured. *)
-
-val pp_with_param :
-  ?driver_info: Caqti_driver_info.t ->
-  Format.formatter -> ('a, 'b, 'm) t * 'a -> unit
-[@@deprecated "Use make_pp_with_param."]
 
 (** {2 How to Dynamically Assemble Queries and Parameters}
 

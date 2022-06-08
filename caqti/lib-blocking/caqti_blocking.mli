@@ -25,7 +25,7 @@
     You can use a connection pool to cache a single DB connection, additional
     connections will not be allocated, since usage is serial. *)
 
-include Caqti_connect_sig.S with type 'a future = 'a
+include Caqti_connect_sig.S with type 'a future := 'a
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Takes [Ok x] to [x] and raises {!Caqti_error.Exn}[ err] on [Error err]. *)

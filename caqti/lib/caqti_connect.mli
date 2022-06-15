@@ -34,7 +34,7 @@ module Make_connect :
   functor (System : Caqti_driver_sig.System_common) ->
   functor (Loader : Caqti_driver_sig.Loader
             with type 'a future := 'a System.future
-             and module Stream := System.Stream) ->
+             and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
   Caqti_connect_sig.Connect
     with type 'a future = 'a System.future
      and type connection := Make_without_connect (System).connection

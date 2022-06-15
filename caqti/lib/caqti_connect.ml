@@ -66,7 +66,7 @@ module Make_connect
   (System : Caqti_driver_sig.System_common)
   (Loader : Caqti_driver_sig.Loader
               with type 'a future := 'a System.future
-               and module Stream := System.Stream) =
+               and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   include Make_without_connect (System)
   open System

@@ -21,4 +21,4 @@ val define_driver : string -> (module Sig.Driver_of_system) -> unit
 
 module Make (System : Sig.System) : Caqti_driver_sig.Loader
   with type 'a future := 'a System.future
-   and module Stream := System.Stream
+   and type ('a, 'e) stream := ('a, 'e) System.Stream.t

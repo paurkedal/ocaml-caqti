@@ -93,12 +93,11 @@ end
 
 module type Loader = sig
   type +'a future
-
-  module Stream : Caqti_stream.S with type 'a future := 'a future
+  type (+'a, +'e) stream
 
   module type DRIVER = S
     with type 'a future := 'a future
-     and type ('a, 'err) stream := ('a, 'err) Stream.t
+     and type ('a, 'e) stream := ('a, 'e) stream
 
   val load_driver :
     uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result

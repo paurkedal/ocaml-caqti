@@ -15,37 +15,61 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** A stream with monadic concurrency and error handling. *)
+
 module type S = sig
   type +'a future
 
   type ('a, 'err) t = unit -> ('a, 'err) node future
+  (** A stream, represented as a lazy chain of {!Cons}-nodes terminating in a
+      {!Nil} or an {!Error}. *)
+
   and ('a, 'err) node =
-    | Nil
-    | Error of 'err
+    | Nil                       (** The node of an empty stream *)
+    | Error of 'err             (** A node of a permanently failed stream. *)
     | Cons of 'a * ('a, 'err) t
+        (** A node holding the next element and continuation of a stream. *)
 
   val fold :
     f: ('a -> 'state -> 'state) ->
     ('a, 'err) t ->
     'state ->
     ('state, 'err) result future
+  (** [fold ~f stream acc] consumes the remainder elements [e1], ..., [eN] of
+      [stream] and returns [Ok (acc |> f e1 |> ... |> f eN)] if no error
+      occurred *)
 
   val fold_s :
     f: ('a -> 'state -> ('state, 'err) result future) ->
     ('a, 'clog) t ->
     'state ->
     ('state, [> `Congested of 'clog ] as 'err) result future
+  (** [fold_s ~f stream acc] consumes the remainder of [stream], passing each
+      element in order to [f] along with the latest accumulation starting at
+      [acc], and returning the final accumulation if successful.  An error
+      result may be due to either the stream provider or the callback, as
+      distinguished with the [`Congested] constructor. *)
 
   val iter_s :
     f: ('a -> (unit, 'err) result future) ->
     ('a, 'clog) t ->
     (unit, [> `Congested of 'clog ] as 'err) result future
+  (** [iter_s ~f stream] consumes the remainder of [stream], passing each
+      element in order to [f].  An error result may be due to either the steram
+      provider or the callback, as distinguished with the [`Congested]
+      constructor. *)
 
   val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
+  (** [to_rev_list stream] consumes the remainder of [stream], returning a list
+      of its element in reverse order of production. *)
 
   val to_list : ('a, 'err) t -> ('a list, 'err) result future
+  (** [to_list stream] consumes the remainder of [stream], returning a list of
+      its element in order of production. *)
 
   val of_list : 'a list -> ('a, 'err) t
+  (** [of_list xs] is a non-failing finite stream (re)producing the elements
+      [xs] in order of occurrence. *)
 end
 
 module type FUTURE = sig
@@ -57,3 +81,4 @@ module type FUTURE = sig
 end
 
 module Make (X : FUTURE) : S with type 'a future := 'a X.future
+(** Constructs a stream for the provided concurrency monad. *)

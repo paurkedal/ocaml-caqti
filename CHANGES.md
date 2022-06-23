@@ -1,3 +1,22 @@
+## unreleased, targeted for the next major release
+
+New features:
+
+  - Added driver based on PGX.
+  - Added support for MirageOS.  This only works for the PGX driver, since
+    the other drivers link against external C libraries.
+  - The internal API for drivers and concurrency implementations have been
+    significatly revised to accomodate for MirageOS.
+
+Other:
+
+  - The documentation of `call` now makes clear that the result must be
+    retrieved in order to make sure the request is performed.  This is
+    made relevant by the addition of the PGX driver where request and
+    retrieval are fused.
+  - Deprecated functionality has been removed (along with
+    `Caqti_blocking.future`).
+
 ## unreleased
 
 New features:

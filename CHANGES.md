@@ -1,3 +1,24 @@
+## unreleased
+
+New features:
+
+  - Allow unquoted semicolons in query strings in the new API.  There are
+    corner cases whene it is needed, as reported in issue #87, and a parser
+    which rejects semicolons are still available for loading schema files
+    statement by statement.
+  - Add support for MySQL and MariaDB configuration files, as a solution to
+    issue #86.
+
+Fixes:
+
+  - Add missing dune dependency on unix (GPR#85 by David Allsopp).
+  - Documentation fixes (GPR#82, GPR#83, GPR#84 by Reynir Björnsson and
+    GPR#88 by Jonathan Duarte).
+
+Other:
+
+  - Replace deprecated core\_kernel dependency with core.
+
 ## v1.8.0 - 2022-03-24
 
 New features:

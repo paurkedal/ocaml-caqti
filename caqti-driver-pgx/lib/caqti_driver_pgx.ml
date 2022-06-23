@@ -265,7 +265,7 @@ let parse_uri uri =
   in
   Ok {host; port; user; password; database; unix_domain_socket_dir}
 
-module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
+module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
   open System
 
   let ( let*? ) m f = m >>= function Ok x -> f x | Error _ as r -> return r
@@ -668,4 +668,4 @@ module Connect_functor (System : Caqti_platform_net.Sig.System) = struct
 end
 
 let () =
-  Caqti_platform_net.define_driver "pgx" (module Connect_functor)
+  Caqti_platform_net.Driver_loader.register "pgx" (module Connect_functor)

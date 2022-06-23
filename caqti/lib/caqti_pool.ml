@@ -22,7 +22,7 @@ let default_max_size =
 
 let default_log_src = Logs.Src.create "Caqti_pool"
 
-module Make (System : Caqti_driver_sig.System_common) = struct
+module Make (System : Caqti_system_sig.S) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))

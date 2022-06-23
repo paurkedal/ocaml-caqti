@@ -18,7 +18,7 @@
 (** {b Internal:} Connection Utilities for Drivers *)
 
 module Make_helpers :
-  functor (Sys : Caqti_driver_sig.System_common) ->
+  functor (Sys : Caqti_system_sig.S) ->
 sig
   open Sys
 
@@ -27,14 +27,14 @@ sig
 end
 
 module Make_convenience :
-  functor (Sys : Caqti_driver_sig.System_common) ->
+  functor (Sys : Caqti_system_sig.S) ->
   functor (C : Caqti_connection_sig.Base
                 with type 'a future := 'a Sys.future
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->
   Caqti_connection_sig.Convenience with type 'a future := 'a Sys.future
 
 module Make_populate :
-  functor (Sys : Caqti_driver_sig.System_common) ->
+  functor (Sys : Caqti_system_sig.S) ->
   functor (C : Caqti_connection_sig.Base
                 with type 'a future := 'a Sys.future
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->

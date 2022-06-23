@@ -17,14 +17,18 @@
 
 (** Connection functor and registration for driver using the Unix module. *)
 
-module Sig = Sig
+module type DRIVER_FUNCTOR =
+  functor (System : System_sig.S) ->
+  Caqti_driver_sig.S
+    with type 'a future := 'a System.future
+     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-val define_driver : string -> (module Sig.Driver_of_system) -> unit
+val register : string -> (module DRIVER_FUNCTOR) -> unit
 (** [define_unix_driver scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make (System : Sig.System) : Caqti_driver_sig.Loader
+module Make (System : System_sig.S) : Caqti_driver_sig.Loader
   with type 'a future := 'a System.future
    and type ('a, 'e) stream := ('a, 'e) System.Stream.t
 (** Constructs the main module used to connect to a database for the given

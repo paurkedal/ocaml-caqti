@@ -17,6 +17,7 @@
     Caqti_pool
     Caqti_pool_sig
     Caqti_common
+    Caqti_system_sig
     Caqti_query
     Caqti_request
     Caqti_response_sig
@@ -29,9 +30,10 @@
   (modules_without_implementation
     Caqti_connect_sig
     Caqti_connection_sig
-    Caqti_response_sig
     Caqti_driver_sig
+    Caqti_system_sig
     Caqti_pool_sig
+    Caqti_response_sig
     Caqti_type_sig)
   (private_modules
     Caqti_compat)

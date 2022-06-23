@@ -17,5 +17,5 @@
 
 (** {b Internal:} Resource pool. *)
 
-module Make (System : Caqti_driver_sig.System_common) :
+module Make (System : Caqti_system_sig.S) :
   Caqti_pool_sig.S with type 'a future := 'a System.future

@@ -62,7 +62,7 @@ end
 
 let no_env _ _ = raise Not_found
 
-module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
+module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
   open System
   module H = Caqti_connection.Make_helpers (System)
 
@@ -603,4 +603,5 @@ module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
      | Ok conninfo -> connect_prim ~tweaks_version ~env ~uri conninfo)
 end
 
-let () = Caqti_platform_unix.define_driver "mariadb" (module Connect_functor)
+let () =
+  Caqti_platform_unix.Driver_loader.register "mariadb" (module Connect_functor)

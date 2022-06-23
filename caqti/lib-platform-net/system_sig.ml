@@ -15,10 +15,31 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Sig = Sig
+module type S = sig
+  include Caqti_system_sig.S
 
-val define_driver : string -> (module Sig.Driver_of_system) -> unit
+  module Sequencer : sig
+    type 'a t
+    val create : 'a -> 'a t
+    val enqueue : 'a t -> ('a -> 'b future) -> 'b future
+  end
 
-module Make (System : Sig.System) : Caqti_driver_sig.Loader
-  with type 'a future := 'a System.future
-   and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+  module Networking : sig
+
+    type in_channel
+    type out_channel
+
+    type sockaddr = Unix of string | Inet of string * int
+
+    val open_connection : sockaddr -> (in_channel * out_channel) future
+
+    (* TODO: STARTTLS *)
+
+    val output_char : out_channel -> char -> unit future
+    val output_string : out_channel -> string -> unit future
+    val flush : out_channel -> unit future
+    val input_char : in_channel -> char future
+    val really_input : in_channel -> Bytes.t -> int -> int -> unit future
+    val close_in : in_channel -> unit future
+  end
+end

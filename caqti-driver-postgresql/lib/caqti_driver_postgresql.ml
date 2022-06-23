@@ -337,7 +337,7 @@ type prepared = {
   binary_params: bool array;
 }
 
-module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
+module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
   open System
   module H = Caqti_connection.Make_helpers (System)
 
@@ -895,5 +895,6 @@ module Connect_functor (System : Caqti_platform_unix.Sig.System) = struct
 end
 
 let () =
-  Caqti_platform_unix.define_driver "postgres" (module Connect_functor);
-  Caqti_platform_unix.define_driver "postgresql" (module Connect_functor)
+  let open Caqti_platform_unix.Driver_loader in
+  register "postgres" (module Connect_functor);
+  register "postgresql" (module Connect_functor)

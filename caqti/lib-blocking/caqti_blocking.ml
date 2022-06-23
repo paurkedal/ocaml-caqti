@@ -113,8 +113,8 @@ module System = struct
 end
 
 module Loader = struct
-  module Platform_unix = Caqti_platform_unix.Make (System)
-  module Platform_net = Caqti_platform_net.Make (System)
+  module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
+  module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
   module type DRIVER = Platform_unix.DRIVER
 

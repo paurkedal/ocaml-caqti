@@ -15,23 +15,20 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Sig = Sig
+module type S = sig
+  include Caqti_system_sig.S
 
-let drivers = Hashtbl.create 5
-let define_driver scheme p = Hashtbl.add drivers scheme p
+  module Unix : sig
+    type file_descr
+    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
+    val poll :
+      ?read: bool -> ?write: bool -> ?timeout: float ->
+      file_descr -> (bool * bool * bool) future
+  end
 
-module Make (System : Sig.System) = struct
-  module type DRIVER = Caqti_driver_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+  module Preemptive : sig
+    val detach : ('a -> 'b) -> 'a -> 'b future
+    val run_in_main : (unit -> 'a future) -> 'a
+  end
 
-  let load_driver ~uri scheme =
-    (match Hashtbl.find_opt drivers scheme with
-     | None ->
-        let msg = "Driver not found for unix platform." in
-        Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
-     | Some make_driver ->
-        let module Make_driver = (val make_driver : Sig.Driver_of_system) in
-        let module Driver = Make_driver (System) in
-        Ok (module Driver : DRIVER))
 end

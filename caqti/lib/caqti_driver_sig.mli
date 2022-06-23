@@ -21,60 +21,6 @@
     are developing an external driver, please open an issue to sort out
     requirements and to announce you need for a stable driver API. *)
 
-module type System_common = sig
-
-  type +'a future
-  (** A concurrency monad with an optional failure monad, or just the identity
-      type constructor for blocking operation. *)
-
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  (** Bind operation of the concurrency monad. *)
-
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  (** Map operation of the concurrency monad. *)
-
-  val return : 'a -> 'a future
-  (** Return operation of the  concurrency monad. *)
-
-  val catch : (unit -> 'a future) -> (exn -> 'a future) -> 'a future
-
-  val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
-  (** [finally f g] runs [f ()] and then runs [g ()] whether the former
-      finished, failed with an exception, or failed with a monadic failure. *)
-
-  val cleanup : (unit -> 'a future) -> (unit -> unit future) -> 'a future
-  (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
-      and only if [f ()] failed with an exception or a monadic failure. *)
-
-  val join : unit future list -> unit future
-  (** [join ms] runs the elements of [ms] in parallel if supported by the
-      concurrency implementation. *)
-
-  module Mvar : sig
-    type 'a t
-    val create : unit -> 'a t
-    val store : 'a -> 'a t -> unit
-    val fetch : 'a t -> 'a future
-  end
-
-  module Log : sig
-    type 'a log = ('a, unit future) Logs.msgf -> unit future
-    val err : ?src: Logs.src -> 'a log
-    val warn : ?src: Logs.src -> 'a log
-    val info : ?src: Logs.src -> 'a log
-    val debug : ?src: Logs.src -> 'a log
-  end
-
-  module Stream : Caqti_stream.S with type 'a future := 'a future
-
-(*
-  val stream_of_iter : (('a -> unit future) -> unit future) -> 'a Stream.t
-  (** [stream_of_iter iter] turns an call-back based iterator into a stream.
-      For the blocking implementation, this means collecting all elements
-      up-front. *)
-*)
-end
-
 module type S = sig
   type +'a future
   type (+'a, +'err) stream

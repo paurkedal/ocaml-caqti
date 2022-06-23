@@ -167,7 +167,7 @@ struct
   let connect_stack stack =
     let module System = System (struct let stack = stack end) in
     let module Loader = struct
-      module Platform_net = Caqti_platform_net.Make (System)
+      module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
       module type DRIVER = Platform_net.DRIVER
 

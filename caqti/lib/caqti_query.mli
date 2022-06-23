@@ -91,13 +91,19 @@ val angstrom_parser : t Angstrom.t
     lookahead. The accepted languages is described in {{!query_template} The
     Syntax of Query Templates}. *)
 
+val angstrom_parser_with_semicolon : t Angstrom.t
+(** A variant of [angstrom_parser] which accepts unquoted semicolons as part of
+    the a statement, which is allowed in some cases like for defining SQLite3
+    triggers.  This is the parser used by {!Caqti_request}, where it's assumed
+    that the input is a single SQL statement. *)
+
 val of_string : string -> (t, [`Invalid of int * string]) result
-(** Parses a single expression without semicolon.  The error indicates the byte
-    position of the input string where the parse failure occurred in addition to
-    an error message. See {{!query_template} The Syntax
-    of Query Templates} for how the input string is interpreted. *)
+(** Parses a single expression using {!angstrom_parser_with_semicolon}.  The
+    error indicates the byte position of the input string where the parse
+    failure occurred in addition to an error message. See {{!query_template} The
+    Syntax of Query Templates} for how the input string is interpreted. *)
 
 val of_string_exn : string -> t
-(** Parses the same strings as {!of_string}.
+(** Like {!of_string}, but raises an exception on error.
 
     @raise Failure if parsing failed. *)

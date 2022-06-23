@@ -220,6 +220,8 @@ module Angstrom_parsers = struct
      | _ ->
         verbatim
 
+  let atom_or_semi = (char ';' >>| fun _ -> L";") <|> atom
+
   let reindex atoms =
     if List.for_all (function P (-1) -> false | _ -> true) atoms then
       return atoms
@@ -240,13 +242,23 @@ module Angstrom_parsers = struct
     in
     fix (fun p -> (stop *> return []) <|> (List.cons <$> atom <*> p))
       >>= reindex >>| (function [q] -> q | qs -> S qs)
+
+  let expression_with_semi =
+    let stop =
+      peek_char >>= function
+       | None -> return ()
+       | _ -> fail "unterminated"
+    in
+    fix (fun p -> (stop *> return []) <|> (List.cons <$> atom_or_semi <*> p))
+      >>= reindex >>| (function [q] -> q | qs -> S qs)
 end
 
 let angstrom_parser = Angstrom_parsers.expression
+let angstrom_parser_with_semicolon = Angstrom_parsers.expression_with_semi
 
 let of_string s =
   let open Angstrom.Unbuffered in
-  (match parse angstrom_parser with
+  (match parse angstrom_parser_with_semicolon with
    | Partial {committed = 0; continue} ->
       let len = String.length s in
       let bs = Bigstringaf.of_string ~off:0 ~len s in

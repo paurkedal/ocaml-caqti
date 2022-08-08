@@ -36,6 +36,8 @@
     applications}, but provides access to some PostgreSQL specifics in case they
     are needed. *)
 
+module Config_keys = Config_keys
+
 (** {1 Error Details}
 
     The following gives access to diagnostics collected from the PostgreSQL

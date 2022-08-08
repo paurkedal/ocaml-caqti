@@ -31,31 +31,32 @@ end
 
 include Connector.Make_without_connect (System.Core)
 
-let connect ?env ?tweaks_version ~sw stdenv uri =
+let connect ?env ?config ?tweaks_version ~sw stdenv uri =
   Switch.check sw;
   let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
-  let-? connection = Connector.connect ?env ?tweaks_version uri in
+  let-? connection = Connector.connect ?env ?config ?tweaks_version uri in
   let module C = (val connection : CONNECTION) in
   Switch.on_release sw C.disconnect;
   connection
 
 let connect_pool
       ?max_size ?max_idle_size ?max_use_count
-      ?post_connect ?env ?tweaks_version
+      ?post_connect ?env ?config ?tweaks_version
       ~sw stdenv uri =
   Switch.check sw;
   let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
   let-? pool =
     Connector.connect_pool
-      ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
+      ?max_size ?max_idle_size ?max_use_count
+      ?post_connect ?env ?config ?tweaks_version
       uri
   in
   Switch.on_release sw (fun () -> Pool.drain pool);
   pool
 
-let with_connection ?env ?tweaks_version stdenv uri f =
+let with_connection ?env ?config ?tweaks_version stdenv uri f =
   Switch.run begin fun sw ->
-    let/? connection = connect ?env ?tweaks_version stdenv ~sw uri in
+    let/? connection = connect ?env ?config ?tweaks_version stdenv ~sw uri in
     f connection
   end
 

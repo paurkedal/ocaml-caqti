@@ -147,21 +147,22 @@ struct
     end in
     (module Connector.Make_connect (Caqti_lwt.System) (Loader) : CONNECT)
 
-  let connect ?env ?tweaks_version stack uri =
+  let connect ?env ?config ?tweaks_version stack uri =
     let module C = (val connect_stack stack) in
-    C.connect ?env ?tweaks_version uri
+    C.connect ?env ?config ?tweaks_version uri
 
-  let with_connection ?env ?tweaks_version stack uri f =
+  let with_connection ?env ?config ?tweaks_version stack uri f =
     let module C = (val connect_stack stack) in
-    C.with_connection ?env ?tweaks_version uri f
+    C.with_connection ?env ?config ?tweaks_version uri f
 
   let connect_pool
         ?max_size ?max_idle_size ?max_use_count
-        ?post_connect ?env ?tweaks_version
+        ?post_connect ?env ?config ?tweaks_version
         stack uri =
     let module C = (val connect_stack stack) in
     C.connect_pool
-      ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
+      ?max_size ?max_idle_size ?max_use_count ?post_connect
+      ?env ?config ?tweaks_version
       uri
 
 end

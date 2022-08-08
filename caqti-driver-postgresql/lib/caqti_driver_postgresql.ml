@@ -19,6 +19,9 @@ open Caqti_platform
 open Printf
 module Pg = Postgresql
 
+module Config_keys = Config_keys
+module String_map = Config_keys.String_map
+
 let ( |>? ) = Result.bind
 let ( %>? ) f g x = match f x with Ok y -> g y | Error _ as r -> r
 
@@ -154,16 +157,23 @@ module Pg_ext = struct
    | "stderr" -> `Stderr
    | _ -> failwith "Invalid argument for notice_processing."
 
-  let parse_uri uri =
+  let parse_uri ~config uri =
     pop_uri_param parse_notice_processing `Quiet "notice_processing" uri
       |>? fun (notice_processing, uri) ->
     pop_uri_param bool_of_string false "use_single_row_mode" uri
       |>? fun (use_single_row_mode, uri) ->
     let conninfo =
-      if Uri.host uri <> None then Uri.to_string ~pct_encoder uri else
-      let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
-      let mkparams (k, vs) = List.map (mkparam k) vs in
-      String.concat " " (List.flatten (List.map mkparams (Uri.query uri)))
+      let settings = Config_keys.extract_conninfo config in
+      if String_map.is_empty settings && Uri.host uri <> None then
+        Uri.to_string ~pct_encoder uri
+      else
+      let add_qp (k, vs) = String_map.add k (String.concat "," vs) in
+      settings
+        |> Option.fold ~none:Fun.id ~some:(String_map.add "host") (Uri.host uri)
+        |> List_ext.fold add_qp (Uri.query uri)
+        |> String_map.bindings
+        |> List.map (fun (k, v) -> k ^ "='" ^ escaped_connvalue v ^ "'")
+        |> String.concat " "
     in
     Ok (conninfo, notice_processing, use_single_row_mode)
 end
@@ -986,8 +996,11 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       end
   end
 
-  let connect ?(env = no_env) ~tweaks_version:_ uri =
-    return (Pg_ext.parse_uri uri)
+  let connect ?(env = no_env) ~config uri =
+    let config = config
+      |> Caqti_config_map.add_driver Config_keys.Driver
+    in
+    return (Pg_ext.parse_uri ~config uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error err ->

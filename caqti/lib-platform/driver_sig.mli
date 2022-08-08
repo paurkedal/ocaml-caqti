@@ -33,7 +33,7 @@ module type S = sig
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-    tweaks_version: int * int ->
+    config: [`Generic] Caqti_config_map.t ->
     Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
 end
 

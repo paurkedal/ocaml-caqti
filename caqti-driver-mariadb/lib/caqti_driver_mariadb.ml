@@ -18,6 +18,8 @@
 open Caqti_platform
 open Printf
 
+module Config_keys = Config_keys
+
 let (|>?) = Result.bind
 
 let cause_of_errno = function
@@ -89,6 +91,50 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
     end)
 
   module Mdb_ext = struct
+
+    let displace_protocol : Mariadb.Blocking.protocol -> Mdb.protocol =
+      function
+       | Default -> Default
+       | Tcp -> Tcp
+       | Socket -> Socket
+       | Pipe -> Pipe
+       | Memory -> Memory
+
+    let displace_client_option
+        : Mariadb.Blocking.client_option -> Mdb.client_option =
+      function
+       | Connect_timeout x -> Connect_timeout x
+       | Compress -> Compress
+       | Named_pipe x -> Named_pipe x
+       | Init_command x -> Init_command x
+       | Read_default_file x -> Read_default_file x
+       | Read_default_group x -> Read_default_group x
+       | Set_charset_dir x -> Set_charset_dir x
+       | Set_charset_name x -> Set_charset_name x
+       | Local_infile x -> Local_infile x
+       | Protocol x -> Protocol (displace_protocol x)
+       | Shared_memory_base_name x -> Shared_memory_base_name x
+       | Read_timeout x -> Read_timeout x
+       | Write_timeout x -> Write_timeout x
+       | Secure_auth x -> Secure_auth x
+       | Report_data_truncation x -> Report_data_truncation x
+       | Reconnect x -> Reconnect x
+       | Ssl_verify_server_cert x -> Ssl_verify_server_cert x
+       | Plugin_dir x -> Plugin_dir x
+       | Default_auth x -> Default_auth x
+       | Bind x -> Bind x
+       | Ssl_key x -> Ssl_key x
+       | Ssl_cert x -> Ssl_cert x
+       | Ssl_ca x -> Ssl_ca x
+       | Ssl_capath x -> Ssl_capath x
+       | Ssl_cipher x -> Ssl_cipher x
+       | Ssl_crl x -> Ssl_crl x
+       | Ssl_crlpath x -> Ssl_crlpath x
+       | Connect_attr_reset -> Compress
+       | Connect_attr_add (x, y) -> Connect_attr_add (x, y)
+       | Connect_attr_delete x -> Connect_attr_delete x
+       | Server_public_key x -> Server_public_key x
+       | Enable_cleartext_plugin x -> Enable_cleartext_plugin x
 
     module Field = struct
 
@@ -570,11 +616,18 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           Ok (Some (Filename.basename path))) |>? fun db ->
     Ok {host; user; pass; port; db; flags = None; config_group}
 
-  let connect_prim ~env ~tweaks_version:_ ~uri
+  let connect_prim ~env ~config ~uri
         {host; user; pass; port; db; flags; config_group} =
     let config_group = match config_group with Some g -> g | None -> "caqti" in
     let socket = Uri.get_query_param uri "socket" in
-    let options = [Mdb.Read_default_group config_group] in
+    let config = config
+      |> Caqti_config_map.add_driver Config_keys.Driver
+      |> Caqti_config_map.add_default Config_keys.read_default_group config_group
+    in
+    let options = config
+      |> Config_keys.extract_client_options
+      |> List.map Mdb_ext.displace_client_option
+    in
     Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags ~options () >>=
     (function
      | Ok db ->
@@ -611,10 +664,10 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         return @@
           Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
 
-  let connect ?(env = no_env) ~tweaks_version uri =
+  let connect ?(env = no_env) ~config uri =
     (match parse_uri uri with
      | Error _ as r -> return r
-     | Ok conninfo -> connect_prim ~tweaks_version ~env ~uri conninfo)
+     | Ok conninfo -> connect_prim ~config ~env ~uri conninfo)
 end
 
 let () =

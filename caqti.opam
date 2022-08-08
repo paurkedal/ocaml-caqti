@@ -17,11 +17,13 @@ depends: [
   "domain-name"
   "dune" {>= "2.5"}
   "ipaddr"
+  "hmap"
   "logs"
   "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}
   "ptime"
   "re" {with-test}
+  "sexplib0"
   "uri" {>= "1.9.0"}
 ]
 build: [

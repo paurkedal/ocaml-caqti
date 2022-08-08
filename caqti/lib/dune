@@ -3,6 +3,8 @@
   (public_name caqti)
   (wrapped false)
   (modules
+    Caqti_config_keys
+    Caqti_config_map
     Caqti_connect_sig
     Caqti_connection_sig
     Caqti_driver_info
@@ -24,4 +26,11 @@
     Caqti_stream_sig
     Caqti_type_sig)
   (library_flags (:standard -linkall))
-  (libraries angstrom bigstringaf logs ptime uri))
+  (libraries
+    angstrom
+    bigstringaf
+    hmap
+    logs
+    ptime
+    sexplib0
+    uri))

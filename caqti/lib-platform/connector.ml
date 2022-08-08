@@ -17,8 +17,6 @@
 
 open Printf
 
-let default_tweaks_version = (1, 7)
-
 let dynload_library = ref @@ fun lib ->
   Error (sprintf "Neither %s nor the dynamic linker is linked into the \
                   application." lib)
@@ -49,6 +47,8 @@ let retry_with_library load_driver ~uri scheme =
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
 
+let default_config = Caqti_config_map.empty
+
 module Make_without_connect (System : System_sig.S) = struct
   type 'a future = 'a System.future
 
@@ -61,6 +61,10 @@ module Make_without_connect (System : System_sig.S) = struct
 
   type connection = (module CONNECTION)
 end
+
+let add_tweaks_version = function
+ | None -> fun config -> config
+ | Some x -> Caqti_config_map.add Caqti_config_keys.tweaks_version x
 
 module Make_connect
   (System : System_sig.S)
@@ -94,17 +98,18 @@ struct
                 Ok driver
              | Error _ as r -> r)))
 
-  let connect ?env ?(tweaks_version = default_tweaks_version) uri
+  let connect ?env ?(config = default_config) ?tweaks_version uri
       : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect ?env ~tweaks_version uri
+        let config = add_tweaks_version tweaks_version config in
+        Driver.connect ?env ~config uri
      | Error err ->
         return (Error err))
 
-  let with_connection ?env ?(tweaks_version = default_tweaks_version) uri f =
-    connect ?env ~tweaks_version uri >>=? fun ((module Db) as conn) ->
+  let with_connection ?env ?config ?tweaks_version uri f =
+    connect ?env ?config ?tweaks_version uri >>=? fun ((module Db) as conn) ->
     try
       f conn >>= fun result -> Db.disconnect () >|= fun () -> result
     with exn ->
@@ -112,7 +117,7 @@ struct
 
   let connect_pool
         ?max_size ?max_idle_size ?(max_use_count = Some 100) ?post_connect
-        ?env ?(tweaks_version = default_tweaks_version) uri =
+        ?env ?(config = default_config) ?tweaks_version uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
@@ -126,15 +131,16 @@ struct
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
+        let config = add_tweaks_version tweaks_version config in
         let connect =
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ?env ~tweaks_version uri
+                (Driver.connect ?env ~config uri
                     :> (connection, _) result future)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ?env ~tweaks_version uri
+                (Driver.connect ?env ~config uri
                     :> (connection, _) result future)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)

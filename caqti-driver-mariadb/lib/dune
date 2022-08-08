@@ -2,6 +2,5 @@
  (name caqti_driver_mariadb)
  (public_name caqti-driver-mariadb)
  (optional)
- (modules Caqti_driver_mariadb)
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix mariadb))

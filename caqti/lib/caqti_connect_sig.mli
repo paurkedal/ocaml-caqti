@@ -46,6 +46,7 @@ module type Connect = sig
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: [`Generic] Caqti_config_map.t ->
     ?tweaks_version: int * int ->
     (connection, [> Caqti_error.load_or_connect]) result future connect_fun
   (** [connect uri] locates and loads a driver which can handle [uri], passes
@@ -57,6 +58,9 @@ module type Connect = sig
 
       See {{!tweaks} Database Tweaks} for details about the [tweaks_version]
       parameter.
+
+      @param config
+        Configuration to pass to the driver.
 
       @param tweaks_version
         Declares compatibility with database tweaks introduced up to the given
@@ -70,6 +74,7 @@ module type Connect = sig
 
   val with_connection :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: [`Generic] Caqti_config_map.t ->
     ?tweaks_version: int * int ->
     ((connection ->
       ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
@@ -79,6 +84,7 @@ module type Connect = sig
       [f] either evaluates to a [result], or raises an exception,
       [with_connection] closes the database connection.
 
+      @param config Passed to {!connect}
       @param tweaks_version Passed to {!connect}.
       @param env Passed to {!connect}. *)
 
@@ -86,6 +92,7 @@ module type Connect = sig
     ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: [`Generic] Caqti_config_map.t ->
     ?tweaks_version: int * int ->
     ((connection, [> Caqti_error.connect] as 'connect_error) pool,
      [> Caqti_error.load]) result connect_fun
@@ -99,6 +106,9 @@ module type Connect = sig
       If you use preemptive threading, note that the connection pool must only
       be used from the thread where it was created. Use thread local storage to
       create a separate pool per thread if necessary.
+
+      @param config
+        Passed to {!connect} when creating new connections.
 
       @param tweaks_version
         Passed to {!connect} when creating new connections.

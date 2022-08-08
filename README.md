@@ -38,7 +38,7 @@ The following drivers are available.
   - SQLite3 (`sqlite3://`)
     - Implemented in terms of
       [sqlite3-ocaml](https://github.com/mmottl/sqlite3-ocaml)
-      using preemtive threading for non-blocking operation.
+      using preemptive threading for non-blocking operation.
     - Supports transactions.
     - Does not pool connections but caches statements.
 
@@ -49,7 +49,7 @@ use.
 
 ## Documentation
 
-For a gentle introduction I recommend reading [Interfacing OCaml and
+For a gentle introduction, I recommend reading [Interfacing OCaml and
 PostgreSQL with Caqti][BP-2018] by Bobby Priambodo.  There is also a
 [documented example][bikereg] in this repository.
 

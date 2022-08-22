@@ -35,7 +35,7 @@ type _ field +=
 
 module Field = struct
 
-  type 'a t = 'a field
+  type 'a t = 'a field = ..
 
   type _ coding = Coding : {
     rep: 'b t;

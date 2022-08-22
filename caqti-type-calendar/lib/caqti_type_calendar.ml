@@ -15,9 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type _ Caqti_type.field +=
-  | Cdate : CalendarLib.Date.t Caqti_type.field
-  | Ctime : CalendarLib.Calendar.t Caqti_type.field
+type _ Caqti_type.Field.t +=
+  | Cdate : CalendarLib.Date.t Caqti_type.Field.t
+  | Ctime : CalendarLib.Calendar.t Caqti_type.Field.t
 
 let () =
   let open Caqti_type.Field in

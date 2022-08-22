@@ -185,7 +185,7 @@ val connect_failed : uri: Uri.t -> msg ->
 
 (** {3 Errors during Call} *)
 
-val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
+val encode_missing : uri: Uri.t -> field_type: 'a Caqti_type.Field.t -> unit ->
   [> `Encode_rejected of coding_error]
 (** [encode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] and no fallback encoding is available for the type. *)
@@ -215,7 +215,7 @@ val request_failed : uri: Uri.t -> query: string -> msg ->
 
 (** {3 Errors during Result Retrieval} *)
 
-val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.field -> unit ->
+val decode_missing : uri: Uri.t -> field_type: 'a Caqti_type.Field.t -> unit ->
   [> `Decode_rejected of coding_error]
 (** [decode_missing ~uri ~field_type ()] indicates that the driver does not
     support [field_type] for decoding result rows. *)

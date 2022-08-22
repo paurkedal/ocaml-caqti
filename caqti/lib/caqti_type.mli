@@ -22,31 +22,14 @@
     The following is normally only needed for drivers and to define new field
     types.  Everything needed for common usage is covered in {!row_types}. *)
 
-type 'a field = ..
-(** An extensible type describing primitive SQL types and types which can be
-    converted to and from such types.  When adding a new constructor, register
-    the coding with {!Field.define_coding} if possible.  Otherwise, the type
-    will only work with drivers which handle it themselves.  The shipped drivers
-    only handle the constructors listed here. *)
-
-(** Primitive field types handled by the shipped drivers. *)
-type _ field +=
-  | Bool : bool field
-  | Int : int field
-  | Int16 : int field
-  | Int32 : int32 field
-  | Int64 : int64 field
-  | Float : float field
-  | String : string field
-  | Octets : string field
-  | Pdate : Ptime.t field
-  | Ptime : Ptime.t field
-  | Ptime_span : Ptime.span field
-  | Enum : string -> string field
-
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
-  type 'a t = 'a field
+  type 'a t = ..
+  (** An extensible type describing primitive SQL types and types which can be
+      converted to and from such types.  When adding a new constructor, register
+      the coding with {!Field.define_coding} if possible.  Otherwise, the type
+      will only work with drivers which handle it themselves.  The shipped
+      drivers only handle the constructors listed here. *)
 
   type _ coding = Coding : {
     rep: 'b t;
@@ -56,12 +39,31 @@ module Field : sig
 
   type get_coding = {get_coding: 'a. Caqti_driver_info.t -> 'a t -> 'a coding}
 
-  val define_coding : 'a field -> get_coding -> unit
+  val define_coding : 'a t -> get_coding -> unit
 
-  val coding : Caqti_driver_info.t -> 'a field -> 'a coding option
+  val coding : Caqti_driver_info.t -> 'a t -> 'a coding option
 
   val to_string : 'a t -> string
 end
+
+(** Primitive field types handled by the shipped drivers. *)
+type _ Field.t +=
+  | Bool : bool Field.t
+  | Int : int Field.t
+  | Int16 : int Field.t
+  | Int32 : int32 Field.t
+  | Int64 : int64 Field.t
+  | Float : float Field.t
+  | String : string Field.t
+  | Octets : string Field.t
+  | Pdate : Ptime.t Field.t
+  | Ptime : Ptime.t Field.t
+  | Ptime_span : Ptime.span Field.t
+  | Enum : string -> string Field.t
+
+(**/**)
+type 'a field = 'a Field.t = .. [@@deprecated "Use Field.t."]
+(**/**)
 
 (** {2:row_types Row Types} *)
 
@@ -72,7 +74,7 @@ end
     compatibility with future versions. *)
 type _ t = private
   | Unit : unit t
-  | Field : 'a field -> 'a t
+  | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Tup2 : 'a t * 'b t -> ('a * 'b) t
   | Tup3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
@@ -105,7 +107,7 @@ val pp_value : Format.formatter -> 'a t * 'a -> unit
 val show : 'a t -> string
 (** [show t] is a human presentation of [t]. *)
 
-val field : 'a field -> 'a t
+val field : 'a Field.t -> 'a t
 (** [field ft] is a row of a single field of type [ft]. This function can be
     used when adding new field types; use the below functions otherwise. *)
 

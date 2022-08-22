@@ -320,7 +320,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
   let rec encode_field
-      : type a. uri: Uri.t -> a Caqti_type.field -> a -> (string, _) result =
+      : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> (string, _) result =
     fun ~uri field_type x ->
     (match field_type with
      | Caqti_type.Bool -> Ok (Pg_ext.string_of_bool x)
@@ -365,7 +365,7 @@ module Param_encoder = Make_encoder (struct
 end)
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.field -> string -> (a, _) result =
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> string -> (a, _) result =
   fun ~uri field_type s ->
   let conv f s =
     try Ok (f s) with _ ->

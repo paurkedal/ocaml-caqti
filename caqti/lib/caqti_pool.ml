@@ -15,6 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Caqti_common_priv
 open Caqti_compat [@@warning "-33"]
 
 let default_max_size =
@@ -35,6 +36,11 @@ module Make (System : Caqti_driver_sig.System_common) = struct
 
   module Taskq = Caqti_heap.Make (Task)
 
+  type 'a entry = {
+    resource: 'a;
+    mutable used_count: int;
+  }
+
   type ('a, +'e) t = {
     create: unit -> ('a, 'e) result future;
     free: 'a -> unit future;
@@ -43,21 +49,25 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     log_src: Logs.Src.t;
     max_idle_size: int;
     max_size: int;
+    max_use_count: int option;
     mutable cur_size: int;
-    pool: 'a Queue.t;
+    pool: 'a entry Queue.t;
     mutable waiting: Taskq.t;
   }
 
   let create
         ?(max_size = default_max_size)
         ?(max_idle_size = max_size)
+        ?(max_use_count = None)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
         ?(log_src = default_log_src)
         create free =
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
-    { create; free; check; validate; log_src; max_idle_size; max_size;
+    assert (Option.for_all (fun n -> n > 0) max_use_count);
+    { create; free; check; validate; log_src;
+      max_idle_size; max_size; max_use_count;
       cur_size = 0; pool = Queue.create (); waiting = Taskq.empty }
 
   let size {cur_size; _} = cur_size
@@ -77,7 +87,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
   let realloc p =
     p.create () >|=
     (function
-     | Ok e -> Ok e
+     | Ok e -> Ok {resource = e; used_count = 0}
      | Error err ->
         p.cur_size <- p.cur_size - 1;
         schedule p;
@@ -95,7 +105,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
         acquire ~priority p
     end else begin
       let e = Queue.take p.pool in
-      p.validate e >>= fun ok ->
+      p.validate e.resource >>= fun ok ->
       if ok then
         return (Ok e)
       else begin
@@ -105,13 +115,17 @@ module Make (System : Caqti_driver_sig.System_common) = struct
       end
     end
 
+  let can_reuse p e =
+       p.cur_size <= p.max_idle_size
+    && Option.for_all (fun n -> e.used_count < n) p.max_use_count
+
   let release p e =
-    if p.cur_size > p.max_idle_size then begin
+    if not (can_reuse p e) then begin
       p.cur_size <- p.cur_size - 1;
-      p.free e >|= fun () ->
+      p.free e.resource >|= fun () ->
       schedule p
     end else begin
-      p.check e begin fun ok ->
+      p.check e.resource begin fun ok ->
         if ok then
           Queue.add e p.pool
         else begin
@@ -126,7 +140,9 @@ module Make (System : Caqti_driver_sig.System_common) = struct
 
   let use ?(priority = 0.0) f p =
     acquire ~priority p >>=? fun e ->
-    finally (fun () -> f e) (fun () -> release p e)
+    finally
+      (fun () -> f e.resource)
+      (fun () -> e.used_count <- e.used_count + 1; release p e)
 
   let dispose p e = p.free e >|= fun () -> p.cur_size <- p.cur_size - 1
 
@@ -134,7 +150,7 @@ module Make (System : Caqti_driver_sig.System_common) = struct
     if p.cur_size = 0 then return () else
     (if Queue.is_empty p.pool
      then wait ~priority:0.0 p
-     else dispose p (Queue.take p.pool)) >>= fun () ->
+     else dispose p (Queue.take p.pool).resource) >>= fun () ->
     drain p
 
 end

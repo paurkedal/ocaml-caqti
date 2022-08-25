@@ -33,6 +33,7 @@ module Option : sig
   type 'a t = 'a option
   val map : ('a -> 'b) -> 'a option -> 'b option
   val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b
+  val for_all : ('a -> bool) -> 'a option -> bool
 end
 
 module Result : sig

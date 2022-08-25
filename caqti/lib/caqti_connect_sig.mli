@@ -75,7 +75,7 @@ module type S = sig
       @param env Passed to {!connect}. *)
 
   val connect_pool :
-    ?max_size: int -> ?max_idle_size: int ->
+    ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
@@ -111,5 +111,9 @@ module type S = sig
         For drivers which does not support pooling, this will be ignored and the
         value [0] used instead. For drivers which does not support concurrent
         connections, but supports pooling, the value will clipped to a maximum
-        of [1]. *)
+        of [1].
+
+      @param max_use_count
+        The maximum number of times to use a connection before dropping it from
+        the pool, or [None] for no limit. *)
 end

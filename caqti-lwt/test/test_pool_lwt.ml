@@ -20,23 +20,40 @@ open Lwt.Infix
 module Pool = Caqti_lwt.Pool
 
 module Resource = struct
-  let ht = Hashtbl.create 17
-  let c = ref 0
+  type t = {
+    id: int;
+    mutable use_count: int;
+  }
+
+  let alive = Hashtbl.create 17
+
+  let latest_id = ref 0
+
   let create () =
     if Random.int 4 = 0 then Lwt.return_error () else
     begin
-      c := succ !c;
-      Hashtbl.add ht !c ();
-      Lwt.return_ok !c
+      incr latest_id;
+      Hashtbl.add alive !latest_id ();
+      Lwt.return_ok {id = !latest_id; use_count = 0}
     end
-  let free i = assert (Hashtbl.mem ht i); Hashtbl.remove ht i; Lwt.return_unit
+
+  let free resource =
+    assert (Hashtbl.mem alive resource.id);
+    Hashtbl.remove alive resource.id;
+    Lwt.return_unit
 end
 
 let test_n n =
   let max_idle_size = Random.int 11 in
   let max_size = max 1 (max_idle_size + Random.int 5) in
+  let max_use_count =
+    (match Random.bool () with
+     | false -> None
+     | true -> Some (1 + Random.int 8))
+  in
   let pool =
-    Pool.create ~max_idle_size ~max_size Resource.create Resource.free
+    Pool.create ~max_idle_size ~max_size ~max_use_count
+      Resource.create Resource.free
   in
   let wakers = Array.make n None in
   let wait_count = ref 0 in
@@ -44,12 +61,16 @@ let test_n n =
   let wake j u = Lwt.wakeup u (); wakers.(j) <- None in
   for _ = 0 to 3 * n - 1 do
     let j = Random.int n in
-    assert (Pool.size pool = Hashtbl.length Resource.ht);
+    assert (Pool.size pool = Hashtbl.length Resource.alive);
     (match wakers.(j) with
      | None ->
         let waiter, waker = Lwt.wait () in
         incr wait_count;
-        let task _ =
+        let task (resource : Resource.t) =
+          (match max_use_count with
+           | None -> ()
+           | Some n -> assert (resource.use_count < n));
+          resource.use_count <- resource.use_count + 1;
           waiter >|= fun () ->
           decr wait_count;
           Lwt_condition.signal wait_count_cond ();
@@ -81,7 +102,7 @@ let test_n n =
   assert (!wait_count = 0);
   Pool.drain pool >|= fun () ->
   assert (Pool.size pool = 0);
-  assert (Hashtbl.length Resource.ht = 0)
+  assert (Hashtbl.length Resource.alive = 0)
 
 let test _ () =
   test_n 0 >>= fun () ->

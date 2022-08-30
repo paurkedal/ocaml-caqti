@@ -27,8 +27,6 @@ let driver_info =
     ~can_pool:true
     ~can_concur:false
     ~can_transact:true
-    ~describe_has_typed_params:false
-    ~describe_has_typed_fields:true
     ()
 
 let get_uri_bool uri name =

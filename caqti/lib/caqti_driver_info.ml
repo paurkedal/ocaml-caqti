@@ -27,8 +27,6 @@ type t = {
   uri_scheme: string;
   dialect_tag: dialect_tag;
   parameter_style: parameter_style;
-  describe_has_typed_params: bool;
-  describe_has_typed_fields: bool;
   can_transact: bool;
   can_pool: bool;
   can_concur: bool;
@@ -43,16 +41,12 @@ let create
     ~can_pool
     ~can_concur
     ~can_transact
-    ~describe_has_typed_params
-    ~describe_has_typed_fields
     () =
   {
     index = (let i = !next_backend_index in incr next_backend_index; i);
     uri_scheme;
     dialect_tag;
     parameter_style;
-    describe_has_typed_params;
-    describe_has_typed_fields;
     can_transact;
     can_pool;
     can_concur;
@@ -61,7 +55,7 @@ let create
 let dummy = create
   ~uri_scheme:"dummy"
   ~can_pool:false ~can_concur:false ~can_transact:false
-  ~describe_has_typed_params:false ~describe_has_typed_fields:false ()
+  ()
 
 let uri_scheme di = di.uri_scheme
 let dialect_tag di = di.dialect_tag
@@ -69,5 +63,3 @@ let parameter_style di = di.parameter_style
 let can_pool di = di.can_pool
 let can_concur di = di.can_concur
 let can_transact di = di.can_transact
-let describe_has_typed_params di = di.describe_has_typed_params
-let describe_has_typed_fields di = di.describe_has_typed_fields

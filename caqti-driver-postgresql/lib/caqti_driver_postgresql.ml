@@ -104,8 +104,6 @@ let driver_info =
     ~can_pool:true
     ~can_concur:true
     ~can_transact:true
-    ~describe_has_typed_params:true
-    ~describe_has_typed_fields:true
     ()
 
 let no_env _ _ = raise Not_found

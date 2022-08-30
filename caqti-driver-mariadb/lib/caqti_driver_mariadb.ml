@@ -158,8 +158,6 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       ~can_pool:true
       ~can_concur:true
       ~can_transact:true
-      ~describe_has_typed_params:false (* TODO *)
-      ~describe_has_typed_fields:false (* TODO *)
       ()
 
   let rec encode_field

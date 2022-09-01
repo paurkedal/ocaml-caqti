@@ -115,5 +115,8 @@ module type S = sig
 
       @param max_use_count
         The maximum number of times to use a connection before dropping it from
-        the pool, or [None] for no limit. *)
+        the pool, or [None] for no limit.  The default is currently 100, but may
+        be changed in the future based on real-world experience.  The reason
+        this setting was introduced is that we have seen state being retained on
+        the server side. *)
 end

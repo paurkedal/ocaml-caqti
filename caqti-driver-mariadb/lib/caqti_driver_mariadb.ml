@@ -574,6 +574,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
         in
         let module C = struct
           let driver_info = driver_info
+          let driver_connection = None
           include B
           include Caqti_connection.Make_convenience (System) (B)
           include Caqti_connection.Make_populate (System) (B)

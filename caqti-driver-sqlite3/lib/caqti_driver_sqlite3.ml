@@ -31,6 +31,8 @@ let driver_info =
     ~describe_has_typed_fields:true
     ()
 
+type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
+
 let get_uri_bool uri name =
   (match Uri.get_query_param uri name with
    | Some ("true" | "yes") -> Some true
@@ -583,6 +585,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct
         let driver_info = driver_info
+        let driver_connection = Some (Driver_connection db)
         include Connection_base
         include Caqti_connection.Make_convenience (System) (Connection_base)
         include Caqti_connection.Make_populate (System) (Connection_base)

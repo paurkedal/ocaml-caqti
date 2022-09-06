@@ -1,20 +1,26 @@
-## unreleased
+## v1.9.0 - 2022-09-06
 
 New features:
 
   - Allow unquoted semicolons in query strings in the new API.  There are
-    corner cases whene it is needed, as reported in issue #87, and a parser
+    corner cases where it is needed, as reported in issue #87, and a parser
     which rejects semicolons are still available for loading schema files
     statement by statement.
+
   - Add support for MySQL and MariaDB configuration files, as a solution to
     issue #86.
+
   - Add a limit to the number of times a database connection is reused when
     pooling connections (#94).  Thanks to Peter Mondlock for investigating
     resource usage server side motivating this addition.
 
+  - Provide access to the raw SQLite3 connection handle for the purpose of
+    defining custom functions (#56).
+
 Fixes:
 
   - Add missing dune dependency on unix (GPR#85 by David Allsopp).
+
   - Documentation fixes (GPR#82, GPR#83, GPR#84 by Reynir Björnsson,
     GPR#88 by Jonathan Duarte, and GPR#92 by Jim Tittsler).
 

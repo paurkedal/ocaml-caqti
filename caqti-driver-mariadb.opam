@@ -12,7 +12,7 @@ depends: [
   "caqti" {>= "1.9.0" & < "1.10.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "2.0"}
-  "mariadb" {>= "1.1.1"}
+  "mariadb" {>= "1.1.5"}
   "odoc" {with-doc}
 ]
 build: [

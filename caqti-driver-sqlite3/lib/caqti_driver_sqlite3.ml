@@ -29,6 +29,8 @@ let driver_info =
     ~can_transact:true
     ()
 
+type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
+
 let get_uri_bool uri name =
   (match Uri.get_query_param uri name with
    | Some ("true" | "yes") -> Some true
@@ -101,7 +103,7 @@ let query_string q =
   (quotes, Buffer.contents buf)
 
 let rec data_of_value
-    : type a. uri: Uri.t -> a Caqti_type.field -> a ->
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a ->
       (Sqlite3.Data.t, _) result =
   fun ~uri field_type x ->
   (match field_type with
@@ -138,7 +140,7 @@ let rec data_of_value
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
 let rec value_of_data
     : type a. uri: Uri.t ->
-      a Caqti_type.field -> Sqlite3.Data.t -> (a, _) result =
+      a Caqti_type.Field.t -> Sqlite3.Data.t -> (a, _) result =
   fun ~uri field_type data ->
   let to_ptime_span x =
     (match Ptime.Span.of_float_s x with
@@ -581,6 +583,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct
         let driver_info = driver_info
+        let driver_connection = Some (Driver_connection db)
         include Connection_base
         include Caqti_connection.Make_convenience (System) (Connection_base)
         include Caqti_connection.Make_populate (System) (Connection_base)

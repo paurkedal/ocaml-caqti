@@ -26,6 +26,7 @@ module type S = sig
   val create :
     ?max_size: int ->
     ?max_idle_size: int ->
+    ?max_use_count: int option ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool future) ->
     ?log_src: Logs.Src.t ->
@@ -40,6 +41,9 @@ module type S = sig
       @param max_idle_size
         The maximum number of resources to pool for later use. Defaults to
         [max_size].
+
+      @param max_use_count
+        The maximum number of times to use a connection, or [None] for no limit.
 
       @param check
         A function used to check a resource after use.

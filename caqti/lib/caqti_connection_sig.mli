@@ -48,6 +48,9 @@
     functions {!Caqti_request.create} and {!S.fold} can construct and process
     any supported SQL query. *)
 
+type driver_connection = ..
+(** This type is only to be extended by drivers. *)
+
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
   type +'a future
@@ -229,6 +232,12 @@ module type S = sig
 
   val driver_info : Caqti_driver_info.t
   (** Information about the driver providing this connection module. *)
+
+  val driver_connection : driver_connection option
+  (** The underlying connection object of the driver if available.  The open
+      variant constructor is defined in the driver library.  This is currently
+      only implemented for caqti-driver-sqlite3 for the purpose of defining
+      custom functions. *)
 
   include Base
   include Convenience with type 'a future := 'a future

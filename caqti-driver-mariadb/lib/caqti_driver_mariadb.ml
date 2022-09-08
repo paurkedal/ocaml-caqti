@@ -162,7 +162,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
 
   let rec encode_field
       : type a. uri: Uri.t ->
-        a Caqti_type.field -> a -> (Mdb.Field.value, _) result =
+        a Caqti_type.Field.t -> a -> (Mdb.Field.value, _) result =
     fun ~uri field_type x ->
     (match field_type with
      | Caqti_type.Bool -> Ok (`Int (if x then 1 else 0))
@@ -199,7 +199,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                 Error (Caqti_error.encode_rejected ~uri ~typ msg))))
 
   let rec decode_field
-      : type b. uri: Uri.t -> b Caqti_type.field ->
+      : type b. uri: Uri.t -> b Caqti_type.Field.t ->
         Mdb.Field.t -> (b, _) result =
     fun ~uri field_type field ->
     try match field_type with
@@ -572,6 +572,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         in
         let module C = struct
           let driver_info = driver_info
+          let driver_connection = None
           include B
           include Caqti_connection.Make_convenience (System) (B)
           include Caqti_connection.Make_populate (System) (B)

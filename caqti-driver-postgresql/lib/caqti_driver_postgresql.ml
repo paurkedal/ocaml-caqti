@@ -226,7 +226,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
   let rec encode_field
-      : type a. uri: Uri.t -> a Caqti_type.field -> a -> (string, _) result =
+      : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> (string, _) result =
     fun ~uri field_type x ->
     (match field_type with
      | Caqti_type.Bool -> Ok (Pg_ext.pgstring_of_bool x)
@@ -269,7 +269,7 @@ module Param_encoder = Make_encoder (struct
 end)
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.field -> string ->
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> string ->
       (a, [> Caqti_error.retrieve]) result =
   fun ~uri field_type s ->
   let wrap_conv_exn f s =
@@ -883,6 +883,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                 in
                 let module Connection = struct
                   let driver_info = driver_info
+                  let driver_connection = None
                   include B
                   include Caqti_connection.Make_convenience (System) (B)
                 end in

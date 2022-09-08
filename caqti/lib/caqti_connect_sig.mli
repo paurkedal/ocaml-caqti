@@ -78,7 +78,7 @@ module type Connect = sig
       @param env Passed to {!connect}. *)
 
   val connect_pool :
-    ?max_size: int -> ?max_idle_size: int ->
+    ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ((connection, [> Caqti_error.connect] as 'connect_error) pool,
      [> Caqti_error.load]) result connect_fun
@@ -111,7 +111,14 @@ module type Connect = sig
         For drivers which does not support pooling, this will be ignored and the
         value [0] used instead. For drivers which does not support concurrent
         connections, but supports pooling, the value will clipped to a maximum
-        of [1]. *)
+        of [1].
+
+      @param max_use_count
+        The maximum number of times to use a connection before dropping it from
+        the pool, or [None] for no limit.  The default is currently 100, but may
+        be changed in the future based on real-world experience.  The reason
+        this setting was introduced is that we have seen state being retained on
+        the server side. *)
 end
 
 module type S = sig

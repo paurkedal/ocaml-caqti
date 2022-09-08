@@ -41,3 +41,7 @@ type Caqti_error.msg += Error_msg of {
   errmsg: string option;
     (** The error message reportedy by [sqlite3_errmsg]. *)
 }
+
+(** {1 Access to Raw Connection Handle} *)
+
+type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db

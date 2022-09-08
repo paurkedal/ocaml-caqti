@@ -41,8 +41,23 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
    | Error err ->
       Alcotest.failf "unexpected error from bad_insert: %a" Caqti_error.pp err)
 
+let trim_req =
+  Req.(string -->! string @:- "SELECT trim(?)")
+
+let test_fun (module C : Caqti_blocking.CONNECTION) =
+  (match C.driver_connection with
+   | Some Caqti_driver_sqlite3.Driver_connection db ->
+      Sqlite3.create_fun1 db "trim" begin function
+       | TEXT s -> TEXT (String.trim s)
+       | x -> x
+      end;
+      assert (C.find trim_req "  . " = Ok ".")
+   | Some _ -> assert false
+   | None -> assert false)
+
 let test_cases_on_connection = [
   "test_error", `Quick, test_error;
+  "test_fun", `Quick, test_fun;
 ]
 
 let mk_test (name, pool) =

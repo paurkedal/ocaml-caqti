@@ -111,7 +111,7 @@ struct
       Db.disconnect () >|= fun () -> raise exn
 
   let connect_pool
-        ?max_size ?max_idle_size ?post_connect
+        ?max_size ?max_idle_size ?(max_use_count = Some 100) ?post_connect
         ?env ?(tweaks_version = default_tweaks_version) uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
@@ -153,7 +153,7 @@ struct
            | false, false, _ ->     Some 1, Some 0)
         in
         let pool =
-          Pool.create ?max_size ?max_idle_size ~validate ~check
+          Pool.create ?max_size ?max_idle_size ~max_use_count ~validate ~check
             connect disconnect
         in
         Ok pool

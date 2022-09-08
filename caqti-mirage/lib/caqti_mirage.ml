@@ -183,10 +183,13 @@ struct
     let module C = (val connect_stack stack) in
     C.with_connection ?env ?tweaks_version uri f
 
-  let connect_pool ?max_size ?max_idle_size ?post_connect ?env ?tweaks_version
-                   stack uri =
+  let connect_pool
+        ?max_size ?max_idle_size ?max_use_count
+        ?post_connect ?env ?tweaks_version
+        stack uri =
     let module C = (val connect_stack stack) in
-    C.connect_pool ?max_size ?max_idle_size ?post_connect ?env ?tweaks_version
-                   uri
+    C.connect_pool
+      ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
+      uri
 
 end

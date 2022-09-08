@@ -47,7 +47,7 @@ let driver_info =
     ~can_transact:true
     ()
 
-let pg_type_name : type a. a Caqti_type.field -> string = function
+let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Caqti_type.Bool -> "bool"
  | Caqti_type.Int -> "int8"
  | Caqti_type.Int16 -> "int2"
@@ -85,7 +85,7 @@ let query_string ~env templ =
   (Buffer.contents buf, rev_quotes)
 
 let rec encode_field
-    : type a. uri: Uri.t -> a Caqti_type.field -> a -> (Pgx.Value.t, _) result
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> (Pgx.Value.t, _) result
     = fun ~uri field_type x ->
   (match field_type with
    | Caqti_type.Bool -> Ok (Pgx.Value.of_bool x)
@@ -125,7 +125,7 @@ let encode_param ~uri t param =
     |> Result.map List.rev
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.field -> Pgx.Value.t -> (a, _) result
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> (a, _) result
     = fun ~uri field_type v ->
   let wrap_conv_exn f s =
     (match f s with
@@ -657,6 +657,7 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
     end) in
     let module Connection = struct
       let driver_info = driver_info
+      let driver_connection = None
       include B
       include Caqti_connection.Make_convenience (System) (B)
       include Caqti_connection.Make_populate (System) (B)

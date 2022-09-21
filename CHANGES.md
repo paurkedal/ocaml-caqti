@@ -1,3 +1,13 @@
+## v1.9.1 - 2022-09-21
+
+This release only updates the caqti-driver-postgresql package, with the
+following fixes:
+
+  - PostgreSQL expects "=" in query values to be URI-encoded (#95).
+
+  - The validation logic for PostgreSQL was missing a call to consume
+    available input, meaning that broken pooled connections were reused.
+
 ## v1.9.0 - 2022-09-06
 
 New features:

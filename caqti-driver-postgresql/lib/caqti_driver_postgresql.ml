@@ -864,6 +864,7 @@ module Connect_functor (System : Caqti_driver_sig.System_unix) = struct
             Caqti_error.pp_uri uri (Pg.string_of_error err))
 
     let validate () = using_db @@ fun () ->
+      db#consume_input;
       if (try db#status = Pg.Ok with Pg.Error _ -> false) then
         return true
       else

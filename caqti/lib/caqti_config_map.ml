@@ -163,42 +163,58 @@ let sexp_of_binding (H.B (key, value)) =
   let key_info = H.Key.info key in
   Sexp.List (Sexp.Atom key_info.name :: key_info.conv.sexps_of value)
 
-type 'a t = 'a Driver.t option * H.t
+type _ t =
+  | Generic : H.t -> [`Generic] t
+  | Specific : H.t * 'a Driver.t -> [`Generic | `Specific of 'a] t
+
+let map_hmap (type a) f : a t -> a t = function
+ | Generic m -> Generic (f m)
+ | Specific (m, d) -> Specific (f m, d)
+
+let get_hmap (type a) : a t -> H.t = function
+ | Generic m -> m
+ | Specific (m, _) -> m
+
 type any = Any : 'a t -> any
 
-let empty = (None, H.empty)
+let empty = Generic H.empty
 
-let add k v (d, m) = (d, H.add k v m)
+let add k v = map_hmap (H.add k v)
 
-let add_default k v ((d, m) as c) =
-  (match H.find k m with None -> (d, H.add k v m) | Some _ -> c)
+let add_default k v c =
+  (match H.find k (get_hmap c) with None -> add k v c | Some _ -> c)
 
-let add_driver d (_, m) = (Some d, m)
+let add_driver d : [`Generic] t -> [`Generic | `Specific of _] t = function
+ | Generic m -> Specific (m, d)
 
-let as_default (_, m) = (None, m)
+let as_default : [`Generic | `Specific of _] t -> [`Generic] t = function
+ | Specific (m, _) -> Generic m
 
-let find_driver (d, _) = d
+let find_driver : [`Generic | `Specific of _] t -> _ = function
+ | Specific (_, d) -> d
 
-let remove k (d, m) = (d, H.rem k m)
+let remove k = map_hmap (H.rem k)
 
-let update k f (d, m) =
-  (match f (H.find k m) with
-   | None -> (d, H.rem k m)
-   | Some v -> (d, H.add k v m))
+let update k f = map_hmap @@ fun m ->
+  (match f (H.find k m) with None -> H.rem k m | Some v -> H.add k v m)
 
-let find k (_, m) = H.find k m
+let find k c = H.find k (get_hmap c)
 
-let fold f (_, m) = H.fold (function H.B (k, v) -> f (B (k, v))) m
+let fold f = H.fold (function H.B (k, v) -> f (B (k, v))) % get_hmap
 
-let right_union (_, mL) (dR, mR) =
-  (dR, H.fold (function H.B (k, v) -> H.add k v) mR mL)
+let right_union cL = map_hmap @@ fun mR ->
+  H.fold (function H.B (k, v) -> H.add k v) mR (get_hmap cL)
 
-let sexp_of_t (d, m) =
+let sexp_of_t (type a) (c : a t) =
   let sexp_of_driver d = Sexp.(List [Atom "driver"; Atom (Driver.name d)]) in
-  let settings = []
+  let settings_of_hmap m = []
     |> H.fold (List.cons % sexp_of_binding) m
     |> List.rev
-    |> Option.fold ~none:Fun.id ~some:(List.cons % sexp_of_driver) d
+  in
+  let settings =
+    (match c with
+     | Generic m -> settings_of_hmap m
+     | Specific (m, d) -> sexp_of_driver d :: settings_of_hmap m)
   in
   Sexp.List (Sexp.Atom "connection" :: settings)
 
@@ -223,6 +239,6 @@ let any_of_sexp = function
         let m =
           List.fold_left (fun acc (B (k, v)) -> H.add k v acc) H.empty bindings
         in
-        Any (Some driver, m))
+        Any (Specific (m, driver)))
  | sexp ->
     Sexp_conv.of_sexp_error "(connection ...) expected" sexp

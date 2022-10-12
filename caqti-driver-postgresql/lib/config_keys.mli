@@ -19,6 +19,8 @@
 
 open Caqti_config_map
 
+type specific = [`Specific of [`Postgresql]]
+
 (** {2 Settings} *)
 
 type endpoint =
@@ -32,49 +34,50 @@ type endpoint =
       port: int option;
     }
 
-val endpoints : ([> `Postgresql], endpoint list) Key.t
-val dbname : ([> `Postgresql], string) Key.t
-val user : ([> `Postgresql], string) Key.t
-val passfile : ([> `Postgresql], string) Key.t
-val channel_binding : ([> `Postgresql], [`Disable | `Prefer | `Require]) Key.t
-val connect_timeout : ([> `Postgresql], int) Key.t
-val client_encoding : ([> `Postgresql], string) Key.t
-val options : ([> `Postgresql], string) Key.t
-val application_name : ([> `Postgresql], string) Key.t
-val fallback_application_name : ([> `Postgresql], string) Key.t
-val keepalives : ([> `Postgresql], bool) Key.t
-val keepalives_idle : ([> `Postgresql], int) Key.t
-val keepalives_interval : ([> `Postgresql], int) Key.t
-val keepalives_count : ([> `Postgresql], int) Key.t
-val tcp_user_timeout_ms : ([> `Postgresql], int) Key.t
-val replication : ([> `Postgresql], [`On | `Database | `Off]) Key.t
-val gssencmode : ([> `Postgresql], [`Disable | `Prefer | `Require]) Key.t
-val sslmode : ([> `Postgresql], [`Disable | `Allow | `Prefer | `Require | `Verify_ca | `Verify_full]) Key.t
-val sslcompression : ([> `Postgresql], bool) Key.t
-val sslcert : ([> `Postgresql], string) Key.t
-val sslkey : ([> `Postgresql], string) Key.t
-val sslpassword : ([> `Postgresql], string) Key.t
-val sslrootcert : ([> `Postgresql], string) Key.t
-val sslcrl : ([> `Postgresql], string) Key.t
-val sslcrldir : ([> `Postgresql], string) Key.t
-val sslsni : ([> `Postgresql], bool) Key.t
-val requirepeer : ([> `Postgresql], string) Key.t
-val ssl_min_protocol_version : ([> `Postgresql], [`TLS_1_0 | `TLS_1_1 | `TLS_1_2 | `TLS_1_3]) Key.t
-val ssl_max_protocol_version : ([> `Postgresql], [`TLS_1_0 | `TLS_1_1 | `TLS_1_2 | `TLS_1_3]) Key.t
-val krbsrvname : ([> `Postgresql], string) Key.t
-val gsslib : ([> `Postgresql], string) Key.t
-val service : ([> `Postgresql], string) Key.t
-val target_session_attrs : ([> `Postgresql], [`Any | `Read_write | `Read_only | `Primary | `Standby | `Prefer_standby]) Key.t
-val notice_processing : ([> `Postgresql], [`Stderr | `Quiet]) Key.t
+val endpoints : ([> specific], endpoint list) Key.t
+val dbname : ([> specific], string) Key.t
+val user : ([> specific], string) Key.t
+val passfile : ([> specific], string) Key.t
+val channel_binding : ([> specific], [`Disable | `Prefer | `Require]) Key.t
+val connect_timeout : ([> specific], int) Key.t
+val client_encoding : ([> specific], string) Key.t
+val options : ([> specific], string) Key.t
+val application_name : ([> specific], string) Key.t
+val fallback_application_name : ([> specific], string) Key.t
+val keepalives : ([> specific], bool) Key.t
+val keepalives_idle : ([> specific], int) Key.t
+val keepalives_interval : ([> specific], int) Key.t
+val keepalives_count : ([> specific], int) Key.t
+val tcp_user_timeout_ms : ([> specific], int) Key.t
+val replication : ([> specific], [`On | `Database | `Off]) Key.t
+val gssencmode : ([> specific], [`Disable | `Prefer | `Require]) Key.t
+val sslmode : ([> specific], [`Disable | `Allow | `Prefer | `Require | `Verify_ca | `Verify_full]) Key.t
+val sslcompression : ([> specific], bool) Key.t
+val sslcert : ([> specific], string) Key.t
+val sslkey : ([> specific], string) Key.t
+val sslpassword : ([> specific], string) Key.t
+val sslrootcert : ([> specific], string) Key.t
+val sslcrl : ([> specific], string) Key.t
+val sslcrldir : ([> specific], string) Key.t
+val sslsni : ([> specific], bool) Key.t
+val requirepeer : ([> specific], string) Key.t
+val ssl_min_protocol_version : ([> specific], [`TLS_1_0 | `TLS_1_1 | `TLS_1_2 | `TLS_1_3]) Key.t
+val ssl_max_protocol_version : ([> specific], [`TLS_1_0 | `TLS_1_1 | `TLS_1_2 | `TLS_1_3]) Key.t
+val krbsrvname : ([> specific], string) Key.t
+val gsslib : ([> specific], string) Key.t
+val service : ([> specific], string) Key.t
+val target_session_attrs : ([> specific], [`Any | `Read_write | `Read_only | `Primary | `Standby | `Prefer_standby]) Key.t
+val notice_processing : ([> specific], [`Stderr | `Quiet]) Key.t
 
 (** {2 Configuration} *)
 
-type _ Driver.t += Driver : [`Generic | `Postgresql] Driver.t
+type _ Driver.t += Driver : [`Postgresql] Driver.t
 
-val all : [> `Generic | `Postgresql] Key_set.t
+val all : [> `Generic | specific] Key_set.t
 
 (**/**)
 
 module String_map : Map.S with type key = string
 
-val extract_conninfo : [> `Postgresql] Caqti_config_map.t -> string String_map.t
+val extract_conninfo :
+  [> specific] Caqti_config_map.t -> string String_map.t

@@ -17,42 +17,44 @@
 
 open Caqti_config_map
 
+type specific = [`Specific of [`Mariadb]]
+
 (** {2 Settings} *)
 
-val connect_timeout : ([> `Mariadb], int) Key.t
-val compress : ([> `Mariadb], bool) Key.t
-val init_command : ([> `Mariadb], string) Key.t
-val read_default_file : ([> `Mariadb], string) Key.t
-val read_default_group : ([> `Mariadb], string) Key.t
-val set_charset_dir : ([> `Mariadb], string) Key.t
-val set_charset_name : ([> `Mariadb], string) Key.t
-val local_inifile : ([> `Mariadb], bool) Key.t
-val shared_memory_base_name : ([> `Mariadb], string) Key.t
-val read_timeout : ([> `Mariadb], int) Key.t
-val write_timeout : ([> `Mariadb], int) Key.t
-val secure_auth : ([> `Mariadb], bool) Key.t
-val report_data_truncation : ([> `Mariadb], bool) Key.t
-val reconnect : ([> `Mariadb], bool) Key.t
-val ssl_verify_server_cert : ([> `Mariadb], bool) Key.t
-val plugin_dir : ([> `Mariadb], string) Key.t
-val default_auth : ([> `Mariadb], string) Key.t
-val bind : ([> `Mariadb], string) Key.t
-val ssl_key : ([> `Mariadb], string) Key.t
-val ssl_cert : ([> `Mariadb], string) Key.t
-val ssl_ca : ([> `Mariadb], string) Key.t
-val ssl_capath : ([> `Mariadb], string) Key.t
-val ssl_cipher : ([> `Mariadb], string) Key.t
-val ssl_crl : ([> `Mariadb], string) Key.t
-val ssl_crlpath : ([> `Mariadb], string) Key.t
-val server_public_key : ([> `Mariadb], string) Key.t
-val enable_cleartext_plugin : ([> `Mariadb], bool) Key.t
+val connect_timeout : ([> specific], int) Key.t
+val compress : ([> specific], bool) Key.t
+val init_command : ([> specific], string) Key.t
+val read_default_file : ([> specific], string) Key.t
+val read_default_group : ([> specific], string) Key.t
+val set_charset_dir : ([> specific], string) Key.t
+val set_charset_name : ([> specific], string) Key.t
+val local_inifile : ([> specific], bool) Key.t
+val shared_memory_base_name : ([> specific], string) Key.t
+val read_timeout : ([> specific], int) Key.t
+val write_timeout : ([> specific], int) Key.t
+val secure_auth : ([> specific], bool) Key.t
+val report_data_truncation : ([> specific], bool) Key.t
+val reconnect : ([> specific], bool) Key.t
+val ssl_verify_server_cert : ([> specific], bool) Key.t
+val plugin_dir : ([> specific], string) Key.t
+val default_auth : ([> specific], string) Key.t
+val bind : ([> specific], string) Key.t
+val ssl_key : ([> specific], string) Key.t
+val ssl_cert : ([> specific], string) Key.t
+val ssl_ca : ([> specific], string) Key.t
+val ssl_capath : ([> specific], string) Key.t
+val ssl_cipher : ([> specific], string) Key.t
+val ssl_crl : ([> specific], string) Key.t
+val ssl_crlpath : ([> specific], string) Key.t
+val server_public_key : ([> specific], string) Key.t
+val enable_cleartext_plugin : ([> specific], bool) Key.t
 
 (** {2 Configuration} *)
 
-type _ Driver.t += Driver : [`Generic | `Mariadb] Driver.t
+type _ Driver.t += Driver : [`Mariadb] Driver.t
 
-val all : [> `Generic | `Mariadb] Key_set.t
+val all : [> `Generic | specific] Key_set.t
 
 (**/**)
 val extract_client_options :
-  [> `Mariadb] t -> Mariadb.Blocking.client_option list
+  [> specific] t -> Mariadb.Blocking.client_option list

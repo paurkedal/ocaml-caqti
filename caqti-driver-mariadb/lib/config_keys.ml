@@ -18,6 +18,8 @@
 open Caqti_platform
 open Caqti_config_map
 
+type specific = [`Specific of [`Mariadb]]
+
 let connect_timeout = Key.create Conv.int "connect_timeout"
 let compress = Key.create Conv.bool "compress"
 (* Omitted: named_pipe *)
@@ -103,6 +105,6 @@ let extract_client_options =
     let config = remove_if_false compress config in
     List.filter_map (extract_client_option config) all_with_extract
 
-type _ Driver.t += Driver : [`Generic | `Mariadb] Driver.t
+type _ Driver.t += Driver : [`Mariadb] Driver.t
 
 let () = Driver.register "mariadb" all Driver

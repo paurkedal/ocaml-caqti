@@ -22,6 +22,8 @@ open Caqti_config_map
 open Sexplib0
 open Sexplib0.Sexp_conv
 
+type specific = [`Specific of [`Postgresql]]
+
 type 'a conv = 'a Conv.t * (string -> 'a -> (string * string) list)
 
 let conninfo_of_atomic f name value = [name, f value]
@@ -372,7 +374,7 @@ let all = Caqti_config_keys.all
   |> Key_set.add (Key.Any notice_processing)
   |> List_ext.fold (fun (Setting (k, _)) -> Key_set.add (Key.Any k)) settings
 
-type _ Driver.t += Driver : [`Generic | `Postgresql] Driver.t
+type _ Driver.t += Driver : [`Postgresql] Driver.t
 
 let () = Driver.register "postgresql" all Driver
 

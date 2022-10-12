@@ -66,7 +66,7 @@ end
 module Driver : sig
   type 'a t = ..
 
-  val register : string -> 'a Key_set.t -> 'a t -> unit
+  val register : string -> [> `Specific of 'a] Key_set.t -> 'a t -> unit
 end
 
 type 'a t
@@ -79,9 +79,9 @@ val add : ('a, 'b) Key.t -> 'b -> 'a t -> 'a t
 
 val add_default : ('a, 'b) Key.t -> 'b -> 'a t -> 'a t
 
-val add_driver : 'a Driver.t -> [`Generic] t -> 'a t
+val add_driver : 'a Driver.t -> [`Generic] t -> [`Generic | `Specific of 'a] t
 
-val as_default : 'a t -> [`Generic] t
+val as_default : [`Generic | `Specific of 'a] t -> [`Generic] t
 
 val remove : ('a, 'b) Key.t -> 'a t -> 'a t
 
@@ -89,7 +89,7 @@ val update : ('a, 'b) Key.t -> ('b option -> 'b option) -> 'a t -> 'a t
 
 val find : ('a, 'b) Key.t -> 'a t -> 'b option
 
-val find_driver : 'a t -> 'a Driver.t option
+val find_driver : [`Generic | `Specific of 'a] t -> 'a Driver.t
 
 type +'a binding = B : ('a, 'b) Key.t * 'b -> 'a binding
 

@@ -22,22 +22,6 @@ let (%>) f g x = g (f x)
 let (%>?) f g x = match f x with Ok y -> g y | Error _ as r -> r
 let (|>?) r f = match r with Ok x -> f x | Error _ as r -> r
 
-module List = struct
-  include List
-
-  let rec fold f = function
-   | [] -> fun acc -> acc
-   | x :: xs -> f x %> fold f xs
-
-  let iteri_r f xs =
-    let rec loop i = function
-     | [] -> Ok ()
-     | x :: xs ->
-        (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
-    in
-    loop 0 xs
-end
-
 let datetuple_of_iso8601 s =
   if String.length s = 10 && s.[4] = '-' && s.[7] = '-' then
     try
@@ -45,9 +29,9 @@ let datetuple_of_iso8601 s =
        int_of_string (String.sub s 5 2),
        int_of_string (String.sub s 8 2))
     with Failure _ ->
-      failwith "Caqti_internal.datetuple_of_iso8601"
+      failwith "Caqti_private.datetuple_of_iso8601"
   else
-    failwith "Caqti_internal.datetuple_of_iso8601"
+    failwith "Caqti_private.datetuple_of_iso8601"
 
 let iso8601_of_datetuple (y, m, d) =
   sprintf "%04d-%02d-%02d" y m d

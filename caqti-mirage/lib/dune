@@ -2,7 +2,7 @@
  (name caqti_mirage)
  (public_name caqti-mirage)
  (libraries
-    caqti caqti.platform.net
+    caqti caqti.private caqti.platform.net
     conduit-mirage
     dns-client dns-client.mirage
     logs logs.lwt lwt

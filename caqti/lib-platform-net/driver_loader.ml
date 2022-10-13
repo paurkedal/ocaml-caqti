@@ -17,7 +17,7 @@
 
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Caqti_driver_sig.S
+  Caqti_private.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
@@ -25,7 +25,7 @@ let drivers = Hashtbl.create 5
 let register scheme p = Hashtbl.add drivers scheme p
 
 module Make (System : System_sig.S) = struct
-  module type DRIVER = Caqti_driver_sig.S
+  module type DRIVER = Caqti_private.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
 

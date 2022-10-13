@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+open Caqti_private
+open Caqti_private.Std
 
 module System = struct
 
@@ -127,8 +128,8 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Caqti_connect.Make_without_connect (System)
-include Caqti_connect.Make_connect (System) (Loader)
+include Connector.Make_without_connect (System)
+include Connector.Make_connect (System) (Loader)
 
 let or_fail = function
  | Ok x -> Lwt.return x

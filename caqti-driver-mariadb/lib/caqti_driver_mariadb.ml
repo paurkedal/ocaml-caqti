@@ -15,8 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_driver_lib
-open Caqti_common_priv
+open Caqti_private.Std
+open Caqti_private
 open Printf
 
 let cause_of_errno = function
@@ -64,7 +64,7 @@ let no_env _ _ = raise Not_found
 
 module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
   open System
-  module H = Caqti_connection.Make_helpers (System)
+  module H = Connection_utils.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
 
@@ -265,7 +265,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
        | Error _ as r -> r)
     in
     let write_null ~uri:_ _ os = Ok (List.tl os) in
-    Caqti_driver_lib.encode_param ~uri {write_value; write_null} t v acc
+    Request_utils.encode_param ~uri {write_value; write_null} t v acc
 
   let decode_row ~uri row_type row =
     let read_value ~uri ft j =
@@ -281,7 +281,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       if check j then Some j' else None
     in
     let extract (y, j) = assert (j = Caqti_type.length row_type); Some y in
-    Caqti_driver_lib.decode_row ~uri {read_value; skip_null} row_type 0
+    Request_utils.decode_row ~uri {read_value; skip_null} row_type 0
       |> Result.map extract
 
   module Make_connection_base
@@ -419,13 +419,14 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
        | None ->
           let templ = Caqti_request.query req driver_info in
           let templ = Caqti_query.expand ~final:true env' templ in
-          let query = linear_query_string templ in
+          let query = Request_utils.linear_query_string templ in
           Mdb.prepare db query >>=
           (function
            | Error err -> return (request_failed ~query err)
            | Ok stmt ->
-              let param_length = linear_param_length templ in
-              let param_order, quotes = linear_param_order templ in
+              let param_length = Request_utils.linear_param_length templ in
+              let param_order, quotes =
+                Request_utils.linear_param_order templ in
               let pcache_entry =
                 {query; stmt; param_length; param_order; quotes} in
               process pcache_entry >>= fun process_result ->
@@ -441,13 +442,14 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
            | Not_found ->
               let templ = Caqti_request.query req driver_info in
               let templ = Caqti_query.expand ~final:true env' templ in
-              let query = linear_query_string templ in
+              let query = Request_utils.linear_query_string templ in
               Mdb.prepare db query >|=
               (function
                | Error err -> request_failed ~query err
                | Ok stmt ->
-                  let param_length = linear_param_length templ in
-                  let param_order, quotes = linear_param_order templ in
+                  let param_length = Request_utils.linear_param_length templ in
+                  let param_order, quotes =
+                    Request_utils.linear_param_order templ in
                   let pcache_entry =
                     {query; stmt; param_length; param_order; quotes} in
                   Hashtbl.add pcache id pcache_entry;
@@ -574,8 +576,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           let driver_info = driver_info
           let driver_connection = None
           include B
-          include Caqti_connection.Make_convenience (System) (B)
-          include Caqti_connection.Make_populate (System) (B)
+          include Connection_utils.Make_convenience (System) (B)
+          include Connection_utils.Make_populate (System) (B)
         end in
         Mdb.set_character_set db "utf8mb4" >>=
           (function

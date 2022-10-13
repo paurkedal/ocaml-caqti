@@ -4,5 +4,5 @@
   (modules Caqti_async)
   (libraries
     async_kernel async_unix
-    caqti caqti.platform.net caqti.platform.unix
+    caqti caqti.private caqti.platform.net caqti.platform.unix
     conduit-async core_kernel logs))

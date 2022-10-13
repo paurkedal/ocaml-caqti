@@ -18,8 +18,8 @@
 open Async_kernel
 open Async_unix
 open Core
+module List = Stdlib.List
 
-open Caqti_common_priv
 open Testlib
 open Testlib_async
 

@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+open Caqti_private
+open Caqti_private.Std
 open Postgresql_conv
 open Printf
 
@@ -69,7 +70,7 @@ let query_string ~env templ =
    | Caqti_query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
    | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
    | Caqti_query.E _ -> fun _ -> assert false
-   | Caqti_query.S qs -> List.fold extract_quotes qs
+   | Caqti_query.S qs -> List_ext.fold extract_quotes qs
   in
   let nQ, rev_quotes = extract_quotes templ (0, []) in
 
@@ -79,7 +80,7 @@ let query_string ~env templ =
    | Caqti_query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
    | Caqti_query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
    | Caqti_query.E _ -> assert false
-   | Caqti_query.S qs -> List.fold write_query_string qs
+   | Caqti_query.S qs -> List_ext.fold write_query_string qs
   in
   let _jQ = write_query_string templ 1 in
   (Buffer.contents buf, rev_quotes)
@@ -121,7 +122,7 @@ let encode_param ~uri t param =
   let write_null ~uri:_ _ acc =
     Ok (Pgx.Value.null :: acc)
   in
-  Caqti_driver_lib.encode_param ~uri {write_value; write_null} t param []
+  Request_utils.encode_param ~uri {write_value; write_null} t param []
     |> Result.map List.rev
 
 let rec decode_field
@@ -191,7 +192,7 @@ let decode_row ~uri row_type fields =
      | x :: xs' when Pgx.Value.(compare null) x = 0 -> skip_null (n - 1) xs'
      | _ :: _ -> None)
   in
-  Caqti_driver_lib.decode_row ~uri {read_value; skip_null} row_type fields
+  Request_utils.decode_row ~uri {read_value; skip_null} row_type fields
     |> Result.map (fun (y, fields) -> assert (fields = []); y)
 
 module Q = struct
@@ -659,8 +660,8 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
       let driver_info = driver_info
       let driver_connection = None
       include B
-      include Caqti_connection.Make_convenience (System) (B)
-      include Caqti_connection.Make_populate (System) (B)
+      include Connection_utils.Make_convenience (System) (B)
+      include Connection_utils.Make_populate (System) (B)
     end in
     let+? () = setup (module Connection) in
     (module Connection : CONNECTION)

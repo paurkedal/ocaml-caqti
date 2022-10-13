@@ -64,7 +64,7 @@ end
 
 module Make_connect
   (System : Caqti_system_sig.S)
-  (Loader : Caqti_driver_sig.Loader
+  (Loader : Driver_sig.Loader
               with type 'a future := 'a System.future
                and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
@@ -74,7 +74,7 @@ struct
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
 
-  module type DRIVER = Caqti_driver_sig.S
+  module type DRIVER = Driver_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 

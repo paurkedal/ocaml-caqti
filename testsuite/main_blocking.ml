@@ -15,7 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
 open Testlib
 open Testlib_blocking
 

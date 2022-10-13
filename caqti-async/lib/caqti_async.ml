@@ -19,7 +19,8 @@
 
 open Async_kernel
 open Async_unix
-open Caqti_common_priv
+open Caqti_private
+open Caqti_private.Std
 open Core
 
 module System = struct
@@ -183,5 +184,5 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Caqti_connect.Make_without_connect (System)
-include Caqti_connect.Make_connect (System) (Loader)
+include Connector.Make_without_connect (System)
+include Connector.Make_connect (System) (Loader)

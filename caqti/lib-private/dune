@@ -1,0 +1,6 @@
+(library
+ (name caqti_private)
+ (public_name caqti.private)
+ (modules_without_implementation
+    driver_sig)
+ (libraries caqti))

@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+open Caqti_private
+open Caqti_private.Std
 open Printf
 module Pg = Postgresql
 
@@ -262,7 +263,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
        | Error _ as r -> r)
     in
     let write_null ~uri:_ _ i = Ok (i + 1) in
-    Caqti_driver_lib.encode_param ~uri {write_value; write_null} t x 0
+    Request_utils.encode_param ~uri {write_value; write_null} t x 0
       |> Result.map (fun n -> assert (n = Array.length params))
 end
 
@@ -328,7 +329,7 @@ let decode_row ~uri row_type (resp, i) =
     let rec check k = k = j' || resp#getisnull i k && check (k + 1) in
     if check j then Some j' else None
   in
-  Caqti_driver_lib.decode_row ~uri {read_value; skip_null} row_type 0
+  Request_utils.decode_row ~uri {read_value; skip_null} row_type 0
     |> Result.map (fun (y, j) -> assert (j = Caqti_type.length row_type); y)
 
 type prepared = {
@@ -340,7 +341,7 @@ type prepared = {
 
 module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
   open System
-  module H = Caqti_connection.Make_helpers (System)
+  module H = Connection_utils.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
@@ -889,7 +890,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                   let driver_info = driver_info
                   let driver_connection = None
                   include B
-                  include Caqti_connection.Make_convenience (System) (B)
+                  include Connection_utils.Make_convenience (System) (B)
                 end in
                 Connection.exec Q.set_timezone_to_utc () >|=
                 (function

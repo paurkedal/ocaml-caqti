@@ -19,7 +19,7 @@
 
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Caqti_driver_sig.S
+  Caqti_private.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
@@ -28,7 +28,7 @@ val register : string -> (module DRIVER_FUNCTOR) -> unit
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make (System : System_sig.S) : Caqti_driver_sig.Loader
+module Make (System : System_sig.S) : Caqti_private.Driver_sig.Loader
   with type 'a future := 'a System.future
    and type ('a, 'e) stream := ('a, 'e) System.Stream.t
 (** Constructs the main module used to connect to a database for the given

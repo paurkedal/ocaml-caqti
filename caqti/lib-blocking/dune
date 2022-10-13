@@ -2,5 +2,7 @@
   (name caqti_blocking)
   (public_name caqti.blocking)
   (modules Caqti_blocking)
-  (libraries caqti caqti.platform.net caqti.platform.unix logs threads unix))
+  (libraries
+    caqti caqti.private caqti.platform.net caqti.platform.unix
+    logs threads unix))
   ; TODO: Can threads dependency be moved to drivers which need it?

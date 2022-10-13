@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Connection Utilities for Drivers *)
+(** Internal Connection-Related Utilities *)
 
 module Make_helpers :
   functor (Sys : Caqti_system_sig.S) ->

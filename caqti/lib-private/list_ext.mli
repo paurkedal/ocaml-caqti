@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,14 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type DRIVER_FUNCTOR =
-  functor (System : System_sig.S) ->
-  Caqti_private.Driver_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+(** Internal Additions to the List Module. *)
 
-val register : string -> (module DRIVER_FUNCTOR) -> unit
-
-module Make (System : System_sig.S) : Caqti_private.Driver_sig.Loader
-  with type 'a future := 'a System.future
-   and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+val iteri_r : (int -> 'a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result

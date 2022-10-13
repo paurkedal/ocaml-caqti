@@ -3,14 +3,10 @@
   (public_name caqti)
   (wrapped false)
   (modules
-    Caqti_connect
     Caqti_connect_sig
-    Caqti_connection
     Caqti_connection_sig
-    Caqti_driver_lib
     Caqti_driver_info
     Caqti_error
-    Caqti_driver_sig
     Caqti_driver_info
     Caqti_mult
     Caqti_pool
@@ -23,12 +19,10 @@
     Caqti_type
     Caqti_type_sig
     ; internal
-    Caqti_heap
-    Caqti_common_priv)
+    Caqti_heap)
   (modules_without_implementation
     Caqti_connect_sig
     Caqti_connection_sig
-    Caqti_driver_sig
     Caqti_system_sig
     Caqti_pool_sig
     Caqti_response_sig

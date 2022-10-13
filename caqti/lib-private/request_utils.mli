@@ -15,7 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Library for Drivers *)
+(** Internal Request-Related Utilities *)
+
+(** {2 Queries} *)
 
 val linear_param_length :
   ?env: (string -> Caqti_query.t) ->
@@ -44,6 +46,8 @@ val linear_query_string :
   Caqti_query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)
+
+(** {2 Parameter Encoding and Row Decoding} *)
 
 type ('a, 'e) field_encoder = {
   write_value:

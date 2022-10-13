@@ -32,7 +32,7 @@ module Make_without_connect :
 
 module Make_connect :
   functor (System : Caqti_system_sig.S) ->
-  functor (Loader : Caqti_driver_sig.Loader
+  functor (Loader : Driver_sig.Loader
             with type 'a future := 'a System.future
              and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
   Caqti_connect_sig.Connect

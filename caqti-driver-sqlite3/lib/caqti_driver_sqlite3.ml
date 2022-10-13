@@ -15,8 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
-open Caqti_driver_lib
+open Caqti_private.Std
+open Caqti_private
 open Printf
 
 let driver_info =
@@ -81,7 +81,7 @@ let query_quotes q =
   let rec loop = function
    | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
    | Caqti_query.Q quote -> List.cons quote
-   | Caqti_query.S qs -> List.fold loop qs
+   | Caqti_query.S qs -> List_ext.fold loop qs
   in
   List.rev (loop q [])
 
@@ -200,7 +200,7 @@ let bind_quotes ~uri ~query stmt oq =
         let typ = Caqti_type.string in
         Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
   in
-  List.iteri_r aux oq
+  List_ext.iteri_r aux oq
 
 let encode_null_field ~uri stmt field_type iP =
   (match Sqlite3.bind stmt (iP + 1) Sqlite3.Data.NULL with
@@ -230,7 +230,7 @@ let encode_param ~uri stmt t x =
      | Ok () -> Ok (iP + 1)
      | Error _ as r -> r)
   in
-  Caqti_driver_lib.encode_param ~uri {write_value; write_null} t x
+  Request_utils.encode_param ~uri {write_value; write_null} t x
 
 let decode_row ~uri ~query stmt row_type =
   let read_value ~uri ft j =
@@ -245,8 +245,8 @@ let decode_row ~uri ~query stmt row_type =
     in
     if check j then Some j' else None
   in
-  let field_decoder = {read_value; skip_null} in
-  (match Caqti_driver_lib.decode_row ~uri field_decoder row_type 0 with
+  let field_decoder = {Request_utils.read_value; skip_null} in
+  (match Request_utils.decode_row ~uri field_decoder row_type 0 with
    | Ok (y, n) ->
       let n' = Sqlite3.data_count stmt in
       if n = n' then Ok (Some y) else
@@ -266,7 +266,7 @@ end
 
 module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
   open System
-  module H = Caqti_connection.Make_helpers (System)
+  module H = Connection_utils.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
@@ -585,8 +585,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         let driver_info = driver_info
         let driver_connection = Some (Driver_connection db)
         include Connection_base
-        include Caqti_connection.Make_convenience (System) (Connection_base)
-        include Caqti_connection.Make_populate (System) (Connection_base)
+        include Connection_utils.Make_convenience (System) (Connection_base)
+        include Connection_utils.Make_populate (System) (Connection_base)
       end in
       Ok (module Connection : CONNECTION)
     with

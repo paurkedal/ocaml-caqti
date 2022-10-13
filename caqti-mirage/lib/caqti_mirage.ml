@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+open Caqti_private
+open Caqti_private.Std
 open Lwt.Syntax
 
 module Future = struct
@@ -64,7 +65,7 @@ module System_except_networking = struct
 end
 
 include System_except_networking
-include Caqti_connect.Make_without_connect (System_common)
+include Connector.Make_without_connect (System_common)
 
 module type S = Caqti_connect_sig.S
   with type 'a future := 'a Lwt.t
@@ -173,7 +174,7 @@ struct
 
       let load_driver = Platform_net.load_driver
     end in
-    (module Caqti_connect.Make_connect (System_common) (Loader) : CONNECT)
+    (module Connector.Make_connect (System_common) (Loader) : CONNECT)
 
   let connect ?env ?tweaks_version stack uri =
     let module C = (val connect_stack stack) in

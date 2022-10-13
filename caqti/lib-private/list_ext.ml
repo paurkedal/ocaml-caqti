@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,14 +15,16 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type DRIVER_FUNCTOR =
-  functor (System : System_sig.S) ->
-  Caqti_private.Driver_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+open Std
 
-val register : string -> (module DRIVER_FUNCTOR) -> unit
+let rec fold f = function
+ | [] -> Fun.id
+ | x :: xs -> fold f xs % f x
 
-module Make (System : System_sig.S) : Caqti_private.Driver_sig.Loader
-  with type 'a future := 'a System.future
-   and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+let iteri_r f xs =
+  let rec loop i = function
+   | [] -> Ok ()
+   | x :: xs ->
+      (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
+  in
+  loop 0 xs

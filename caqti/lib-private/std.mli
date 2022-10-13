@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Prerequisites.
+(** Internal Pervasives
 
     This module is meant for internal use by Caqti and may change in backwards
     incompatible ways between minor versions without prior notice. *)
@@ -25,12 +25,6 @@ val (%>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
 val (%>?) : ('a -> ('b, 'e) result) -> ('b -> ('c, 'e) result) ->
             'a -> ('c, 'e) result
 val (|>?) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
-
-module List : sig
-  include module type of List
-  val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
-  val iteri_r : (int -> 'a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
-end
 
 val datetuple_of_iso8601 : string -> int * int * int
 val iso8601_of_datetuple : int * int * int -> string

@@ -262,9 +262,11 @@ let cause = function
  | `Request_failed err | `Response_failed err ->
     (find_impl (err : query_error).msg).msg_cause err.msg
 
+type counit = |
+
 let uncongested = function
  | Error #t | Ok _ as x -> x
- | Error `Congested x -> Caqti_common.absurd x
+ | Error (`Congested (_ : counit)) -> .
 
 exception Exn of t
 

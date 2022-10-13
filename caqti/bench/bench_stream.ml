@@ -58,7 +58,7 @@ let test_stream_blocking =
     let (_ : float) =
       Stream_blocking.fold ~f:(+.) stream 0.0 |> function
        | Ok x -> x
-       | Error (`Congested err) -> Caqti_common.absurd err
+       | Error (`Congested (_ : Caqti_error.counit)) -> .
     in
     ()
 
@@ -68,7 +68,7 @@ let test_stream_lwt =
     let* (_ : float) =
       Stream_lwt.fold ~f:(+.) stream 0.0 >|= function
        | Ok x -> x
-       | Error (`Congested err) -> Caqti_common.absurd err
+       | Error (`Congested (_ : Caqti_error.counit)) -> .
     in
     Lwt.return_unit
   end

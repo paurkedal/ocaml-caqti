@@ -282,8 +282,11 @@ val cause :
   [< `Request_failed of query_error | `Response_failed of query_error] -> cause
 (** A matchable representation of the cause of the error, if available. *)
 
+type counit = |
+(** An uninhabited type used by {!uncongested}. *)
+
 val uncongested :
-  ('a, [< t | `Congested of Caqti_common.counit]) result ->
+  ('a, [< t | `Congested of counit]) result ->
   ('a, [> t]) result
 (** [uncongested r] eliminates an unused [`Congested] case from the error. *)
 

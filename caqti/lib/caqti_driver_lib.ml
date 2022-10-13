@@ -22,7 +22,7 @@ let no_env _ = raise Not_found
 let linear_param_length ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let rec loop = function
-   | Caqti_query.L _ -> ident
+   | Caqti_query.L _ -> Fun.id
    | Caqti_query.Q _ -> succ
    | Caqti_query.P _ -> succ
    | Caqti_query.E _ -> assert false
@@ -33,8 +33,8 @@ let linear_param_length ?(env = no_env) templ =
 let nonlinear_param_length ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let rec loop = function
-   | Caqti_query.L _ -> ident
-   | Caqti_query.Q _ -> ident
+   | Caqti_query.L _ -> Fun.id
+   | Caqti_query.Q _ -> Fun.id
    | Caqti_query.P n -> max (n + 1)
    | Caqti_query.E _ -> assert false
    | Caqti_query.S frags -> List.fold loop frags
@@ -45,7 +45,7 @@ let linear_param_order ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
-   | Caqti_query.L _ -> ident
+   | Caqti_query.L _ -> Fun.id
    | Caqti_query.Q s -> fun (j, quotes) -> (j + 1, (j, s) :: quotes)
    | Caqti_query.P i -> fun (j, quotes) -> a.(i) <- j :: a.(i); (j + 1, quotes)
    | Caqti_query.E _ -> assert false

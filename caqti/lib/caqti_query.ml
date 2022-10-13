@@ -15,14 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
-
 type t =
   | L of string
   | Q of string
   | P of int
   | E of string
   | S of t list
+
+let rec equal_list f xs ys = (* stdlib 4.12.0 *)
+  (match xs, ys with
+   | [], [] -> true
+   | x :: xs', y :: ys' -> f x y && equal_list f xs' ys'
+   | [], _ :: _ | _ :: _, [] -> false)
 
 let normal =
   let rec collect acc = function
@@ -50,7 +54,7 @@ let rec equal t1 t2 =
   | Q s1, Q s2 -> String.equal s1 s2
   | P i1, P i2 -> Int.equal i1 i2
   | E n1, E n2 -> String.equal n1 n2
-  | S ts1, S ts2 -> List.equal equal ts1 ts2
+  | S ts1, S ts2 -> equal_list equal ts1 ts2
   | L _, _ -> false
   | Q _, _ -> false
   | P _, _ -> false

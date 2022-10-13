@@ -26,31 +26,11 @@ val (%>?) : ('a -> ('b, 'e) result) -> ('b -> ('c, 'e) result) ->
             'a -> ('c, 'e) result
 val (|>?) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
 
-val ident : 'a -> 'a
-val ncompose : int -> ('a -> 'a) -> 'a -> 'a
-
-module Option : sig
-  type 'a t = 'a option
-  val map : ('a -> 'b) -> 'a option -> 'b option
-  val fold : ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b
-  val for_all : ('a -> bool) -> 'a option -> bool
-end
-
-module Result : sig
-  val map : ('a -> 'b) -> ('a, 'c) result -> ('b, 'c) result
-  val map_error : ('d -> 'e) -> ('a, 'd) result -> ('a, 'e) result
-end
-
 module List : sig
   include module type of List
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
-  val fold_r : ('a -> 'b -> ('b, 'e) result) -> 'a list -> 'b -> ('b, 'e) result
-  val iter_r : ('a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
   val iteri_r : (int -> 'a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
-  val equal : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
 end
-
-val finally : (unit -> unit) -> (unit -> 'a) -> 'a
 
 val datetuple_of_iso8601 : string -> int * int * int
 val iso8601_of_datetuple : int * int * int -> string
@@ -62,5 +42,3 @@ val iso8601_of_pdate : Ptime.t -> string
 
 val default_log_src : Logs.Src.t
 val request_log_src : Logs.Src.t
-
-module Alog : Logs.LOG

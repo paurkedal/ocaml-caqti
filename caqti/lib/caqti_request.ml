@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_common_priv
+let (%) f g x = f (g x)
+module Log = (val Logs.src_log (Logs.Src.create "caqti"))
 
 type query = Caqti_query.t =
   | L of string
@@ -89,7 +90,7 @@ let pp_with_param_enabled =
    | "true" -> true
    | "false" -> false
    | s ->
-      Alog.err (fun f ->
+      Log.err (fun f ->
         f "Invalid value %s for CAQTI_DEBUG_PARAM, assuming false." s);
       false
    | exception Not_found -> false)

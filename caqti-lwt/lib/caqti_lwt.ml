@@ -96,7 +96,8 @@ module System = struct
       let choices = []
         |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
         |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
-        |> Option.fold (fun t acc -> Lwt_unix.timeout t :: acc) timeout
+        |> Option.fold
+            ~none:Fun.id ~some:(fun t acc -> Lwt_unix.timeout t :: acc) timeout
       in
       if choices = [] then
         Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."

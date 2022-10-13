@@ -17,26 +17,10 @@
 
 open Printf
 
-let ident x = x
-
 let (%) g f x = g (f x)
 let (%>) f g x = g (f x)
 let (%>?) f g x = match f x with Ok y -> g y | Error _ as r -> r
 let (|>?) r f = match r with Ok x -> f x | Error _ as r -> r
-
-let rec ncompose n f acc = if n = 0 then acc else ncompose (n - 1) f (f acc)
-
-module Option = struct
-  type 'a t = 'a option
-  let map f = function None -> None | Some x -> Some (f x)
-  let fold f = function None -> ident | Some x -> f x
-  let for_all f = function None -> true | Some x -> f x
-end
-
-module Result = struct
-  let map f = function Ok x -> Ok (f x) | Error e -> Error e
-  let map_error f = function Ok x -> Ok x | Error e -> Error (f e)
-end
 
 module List = struct
   include List
@@ -45,14 +29,6 @@ module List = struct
    | [] -> fun acc -> acc
    | x :: xs -> f x %> fold f xs
 
-  let rec fold_r f = function
-   | [] -> fun acc -> Ok acc
-   | x :: xs -> f x %>? fold_r f xs
-
-  let rec iter_r f = function
-   | [] -> Ok ()
-   | x :: xs -> (match f x with Ok () -> iter_r f xs | Error _ as r -> r)
-
   let iteri_r f xs =
     let rec loop i = function
      | [] -> Ok ()
@@ -60,17 +36,7 @@ module List = struct
         (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
     in
     loop 0 xs
-
-  let rec equal f xs ys =
-    (match xs, ys with
-     | [], [] -> true
-     | x :: xs', y :: ys' -> f x y && equal f xs' ys'
-     | [], _ :: _ | _ :: _, [] -> false)
 end
-
-let finally cleanup thunk =
-  let r = try thunk () with xc -> cleanup (); raise xc in
-  cleanup (); r
 
 let datetuple_of_iso8601 s =
   if String.length s = 10 && s.[4] = '-' && s.[7] = '-' then
@@ -121,5 +87,3 @@ let iso8601_of_pdate x = iso8601_of_datetuple (Ptime.to_date x)
 let default_log_src = Logs.Src.create "caqti"
 
 let request_log_src = Logs.Src.create "caqti.request"
-
-module Alog = (val Logs.src_log default_log_src)

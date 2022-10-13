@@ -15,8 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_compat [@@warning "-33"]
-
 type _ field = ..
 
 type _ field +=

@@ -16,7 +16,6 @@
  *)
 
 open Caqti_common_priv
-open Caqti_compat [@@warning "-33"]
 
 type t =
   | L of string

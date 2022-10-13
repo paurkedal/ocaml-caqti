@@ -14,10 +14,9 @@ depends: [
   "angstrom" {>= "0.14.0"}
   "bigstringaf"
   "cmdliner" {with-test & >= "1.1.0"}
-  "cppo" {build & >= "1.1.0"}
   "dune" {>= "2.0"}
   "logs"
-  "ocaml" {>= "4.04.0"}
+  "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}
   "ptime"
   "re" {with-test}

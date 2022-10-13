@@ -7,7 +7,6 @@
     Caqti_connect_sig
     Caqti_connection
     Caqti_connection_sig
-    Caqti_compat
     Caqti_driver_lib
     Caqti_driver_info
     Caqti_error
@@ -35,12 +34,5 @@
     Caqti_pool_sig
     Caqti_response_sig
     Caqti_type_sig)
-  (private_modules
-    Caqti_compat)
   (library_flags (:standard -linkall))
   (libraries angstrom bigstringaf logs ptime uri))
-
-(rule
-  (target caqti_compat.ml)
-  (deps caqti_compat.cppo.ml)
-  (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{deps} -o %{target})))

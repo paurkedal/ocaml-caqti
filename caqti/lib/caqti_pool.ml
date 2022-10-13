@@ -16,7 +16,6 @@
  *)
 
 open Caqti_common_priv
-open Caqti_compat [@@warning "-33"]
 
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8

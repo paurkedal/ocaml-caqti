@@ -22,6 +22,9 @@ module Pg = Postgresql
 let ( |>? ) r f = match r with Ok x -> f x | Error _ as r -> r
 let ( %>? ) f g x = match f x with Ok y -> g y | Error _ as r -> r
 
+let pct_encoder =
+  Uri.pct_encoder ~query_value:(`Custom (`Query_value, "", "=")) ()
+
 module Int_hashable = struct
   type t = int
   let equal (i : int) (j : int) = i = j
@@ -148,7 +151,7 @@ module Pg_ext = struct
         Error (Caqti_error.connect_rejected ~uri msg))
     |>? fun (notice_processing, uri') ->
     let conninfo =
-      if Uri.host uri <> None then Uri.to_string uri' else
+      if Uri.host uri <> None then Uri.to_string ~pct_encoder uri' else
       let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
       let mkparams (k, vs) = List.map (mkparam k) vs in
       String.concat " " (List.flatten (List.map mkparams (Uri.query uri')))
@@ -758,6 +761,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
             Caqti_error.pp_uri uri (Pg.string_of_error err))
 
     let validate () = using_db @@ fun () ->
+      db#consume_input;
       if (try db#status = Pg.Ok with Pg.Error _ -> false) then
         return true
       else

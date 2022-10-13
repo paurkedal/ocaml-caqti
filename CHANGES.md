@@ -17,6 +17,18 @@ Other:
   - Deprecated functionality has been removed (along with
     `Caqti_blocking.future`).
 
+## v1.9.1 - 2022-09-21
+
+This release only updates the caqti-driver-postgresql package, with the
+following fixes:
+
+  - PostgreSQL expects "=" in query values to be URI-encoded (#95).
+
+  - The validation logic for PostgreSQL was missing a call to consume
+    available input, meaning that broken pooled connections were reused.
+
+This release was sponsored by the OCaml Software Foundation.
+
 ## v1.9.0 - 2022-09-06
 
 New features:
@@ -50,6 +62,8 @@ Deprecations:
 Other:
 
   - Replace deprecated core\_kernel dependency with core.
+
+This release was sponsored by the OCaml Software Foundation.
 
 ## v1.8.0 - 2022-03-24
 
@@ -97,6 +111,8 @@ Deprecations:
 
   - Documented-only deprecations of `Caqti_sql_io`, `Caqti_lwt_sql_io`, and
     `Caqti_async_sql_io` have been annotated.
+
+This release was sponsored by the OCaml Software Foundation.
 
 ## v1.7.0 - 2022-02-13
 
@@ -155,6 +171,8 @@ Other changes:
   - The test suite has been switched to use Alcotest; not without some
     struggle due to the use of test harness and argument-dependent test
     suite, but the result seems like a clear improvement.
+
+This release was sponsored by the OCaml Software Foundation.
 
 ## v1.6.0 - 2021-06-10
 

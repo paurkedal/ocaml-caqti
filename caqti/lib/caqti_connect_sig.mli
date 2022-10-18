@@ -25,7 +25,7 @@ module type S_without_connect = sig
   module Pool : Caqti_pool_sig.S with type 'a future := 'a future
   (** A pool implementation for the current concurrency library. *)
 
-  module Stream : Caqti_stream.S with type 'a future := 'a future
+  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future

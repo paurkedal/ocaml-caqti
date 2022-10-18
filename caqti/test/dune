@@ -1,4 +1,4 @@
 (test
  (name main)
  (package caqti)
- (libraries alcotest caqti re.pcre))
+ (libraries alcotest caqti caqti.private re.pcre))

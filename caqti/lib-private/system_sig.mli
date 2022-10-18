@@ -70,6 +70,6 @@ module type S = sig
     val debug : ?src: Logs.src -> 'a log
   end
 
-  module Stream : Caqti_stream.S with type 'a future := 'a future
+  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
 
 end

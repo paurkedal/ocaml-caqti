@@ -24,7 +24,7 @@ module Option = struct
   let for_all f = function None -> true | Some x -> f x
 end
 
-module Make (System : Caqti_system_sig.S) = struct
+module Make (System : System_sig.S) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
@@ -35,7 +35,7 @@ module Make (System : Caqti_system_sig.S) = struct
     let compare {priority = pA; _} {priority = pB; _} = Float.compare pB pA
   end
 
-  module Taskq = Caqti_heap.Make (Task)
+  module Taskq = Heap.Make (Task)
 
   type 'a entry = {
     resource: 'a;

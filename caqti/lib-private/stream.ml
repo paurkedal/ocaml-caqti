@@ -15,40 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type S = sig
-  type +'a future
-
-  type ('a, 'err) t = unit -> ('a, 'err) node future
-  and ('a, 'err) node =
-    | Nil
-    | Error of 'err
-    | Cons of 'a * ('a, 'err) t
-
-  val fold :
-    f: ('a -> 'state -> 'state) ->
-    ('a, 'err) t ->
-    'state ->
-    ('state, 'err) result future
-
-  val fold_s :
-    f: ('a -> 'state -> ('state, 'err) result future) ->
-    ('a, 'clog) t ->
-    'state ->
-    ('state, [> `Congested of 'clog ] as 'err) result future
-
-  val iter_s :
-    f: ('a -> (unit, 'err) result future) ->
-    ('a, 'clog) t ->
-    (unit, [> `Congested of 'clog ] as 'err) result future
-
-  val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
-
-  val to_list : ('a, 'err) t -> ('a list, 'err) result future
-
-  val of_list : 'a list -> ('a, 'err) t
-
-  val map_result : f: ('a -> ('b, 'err) result) -> ('a, 'err) t -> ('b, 'err) t
-end
+open Caqti_stream_sig
 
 module type FUTURE = sig
   type +'a future

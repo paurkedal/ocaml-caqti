@@ -16,7 +16,7 @@
  *)
 
 module type S = sig
-  include Caqti_system_sig.S
+  include Caqti_private.System_sig.S
 
   module Sequencer : sig
     type 'a t

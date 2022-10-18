@@ -49,10 +49,10 @@ let retry_with_library load_driver ~uri scheme =
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
 
-module Make_without_connect (System : Caqti_system_sig.S) = struct
+module Make_without_connect (System : System_sig.S) = struct
   type 'a future = 'a System.future
 
-  module Pool = Caqti_pool.Make (System)
+  module Pool = Pool.Make (System)
   module Stream = System.Stream
 
   module type CONNECTION = Caqti_connection_sig.S
@@ -63,7 +63,7 @@ module Make_without_connect (System : Caqti_system_sig.S) = struct
 end
 
 module Make_connect
-  (System : Caqti_system_sig.S)
+  (System : System_sig.S)
   (Loader : Driver_sig.Loader
               with type 'a future := 'a System.future
                and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =

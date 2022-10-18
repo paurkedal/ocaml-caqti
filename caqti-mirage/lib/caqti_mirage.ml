@@ -49,7 +49,7 @@ module System_common = struct
     let debug ?(src = default_log_src) = Logs_lwt.debug ~src
   end
 
-  module Stream = Caqti_stream.Make (Future)
+  module Stream = Caqti_private.Stream.Make (Future)
 end
 
 module System_except_networking = struct

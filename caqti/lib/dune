@@ -9,23 +9,19 @@
     Caqti_error
     Caqti_driver_info
     Caqti_mult
-    Caqti_pool
     Caqti_pool_sig
-    Caqti_system_sig
     Caqti_query
     Caqti_request
     Caqti_response_sig
-    Caqti_stream
+    Caqti_stream_sig
     Caqti_type
-    Caqti_type_sig
-    ; internal
-    Caqti_heap)
+    Caqti_type_sig)
   (modules_without_implementation
     Caqti_connect_sig
     Caqti_connection_sig
-    Caqti_system_sig
     Caqti_pool_sig
     Caqti_response_sig
+    Caqti_stream_sig
     Caqti_type_sig)
   (library_flags (:standard -linkall))
   (libraries angstrom bigstringaf logs ptime uri))

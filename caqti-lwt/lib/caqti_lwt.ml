@@ -48,7 +48,7 @@ module System = struct
 
   module Preemptive = Lwt_preemptive
 
-  module Stream = Caqti_stream.Make (struct
+  module Stream = Caqti_private.Stream.Make (struct
     type nonrec 'a future = 'a future
     let (>>=) = Lwt.(>>=)
     let (>|=) = Lwt.(>|=)

@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** A stream with monadic concurrency and error handling. *)
+(** Concurrent stream signature. *)
 
 module type S = sig
   type +'a future
@@ -73,14 +73,3 @@ module type S = sig
 
   val map_result : f: ('a -> ('b, 'err) result) -> ('a, 'err) t -> ('b, 'err) t
 end
-
-module type FUTURE = sig
-  type +'a future
-
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  val return : 'a -> 'a future
-end
-
-module Make (X : FUTURE) : S with type 'a future := 'a X.future
-(** Constructs a stream for the provided concurrency monad. *)

@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module H = Caqti_heap.Make (struct type t = int let compare = compare end)
+module H =
+  Caqti_private.Heap.Make (struct type t = int let compare = compare end)
 
 let test_push_pop_n n =
   let a = Array.init n (fun _ -> Random.int n) in

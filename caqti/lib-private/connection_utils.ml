@@ -18,7 +18,7 @@
 open Printf
 
 module Make_helpers
-  (System : Caqti_system_sig.S) =
+  (System : System_sig.S) =
 struct
   open System
 
@@ -32,7 +32,7 @@ struct
 end
 
 module Make_convenience
-  (System : Caqti_system_sig.S)
+  (System : System_sig.S)
   (C : Caqti_connection_sig.Base
         with type 'a future := 'a System.future
          and type ('a, 'err) stream := ('a, 'err) System.Stream.t) =
@@ -74,7 +74,7 @@ struct
 end
 
 module Make_populate
-  (System : Caqti_system_sig.S)
+  (System : System_sig.S)
   (C : Caqti_connection_sig.Base
         with type 'a future := 'a System.future
          and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =

@@ -17,9 +17,7 @@
 
 (** Internal Connection-Related Utilities *)
 
-module Make_helpers :
-  functor (Sys : Caqti_system_sig.S) ->
-sig
+module Make_helpers : functor (Sys : System_sig.S) -> sig
   open Sys
 
   val assert_single_use :
@@ -27,14 +25,14 @@ sig
 end
 
 module Make_convenience :
-  functor (Sys : Caqti_system_sig.S) ->
+  functor (Sys : System_sig.S) ->
   functor (C : Caqti_connection_sig.Base
                 with type 'a future := 'a Sys.future
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->
   Caqti_connection_sig.Convenience with type 'a future := 'a Sys.future
 
 module Make_populate :
-  functor (Sys : Caqti_system_sig.S) ->
+  functor (Sys : System_sig.S) ->
   functor (C : Caqti_connection_sig.Base
                 with type 'a future := 'a Sys.future
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->

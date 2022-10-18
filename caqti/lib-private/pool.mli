@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,20 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type S = sig
-  include Caqti_private.System_sig.S
+(** {b Internal:} Resource pool. *)
 
-  module Unix : sig
-    type file_descr
-    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
-    val poll :
-      ?read: bool -> ?write: bool -> ?timeout: float ->
-      file_descr -> (bool * bool * bool) future
-  end
-
-  module Preemptive : sig
-    val detach : ('a -> 'b) -> 'a -> 'b future
-    val run_in_main : (unit -> 'a future) -> 'a
-  end
-
-end
+module Make (System : System_sig.S) :
+  Caqti_pool_sig.S with type 'a future := 'a System.future

@@ -23,14 +23,14 @@ let data = List.init 100_000 begin fun i ->
   1.0 /. (x *. x)
 end
 
-module Stream_blocking = Caqti_stream.Make (struct
+module Stream_blocking = Caqti_private.Stream.Make (struct
   type 'a future = 'a
   let return x = x
   let (>>=) x f = f x
   let (>|=) x f = f x
 end)
 
-module Stream_lwt = Caqti_stream.Make (struct
+module Stream_lwt = Caqti_private.Stream.Make (struct
   type 'a future = 'a Lwt.t
   let return = Lwt.return
   let (>>=) = Lwt.(>>=)

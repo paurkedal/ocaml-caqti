@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,15 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Resource pool. *)
+(** A stream with monadic concurrency and error handling. *)
 
-module Make (System : Caqti_system_sig.S) :
-  Caqti_pool_sig.S with type 'a future := 'a System.future
+module type FUTURE = sig
+  type +'a future
+
+  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+  val return : 'a -> 'a future
+end
+
+module Make (X : FUTURE) : Caqti_stream_sig.S with type 'a future := 'a X.future
+(** Constructs a stream for the provided concurrency monad. *)

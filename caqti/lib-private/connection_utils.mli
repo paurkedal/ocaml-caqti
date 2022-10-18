@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Internal Connection-Related Utilities *)
+(** Internal connection-related utilities. *)
 
 module Make_helpers : functor (Sys : System_sig.S) -> sig
   open Sys

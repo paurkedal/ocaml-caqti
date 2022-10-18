@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Signature for driver implementation.
+(** Signature for driver implementations.
 
     This interface is unstable and may change between minor versions.  If you
     are developing an external driver, please open an issue to sort out

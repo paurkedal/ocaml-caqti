@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Signature for Concurrency Model and OS Calls.
+(** Signature for concurrency model and OS-calls.
 
     This is the common part of the signature declarning system dependencies.
     Driver will usually require an extended signature, as provided by

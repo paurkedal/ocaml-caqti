@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Min-heap.
+(** Internal min-heap implementation.
 
     This is a very simple implementation deemed sufficient for {!Caqti_pool}.
     There are more optimal algorithms if you need the best performance on larger

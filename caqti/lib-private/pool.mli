@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {b Internal:} Resource pool. *)
+(** Internal resource pool implementation. *)
 
 module Make (System : System_sig.S) :
   Caqti_pool_sig.S with type 'a future := 'a System.future

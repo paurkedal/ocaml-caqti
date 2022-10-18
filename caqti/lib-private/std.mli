@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Internal Pervasives
+(** Internal pervasives.
 
     This module is meant for internal use by Caqti and may change in backwards
     incompatible ways between minor versions without prior notice. *)

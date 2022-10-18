@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Internal Additions to the List Module. *)
+(** Additions to the {!List} module. *)
 
 val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
 val iteri_r : (int -> 'a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result

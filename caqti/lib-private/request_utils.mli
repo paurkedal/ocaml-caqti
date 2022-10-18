@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Internal Request-Related Utilities *)
+(** Internal request-related utilities. *)
 
 (** {2 Queries} *)
 

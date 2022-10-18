@@ -15,14 +15,12 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let rec fold f = function
- | [] -> Fun.id
- | x :: xs -> fun acc -> acc |> f x |> fold f xs
+(** Miscellaneous conversions. *)
 
-let iteri_r f xs =
-  let rec loop i = function
-   | [] -> Ok ()
-   | x :: xs ->
-      (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
-  in
-  loop 0 xs
+val datetuple_of_iso8601 : string -> int * int * int
+val iso8601_of_datetuple : int * int * int -> string
+
+val ptime_of_rfc3339_utc : string -> (Ptime.t, string) result
+
+val pdate_of_iso8601 : string -> (Ptime.t, string) result
+val iso8601_of_pdate : Ptime.t -> string

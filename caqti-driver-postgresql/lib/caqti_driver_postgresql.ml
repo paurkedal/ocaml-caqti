@@ -16,11 +16,10 @@
  *)
 
 open Caqti_private
-open Caqti_private.Std
 open Printf
 module Pg = Postgresql
 
-let ( |>? ) r f = match r with Ok x -> f x | Error _ as r -> r
+let ( |>? ) = Result.bind
 let ( %>? ) f g x = match f x with Ok y -> g y | Error _ as r -> r
 
 let pct_encoder =
@@ -242,7 +241,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
      | Caqti_type.String -> Ok (encode_string x)
      | Caqti_type.Enum _ -> Ok (encode_string x)
      | Caqti_type.Octets -> Ok (encode_octets x)
-     | Caqti_type.Pdate -> Ok (iso8601_of_pdate x)
+     | Caqti_type.Pdate -> Ok (Conv.iso8601_of_pdate x)
      | Caqti_type.Ptime -> Ok (Pg_ext.pgstring_of_pdate x)
      | Caqti_type.Ptime_span -> Ok (Pg_ext.pgstring_of_ptime_span x)
      | _ ->
@@ -301,8 +300,8 @@ let rec decode_field
    | Caqti_type.String -> Ok s
    | Caqti_type.Enum _ -> Ok s
    | Caqti_type.Octets -> Ok (Postgresql.unescape_bytea s)
-   | Caqti_type.Pdate -> wrap_conv_res pdate_of_iso8601 s
-   | Caqti_type.Ptime -> wrap_conv_res ptime_of_rfc3339_utc s
+   | Caqti_type.Pdate -> wrap_conv_res Conv.pdate_of_iso8601 s
+   | Caqti_type.Ptime -> wrap_conv_res Conv.ptime_of_rfc3339_utc s
    | Caqti_type.Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
@@ -639,7 +638,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       Caqti_request.make_pp_with_param ~env ~driver_info () ppf
 
     let call' ~f req param =
-      Log.debug ~src:request_log_src (fun f ->
+      Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
 
       (* Prepare, if requested, and send the query. *)

@@ -16,7 +16,6 @@
  *)
 
 open Caqti_private
-open Caqti_private.Std
 open Postgresql_conv
 open Printf
 
@@ -34,7 +33,7 @@ let () =
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
 
-let (|>?) r f = match r with Ok x -> f x | Error e -> Error e
+let (|>?) = Result.bind
 
 let no_env _ _ = raise Not_found
 
@@ -98,7 +97,7 @@ let rec encode_field
    | Caqti_type.String -> Ok (Pgx.Value.of_string x)
    | Caqti_type.Enum _ -> Ok (Pgx.Value.of_string x)
    | Caqti_type.Octets -> Ok (Pgx.Value.of_binary x)
-   | Caqti_type.Pdate -> Ok (Pgx.Value.of_string (iso8601_of_pdate x))
+   | Caqti_type.Pdate -> Ok (Pgx.Value.of_string (Conv.iso8601_of_pdate x))
    | Caqti_type.Ptime -> Ok (Pgx.Value.of_string (pgstring_of_pdate x))
    | Caqti_type.Ptime_span ->
       Ok (Pgx.Value.of_string (pgstring_of_ptime_span x))
@@ -156,10 +155,10 @@ let rec decode_field
    | Caqti_type.Octets -> wrap_conv_exn Pgx.Value.to_binary_exn v
    | Caqti_type.Pdate ->
       v |>  wrap_conv_exn Pgx.Value.to_string_exn
-        |>? wrap_conv_res pdate_of_iso8601
+        |>? wrap_conv_res Conv.pdate_of_iso8601
    | Caqti_type.Ptime ->
       v |>  wrap_conv_exn Pgx.Value.to_string_exn
-        |>? wrap_conv_res ptime_of_rfc3339_utc
+        |>? wrap_conv_res Conv.ptime_of_rfc3339_utc
    | Caqti_type.Ptime_span ->
       v |>  wrap_conv_exn Pgx.Value.to_string_exn
         |>? wrap_conv_res ptime_span_of_pgstring
@@ -505,7 +504,7 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
       Caqti_request.make_pp_with_param ~env ~driver_info () ppf
 
     let call ~f req param =
-      Log.debug ~src:request_log_src (fun f ->
+      Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
       using_db @@ fun db ->
       let pre_prepare () =

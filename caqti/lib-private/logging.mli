@@ -15,24 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Internal pervasives.
-
-    This module is meant for internal use by Caqti and may change in backwards
-    incompatible ways between minor versions without prior notice. *)
-
-val (%) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
-val (%>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
-val (%>?) : ('a -> ('b, 'e) result) -> ('b -> ('c, 'e) result) ->
-            'a -> ('c, 'e) result
-val (|>?) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
-
-val datetuple_of_iso8601 : string -> int * int * int
-val iso8601_of_datetuple : int * int * int -> string
-
-val ptime_of_rfc3339_utc : string -> (Ptime.t, string) result
-
-val pdate_of_iso8601 : string -> (Ptime.t, string) result
-val iso8601_of_pdate : Ptime.t -> string
+(** Internals related to logging. *)
 
 val default_log_src : Logs.Src.t
 val request_log_src : Logs.Src.t

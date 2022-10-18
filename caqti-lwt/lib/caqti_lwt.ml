@@ -16,7 +16,6 @@
  *)
 
 open Caqti_private
-open Caqti_private.Std
 
 module System = struct
 
@@ -40,10 +39,10 @@ module System = struct
 
   module Log = struct
     type 'a log = 'a Logs_lwt.log
-    let err ?(src = default_log_src) = Logs_lwt.err ~src
-    let warn ?(src = default_log_src) = Logs_lwt.warn ~src
-    let info ?(src = default_log_src) = Logs_lwt.info ~src
-    let debug ?(src = default_log_src) = Logs_lwt.debug ~src
+    let err ?(src = Logging.default_log_src) = Logs_lwt.err ~src
+    let warn ?(src = Logging.default_log_src) = Logs_lwt.warn ~src
+    let info ?(src = Logging.default_log_src) = Logs_lwt.info ~src
+    let debug ?(src = Logging.default_log_src) = Logs_lwt.debug ~src
   end
 
   module Preemptive = Lwt_preemptive

@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,14 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let rec fold f = function
- | [] -> Fun.id
- | x :: xs -> fun acc -> acc |> f x |> fold f xs
+let default_log_src = Logs.Src.create "caqti"
 
-let iteri_r f xs =
-  let rec loop i = function
-   | [] -> Ok ()
-   | x :: xs ->
-      (match f i x with Ok () -> loop (i + 1) xs | Error _ as r -> r)
-  in
-  loop 0 xs
+let request_log_src = Logs.Src.create "caqti.request"

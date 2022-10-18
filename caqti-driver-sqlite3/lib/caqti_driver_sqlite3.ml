@@ -15,7 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private.Std
 open Caqti_private
 open Printf
 
@@ -116,7 +115,7 @@ let rec data_of_value
    | Caqti_type.String -> Ok (Sqlite3.Data.TEXT x)
    | Caqti_type.Enum _ -> Ok (Sqlite3.Data.TEXT x)
    | Caqti_type.Octets -> Ok (Sqlite3.Data.BLOB x)
-   | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (iso8601_of_pdate x))
+   | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (Conv.iso8601_of_pdate x))
    | Caqti_type.Ptime ->
       (* This is the suggested time representation according to
          https://sqlite.org/lang_datefunc.html, and is consistent with
@@ -160,7 +159,7 @@ let rec value_of_data
    | Caqti_type.Enum _, Sqlite3.Data.TEXT y -> Ok y
    | Caqti_type.Octets, Sqlite3.Data.BLOB y -> Ok y
    | Caqti_type.Pdate as field_type, Sqlite3.Data.TEXT y ->
-      (match pdate_of_iso8601 y with
+      (match Conv.pdate_of_iso8601 y with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in
@@ -168,7 +167,7 @@ let rec value_of_data
           Error (Caqti_error.decode_rejected ~uri ~typ msg))
    | Caqti_type.Ptime as field_type, Sqlite3.Data.TEXT y ->
       (* TODO: Improve parsing. *)
-      (match ptime_of_rfc3339_utc y with
+      (match Conv.ptime_of_rfc3339_utc y with
        | Ok _ as r -> r
        | Error msg ->
           let msg = Caqti_error.Msg msg in
@@ -437,7 +436,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       Caqti_request.make_pp_with_param ~env ~driver_info () ppf
 
     let call ~f req param = using_db @@ fun () ->
-      Log.debug ~src:request_log_src (fun f ->
+      Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 

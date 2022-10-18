@@ -20,7 +20,6 @@
 open Async_kernel
 open Async_unix
 open Caqti_private
-open Caqti_private.Std
 open Core
 
 module System = struct
@@ -75,10 +74,10 @@ module System = struct
           let over () = Ivar.fill ivar () in
           Logs.report src level ~over k msgf)
 
-    let err   ?(src = default_log_src) msgf = kmsg ~src Logs.Error   msgf
-    let warn  ?(src = default_log_src) msgf = kmsg ~src Logs.Warning msgf
-    let info  ?(src = default_log_src) msgf = kmsg ~src Logs.Info    msgf
-    let debug ?(src = default_log_src) msgf = kmsg ~src Logs.Debug   msgf
+    let err ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Error msgf
+    let warn ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Warning msgf
+    let info ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Info msgf
+    let debug ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Debug msgf
   end
 
   module Preemptive = struct

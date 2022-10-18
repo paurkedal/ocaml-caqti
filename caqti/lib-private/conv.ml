@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,11 +16,6 @@
  *)
 
 open Printf
-
-let (%) g f x = g (f x)
-let (%>) f g x = g (f x)
-let (%>?) f g x = match f x with Ok y -> g y | Error _ as r -> r
-let (|>?) r f = match r with Ok x -> f x | Error _ as r -> r
 
 let datetuple_of_iso8601 s =
   if String.length s = 10 && s.[4] = '-' && s.[7] = '-' then
@@ -67,7 +62,3 @@ let pdate_of_iso8601 s =
    | Some pdate -> Ok pdate)
 
 let iso8601_of_pdate x = iso8601_of_datetuple (Ptime.to_date x)
-
-let default_log_src = Logs.Src.create "caqti"
-
-let request_log_src = Logs.Src.create "caqti.request"

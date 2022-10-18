@@ -16,7 +16,6 @@
  *)
 
 open Caqti_private
-open Caqti_private.Std
 
 module System = struct
 
@@ -48,10 +47,10 @@ module System = struct
 
   module Log = struct
     type 'a log = 'a Logs.log
-    let err ?(src = default_log_src) = Logs.err ~src
-    let warn ?(src = default_log_src) = Logs.warn ~src
-    let info ?(src = default_log_src) = Logs.info ~src
-    let debug ?(src = default_log_src) = Logs.debug ~src
+    let err ?(src = Logging.default_log_src) = Logs.err ~src
+    let warn ?(src = Logging.default_log_src) = Logs.warn ~src
+    let info ?(src = Logging.default_log_src) = Logs.info ~src
+    let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
   module Sequencer = struct

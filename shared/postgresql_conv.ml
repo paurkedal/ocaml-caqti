@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private.Std
+open Caqti_private
 open Printf
 
 let bool_of_pgstring = function
@@ -25,7 +25,7 @@ let bool_of_pgstring = function
 
 let pgstring_of_bool = function true -> "t" | false -> "f"
 
-let pdate_of_pgstring = pdate_of_iso8601
+let pdate_of_pgstring = Conv.pdate_of_iso8601
 
 let pgstring_of_pdate x =
   Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 ~frac_s:6 x
@@ -92,10 +92,10 @@ let ptime_span_of_pgstring s =
      | [d; "days"] ->
         span_of_d_ps (int_of_string d, 0L)
      | [d; "days"; hms] ->
-        ps_of_hms hms |>? fun ps ->
+        Result.bind (ps_of_hms hms) @@ fun ps ->
         span_of_d_ps (int_of_string d, ps)
      | [hms] ->
-        ps_of_hms hms |>? fun ps ->
+        Result.bind (ps_of_hms hms) @@ fun ps ->
         span_of_d_ps (0, ps)
      | _ ->
         Error "Unhandled interval format.")

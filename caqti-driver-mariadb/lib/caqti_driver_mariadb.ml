@@ -15,9 +15,10 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private.Std
 open Caqti_private
 open Printf
+
+let (|>?) = Result.bind
 
 let cause_of_errno = function
  | 1022 -> `Unique_violation
@@ -397,7 +398,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       Caqti_request.make_pp_with_param ~env ~driver_info () ppf
 
     let call ~f req param = using_db @@ fun () ->
-      Log.debug ~src:request_log_src (fun f ->
+      Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 

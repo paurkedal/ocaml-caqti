@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Std
+let (|>?) = Result.bind
+let (%>?) f g x = match f x with Ok y -> g y | Error _ as r -> r
 
 let no_env _ = raise Not_found
 

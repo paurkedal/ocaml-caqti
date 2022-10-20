@@ -264,9 +264,11 @@ let cause = function
 
 type counit = |
 
+[@@@warning "-56"]
 let uncongested = function
  | Error #t | Ok _ as x -> x
- | Error (`Congested (_ : counit)) -> .
+ | Error (`Congested (nothingness : counit)) -> (match nothingness with _ -> .)
+[@@@warning "+56"]
 
 exception Exn of t
 

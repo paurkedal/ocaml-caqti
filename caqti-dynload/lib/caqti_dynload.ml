@@ -41,7 +41,7 @@ let init = lazy begin
       (String.concat " " (Findlib.recorded_packages Record_load))
 end
 
-let () = Caqti_platform.Connector.define_loader @@ fun pkg ->
+let () = Caqti_driver_dynload.define_loader @@ fun pkg ->
   Lazy.force init;
   if debug then
     Printf.eprintf "[DEBUG] Caqti_dynload: requested package: %s\n" pkg;

@@ -63,15 +63,25 @@ module Key_set : sig
   val fold : ('a Key.any -> 'b -> 'b) -> 'a t -> 'b -> 'b
 end
 
-module Driver : sig
-  type 'a t = ..
-
-  val register : string -> [> `Specific of 'a] Key_set.t -> 'a t -> unit
-end
-
 type 'a t
 
 type any = Any : 'a t -> any
+
+type any_specific =
+  | Any_specific : [`Generic | `Specific of 'a] t -> any_specific
+
+module Driver : sig
+  type 'a id = ..
+
+  val register :
+    name: string ->
+    keys: [> `Specific of 'a] Key_set.t ->
+    add_uri:
+      (Uri.t ->
+       [`Generic | `Specific of 'a] t ->
+       ([`Generic | `Specific of 'a] t, [< Caqti_error.preconnect]) result) ->
+    'a id -> unit
+end
 
 val empty : [`Generic] t
 
@@ -79,7 +89,11 @@ val add : ('a, 'b) Key.t -> 'b -> 'a t -> 'a t
 
 val add_default : ('a, 'b) Key.t -> 'b -> 'a t -> 'a t
 
-val add_driver : 'a Driver.t -> [`Generic] t -> [`Generic | `Specific of 'a] t
+val add_driver : 'a Driver.id -> [`Generic] t -> [`Generic | `Specific of 'a] t
+
+val add_uri :
+  Uri.t -> [`Generic] t ->
+  (any_specific, [> Caqti_error.load | Caqti_error.preconnect]) result
 
 val as_default : [`Generic | `Specific of 'a] t -> [`Generic] t
 
@@ -89,7 +103,7 @@ val update : ('a, 'b) Key.t -> ('b option -> 'b option) -> 'a t -> 'a t
 
 val find : ('a, 'b) Key.t -> 'a t -> 'b option
 
-val find_driver : [`Generic | `Specific of 'a] t -> 'a Driver.t
+val find_driver : [`Generic | `Specific of 'a] t -> 'a Driver.id
 
 type +'a binding = B : ('a, 'b) Key.t * 'b -> 'a binding
 

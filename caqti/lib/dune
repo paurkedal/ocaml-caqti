@@ -7,6 +7,7 @@
     Caqti_config_map
     Caqti_connect_sig
     Caqti_connection_sig
+    Caqti_driver_dynload
     Caqti_driver_info
     Caqti_error
     Caqti_driver_info

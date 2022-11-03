@@ -17,13 +17,6 @@
 
 (** Connection functor and backend registration. *)
 
-val define_loader : (string -> (unit, string) result) -> unit
-(** Defines the function used to dynamically load driver libraries. This is
-    normally called during initialization by the [caqti-dynload] library, if
-    linked into the application. *)
-
-val load_library : string -> (unit, string) result
-
 module Make_without_connect :
   functor (System : System_sig.S) ->
   Caqti_connect_sig.S_without_connect

@@ -20,8 +20,6 @@ open Printf
 
 module Config_keys = Config_keys
 
-let (|>?) = Result.bind
-
 let cause_of_errno = function
  | 1022 -> `Unique_violation
  | 1048 -> `Not_null_violation
@@ -590,45 +588,19 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
          | Some t -> max 0.000001 t)
   end
 
-  type conninfo = {
-    host: string option;
-    user: string option;
-    pass: string option;
-    port: int option;
-    db: string option;
-    flags: Mdb.flag list option;
-    config_group: string option;
-  }
-
-  let parse_uri uri =
-    let host = Uri.host uri in
-    let user = Uri.user uri in
-    let pass = Uri.password uri in
-    let port = Uri.port uri in
-    let config_group = Uri.get_query_param uri "config-group" in
-    (match Uri.path uri with
-     | "" | "/" -> Ok None
-     | path ->
-        if Filename.dirname path <> "/" then
-          let msg = Caqti_error.Msg "Bad URI path." in
-          Error (Caqti_error.connect_rejected ~uri msg)
-        else
-          Ok (Some (Filename.basename path))) |>? fun db ->
-    Ok {host; user; pass; port; db; flags = None; config_group}
-
-  let connect_prim ~env ~config ~uri
-        {host; user; pass; port; db; flags; config_group} =
-    let config_group = match config_group with Some g -> g | None -> "caqti" in
-    let socket = Uri.get_query_param uri "socket" in
-    let config = config
-      |> Caqti_config_map.add_driver Config_keys.Driver
-      |> Caqti_config_map.add_default Config_keys.read_default_group config_group
-    in
+  let connect_prim ~env ~uri config =
+    let socket = Caqti_config_map.find Config_keys.socket config in
+    let host = Caqti_config_map.find Config_keys.host config in
+    let port = Caqti_config_map.find Config_keys.port config in
+    let user = Caqti_config_map.find Config_keys.user config in
+    let pass = Caqti_config_map.find Config_keys.password config in
+    let db = Caqti_config_map.find Config_keys.dbname config in
     let options = config
       |> Config_keys.extract_client_options
       |> List.map Mdb_ext.displace_client_option
     in
-    Mdb.connect ?host ?user ?pass ?db ?port ?socket ?flags ~options () >>=
+    (* TODO: ?flags *)
+    Mdb.connect ?host ?user ?pass ?db ?port ?socket ~options () >>=
     (function
      | Ok db ->
         let module B = Make_connection_base
@@ -665,9 +637,13 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
 
   let connect ?(env = no_env) ~config uri =
-    (match parse_uri uri with
-     | Error _ as r -> return r
-     | Ok conninfo -> connect_prim ~config ~env ~uri conninfo)
+    (match
+      config
+        |> Caqti_config_map.add_driver Config_keys.Driver_id
+        |> Config_keys.add_uri uri
+     with
+     | Error (#Caqti_error.preconnect as err) -> return (Error err)
+     | Ok config -> connect_prim ~env ~uri config)
 end
 
 let () =

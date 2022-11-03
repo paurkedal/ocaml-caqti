@@ -15,38 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Printf
-
-let dynload_library = ref @@ fun lib ->
-  Error (sprintf "Neither %s nor the dynamic linker is linked into the \
-                  application." lib)
-
-let define_loader f = dynload_library := f
-
-let load_library name = !dynload_library name
-
-let scheme_driver_name = function
- | "postgres" | "postgresql" -> "caqti-driver-postgresql"
- | s -> "caqti-driver-" ^ s
-
-let retry_with_library load_driver ~uri scheme =
-  (match load_driver ~uri scheme with
-   | Error (`Load_failed _) ->
-      let driver_name = scheme_driver_name scheme in
-      (match load_library driver_name with
-       | Ok () ->
-          (match load_driver ~uri scheme with
-           | Error (`Load_failed _) ->
-              let msg = Printf.sprintf
-                "The %s did not register a handler for the URI scheme %s."
-                driver_name scheme
-              in
-              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
-           | r -> r)
-       | Error msg ->
-          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
-   | r -> r)
-
 let default_config = Caqti_config_map.empty
 
 module Make_without_connect (System : System_sig.S) = struct
@@ -92,7 +60,8 @@ struct
      | Some scheme ->
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
-            (match retry_with_library Loader.load_driver ~uri scheme with
+            (match Caqti_driver_dynload.retry_with_library
+                      Loader.load_driver ~uri scheme with
              | Ok driver ->
                 Hashtbl.add drivers scheme driver;
                 Ok driver

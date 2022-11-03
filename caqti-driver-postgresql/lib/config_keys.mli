@@ -68,16 +68,22 @@ val gsslib : ([> specific], string) Key.t
 val service : ([> specific], string) Key.t
 val target_session_attrs : ([> specific], [`Any | `Read_write | `Read_only | `Primary | `Standby | `Prefer_standby]) Key.t
 val notice_processing : ([> specific], [`Stderr | `Quiet]) Key.t
+val use_single_row_mode : ([> specific], bool) Key.t
+val endpoint_uri : ([> specific], Uri.t) Key.t
 
 (** {2 Configuration} *)
 
-type _ Driver.t += Driver : [`Postgresql] Driver.t
+type _ Driver.id += Driver_id : [`Postgresql] Driver.id
 
 val all : [> `Generic | specific] Key_set.t
 
 (**/**)
 
 module String_map : Map.S with type key = string
+
+val add_uri :
+  Uri.t -> [`Generic | `Specific of [`Postgresql]] t ->
+  ([`Generic | `Specific of [`Postgresql]] t, Caqti_error.preconnect) result
 
 val extract_conninfo :
   [> specific] Caqti_config_map.t -> string String_map.t

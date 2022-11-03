@@ -19,7 +19,16 @@ open Caqti_config_map
 
 type specific = [`Specific of [`Mariadb]]
 
-(** {2 Settings} *)
+(** {2 Connection Parameters} *)
+
+val socket : ([> specific], string) Key.t
+val host : ([> specific], string) Key.t
+val port : ([> specific], int) Key.t
+val user : ([> specific], string) Key.t
+val password : ([> specific], string) Key.t
+val dbname : ([> specific], string) Key.t
+
+(** {2 Client Options} *)
 
 val connect_timeout : ([> specific], int) Key.t
 val compress : ([> specific], bool) Key.t
@@ -51,10 +60,14 @@ val enable_cleartext_plugin : ([> specific], bool) Key.t
 
 (** {2 Configuration} *)
 
-type _ Driver.t += Driver : [`Mariadb] Driver.t
+type _ Driver.id += Driver_id : [`Mariadb] Driver.id
 
 val all : [> `Generic | specific] Key_set.t
 
 (**/**)
+val add_uri :
+  Uri.t -> [`Generic | `Specific of [`Mariadb]] t ->
+  ([`Generic | `Specific of [`Mariadb]] t, Caqti_error.preconnect) result
+
 val extract_client_options :
   [> specific] t -> Mariadb.Blocking.client_option list

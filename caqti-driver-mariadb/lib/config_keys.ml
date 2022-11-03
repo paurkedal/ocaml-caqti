@@ -18,7 +18,17 @@
 open Caqti_platform
 open Caqti_config_map
 
+let (|>?) = Result.bind
+
 type specific = [`Specific of [`Mariadb]]
+
+let socket = Key.create Conv.string "socket"
+let host = Key.create Conv.string "host"
+let port = Key.create Conv.int "port"
+let user = Key.create Conv.string "user"
+let password = Key.create Conv.string "password"
+let dbname = Key.create Conv.string "dbname"
+(* TODO: flags *)
 
 let connect_timeout = Key.create Conv.int "connect_timeout"
 let compress = Key.create Conv.bool "compress"
@@ -90,6 +100,28 @@ let all =
   let add_key (Client_key (k, _)) = Key_set.add (Key.Any k) in
   Caqti_config_keys.all |> List_ext.fold add_key all_with_extract
 
+let add_uri uri config =
+  (match Uri.path uri with
+   | "" | "/" -> Ok None
+   | path ->
+      if Filename.dirname path <> "/" then
+        let msg = Caqti_error.Msg "Bad URI path." in
+        Error (Caqti_error.connect_rejected ~uri msg)
+      else
+        Ok (Some (Filename.basename path))) |>? fun db ->
+  config
+    |> Option.fold ~none:Fun.id ~some:(add socket)
+        (Uri.get_query_param uri "socket")
+    |> Option.fold ~none:Fun.id ~some:(add host) (Uri.host uri)
+    |> Option.fold ~none:Fun.id ~some:(add user) (Uri.user uri)
+    |> Option.fold ~none:Fun.id ~some:(add password) (Uri.password uri)
+    |> Option.fold ~none:Fun.id ~some:(add port) (Uri.port uri)
+    |> Option.fold ~none:Fun.id ~some:(add read_default_group)
+        (Uri.get_query_param uri "config-group")
+    |> Caqti_config_map.add_default read_default_group "caqti"
+    |> Option.fold ~none:Fun.id ~some:(add dbname) db
+    |> Result.ok
+
 let extract_client_options =
   let remove_if_false k config =
     (match find k config with
@@ -105,6 +137,6 @@ let extract_client_options =
     let config = remove_if_false compress config in
     List.filter_map (extract_client_option config) all_with_extract
 
-type _ Driver.t += Driver : [`Mariadb] Driver.t
+type _ Driver.id += Driver_id : [`Mariadb] Driver.id
 
-let () = Driver.register "mariadb" all Driver
+let () = Driver.register ~name:"mariadb" ~keys:all ~add_uri Driver_id

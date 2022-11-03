@@ -212,6 +212,9 @@ type load =
   [ `Load_rejected of load_error
   | `Load_failed of load_error ]
 
+type preconnect =
+  [ `Connect_rejected of connection_error ]
+
 type connect =
   [ `Connect_rejected of connection_error
   | `Connect_failed of connection_error

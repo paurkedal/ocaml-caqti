@@ -22,6 +22,8 @@ open Caqti_config_map
 open Sexplib0
 open Sexplib0.Sexp_conv
 
+let ( |>? ) = Result.bind
+
 type specific = [`Specific of [`Postgresql]]
 
 type 'a conv = 'a Conv.t * (string -> 'a -> (string * string) list)
@@ -370,13 +372,51 @@ let notice_processing =
   let conv = Conv.create_atomic ~of_string ~to_string "notice_processing" in
   Key.create conv "notice_processing"
 
+let use_single_row_mode = Key.create Conv.bool "use_single_row_mode"
+
+let endpoint_uri =
+  let of_string = Uri.of_string in
+  let to_string = Uri.to_string in
+  let conv = Conv.create_atomic ~of_string ~to_string "uri" in
+  Key.create conv "endpoint_uri"
+
 let all = Caqti_config_keys.all
   |> Key_set.add (Key.Any notice_processing)
+  |> Key_set.add (Key.Any endpoint_uri)
+  |> Key_set.add (Key.Any use_single_row_mode)
   |> List_ext.fold (fun (Setting (k, _)) -> Key_set.add (Key.Any k)) settings
 
-type _ Driver.t += Driver : [`Postgresql] Driver.t
+let pop_uri_param present absent param uri =
+  (match Uri.get_query_param uri param with
+   | None ->
+      Ok (absent, uri)
+   | Some value_str ->
+      (match present value_str with
+       | value -> Ok (value, Uri.remove_query_param uri param)
+       | exception Failure msg ->
+          let msg = Caqti_error.Msg msg in
+          Error (Caqti_error.connect_rejected ~uri msg)))
 
-let () = Driver.register "postgresql" all Driver
+let parse_notice_processing = function
+ | "quiet" -> `Quiet
+ | "stderr" -> `Stderr
+ | _ -> failwith "Invalid argument for notice_processing."
+
+let add_uri uri config =
+  pop_uri_param parse_notice_processing `Quiet "notice_processing" uri
+    |>? fun (notice_processing', uri) ->
+  pop_uri_param bool_of_string false "use_single_row_mode" uri
+    |>? fun (use_single_row_mode', uri) ->
+  let config = config
+    |> add endpoint_uri uri
+    |> add_default notice_processing notice_processing'
+    |> add_default use_single_row_mode use_single_row_mode'
+  in
+  Ok config
+
+type _ Driver.id += Driver_id : [`Postgresql] Driver.id
+
+let () = Driver.register ~name:"postgresql" ~keys:all ~add_uri Driver_id
 
 module String_map = Map.Make (String)
 

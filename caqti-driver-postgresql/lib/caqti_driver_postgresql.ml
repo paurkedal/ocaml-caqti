@@ -141,41 +141,24 @@ module Pg_ext = struct
     String.iter aux s;
     Buffer.contents buf
 
-  let pop_uri_param present absent param uri =
-    (match Uri.get_query_param uri param with
-     | None ->
-        Ok (absent, uri)
-     | Some value_str ->
-        (match present value_str with
-         | value -> Ok (value, Uri.remove_query_param uri param)
-         | exception Failure msg ->
-            let msg = Caqti_error.Msg msg in
-            Error (Caqti_error.connect_rejected ~uri msg)))
-
-  let parse_notice_processing = function
-   | "quiet" -> `Quiet
-   | "stderr" -> `Stderr
-   | _ -> failwith "Invalid argument for notice_processing."
-
-  let parse_uri ~config uri =
-    pop_uri_param parse_notice_processing `Quiet "notice_processing" uri
-      |>? fun (notice_processing, uri) ->
-    pop_uri_param bool_of_string false "use_single_row_mode" uri
-      |>? fun (use_single_row_mode, uri) ->
+  let conninfo_of_config config =
+    let uri = Caqti_config_map.find Config_keys.endpoint_uri config in
+    let settings = Config_keys.extract_conninfo config in
     let conninfo =
-      let settings = Config_keys.extract_conninfo config in
-      if String_map.is_empty settings && Uri.host uri <> None then
-        Uri.to_string ~pct_encoder uri
-      else
-      let add_qp (k, vs) = String_map.add k (String.concat "," vs) in
-      settings
-        |> Option.fold ~none:Fun.id ~some:(String_map.add "host") (Uri.host uri)
-        |> List_ext.fold add_qp (Uri.query uri)
-        |> String_map.bindings
-        |> List.map (fun (k, v) -> k ^ "='" ^ escaped_connvalue v ^ "'")
-        |> String.concat " "
+      (match String_map.is_empty settings, uri with
+       | true, Some uri when Uri.host uri <> None ->
+          Uri.to_string ~pct_encoder uri
+       | _ ->
+          let add_qp (k, vs) = String_map.add k (String.concat "," vs) in
+          settings
+            |> Option.fold ~none:Fun.id ~some:(String_map.add "host")
+                (Option.bind uri Uri.host)
+            |> List_ext.fold add_qp (Option.fold ~none:[] ~some:Uri.query uri)
+            |> String_map.bindings
+            |> List.map (fun (k, v) -> k ^ "='" ^ escaped_connvalue v ^ "'")
+            |> String.concat " ")
     in
-    Ok (conninfo, notice_processing, use_single_row_mode)
+    conninfo
 end
 
 let bool_oid = Pg.oid_of_ftype Pg.BOOL
@@ -996,12 +979,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       end
   end
 
-  let connect ?(env = no_env) ~config uri =
-    let config = config
-      |> Caqti_config_map.add_driver Config_keys.Driver
-    in
-    return (Pg_ext.parse_uri ~config uri)
-      >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
+  let connect_prim ~env ~uri config =
+    let conninfo = Pg_ext.conninfo_of_config config in
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error err ->
         let msg = extract_connect_error err in
@@ -1021,13 +1000,19 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                 let msg = Caqti_error.Msg db#error_message in
                 return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
-                db#set_notice_processing notice_processing;
+                (match Caqti_config_map.find
+                        Config_keys.notice_processing config with
+                 | None -> ()
+                 | Some v -> db#set_notice_processing v);
                 let module B = Make_connection_base
                   (struct
                     let env = env
                     let uri = uri
                     let db = db
-                    let use_single_row_mode = use_single_row_mode
+                    let use_single_row_mode =
+                      config
+                      |> Caqti_config_map.find Config_keys.use_single_row_mode
+                      |> Option.value ~default:false
                   end)
                 in
                 let module Connection = struct
@@ -1040,6 +1025,15 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                 (function
                  | Ok () -> Ok (module Connection : CONNECTION)
                  | Error err -> Error (`Post_connect err)))))
+
+  let connect ?(env = no_env) ~config uri =
+    (match
+      config
+        |> Caqti_config_map.add_driver Config_keys.Driver_id
+        |> Config_keys.add_uri uri
+     with
+     | Error (#Caqti_error.preconnect as err) -> return (Error err)
+     | Ok config -> connect_prim ~env ~uri config)
 end
 
 let () =

@@ -108,7 +108,6 @@ module Key_set = struct
   module M = Map.Make (String)
 
   type 'a t = 'a Key.any M.t
-  type any = Any : 'a t -> any
 
   let empty = M.empty
 
@@ -119,23 +118,7 @@ module Key_set = struct
   let fold f m acc = M.fold (fun _ k -> f k) m acc
 end
 
-module Driver = struct
-  type 'a t = ..
-  type any = Any : _ t -> any
-
-  let driver_by_name : (string, any) Hashtbl.t = Hashtbl.create 5
-  let driver_name_and_keys = Hashtbl.create 5
-
-  let ckey driver = Obj.Extension_constructor.(name (of_val driver))
-
-  let register name keys driver =
-    Hashtbl.add driver_by_name name (Any driver);
-    Hashtbl.add driver_name_and_keys (ckey driver) (name, Key_set.Any keys)
-
-  let name driver = fst (Hashtbl.find driver_name_and_keys (ckey driver))
-  let keys driver = snd (Hashtbl.find driver_name_and_keys (ckey driver))
-  let find name = Hashtbl.find_opt driver_by_name name
-end
+type 'a driver_id = ..
 
 type 'a binding = B : ('a, 'b) Key.t * 'b -> 'a binding
 
@@ -165,7 +148,7 @@ let sexp_of_binding (H.B (key, value)) =
 
 type _ t =
   | Generic : H.t -> [`Generic] t
-  | Specific : H.t * 'a Driver.t -> [`Generic | `Specific of 'a] t
+  | Specific : H.t * 'a driver_id -> [`Generic | `Specific of 'a] t
 
 let map_hmap (type a) f : a t -> a t = function
  | Generic m -> Generic (f m)
@@ -177,6 +160,49 @@ let get_hmap (type a) : a t -> H.t = function
 
 type any = Any : 'a t -> any
 
+type any_specific =
+  | Any_specific : [`Generic | `Specific of 'a] t -> any_specific
+
+module Driver = struct
+  type 'a id = 'a driver_id = ..
+
+  type reg =
+    | Reg : {
+        id: 'd id;
+        name: string;
+        keys: [> `Specific of 'd] Key_set.t;
+        add_uri:
+          (Uri.t ->
+           [`Generic | `Specific of 'd] t ->
+           ([`Generic | `Specific of 'd] t, [< Caqti_error.preconnect]) result);
+      } -> reg
+
+  let reg_by_name : (string, reg) Hashtbl.t = Hashtbl.create 5
+  let reg_by_ckey = Hashtbl.create 5
+
+  let ckey driver_id = Obj.Extension_constructor.(name (of_val driver_id))
+
+  let register ~name ~keys ~add_uri id =
+    let reg = Reg {id; name; keys; add_uri} in
+    Hashtbl.add reg_by_name name reg;
+    Hashtbl.add reg_by_ckey (ckey id) reg
+
+  let name id =
+    (match Hashtbl.find_opt reg_by_ckey (ckey id) with
+     | Some (Reg {name; _}) -> name
+     | None -> assert false)
+
+  let find =
+    Caqti_driver_dynload.retry_with_library begin fun ~uri scheme ->
+      (match Hashtbl.find_opt reg_by_name scheme with
+       | Some d -> Ok d
+       | None ->
+          let msg =
+            Printf.sprintf "Cannot find configuration keys for %s." scheme in
+          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+    end
+end
+
 let empty = Generic H.empty
 
 let add k v = map_hmap (H.add k v)
@@ -186,6 +212,20 @@ let add_default k v c =
 
 let add_driver d : [`Generic] t -> [`Generic | `Specific of _] t = function
  | Generic m -> Specific (m, d)
+
+let add_uri uri : [`Generic] t -> (any_specific, _) result = function
+ | Generic m ->
+    (match Uri.scheme uri with
+     | None ->
+        let msg = "Missing URI scheme." in
+        Error (Caqti_error.load_rejected ~uri (Caqti_error.Msg msg))
+     | Some scheme ->
+        (match Driver.find ~uri scheme with
+         | Ok (Reg {id; add_uri; _}) ->
+            (match add_uri uri (Specific (m, id)) with
+             | Ok c -> Ok (Any_specific c)
+             | Error (#Caqti_error.preconnect as err) -> Error err)
+         | Error _ as r -> r))
 
 let as_default : [`Generic | `Specific of _] t -> [`Generic] t = function
  | Specific (m, _) -> Generic m
@@ -218,11 +258,13 @@ let sexp_of_t (type a) (c : a t) =
   in
   Sexp.List (Sexp.Atom "connection" :: settings)
 
+let config_uri = Uri.make ~scheme:"config" ()
+
 let extract_driver = function
  | Sexp.List [Sexp.Atom "driver"; Sexp.Atom name] as sexp ->
-    (match Driver.find name with
-     | None -> Sexp_conv.of_sexp_error ("unknown driver " ^ name) sexp
-     | Some _ as d -> d)
+    (match Driver.find ~uri:config_uri name with
+     | Ok driver_id -> Some driver_id
+     | Error err -> Sexp_conv.of_sexp_error (Caqti_error.show err) sexp)
  | Sexp.List (Sexp.Atom "driver" :: _) as sexp ->
     Sexp_conv.of_sexp_error "the driver settings takes a single argument" sexp
  | _ -> None
@@ -233,12 +275,11 @@ let any_of_sexp = function
     (match driver with
      | None ->
         Sexp_conv.of_sexp_error "a driver must be specified" sexp
-     | Some (Driver.Any driver) ->
-        let Key_set.Any keys = Driver.keys driver in
+     | Some (Driver.Reg {id; keys; _}) ->
         let bindings = List.filter_map (binding_of_sexp keys) sexps in
         let m =
           List.fold_left (fun acc (B (k, v)) -> H.add k v acc) H.empty bindings
         in
-        Any (Specific (m, driver)))
+        Any (Specific (m, id)))
  | sexp ->
     Sexp_conv.of_sexp_error "(connection ...) expected" sexp

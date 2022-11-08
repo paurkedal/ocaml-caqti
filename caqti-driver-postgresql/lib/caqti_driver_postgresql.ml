@@ -391,24 +391,22 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         let msg = extract_communication_error db err in
         return (Error (Caqti_error.request_failed ~uri ~query msg))
 
-    let get_result ~uri ~query ?(ensure_single_result=true) db =
-      get_next_result ~uri ~query db >>=
-      (function
-       | Ok None ->
+    let get_one_result ~uri ~query db =
+      get_next_result ~uri ~query db >>=? function
+       | None ->
           let msg = Caqti_error.Msg "No response received after send." in
           return (Error (Caqti_error.request_failed ~uri ~query msg))
-       | Ok (Some result) ->
-          if ensure_single_result then
-            get_next_result ~uri ~query db >>=
-            (function
-             | Ok None -> return (Ok result)
-             | Ok (Some _) ->
-                let msg = Caqti_error.Msg "More than one response received." in
-                return (Error (Caqti_error.response_rejected ~uri ~query msg))
-             | Error _ as r -> return r)
-          else
-            return (Ok result)
-       | Error _ as r -> return r)
+       | Some result ->
+          return (Ok result)
+
+    let get_final_result ~uri ~query db =
+      get_one_result ~uri ~query db >>=? fun result ->
+      get_next_result ~uri ~query db >>=? function
+       | None ->
+          return (Ok result)
+       | Some _ ->
+          let msg = Caqti_error.Msg "More than one response received." in
+          return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
     let check_query_result ~uri ~query result mult =
       let reject msg =
@@ -454,10 +452,6 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
 
     let check_command_result ~uri ~query result =
       check_query_result ~uri ~query result Caqti_mult.zero
-
-    let get_and_check_result ~uri ~query db =
-      get_result ~uri ~query db
-      >|=? check_command_result ~uri ~query
   end
 
   (* Driver Interface *)
@@ -506,21 +500,6 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           let msg = extract_communication_error db err in
           Error (Caqti_error.request_failed ~uri ~query msg)
 
-    let send_query ?params ?param_types ?binary_params query =
-      wrap_pg ~query @@ fun () ->
-      db#send_query ?params ?param_types ?binary_params query;
-      db#consume_input
-
-    let send_prepare ?param_types query_id query =
-      wrap_pg ~query @@ fun () ->
-      db#send_prepare ?param_types (query_name_of_id query_id) query;
-      db#consume_input
-
-    let send_query_prepared ?params ?binary_params query_id query =
-      wrap_pg ~query @@ fun () ->
-      db#send_query_prepared ?params ?binary_params (query_name_of_id query_id);
-      db#consume_input
-
     let reset () =
       Log.warn (fun p ->
         p "Lost connection to <%a>, reconnecting." Caqti_error.pp_uri uri)
@@ -553,32 +532,38 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
             return r
        | Error _ as r -> return r)
 
-    let query_oneshot ?params ?param_types ?binary_params ?ensure_single_result
-                      query =
+    let send_oneshot_query
+          ?params ?param_types ?binary_params
+          query =
       retry_on_connection_error begin fun () ->
-        return (send_query ?params ?param_types ?binary_params query)
-      end >>= function
-       | Error _ as r -> return r
-       | Ok () -> Pg_io.get_result ~uri ~query ?ensure_single_result db
+        return @@ wrap_pg ~query begin fun () ->
+          db#send_query ?params ?param_types ?binary_params query;
+          db#consume_input
+        end
+      end
 
-    let query_prepared query_id prepared params =
+    let send_prepared_query query_id prepared params =
       let {query; param_types; binary_params; _} = prepared in
       retry_on_connection_error begin fun () ->
         begin
-          if Int_hashtbl.mem prepare_cache query_id then return (Ok()) else
-          (match send_prepare ~param_types query_id query with
-           | Ok () ->
-              Pg_io.get_result ~uri ~query db >|=
-              (function
-               | Ok result -> Pg_io.check_command_result ~uri ~query result
-               | Error _ as r -> r)
-           | Error _ as r ->
-              return r) >|=? fun () ->
+          if Int_hashtbl.mem prepare_cache query_id then return (Ok ()) else
+          return @@ wrap_pg ~query begin fun () ->
+            db#send_prepare ~param_types (query_name_of_id query_id) query;
+            db#consume_input
+          end >>=? fun () ->
+          Pg_io.get_final_result ~uri ~query db >|=? fun result ->
+          Pg_io.check_command_result ~uri ~query result |>? fun () ->
           Ok (Int_hashtbl.add prepare_cache query_id prepared)
         end >|=? fun () ->
-        send_query_prepared ~params ~binary_params query_id query
-      end >>=? fun () ->
-      Pg_io.get_result ~uri ~query db
+        wrap_pg ~query begin fun () ->
+          db#send_query_prepared
+            ~params ~binary_params (query_name_of_id query_id);
+          db#consume_input
+        end
+      end
+
+    let fetch_one_result ~query () = Pg_io.get_one_result ~uri ~query db
+    let fetch_final_result ~query () = Pg_io.get_final_result ~uri ~query db
 
     module Response = struct
       type ('b, 'm) t = {row_type: 'b Caqti_type.t; result: Pg.result}
@@ -663,8 +648,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           let params = Array.make param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
-              query_oneshot ~params ~binary_params query >|=? fun result ->
-              Ok (query, result)
+              send_oneshot_query ~params ~binary_params query >|=? fun () ->
+              Ok query
            | Error _ as r ->
               return r)
        | Some query_id ->
@@ -684,13 +669,14 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           let params = Array.make prepared.param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
-              query_prepared query_id prepared params >|=? fun result ->
-              Ok (prepared.query, result)
+              send_prepared_query query_id prepared params >|=? fun () ->
+              Ok prepared.query
            | Error _ as r ->
               return r))
-        >>=? fun (query, result) ->
+        >>=? fun query ->
 
       (* Fetch and process the result. *)
+      fetch_final_result ~query () >>=? fun result ->
       let row_type = Caqti_request.row_type req in
       let row_mult = Caqti_request.row_mult req in
       (match Pg_io.check_query_result ~uri ~query result row_mult with
@@ -752,7 +738,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           if Int_hashtbl.mem prepare_cache query_id then
             begin
               let query = sprintf "DEALLOCATE _caq%d" query_id in
-              query_oneshot query >|=? fun result ->
+              send_oneshot_query query >>=? fun () ->
+              fetch_final_result ~query () >|=? fun result ->
               Int_hashtbl.remove prepare_cache query_id;
               Pg_io.check_query_result ~uri ~query result Caqti_mult.zero
             end
@@ -831,7 +818,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
          * we can repeatedly get the latest result and it will always be
          * Copy_in, so checking for a single result would trigger an error.
          *)
-        query_oneshot ~ensure_single_result:false query
+        send_oneshot_query query >>=? fun () ->
+        fetch_one_result ~query ()
         >>=? fun result ->
           (* We expect the Copy_in response only - turn other success responses
            * into errors, and delegate error handling.
@@ -859,7 +847,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           (* After ending the copy, there will be a new result for the initial
            * query.
            *)
-          Pg_io.get_and_check_result ~uri ~query db
+        fetch_final_result ~query () >|=? Pg_io.check_command_result ~uri ~query
       end
   end
 

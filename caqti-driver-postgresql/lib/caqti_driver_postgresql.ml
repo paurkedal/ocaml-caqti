@@ -138,23 +138,30 @@ module Pg_ext = struct
     String.iter aux s;
     Buffer.contents buf
 
-  let parse_uri uri =
-    (match Uri.get_query_param uri "notice_processing" with
+  let pop_uri_param present absent param uri =
+    (match Uri.get_query_param uri param with
      | None ->
-        Ok (`Quiet, uri)
-     | Some "quiet" ->
-        Ok (`Quiet, Uri.remove_query_param uri "notice_processing")
-     | Some "stderr" ->
-        Ok (`Stderr, Uri.remove_query_param uri "notice_processing")
-     | Some _ ->
-        let msg = Caqti_error.Msg "Invalid argument for notice_processing." in
-        Error (Caqti_error.connect_rejected ~uri msg))
-    |>? fun (notice_processing, uri') ->
+        Ok (absent, uri)
+     | Some value_str ->
+        (match present value_str with
+         | value -> Ok (value, Uri.remove_query_param uri param)
+         | exception Failure msg ->
+            let msg = Caqti_error.Msg msg in
+            Error (Caqti_error.connect_rejected ~uri msg)))
+
+  let parse_notice_processing = function
+   | "quiet" -> `Quiet
+   | "stderr" -> `Stderr
+   | _ -> failwith "Invalid argument for notice_processing."
+
+  let parse_uri uri =
+    pop_uri_param parse_notice_processing `Quiet "notice_processing" uri
+      |>? fun (notice_processing, uri) ->
     let conninfo =
-      if Uri.host uri <> None then Uri.to_string ~pct_encoder uri' else
+      if Uri.host uri <> None then Uri.to_string ~pct_encoder uri else
       let mkparam k v = k ^ " = '" ^ escaped_connvalue v ^ "'" in
       let mkparams (k, vs) = List.map (mkparam k) vs in
-      String.concat " " (List.flatten (List.map mkparams (Uri.query uri')))
+      String.concat " " (List.flatten (List.map mkparams (Uri.query uri)))
     in
     Ok (conninfo, notice_processing)
 end

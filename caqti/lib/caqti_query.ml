@@ -278,4 +278,4 @@ let of_string_exn s =
   (match of_string s with
    | Ok q -> q
    | Error (`Invalid (pos, msg)) ->
-      Printf.kprintf failwith "Parse error at byte %d: %s" pos msg)
+      Printf.ksprintf failwith "Parse error at byte %d: %s" pos msg)

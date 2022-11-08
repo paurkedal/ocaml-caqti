@@ -46,3 +46,11 @@ let expose = function
  | One -> `One
  | Zero_or_one -> `Zero_or_one
  | Zero_or_more -> `Zero_or_more
+
+let can_be_zero = function
+ | One -> false
+ | Zero | Zero_or_one | Zero_or_more -> true
+
+let can_be_many = function
+ | Zero | One | Zero_or_one -> false
+ | Zero_or_more -> true

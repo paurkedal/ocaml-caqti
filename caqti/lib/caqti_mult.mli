@@ -34,3 +34,6 @@ val only_one : [< `One] t -> unit
 val only_zero_or_one : [< `Zero | `One] t -> unit
 
 val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more]
+
+val can_be_zero : 'm t -> bool
+val can_be_many : 'm t -> bool

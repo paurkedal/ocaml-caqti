@@ -176,7 +176,7 @@ let rec decode_field
                   Error (Caqti_error.decode_rejected ~uri ~typ msg))
            | Error _ as r -> r)))
 
-let decode_row ~uri row_type fields =
+let decode_row ~uri row_type =
   let read_value ~uri ft = function
    | [] -> assert false
    | field :: fields ->
@@ -191,8 +191,9 @@ let decode_row ~uri row_type fields =
      | x :: xs' when Pgx.Value.(compare null) x = 0 -> skip_null (n - 1) xs'
      | _ :: _ -> None)
   in
-  Request_utils.decode_row ~uri {read_value; skip_null} row_type fields
-    |> Result.map (fun (y, fields) -> assert (fields = []); y)
+  let decode = Request_utils.decode_row ~uri {read_value; skip_null} row_type in
+  fun fields ->
+    Result.map (fun (y, fields) -> assert (fields = []); y) (decode fields)
 
 module Q = struct
   open Caqti_request.Infix
@@ -382,44 +383,49 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
               "Received two or more rows where at most one was expected."
          | Error _ as r -> r)
 
-      let fold f {query; row_type; prepared; params} acc =
+      let fold f {query; row_type; prepared; params} =
+        let decode = decode_row ~uri row_type in
         let f acc row =
           return @@ match acc with
            | Ok acc ->
-              (match decode_row ~uri row_type row with
+              (match decode row with
                | Ok row -> Ok (f row acc)
                | Error _ as r -> r)
            | Error _ as r -> r
         in
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc))
-        >|= Stdlib.Result.join
+        fun acc ->
+          intercept_request_failed ~uri ~query begin fun () ->
+            Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc)
+          end >|= Stdlib.Result.join
 
-      let fold_s f {query; row_type; prepared; params} acc =
+      let fold_s f {query; row_type; prepared; params} =
+        let decode = decode_row ~uri row_type in
         let f acc row =
           (match acc with
            | Ok acc ->
-              (match decode_row ~uri row_type row with
+              (match decode row with
                | Ok row -> f row acc
                | Error _ as r -> return r)
            | Error _ as r -> return r)
         in
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc))
-        >|= Stdlib.Result.join
+        fun acc ->
+          intercept_request_failed ~uri ~query begin fun () ->
+            Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc)
+          end >|= Stdlib.Result.join
 
       let iter_s f {query; row_type; prepared; params} =
+        let decode = decode_row ~uri row_type in
         let f acc row =
           (match acc with
            | Ok () ->
-              (match decode_row ~uri row_type row with
+              (match decode row with
                | Ok row -> f row
                | Error _ as r -> return r)
            | Error _ as r -> return r)
         in
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok ()))
-        >|= Stdlib.Result.join
+        intercept_request_failed ~uri ~query begin fun () ->
+          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok ())
+        end >|= Stdlib.Result.join
 
       let to_stream resp () =
         fold List.cons resp [] >|= Result.map List.rev >|= function

@@ -268,22 +268,27 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
     let write_null ~uri:_ _ os = Ok (List.tl os) in
     Request_utils.encode_param ~uri {write_value; write_null} t v acc
 
-  let decode_row ~uri row_type row =
-    let read_value ~uri ft j =
+  let decode_row ~uri row_type =
+    let read_value ~uri ft (row, j) =
       (match decode_field ~uri ft row.(j) with
-       | Ok fv -> Ok (fv, j + 1)
+       | Ok fv -> Ok (fv, (row, j + 1))
        | Error _ as r -> r)
     in
-    let skip_null n j =
+    let skip_null n (row, j) =
       let j' = j + n in
       let rec check k =
         k = j' || Mdb.Field.null_value row.(k) && check (k + 1)
       in
-      if check j then Some j' else None
+      if check j then Some (row, j') else None
     in
-    let extract (y, j) = assert (j = Caqti_type.length row_type); Some y in
-    Request_utils.decode_row ~uri {read_value; skip_null} row_type 0
-      |> Result.map extract
+    let decode =
+      Request_utils.decode_row ~uri {read_value; skip_null} row_type
+    in
+    let extract (y, (_, j)) =
+      assert (j = Caqti_type.length row_type);
+      Some y
+    in
+    fun row -> Result.map extract (decode (row, 0))
 
   module Make_connection_base
     (Connection_arg : sig
@@ -321,12 +326,13 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       let affected_count {res; _} = return (Ok (Mdb.Res.affected_rows res))
       let returned_count {res; _} = return (Ok (Mdb.Res.num_rows res))
 
-      let decode_next_row ~query res row_type =
-        Mdb.Res.fetch (module Mdb.Row.Array) res >|=
-        (function
-         | Ok None as r -> r
-         | Ok (Some row) -> decode_row ~uri row_type row
-         | Error err -> response_failed ~query err)
+      let decode_next_row ~query row_type =
+        let decode = decode_row ~uri row_type in
+        fun res ->
+          Mdb.Res.fetch (module Mdb.Row.Array) res >|= function
+           | Ok None as r -> r
+           | Ok (Some row) -> decode row
+           | Error err -> response_failed ~query err
 
       let exec {res; query; _} =
         (match Mdb.Res.num_rows res with
@@ -336,7 +342,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       let find {query; res; row_type} =
         (match Mdb.Res.num_rows res with
          | 1 ->
-            decode_next_row ~query res row_type >|=
+            decode_next_row ~query row_type res >|=
             (function
              | Ok None -> assert false
              | Ok (Some y) -> Ok y
@@ -346,42 +352,48 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       let find_opt {query; res; row_type} =
         (match Mdb.Res.num_rows res with
          | 0 -> return (Ok None)
-         | 1 -> decode_next_row ~query res row_type
+         | 1 -> decode_next_row ~query row_type res
          | n -> return (reject_f ~query "Received %d tuples for find_opt." n))
 
       let fold f {query; res; row_type} =
+        let decode = decode_next_row ~query row_type in
         let rec loop acc =
-          decode_next_row ~query res row_type >>=
-          (function
+          decode res >>= function
            | Ok None -> return (Ok acc)
            | Ok (Some y) -> loop (f y acc)
-           | Error _ as r -> return r) in
+           | Error _ as r -> return r
+        in
         loop
 
       let fold_s f {query; res; row_type} =
+        let decode = decode_next_row ~query row_type in
         let rec loop acc =
-          decode_next_row ~query res row_type >>=
-          (function
+          decode res >>= function
            | Ok None -> return (Ok acc)
            | Ok (Some y) -> f y acc >>=? loop
-           | Error _ as r -> return r) in
+           | Error _ as r -> return r
+        in
         loop
 
       let iter_s f {query; res; row_type} =
+        let decode = decode_next_row ~query row_type in
         let rec loop () =
-          decode_next_row ~query res row_type >>=
-          (function
+          decode res >>= function
            | Ok None -> return (Ok ())
            | Ok (Some y) -> f y >>=? loop
-           | Error _ as r -> return r) in
+           | Error _ as r -> return r
+        in
         loop ()
 
-      let rec to_stream ({query; res; row_type} as resp) () =
-        decode_next_row ~query res row_type >>=
-        (function
-          | Ok None -> return Stream.Nil
-          | Error err -> return (Stream.Error err)
-          | Ok (Some y) -> return (Stream.Cons (y, to_stream resp)))
+      let to_stream {query; res; row_type} =
+        let decode = decode_next_row ~query row_type in
+        let rec loop () =
+          decode res >>= function
+           | Ok None -> return Stream.Nil
+           | Error err -> return (Stream.Error err)
+           | Ok (Some y) -> return (Stream.Cons (y, loop))
+        in
+        loop
     end
 
     type pcache_entry = {

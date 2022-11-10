@@ -141,36 +141,53 @@ let rec decode_row
   fun ~uri f ->
   let open Caqti_type in
   (function
-   | Unit -> fun acc -> Ok ((), acc)
-   | Field ft -> f.read_value ~uri ft
-   | Option t -> fun acc ->
-      (match f.skip_null (Caqti_type.length t) acc with
-       | Some acc -> Ok (None, acc)
-       | None ->
-          decode_row ~uri f t acc |> Result.map (fun (x, acc) -> (Some x, acc)))
-   | Tup2 (t1, t2) -> fun acc ->
-      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
-      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
-      Ok ((x1, x2), acc)
-   | Tup3 (t1, t2, t3) -> fun acc ->
-      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
-      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
-      decode_row ~uri f t3 acc |>? fun (x3, acc) ->
-      Ok ((x1, x2, x3), acc)
-   | Tup4 (t1, t2, t3, t4) -> fun acc ->
-      decode_row ~uri f t1 acc |>? fun (x1, acc) ->
-      decode_row ~uri f t2 acc |>? fun (x2, acc) ->
-      decode_row ~uri f t3 acc |>? fun (x3, acc) ->
-      decode_row ~uri f t4 acc |>? fun (x4, acc) ->
-      Ok ((x1, x2, x3, x4), acc)
-   | Custom {rep; decode; _} as typ -> fun acc ->
-      (match decode_row ~uri f rep acc with
-       | Ok (x, acc) ->
-          (match decode x with
-           | Ok y -> Ok (y, acc)
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              Error (Caqti_error.decode_rejected ~uri ~typ msg))
-       | Error _ as r -> r)
+   | Unit ->
+      fun acc -> Ok ((), acc)
+   | Field ft ->
+      f.read_value ~uri ft
+   | Option t ->
+      let decode_t = decode_row ~uri f t in
+      fun acc ->
+        (match f.skip_null (Caqti_type.length t) acc with
+         | Some acc -> Ok (None, acc)
+         | None -> decode_t acc |> Result.map (fun (x, acc) -> (Some x, acc)))
+   | Tup2 (t1, t2) ->
+      let decode_t1 = decode_row ~uri f t1 in
+      let decode_t2 = decode_row ~uri f t2 in
+      fun acc ->
+        decode_t1 acc |>? fun (x1, acc) ->
+        decode_t2 acc |>? fun (x2, acc) ->
+        Ok ((x1, x2), acc)
+   | Tup3 (t1, t2, t3) ->
+      let decode_t1 = decode_row ~uri f t1 in
+      let decode_t2 = decode_row ~uri f t2 in
+      let decode_t3 = decode_row ~uri f t3 in
+      fun acc ->
+        decode_t1 acc |>? fun (x1, acc) ->
+        decode_t2 acc |>? fun (x2, acc) ->
+        decode_t3 acc |>? fun (x3, acc) ->
+        Ok ((x1, x2, x3), acc)
+   | Tup4 (t1, t2, t3, t4) ->
+      let decode_t1 = decode_row ~uri f t1 in
+      let decode_t2 = decode_row ~uri f t2 in
+      let decode_t3 = decode_row ~uri f t3 in
+      let decode_t4 = decode_row ~uri f t4 in
+      fun acc ->
+        decode_t1 acc |>? fun (x1, acc) ->
+        decode_t2 acc |>? fun (x2, acc) ->
+        decode_t3 acc |>? fun (x3, acc) ->
+        decode_t4 acc |>? fun (x4, acc) ->
+        Ok ((x1, x2, x3, x4), acc)
+   | Custom {rep; decode; _} as typ ->
+      let decode_rep = decode_row ~uri f rep in
+      fun acc ->
+        (match decode_rep acc with
+         | Ok (x, acc) ->
+            (match decode x with
+             | Ok y -> Ok (y, acc)
+             | Error msg ->
+                let msg = Caqti_error.Msg msg in
+                Error (Caqti_error.decode_rejected ~uri ~typ msg))
+         | Error _ as r -> r)
    | Annot (_, t0) ->
       decode_row ~uri f t0)

@@ -326,19 +326,22 @@ let rec decode_field
                   Error (Caqti_error.decode_rejected ~uri ~typ msg))
            | Error _ as r -> r)))
 
-let decode_row ~uri row_type (resp, i) =
-  let read_value ~uri ft j =
+let decode_row ~uri row_type =
+  let read_value ~uri ft (resp, i, j) =
     (match decode_field ~uri ft (resp#getvalue i j) with
-     | Ok y -> Ok (y, j + 1)
+     | Ok y -> Ok (y, (resp, i, j + 1))
      | Error _ as r -> r)
   in
-  let skip_null n j =
+  let skip_null n (resp, i, j) =
     let j' = j + n in
     let rec check k = k = j' || resp#getisnull i k && check (k + 1) in
-    if check j then Some j' else None
+    if check j then Some (resp, i, j') else None
   in
-  Request_utils.decode_row ~uri {read_value; skip_null} row_type 0
-    |> Result.map (fun (y, j) -> assert (j = Caqti_type.length row_type); y)
+  let decode = Request_utils.decode_row ~uri {read_value; skip_null} row_type in
+  fun (resp, i) ->
+    Result.map
+      (fun (y, (_, _, j)) -> assert (j = Caqti_type.length row_type); y)
+      (decode (resp, i, 0))
 
 type prepared = {
   query: string;
@@ -582,13 +585,14 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
     let fetch_one_result ~query () = Pg_io.get_one_result ~uri ~query db
     let fetch_final_result ~query () = Pg_io.get_final_result ~uri ~query db
 
-    let fetch_single_row ~row_type ~query () =
+    let fetch_single_row ~query () =
       Pg_io.get_one_result ~uri ~query db >>=? fun result ->
       (match result#status with
        | Pg.Single_tuple ->
-          return @@ Result.map Option.some @@
-            decode_row ~uri row_type (result, 0)
+          assert (result#ntuples = 1);
+          return (Ok (Some result))
        | Pg.Tuples_ok ->
+          assert (result#ntuples = 0);
           Pg_io.get_next_result ~uri ~query db >|=?
           (function
            | None -> Ok None
@@ -645,78 +649,98 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
        | {source = Single_row; _} ->
           assert false
 
-      let fold f = function
-       | {row_type; source = Complete result; _} ->
-          let n = result#ntuples in
-          let rec loop i acc =
-            if i = n then Ok acc else
-            (match decode_row ~uri row_type (result, i) with
-             | Ok y -> loop (i + 1) (f y acc)
-             | Error _ as r -> r)
-          in
-          fun acc -> return (loop 0 acc)
-       | {row_type; source = Single_row; query} ->
-          let rec loop acc =
-            fetch_single_row ~row_type ~query () >>=? function
-             | None -> return (Ok acc)
-             | Some y -> loop (f y acc)
-          in
-          loop
+      let fold f {row_type; query; source} =
+        let decode = decode_row ~uri row_type in
+        (match source with
+         | Complete result ->
+            let n = result#ntuples in
+            let rec loop i acc =
+              if i = n then Ok acc else
+              (match decode (result, i) with
+               | Ok y -> loop (i + 1) (f y acc)
+               | Error _ as r -> r)
+            in
+            fun acc -> return (loop 0 acc)
+         | Single_row ->
+            let rec loop acc =
+              fetch_single_row ~query () >>=? function
+               | None -> return (Ok acc)
+               | Some result ->
+                  (match decode (result, 0) with
+                   | Ok y -> loop (f y acc)
+                   | Error _ as r -> return r)
+            in
+            loop)
 
-      let fold_s f = function
-       | {row_type; source = Complete result; _} ->
-          let n = result#ntuples in
-          let rec loop i acc =
-            if i = n then return (Ok acc) else
-            (match decode_row ~uri row_type (result, i) with
-             | Ok y -> f y acc >>=? loop (i + 1)
-             | Error _ as r -> return r)
-          in
-          loop 0
-       | {row_type; source = Single_row; query} ->
-          let rec loop acc =
-            fetch_single_row ~row_type ~query () >>=? function
-             | None -> return (Ok acc)
-             | Some y -> f y acc >>=? loop
-          in
-          loop
+      let fold_s f {row_type; query; source} =
+        let decode = decode_row ~uri row_type in
+        (match source with
+         | Complete result ->
+            let n = result#ntuples in
+            let rec loop i acc =
+              if i = n then return (Ok acc) else
+              (match decode (result, i) with
+               | Ok y -> f y acc >>=? loop (i + 1)
+               | Error _ as r -> return r)
+            in
+            loop 0
+         | Single_row ->
+            let rec loop acc =
+              fetch_single_row ~query () >>=? function
+               | None -> return (Ok acc)
+               | Some result ->
+                  (match decode (result, 0) with
+                   | Ok y -> f y acc >>=? loop
+                   | Error _ as r -> return r)
+            in
+            loop)
 
-      let iter_s f = function
-       | {row_type; source = Complete result; _} ->
-          let n = result#ntuples in
-          let rec loop i =
-            if i = n then return (Ok ()) else
-            (match decode_row ~uri row_type (result, i) with
-             | Ok y -> f y >>=? fun () -> loop (i + 1)
-             | Error _ as r -> return r)
-          in
-          loop 0
-       | {row_type; source = Single_row; query} ->
-          let rec loop () =
-            fetch_single_row ~row_type ~query () >>=? function
-             | None -> return (Ok ())
-             | Some y -> f y >>=? fun () -> loop ()
-          in
-          loop ()
+      let iter_s f {row_type; query; source} =
+        let decode = decode_row ~uri row_type in
+        (match source with
+         | Complete result ->
+            let n = result#ntuples in
+            let rec loop i =
+              if i = n then return (Ok ()) else
+              (match decode (result, i) with
+               | Ok y -> f y >>=? fun () -> loop (i + 1)
+               | Error _ as r -> return r)
+            in
+            loop 0
+         | Single_row ->
+            let rec loop () =
+              fetch_single_row ~query () >>=? function
+               | None -> return (Ok ())
+               | Some result ->
+                  (match decode (result, 0) with
+                   | Ok y -> f y >>=? fun () -> loop ()
+                   | Error _ as r -> return r)
+            in
+            loop ())
 
-      let to_stream = function
-       | {row_type; source = Complete result; _} ->
-          let n = result#ntuples in
-          let rec f i () =
-            if i = n then return Stream.Nil else
-            (match decode_row ~uri row_type (result, i) with
-             | Ok y -> return (Stream.Cons (y, f (i + 1)))
-             | Error err -> return (Stream.Error err))
-          in
-          f 0
-      | {row_type; source = Single_row; query} ->
-          let rec f () =
-            fetch_single_row ~row_type ~query () >|= function
-             | Ok None -> Stream.Nil
-             | Ok (Some y) -> Stream.Cons (y, f)
-             | Error err -> Stream.Error err
-          in
-          f
+      let to_stream {row_type; query; source} =
+        let decode = decode_row ~uri row_type in
+        (match source with
+         | Complete result ->
+            let n = result#ntuples in
+            let rec seq i () =
+              if i = n then return Stream.Nil else
+              (match decode (result, i) with
+               | Ok y -> return (Stream.Cons (y, seq (i + 1)))
+               | Error err -> return (Stream.Error err))
+            in
+            seq 0
+         | Single_row ->
+            let rec seq () =
+              fetch_single_row ~query () >|= function
+               | Ok None -> Stream.Nil
+               | Ok (Some result) ->
+                  (match decode (result, 0) with
+                   | Ok y -> Stream.Cons (y, seq)
+                   | Error err -> Stream.Error err)
+               | Error err -> Stream.Error err
+            in
+            seq)
     end
 
     let type_oid_cache = Hashtbl.create 19

@@ -231,28 +231,30 @@ let encode_param ~uri stmt t x =
   in
   Request_utils.encode_param ~uri {write_value; write_null} t x
 
-let decode_row ~uri ~query stmt row_type =
-  let read_value ~uri ft j =
+let decode_row ~uri ~query row_type =
+  let read_value ~uri ft (stmt, j) =
     (match value_of_data ~uri ft (Sqlite3.column stmt j) with
-     | Ok fv -> Ok (fv, j + 1)
+     | Ok fv -> Ok (fv, (stmt, j + 1))
      | Error _ as r -> r)
   in
-  let skip_null n j =
+  let skip_null n (stmt, j) =
     let j' = j + n in
     let rec check k =
       k = j' || Sqlite3.column stmt k = Sqlite3.Data.NULL && check (k + 1)
     in
-    if check j then Some j' else None
+    if check j then Some (stmt, j') else None
   in
   let field_decoder = {Request_utils.read_value; skip_null} in
-  (match Request_utils.decode_row ~uri field_decoder row_type 0 with
-   | Ok (y, n) ->
-      let n' = Sqlite3.data_count stmt in
-      if n = n' then Ok (Some y) else
-      let msg = sprintf "Decoded only %d of %d fields." n n' in
-      let msg = Caqti_error.Msg msg in
-      Error (Caqti_error.response_rejected ~uri ~query msg)
-   | Error _ as r -> r)
+  let decode = Request_utils.decode_row ~uri field_decoder row_type in
+  fun stmt ->
+    (match decode (stmt, 0) with
+     | Ok (y, (_, n)) ->
+        let n' = Sqlite3.data_count stmt in
+        if n = n' then Ok (Some y) else
+        let msg = sprintf "Decoded only %d of %d fields." n n' in
+        let msg = Caqti_error.Msg msg in
+        Error (Caqti_error.response_rejected ~uri ~query msg)
+     | Error _ as r -> r)
 
 module Q = struct
   open Caqti_request.Infix
@@ -304,29 +306,30 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       let returned_count _ = return (Error `Unsupported)
 
       let affected_count {affected_count; has_been_executed; query; _} =
-        if has_been_executed
-        then return (Ok affected_count)
-        else
-          let msg =
-            Caqti_error.Msg
-              "Statement not executed yet, affected_count unavailable." in
-          return (Error (Caqti_error.response_rejected ~uri ~query msg))
+        if has_been_executed then return (Ok affected_count) else
+        let msg =
+          Caqti_error.Msg
+            "Statement not executed yet, affected_count unavailable."
+        in
+        return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
       let run_step response =
         let ret = Sqlite3.step response.stmt in
-        if not response.has_been_executed
-        then (response.has_been_executed <- true;
-              response.affected_count <- Sqlite3.changes db);
+        if not response.has_been_executed then
+          begin
+            response.has_been_executed <- true;
+            response.affected_count <- Sqlite3.changes db
+          end;
         ret
 
       let fetch_row ({stmt; row_type; query; _} as response) =
-        (match run_step response with
-         | Sqlite3.Rc.DONE ->
-            Ok None
-         | Sqlite3.Rc.ROW ->
-            decode_row ~uri ~query stmt row_type
-         | rc ->
-            Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
+        let decode = decode_row ~uri ~query row_type in
+        fun () ->
+          (match run_step response with
+           | Sqlite3.Rc.DONE -> Ok None
+           | Sqlite3.Rc.ROW -> decode stmt
+           | rc ->
+              Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
 
       let exec ({row_type; query; _} as response) =
         assert (row_type = Caqti_type.unit);
@@ -343,12 +346,12 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
 
       let find resp =
         let retrieve () =
-          (match fetch_row resp with
+          (match fetch_row resp () with
            | Ok None ->
               let msg = Caqti_error.Msg "Received no rows for find." in
               Error (Caqti_error.response_rejected ~uri ~query:resp.query msg)
            | Ok (Some y) ->
-              (match fetch_row resp with
+              (match fetch_row resp () with
                | Ok None -> Ok y
                | Ok (Some _) ->
                   let msg = "Received multiple rows for find." in
@@ -356,15 +359,16 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                   let query = resp.query in
                   Error (Caqti_error.response_rejected ~uri ~query msg)
                | Error _ as r -> r)
-           | Error _ as r -> r) in
+           | Error _ as r -> r)
+        in
         Preemptive.detach retrieve ()
 
       let find_opt resp =
         let retrieve () =
-          (match fetch_row resp with
+          (match fetch_row resp () with
            | Ok None -> Ok None
            | Ok (Some y) ->
-              (match fetch_row resp with
+              (match fetch_row resp () with
                | Ok None -> Ok (Some y)
                | Ok (Some _) ->
                   let msg = "Received multiple rows for find_opt." in
@@ -372,44 +376,55 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                   let query = resp.query in
                   Error (Caqti_error.response_rejected ~uri ~query msg)
                | Error _ as r -> r)
-           | Error _ as r -> r) in
+           | Error _ as r -> r)
+        in
         Preemptive.detach retrieve ()
 
       let fold f resp acc =
+        let fetch = fetch_row resp in
         let rec retrieve acc =
-          (match fetch_row resp with
+          (match fetch () with
            | Ok None -> Ok acc
            | Ok (Some y) -> retrieve (f y acc)
-           | Error _ as r -> r) in
+           | Error _ as r -> r)
+        in
         Preemptive.detach retrieve acc
 
       let fold_s f resp acc =
+        let fetch = fetch_row resp in
         let rec retrieve acc =
-          (match fetch_row resp with
+          (match fetch () with
            | Ok None -> Ok acc
            | Ok (Some y) ->
               (match Preemptive.run_in_main (fun () -> f y acc) with
                | Ok acc -> retrieve acc
                | Error _ as r -> r)
-           | Error _ as r -> r) in
+           | Error _ as r -> r)
+        in
         Preemptive.detach retrieve acc
 
       let iter_s f resp =
+        let fetch = fetch_row resp in
         let rec retrieve () =
-          (match fetch_row resp with
+          (match fetch () with
            | Ok None -> Ok ()
            | Ok (Some y) ->
               (match Preemptive.run_in_main (fun () -> f y) with
                | Ok () -> retrieve ()
                | Error _ as r -> r)
-           | Error _ as r -> r) in
+           | Error _ as r -> r)
+        in
         Preemptive.detach retrieve ()
 
-      let rec to_stream resp () =
-        Preemptive.detach fetch_row resp >>= function
-        | Ok None -> return Stream.Nil
-        | Error err -> return (Stream.Error err)
-        | Ok (Some y) -> return (Stream.Cons (y, to_stream resp))
+      let to_stream resp =
+        let fetch = Preemptive.detach (fetch_row resp) in
+        let rec seq () =
+          fetch () >>= function
+           | Ok None -> return Stream.Nil
+           | Error err -> return (Stream.Error err)
+           | Ok (Some y) -> return (Stream.Cons (y, seq))
+        in
+        seq
     end
 
     let pcache = Hashtbl.create 19

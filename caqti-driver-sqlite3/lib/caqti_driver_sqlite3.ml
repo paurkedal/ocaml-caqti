@@ -406,7 +406,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         Preemptive.detach retrieve ()
 
       let rec to_stream resp () =
-        match fetch_row resp with
+        Preemptive.detach fetch_row resp >>= function
         | Ok None -> return Stream.Nil
         | Error err -> return (Stream.Error err)
         | Ok (Some y) -> return (Stream.Cons (y, to_stream resp))

@@ -1,0 +1,14 @@
+(executable
+ (name benchmark_fetch_many)
+ (modules benchmark_fetch_many)
+ (libraries
+    bechamel
+    bechamel-notty
+    caqti
+    caqti.blocking
+    caqti-lwt
+    caqti-dynload
+    lwt
+    lwt.unix
+    notty.unix
+    testlib))

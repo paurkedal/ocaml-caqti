@@ -9,6 +9,7 @@
     testlib
     testlib_blocking)
  (deps ../../testsuite/uris.conf)
+ (locks /db/testsuite)
  (action
   (setenv CAQTI_TEST_URIS_FILE ../../testsuite/uris.conf
    (run %{test}))))

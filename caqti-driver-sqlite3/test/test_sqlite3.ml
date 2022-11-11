@@ -23,13 +23,18 @@ module Req = struct
   include Caqti_request.Infix
 end
 
+let drop_req =
+  Req.(unit ->. unit) "DROP TABLE IF EXISTS test_sqlite3"
+
 let create_req =
-  Req.(unit -->. unit @:- "CREATE TABLE tmp (integer primary key not null)")
+  Req.(unit ->. unit) "CREATE TABLE test_sqlite3 (integer primary key not null)"
 
 let bad_insert_req =
-  Req.(unit -->! unit @:- "INSERT INTO tmp VALUES (1), (1)")
+  Req.(unit ->! unit) "INSERT INTO test_sqlite3 VALUES (1), (1)"
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
+  C.exec drop_req ()
+    |> Result.iter_error (Alcotest.failf "%a" Caqti_error.pp);
   C.exec create_req ()
     |> Result.iter_error (Alcotest.failf "%a" Caqti_error.pp);
   (match C.find bad_insert_req () with

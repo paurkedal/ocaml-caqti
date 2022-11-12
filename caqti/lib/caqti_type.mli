@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,10 +62,6 @@ type _ Field.t +=
   | Ptime : Ptime.t Field.t
   | Ptime_span : Ptime.span Field.t
   | Enum : string -> string Field.t
-
-(**/**)
-type 'a field = 'a Field.t = .. [@@deprecated "Use Field.t."]
-(**/**)
 
 (** {2:row_types Row Types} *)
 

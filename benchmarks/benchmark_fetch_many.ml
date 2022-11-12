@@ -19,8 +19,6 @@
 open Bechamel
 open Bechamel.Toolkit
 
-let connect_uri = Uri.of_string "postgresql://"
-
 let fetch_many_request =
   let open Caqti_request.Infix in
   let open Caqti_type.Std in
@@ -77,7 +75,7 @@ end)
 
 (* TODO: Can we run async under a benchamel test? *)
 
-let test uris = Test.make_grouped ~name:"retrieve" [
+let test uris = Test.make_grouped ~name:"fetch-many" [
   Test_blocking.test uris;
   Test_lwt.test uris;
 ]

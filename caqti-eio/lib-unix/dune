@@ -1,0 +1,12 @@
+(library
+ (name caqti_eio_unix)
+ (public_name caqti-eio.unix)
+ (optional)
+ (libraries
+    caqti
+    caqti.platform
+    caqti.platform.net
+    caqti.platform.unix
+    eio
+    eio.unix
+    logs))

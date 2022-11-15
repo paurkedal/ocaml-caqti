@@ -1,0 +1,7 @@
+(library
+ (name testlib_eio_unix)
+ (libraries
+    alcotest
+    caqti
+    caqti_eio_unix
+    testlib))

@@ -1,0 +1,28 @@
+opam-version: "2.0"
+name: "caqti-eio"
+maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: "Petter A. Urkedal <paurkedal@gmail.com>"
+license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
+homepage: "https://github.com/paurkedal/ocaml-caqti/"
+doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
+bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
+depends: [
+  "alcotest" {with-test & >= "1.5.0"}
+  "caqti" {>= "1.9.0" & < "1.10.0~"}
+  "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
+  "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
+  "cmdliner" {with-test & >= "1.1.0"}
+  "dune" {>= "2.0"}
+  "eio"
+  "eio_main" {with-test}
+  "logs"
+  "ocaml" {>= "5.0.0~"}
+  "odoc" {with-doc}
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
+]
+dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
+synopsis: "Lwt support for Caqti"

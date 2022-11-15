@@ -18,6 +18,16 @@
     unix))
 
 (executable
+ (name main_eio_unix)
+ (modules main_eio_unix)
+ (optional)
+ (libraries
+    benchmark_fetch_many
+    caqti-eio.unix
+    eio
+    eio_main))
+
+(executable
  (name main_lwt_unix)
  (modules main_lwt_unix)
  (libraries

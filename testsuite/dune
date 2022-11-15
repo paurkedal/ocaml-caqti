@@ -30,6 +30,20 @@
   (action (setenv OCAMLPATH . (run %{test}))))
 
 (executable
+  (name main_eio_unix)
+  (modules main_eio_unix)
+  (libraries
+    caqti caqti-eio.unix caqti-dynload
+    alcotest eio eio_main testlib testlib_eio_unix testsuite))
+
+(rule
+  (alias runtest)
+  (package caqti-dynload)
+  (deps (:test main_eio_unix.exe) (alias drivers) uris.conf)
+  (locks /db/testsuite)
+  (action (setenv OCAMLPATH . (run %{test}))))
+
+(executable
   (name main_async)
   (modules main_async)
   (libraries

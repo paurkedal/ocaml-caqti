@@ -51,7 +51,8 @@ module type Ground = sig
 
   val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
 
-  module Caqti_sys : Caqti_connect_sig.S with type 'a future := 'a future
+  module Caqti_sys : Caqti_connect_sig.S_without_connect
+    with type 'a future := 'a future
 
   module Alcotest_cli : Alcotest_cli with type return = unit future
 

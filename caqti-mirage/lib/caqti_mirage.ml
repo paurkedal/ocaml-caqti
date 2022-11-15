@@ -31,7 +31,6 @@ module System_common = struct
   let catch = Lwt.catch
   let finally = Lwt.finalize
   let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
-  let join = Lwt.join
 
   module Mvar = struct
     type 'a t = 'a Lwt_mvar.t

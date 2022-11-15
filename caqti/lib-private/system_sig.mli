@@ -51,10 +51,6 @@ module type S = sig
   (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
       and only if [f ()] failed with an exception or a monadic failure. *)
 
-  val join : unit future list -> unit future
-  (** [join ms] runs the elements of [ms] in parallel if supported by the
-      concurrency implementation. *)
-
   module Mvar : sig
     type 'a t
     val create : unit -> 'a t

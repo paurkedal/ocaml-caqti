@@ -33,8 +33,6 @@ module System = struct
 
   let cleanup f g = try f () with exn -> g (); raise exn
 
-  let join (_ : unit list) = ()
-
   module Mvar = struct
     type 'a t = 'a option ref
     let create () = ref None

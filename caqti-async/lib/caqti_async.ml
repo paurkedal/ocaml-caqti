@@ -43,8 +43,6 @@ module System = struct
      | Ok y -> return y
      | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
 
-  let join = Deferred.all_unit
-
   module Mvar = struct
     type 'a t = 'a Ivar.t
     let create = Ivar.create

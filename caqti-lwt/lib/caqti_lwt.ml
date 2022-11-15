@@ -28,8 +28,6 @@ module System = struct
 
   let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
 
-  let join = Lwt.join
-
   module Mvar = struct
     type 'a t = 'a Lwt_mvar.t
     let create = Lwt_mvar.create_empty

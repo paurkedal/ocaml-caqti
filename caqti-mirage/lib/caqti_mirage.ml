@@ -32,11 +32,11 @@ module System_common = struct
   let finally = Lwt.finalize
   let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
 
-  module Mvar = struct
-    type 'a t = 'a Lwt_mvar.t
+  module Semaphore = struct
+    type t = unit Lwt_mvar.t
     let create = Lwt_mvar.create_empty
-    let store x v = Lwt.async (fun () -> Lwt_mvar.put v x)
-    let fetch = Lwt_mvar.take
+    let release v = Lwt.async (Lwt_mvar.put v)
+    let acquire = Lwt_mvar.take
   end
 
   module Log = struct

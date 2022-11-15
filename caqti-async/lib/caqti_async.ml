@@ -43,11 +43,11 @@ module System = struct
      | Ok y -> return y
      | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
 
-  module Mvar = struct
-    type 'a t = 'a Ivar.t
+  module Semaphore = struct
+    type t = unit Ivar.t
     let create = Ivar.create
-    let store x v = Ivar.fill v x
-    let fetch v = Ivar.read v
+    let release v = Ivar.fill v ()
+    let acquire v = Ivar.read v
   end
 
   module Log = struct

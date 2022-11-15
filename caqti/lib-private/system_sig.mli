@@ -51,11 +51,11 @@ module type S = sig
   (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
       and only if [f ()] failed with an exception or a monadic failure. *)
 
-  module Mvar : sig
-    type 'a t
-    val create : unit -> 'a t
-    val store : 'a -> 'a t -> unit
-    val fetch : 'a t -> 'a future
+  module Semaphore : sig
+    type t
+    val create : unit -> t
+    val release : t -> unit
+    val acquire : t -> unit future
   end
 
   module Log : sig

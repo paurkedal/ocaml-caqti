@@ -30,8 +30,8 @@ module Make (System : System_sig.S) = struct
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
 
   module Task = struct
-    type t = {priority: float; mvar: unit Mvar.t}
-    let wake {mvar; _} = Mvar.store () mvar
+    type t = {priority: float; semaphore: Semaphore.t}
+    let wake {semaphore; _} = Semaphore.release semaphore
     let compare {priority = pA; _} {priority = pB; _} = Float.compare pB pA
   end
 
@@ -74,9 +74,9 @@ module Make (System : System_sig.S) = struct
   let size {cur_size; _} = cur_size
 
   let wait ~priority p =
-    let mvar = Mvar.create () in
-    p.waiting <- Taskq.push Task.({priority; mvar}) p.waiting;
-    Mvar.fetch mvar
+    let semaphore = Semaphore.create () in
+    p.waiting <- Taskq.push Task.({priority; semaphore}) p.waiting;
+    Semaphore.acquire semaphore
 
   let schedule p =
     if not (Taskq.is_empty p.waiting) then begin

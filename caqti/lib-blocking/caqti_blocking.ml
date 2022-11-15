@@ -33,14 +33,13 @@ module System = struct
 
   let cleanup f g = try f () with exn -> g (); raise exn
 
-  module Mvar = struct
-    type 'a t = 'a option ref
-    let create () = ref None
-    let store x v = v := Some x
-    let fetch v =
-      (match !v with
-       | None -> failwith "Attempt to fetch empty mvar from blocking client."
-       | Some x -> x)
+  module Semaphore = struct
+    type t = bool ref
+    let create () = ref false
+    let release v = v := true
+    let acquire v =
+      if not !v then
+        failwith "Cannot acquire unreleased semaphore in blocking context."
   end
 
   module Log = struct

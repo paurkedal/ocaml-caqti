@@ -1,14 +1,29 @@
-(executable
+(library
  (name benchmark_fetch_many)
  (modules benchmark_fetch_many)
  (libraries
     bechamel
     bechamel-notty
     caqti
-    caqti.blocking
-    caqti-lwt
     caqti-dynload
-    lwt
-    lwt.unix
     notty.unix
     testlib))
+
+(executable
+ (name main_blocking)
+ (modules main_blocking)
+ (libraries
+    benchmark_fetch_many
+    caqti.blocking
+    unix))
+
+(executable
+ (name main_lwt_unix)
+ (modules main_lwt_unix)
+ (libraries
+    benchmark_fetch_many
+    caqti-lwt
+    lwt
+    lwt.unix))
+
+; TODO: Can we run async under a benchamel test?

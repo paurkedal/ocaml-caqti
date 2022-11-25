@@ -4,4 +4,5 @@
   (modules Caqti_lwt)
   (libraries
     caqti caqti.private caqti.platform.net caqti.platform.unix
+    domain-name ipaddr
     logs logs.lwt lwt lwt.unix))

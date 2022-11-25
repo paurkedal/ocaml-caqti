@@ -24,14 +24,37 @@ module type S = sig
     val enqueue : 'a t -> ('a -> 'b future) -> 'b future
   end
 
-  module Networking : sig
+  module Net : sig
+
+    module Sockaddr : sig
+      type t
+      val unix : string -> t
+      val tcp : Ipaddr.t * int -> t
+    end
 
     type in_channel
     type out_channel
 
-    type sockaddr = Unix of string | Inet of string * int
+    val getaddrinfo :
+      [`host] Domain_name.t -> int ->
+      (Sockaddr.t list, [> `Msg of string]) result future
+    (** This should be a specialized version of getaddrinfo, which only returns
+        entries which is expected to work with the corresponding connect on the
+        platform implementing this interface.  In particular:
 
-    val open_connection : sockaddr -> (in_channel * out_channel) future
+          - The family can be IPv4 or IPv6, where supported, and this must be
+            encoded in the {!Sockaddr.t}.
+          - The socket type is restricted to STREAM.
+          - The protocol is assumed to be selected automatically from address
+            family, given the socket type restriction.
+
+        All returned values are TCP destinations.  If a distinction can be made,
+        an empty list indicates that the address has no DNS entries, while an
+        error return indicates that an appropriate DNS server could not be
+        queried. *)
+
+    val connect :
+      Sockaddr.t -> (in_channel * out_channel, [> `Msg of string]) result future
 
     (* TODO: STARTTLS *)
 

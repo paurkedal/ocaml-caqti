@@ -97,21 +97,34 @@ module System = struct
     let enqueue = Throttle.enqueue
   end
 
-  module Networking = struct
+  module Net = struct
+
+    module Sockaddr = struct
+      type t = Async_unix.Unix.sockaddr
+
+      let unix s = Async_unix.Unix.ADDR_UNIX s
+      let tcp (addr, port) =
+        Async_unix.Unix.ADDR_INET
+          (Core_unix.Inet_addr.of_string (Ipaddr.to_string addr), port)
+    end
+
     type in_channel = Reader.t
     type out_channel = Writer.t
 
-    type sockaddr = Unix of string | Inet of string * int
+    let getaddrinfo host port =
+      let module Ai = Async_unix.Unix.Addr_info in
+      let extract ai = ai.Ai.ai_addr in
+      Ai.get ~host:(Domain_name.to_string host) ~service:(string_of_int port)
+             Ai.[AI_SOCKTYPE SOCK_STREAM]
+      >|= List.map ~f:extract >|= (fun addrs -> Ok addrs)
 
-    (* Cf. pgx_async *)
-    let open_connection sockaddr =
-      (match sockaddr with
-       | Unix path ->
-          Conduit_async.connect (`Unix_domain_socket path)
-       | Inet (host, port) ->
-          Conduit_async.V3.resolve_uri (Uri.make ~host ~port ())
-            >>= Conduit_async.V3.connect
-            >|= fun (_socket, ic, oc) -> (ic, oc))
+    let connect = function
+     | Async_unix.Unix.ADDR_INET (addr, port) ->
+        Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
+          >|= fun (_socket, ic, oc) -> Ok (ic, oc)
+     | Async_unix.Unix.ADDR_UNIX path ->
+        Conduit_async.V3.(connect (Unix (`Unix path)))
+          >|= fun (_socket, ic, oc) -> Ok (ic, oc)
 
     let output_char oc c = return (Writer.write_char oc c)
     let output_string oc s = return (Writer.write oc s)

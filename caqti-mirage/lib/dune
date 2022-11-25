@@ -5,6 +5,7 @@
     caqti caqti.private caqti.platform.net
     conduit-mirage
     dns-client dns-client.mirage
+    domain-name ipaddr
     logs logs.lwt lwt
     mirage-channel
     mirage-clock

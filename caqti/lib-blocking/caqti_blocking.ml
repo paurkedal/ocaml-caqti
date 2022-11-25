@@ -56,26 +56,31 @@ module System = struct
     let enqueue m f = f m
   end
 
-  module Networking = struct
+  module Net = struct
+    module Sockaddr = struct
+      type t = Unix.sockaddr
+      let unix s = Unix.ADDR_UNIX s
+      let tcp (addr, port) =
+        Unix.ADDR_INET (Unix.inet_addr_of_string (Ipaddr.to_string addr), port)
+    end
+
     type nonrec in_channel = in_channel
     type nonrec out_channel = out_channel
-    type sockaddr = Unix of string | Inet of string * int
 
-    (* From pgx_unix. *)
-    let open_connection sockaddr =
-      let std_socket =
-        match sockaddr with
-        | Unix path -> Unix.ADDR_UNIX path
-        | Inet (hostname, port) ->
-          let hostent = Unix.gethostbyname hostname in
-          (* Choose a random address from the list. *)
-          let addrs = hostent.Unix.h_addr_list in
-          let len = Array.length addrs in
-          let i = Random.int len in
-          let addr = addrs.(i) in
-          Unix.ADDR_INET (addr, port)
-      in
-      Unix.open_connection std_socket
+    let getaddrinfo host port =
+      try
+        let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
+        Unix.getaddrinfo (Domain_name.to_string host) (string_of_int port) opts
+          |> List.map (fun ai -> ai.Unix.ai_addr) |> Result.ok
+      with
+       | Not_found -> Ok []
+       | Unix.Unix_error (code, _, _) ->
+          Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
+
+    let connect sockaddr =
+      try Ok (Unix.open_connection sockaddr) with
+       | Unix.Unix_error (code, _, _) ->
+          Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
 
     let output_char = output_char
     let output_string = output_string

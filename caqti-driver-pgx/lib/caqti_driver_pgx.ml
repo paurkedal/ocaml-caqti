@@ -280,6 +280,8 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
           return (Error (h (Pgx_msg (msg, err))))
        | End_of_file ->
           return (Error (h (Caqti_error.Msg "Unexpected EOF from server.")))
+       | Failure msg -> (* Raised by our Pgx.Io implementation. *)
+          return (Error (h (Caqti_error.Msg msg)))
        | exn ->
           raise exn)
 
@@ -294,7 +296,31 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
     let ( >>= ) = ( >>= )
     let catch = catch
 
-    include Networking
+    include Net
+
+    type sockaddr = Unix of string | Inet of string * int
+
+    let open_connection sockaddr =
+      (match sockaddr with
+       | Unix path ->
+          connect (Sockaddr.unix path)
+       | Inet (host, port) ->
+          (match Ipaddr.of_string host with
+           | Ok ipaddr ->
+              connect (Sockaddr.tcp (ipaddr, port))
+           | Error _ ->
+              let host' = host
+                |> Domain_name.of_string_exn
+                |> Domain_name.host_exn
+              in
+              getaddrinfo host' port >>= (function
+               | Ok [] ->
+                  failwith "The host name does not resolve."
+               | Ok (sockaddr :: _) ->
+                  connect sockaddr
+               | Error (`Msg msg) ->
+                  failwith msg)))
+      >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
 
     (* TODO *)
     type ssl_config

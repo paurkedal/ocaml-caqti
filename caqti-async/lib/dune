@@ -5,4 +5,6 @@
   (libraries
     async_kernel async_unix
     caqti caqti.private caqti.platform.net caqti.platform.unix
-    conduit-async core_kernel logs))
+    conduit-async core_kernel
+    domain-name ipaddr
+    logs))

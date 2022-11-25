@@ -14,7 +14,9 @@ depends: [
   "angstrom" {>= "0.14.0"}
   "bigstringaf"
   "cmdliner" {with-test & >= "1.1.0"}
+  "domain-name"
   "dune" {>= "2.0"}
+  "ipaddr"
   "logs"
   "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}

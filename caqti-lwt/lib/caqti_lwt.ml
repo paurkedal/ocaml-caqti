@@ -59,23 +59,40 @@ module System = struct
     let enqueue (m, mutex) f = Lwt_mutex.with_lock mutex (fun () -> f m)
   end
 
-  module Networking = struct
+  module Net = struct
+
+    module Sockaddr = struct
+      type t = Unix.sockaddr
+      let unix s = Unix.ADDR_UNIX s
+      let tcp (addr, port) =
+        Unix.ADDR_INET (Unix.inet_addr_of_string (Ipaddr.to_string addr), port)
+    end
+
     type in_channel = Lwt_io.input_channel
     type out_channel = Lwt_io.output_channel
-    type sockaddr = Unix of string | Inet of string * int
 
-    let resolve host =
-      (* TODO: Error handling. *)
-      Lwt_unix.gethostbyname host >|= fun {h_addr_list; _} ->
-      h_addr_list.(Random.int (Array.length h_addr_list))
+    let getaddrinfo host port =
+      Lwt.catch
+        (fun () ->
+          let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
+          Lwt_unix.getaddrinfo
+            (Domain_name.to_string host) (string_of_int port) opts
+            >|= List.map (fun ai -> ai.Unix.ai_addr) >|= Result.ok)
+        (function
+         | Not_found -> Lwt.return_ok []
+         | Unix.Unix_error (code, _, _) ->
+            Lwt.return_error
+              (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
+         | exn -> Lwt.fail exn)
 
-    let open_connection sockaddr =
-      (match sockaddr with
-       | Unix path ->
-          return (Unix.ADDR_UNIX path)
-       | Inet (host, port) ->
-          resolve host >|= fun addr -> Unix.ADDR_INET (addr, port))
-      >>= Lwt_io.open_connection
+    let connect sockaddr =
+      Lwt.catch
+        (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
+        (function
+         | Unix.Unix_error (code, _, _) ->
+            Lwt.return_error
+              (`Msg ("Cannot connect: " ^ Unix.error_message code))
+         | exn -> Lwt.fail exn)
 
     let output_char = Lwt_io.write_char
     let output_string = Lwt_io.write

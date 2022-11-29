@@ -15,14 +15,17 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Eio.Std
+
 include Benchmark_fetch_many.Make (struct
   let name = "eio-unix"
   type 'a future = 'a
-  type context = Eio.Stdenv.t
+  type context = Eio.Stdenv.t * Switch.t
   let run_fiber f = f ()
-  let run_main = Eio_main.run
+  let run_main f =
+    Eio_main.run (fun stdenv -> Switch.run (fun sw -> f (stdenv, sw)))
   let (>>=) x f = f x
   let (>|=) x f = f x
   include Caqti_eio_unix
-  let connect stdenv uri = connect stdenv uri
+  let connect (stdenv, sw) uri = connect stdenv ~sw uri
 end)

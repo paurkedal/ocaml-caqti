@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Eio.Std
+
 open Testlib
 open Testlib_eio_unix
 
@@ -51,17 +53,17 @@ let env =
   let (&) f g di var = try f di var with Not_found -> g di var in
   Test_sql.env & Test_error_cause.env
 
-let mk_tests stdenv {uris; tweaks_version} =
-  let connect_pool stdenv uri =
-    (match Caqti_eio_unix.connect_pool stdenv uri
+let mk_tests (stdenv, sw) {uris; tweaks_version} =
+  let connect_pool (stdenv, sw) uri =
+    (match Caqti_eio_unix.connect_pool stdenv ~sw uri
             ~max_size:1 ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in
-  let pools = List.map (connect_pool stdenv) uris in
+  let pools = List.map (connect_pool (stdenv, sw)) uris in
   List.map mk_test pools
 
-let () = Eio_main.run begin fun stdenv ->
-  Alcotest_cli.run_with_args_dependency "test_sql_eio"
-    Testlib.common_args (mk_tests stdenv)
-end
+let () =
+  Eio_main.run @@ fun stdenv -> Switch.run @@ fun sw ->
+    Alcotest_cli.run_with_args_dependency "test_sql_eio"
+      Testlib.common_args (mk_tests (stdenv, sw))

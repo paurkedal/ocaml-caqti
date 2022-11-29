@@ -58,6 +58,9 @@ module type S = sig
 
     (* TODO: STARTTLS *)
 
+    (* These are currently only used by PGX.  Despite the flush, it PGX is doing
+     * it's own buffering, so unbuffered should be okay.  output_char and
+     * input_char are only used for the packet header. *)
     val output_char : out_channel -> char -> unit future
     val output_string : out_channel -> string -> unit future
     val flush : out_channel -> unit future

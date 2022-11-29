@@ -1,0 +1,48 @@
+{0 caqti index}
+
+{1 Library caqti}
+
+This library exposes the following toplevel modules:
+{!modules:
+    Caqti_connect_sig
+    Caqti_connection_sig
+    Caqti_driver_info
+    Caqti_error
+    Caqti_mult
+    Caqti_pool_sig
+    Caqti_query
+    Caqti_request
+    Caqti_response_sig
+    Caqti_stream_sig
+    Caqti_type
+    Caqti_type_sig
+}
+
+{1 Library caqti.blocking}
+
+This library implements the blocking (non-)concurrency using the unix library.
+Real concurrency support is provided by separate packages.
+
+The entry point of this library is the module:
+{!module-Caqti_blocking}.
+
+{1 Platform Libraries for Internal Use}
+
+The platform libraries are only meant for use in implementing drivers and
+concurrency support.  {b These APIs are unstable}, i.e. they can change between
+minor version and without prior deprecation notices.
+
+{2 Library caqti.platform}
+
+The entry point of this library is the module:
+{!module-Caqti_platform}.
+
+{2 Library caqti.platform.net}
+
+The entry point of this library is the module:
+{!module-Caqti_platform_net}.
+
+{2 Library caqti.platform.unix}
+
+The entry point of this library is the module:
+{!module-Caqti_platform_unix}.

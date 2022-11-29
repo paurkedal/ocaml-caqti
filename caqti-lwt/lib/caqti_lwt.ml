@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private
+open Caqti_platform
 
 module System = struct
 
@@ -45,7 +45,7 @@ module System = struct
 
   module Preemptive = Lwt_preemptive
 
-  module Stream = Caqti_private.Stream.Make (struct
+  module Stream = Caqti_platform.Stream.Make (struct
     type nonrec 'a future = 'a future
     let (>>=) = Lwt.(>>=)
     let (>|=) = Lwt.(>|=)

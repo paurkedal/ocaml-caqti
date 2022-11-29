@@ -24,9 +24,9 @@ let datetuple_of_iso8601 s =
        int_of_string (String.sub s 5 2),
        int_of_string (String.sub s 8 2))
     with Failure _ ->
-      failwith "Caqti_private.datetuple_of_iso8601"
+      failwith "Caqti_platform.datetuple_of_iso8601"
   else
-    failwith "Caqti_private.datetuple_of_iso8601"
+    failwith "Caqti_platform.datetuple_of_iso8601"
 
 let iso8601_of_datetuple (y, m, d) =
   sprintf "%04d-%02d-%02d" y m d

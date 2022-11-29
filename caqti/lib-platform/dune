@@ -1,6 +1,6 @@
 (library
- (name caqti_private)
- (public_name caqti.private)
+ (name caqti_platform)
+ (public_name caqti.platform)
  (modules_without_implementation
     driver_sig
     system_sig)

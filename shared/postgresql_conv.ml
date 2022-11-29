@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private
+open Caqti_platform
 open Printf
 
 let bool_of_pgstring = function

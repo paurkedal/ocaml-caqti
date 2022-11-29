@@ -4,4 +4,4 @@
  (wrapped false)
  (modules Caqti_driver_mariadb)
  (library_flags (:standard -linkall))
- (libraries caqti caqti.private caqti.platform.unix mariadb))
+ (libraries caqti caqti.platform caqti.platform.unix mariadb))

@@ -19,7 +19,7 @@
 
 open Async_kernel
 open Async_unix
-open Caqti_private
+open Caqti_platform
 open Core
 
 module System = struct
@@ -83,7 +83,7 @@ module System = struct
     let run_in_main f = Thread_safe.block_on_async_exn f
   end
 
-  module Stream = Caqti_private.Stream.Make (struct
+  module Stream = Caqti_platform.Stream.Make (struct
     type 'a future = 'a Deferred.t
     let (>>=) m f = Deferred.bind m ~f
     let (>|=) = Deferred.(>>|)

@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private
+open Caqti_platform
 
 module System = struct
 
@@ -105,7 +105,7 @@ module System = struct
     let run_in_main f = f ()
   end
 
-  module Stream = Caqti_private.Stream.Make (struct
+  module Stream = Caqti_platform.Stream.Make (struct
     type 'a future = 'a
     let (>>=) x f = f x
     let (>|=) x f = f x

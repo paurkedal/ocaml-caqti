@@ -17,12 +17,12 @@
 
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Caqti_private.Driver_sig.S
+  Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
 
-module Make (System : System_sig.S) : Caqti_private.Driver_sig.Loader
+module Make (System : System_sig.S) : Caqti_platform.Driver_sig.Loader
   with type 'a future := 'a System.future
    and type ('a, 'e) stream := ('a, 'e) System.Stream.t

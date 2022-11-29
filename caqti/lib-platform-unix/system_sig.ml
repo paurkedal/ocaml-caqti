@@ -16,7 +16,7 @@
  *)
 
 module type S = sig
-  include Caqti_private.System_sig.S
+  include Caqti_platform.System_sig.S
 
   module Unix : sig
     type file_descr

@@ -4,4 +4,4 @@
   (wrapped false)
   (modules Caqti_dynload)
   (library_flags (-linkall))
-  (libraries caqti caqti.private findlib.dynload))
+  (libraries caqti caqti.platform findlib.dynload))

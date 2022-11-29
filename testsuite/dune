@@ -11,7 +11,7 @@
   (name testsuite)
   (wrapped false)
   (modules test_error_cause test_failure test_parallel test_param test_sql)
-  (libraries caqti caqti.private ptime.clock.os testlib))
+  (libraries caqti caqti.platform ptime.clock.os testlib))
 
 ; Instantiations of the testsuite.
 
@@ -33,7 +33,7 @@
   (name main_async)
   (modules main_async)
   (libraries
-    caqti caqti.private caqti-dynload caqti-async
+    caqti caqti.platform caqti-dynload caqti-async
     alcotest-async testlib testlib_async testsuite))
 
 (rule
@@ -47,7 +47,7 @@
   (name main_lwt)
   (modules main_lwt)
   (libraries
-    caqti caqti.private caqti-dynload caqti-lwt
+    caqti caqti.platform caqti-dynload caqti-lwt
     alcotest-lwt testlib testlib_lwt testsuite))
 
 (rule

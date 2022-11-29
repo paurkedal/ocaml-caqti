@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_private
+open Caqti_platform
 open Lwt.Syntax
 
 module Future = struct
@@ -47,7 +47,7 @@ module System_common = struct
     let debug ?(src = Logging.default_log_src) = Logs_lwt.debug ~src
   end
 
-  module Stream = Caqti_private.Stream.Make (Future)
+  module Stream = Caqti_platform.Stream.Make (Future)
 end
 
 module System_except_networking = struct

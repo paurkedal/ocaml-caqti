@@ -1,5 +1,6 @@
 (library
  (name testlib_eio_unix)
+ (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries
     alcotest
     caqti

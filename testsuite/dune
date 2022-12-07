@@ -31,6 +31,7 @@
 
 (executable
   (name main_eio_unix)
+  (enabled_if (>= %{ocaml_version} "5.0"))
   (modules main_eio_unix)
   (libraries
     caqti caqti-eio.unix caqti-dynload
@@ -39,6 +40,7 @@
 (rule
   (alias runtest)
   (package caqti-dynload)
+  (enabled_if (>= %{ocaml_version} "5.0"))
   (deps (:test main_eio_unix.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))

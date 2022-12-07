@@ -20,7 +20,7 @@
 (executable
  (name main_eio_unix)
  (modules main_eio_unix)
- (optional)
+ (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries
     benchmark_fetch_many
     caqti-eio.unix

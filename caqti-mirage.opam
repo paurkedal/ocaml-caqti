@@ -15,7 +15,7 @@ depends: [
   "cmdliner" {with-test & >= "1.1.0"}
   "conduit-mirage"
   "dns-client"
-  "dune" {>= "2.0"}
+  "dune" {>= "2.5"}
   "logs"
   "lwt" {>= "3.2.0"}
   "mirage-channel"

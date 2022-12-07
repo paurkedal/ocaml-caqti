@@ -1,7 +1,7 @@
 (library
  (name caqti_eio_unix)
  (public_name caqti-eio.unix)
- (optional)
+ (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries
     caqti
     caqti.platform

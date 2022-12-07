@@ -29,3 +29,4 @@ module Make :
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type connection := connection
      and type 'a connect_fun := STACK.t -> Uri.t -> 'a
+     and type 'a with_connection_fun := STACK.t -> Uri.t -> 'a

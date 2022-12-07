@@ -21,21 +21,12 @@
     with Eio. *)
 
 include Caqti_connect_sig.S_without_connect with type 'a future := 'a
-
-val connect :
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?tweaks_version: int * int ->
-  Eio.Stdenv.t -> sw: Eio.Switch.t -> Uri.t ->
-  (connection, [> Caqti_error.load_or_connect]) result
-
-val connect_pool :
-  ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
-  ?post_connect: (connection -> (unit, 'connect_error) result) ->
-  ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-  ?tweaks_version: int * int ->
-  Eio.Stdenv.t -> sw: Eio.Switch.t -> Uri.t ->
-  ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
-   [> Caqti_error.load]) result
+include Caqti_connect_sig.Connect
+  with type 'a future := 'a
+   and type ('a, 'e) pool := ('a, 'e) Pool.t
+   and type connection := connection
+   and type 'a connect_fun := Eio.Stdenv.t -> sw: Eio.Switch.t -> Uri.t -> 'a
+   and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Eliminates the error-case by raising {!Caqti_error.Exn}. *)

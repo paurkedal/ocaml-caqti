@@ -18,6 +18,7 @@
 open Eio.Std
 open Caqti_platform
 
+let ( let/? ) r f = Result.bind r f
 let ( let-? ) r f = Result.map f r
 
 module type STDENV = sig
@@ -202,6 +203,12 @@ let connect_pool
   in
   Switch.on_release sw (fun () -> Pool.drain pool);
   pool
+
+let with_connection ?env ?tweaks_version stdenv uri f =
+  Switch.run begin fun sw ->
+    let/? connection = connect ?env ?tweaks_version stdenv ~sw uri in
+    f connection
+  end
 
 let or_fail = function
  | Ok x -> x

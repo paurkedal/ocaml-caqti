@@ -40,5 +40,6 @@ module Make_connect :
      and type connection := Make_without_connect (System).connection
      and type ('a, 'e) pool := ('a, 'e) Make_without_connect (System).Pool.t
      and type 'a connect_fun := Uri.t -> 'a
+     and type 'a with_connection_fun := Uri.t -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

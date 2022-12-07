@@ -42,6 +42,7 @@ module type Connect = sig
   type connection
   type ('a, +'e) pool
   type +'a connect_fun
+  type +'a with_connection_fun
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -72,7 +73,7 @@ module type Connect = sig
     ?tweaks_version: int * int ->
     ((connection ->
       ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
-     ('a, 'e) result future) connect_fun
+     ('a, 'e) result future) with_connection_fun
   (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
       to [Ok connection], [with_connection] passes the connection to [f]. Once
       [f] either evaluates to a [result], or raises an exception,
@@ -134,4 +135,5 @@ module type S = sig
      and type connection := connection
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a connect_fun := Uri.t -> 'a
+     and type 'a with_connection_fun := Uri.t -> 'a
 end

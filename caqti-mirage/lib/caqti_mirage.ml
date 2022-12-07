@@ -184,6 +184,7 @@ struct
      and type connection := connection
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a connect_fun := Uri.t -> 'a
+     and type 'a with_connection_fun := Uri.t -> 'a
 
   let connect_stack stack =
     let module System = System (struct let stack = stack end) in

@@ -44,6 +44,8 @@ module type Connect = sig
   type +'a connect_fun
 
   val connect :
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     (connection, [> Caqti_error.load_or_connect]) result future connect_fun
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
@@ -66,6 +68,8 @@ module type Connect = sig
         on the connection. *)
 
   val with_connection :
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     ((connection ->
       ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
      ('a, 'e) result future) connect_fun
@@ -80,6 +84,8 @@ module type Connect = sig
   val connect_pool :
     ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?tweaks_version: int * int ->
     ((connection, [> Caqti_error.connect] as 'connect_error) pool,
      [> Caqti_error.load]) result connect_fun
   (** [connect_pool uri] is a pool of database connections constructed by
@@ -127,8 +133,5 @@ module type S = sig
     with type 'a future := 'a future
      and type connection := connection
      and type ('a, 'e) pool := ('a, 'e) Pool.t
-     and type 'a connect_fun :=
-      ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-      ?tweaks_version: int * int ->
-      Uri.t -> 'a
+     and type 'a connect_fun := Uri.t -> 'a
 end

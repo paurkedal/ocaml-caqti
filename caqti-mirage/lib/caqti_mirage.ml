@@ -183,10 +183,7 @@ struct
     with type 'a future := 'a future
      and type connection := connection
      and type ('a, 'e) pool := ('a, 'e) Pool.t
-     and type 'a connect_fun :=
-      ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-      ?tweaks_version: int * int ->
-      Uri.t -> 'a
+     and type 'a connect_fun := Uri.t -> 'a
 
   let connect_stack stack =
     let module System = System (struct let stack = stack end) in

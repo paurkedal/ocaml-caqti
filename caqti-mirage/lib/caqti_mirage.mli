@@ -28,7 +28,4 @@ module Make :
     with type 'a future := 'a Lwt.t
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type connection := connection
-     and type 'a connect_fun :=
-        ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-        ?tweaks_version: int * int ->
-        STACK.t -> Uri.t -> 'a
+     and type 'a connect_fun := STACK.t -> Uri.t -> 'a

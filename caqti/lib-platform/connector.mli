@@ -39,9 +39,6 @@ module Make_connect :
     with type 'a future = 'a System.future
      and type connection := Make_without_connect (System).connection
      and type ('a, 'e) pool := ('a, 'e) Make_without_connect (System).Pool.t
-     and type 'a connect_fun :=
-        ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-        ?tweaks_version: int * int ->
-        Uri.t -> 'a
+     and type 'a connect_fun := Uri.t -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

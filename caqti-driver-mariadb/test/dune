@@ -1,6 +1,7 @@
 (test
  (name test_mariadb)
  (package caqti-driver-mariadb)
+ (enabled_if %{lib-available:caqti-driver-mariadb})
  (libraries
     alcotest
     caqti

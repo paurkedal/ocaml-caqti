@@ -96,6 +96,7 @@
 (alias
   (name drivers)
   (package caqti-driver-mariadb)
+  (enabled_if %{lib-available:caqti-driver-mariadb})
   (deps
     (:first-dep META.caqti-driver-mariadb)
     %{cma:../caqti-driver-mariadb/lib/caqti_driver_mariadb}

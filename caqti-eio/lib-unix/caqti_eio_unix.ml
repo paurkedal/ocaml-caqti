@@ -72,9 +72,16 @@ module Make_system (Stdenv : STDENV) = struct
 
   module Sequencer = struct
     type 'a t = 'a * Eio.Mutex.t
+
     let create x = (x, Eio.Mutex.create ())
+
     let enqueue (x, mutex) f =
-      Eio.Mutex.use_rw ~protect:true mutex (fun () -> f x)
+      (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
+       * preventing recovery from e.g. a statement timeout. *)
+      Eio.Mutex.lock mutex;
+      (match f x with
+       | y -> Eio.Mutex.unlock mutex; y
+       | exception exn -> Eio.Mutex.unlock mutex; raise exn)
   end
 
   module Net = struct

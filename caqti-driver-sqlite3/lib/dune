@@ -1,7 +1,6 @@
 (library
  (name caqti_driver_sqlite3)
  (public_name caqti-driver-sqlite3)
- (wrapped false)
  (flags (-thread))
  (modules Caqti_driver_sqlite3)
  (library_flags (:standard -linkall))

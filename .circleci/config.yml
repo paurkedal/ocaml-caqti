@@ -22,15 +22,18 @@ jobs:
           command: |
             version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
             for f in *.opam; do
-              opam pin add -yn "${f%.opam}.${version}.dev" .
+              if [ "$f" != caqti-eio.opam ]; then
+                echo >>.ci-tmp-packages "${f%.opam}"
+                opam pin add -yn "${f%.opam}.${version}.dev" .
+              fi
             done
       - run:
           name: Install system dependencies
           command: |
-            opam depext -y $(ls -1 *.opam | sed -e 's/\.opam$//')
+            opam depext -y $(cat .ci-tmp-packages)
       - run:
           name: Install OCaml dependencies
-          command: opam install --deps-only -ty $(ls -1 *.opam | sed -e 's/\.opam$//')
+          command: opam install --deps-only -ty $(cat .ci-tmp-packages)
       - run:
           name: Build
           command: opam config exec -- dune build @install

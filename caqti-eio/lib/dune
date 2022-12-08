@@ -1,13 +1,10 @@
 (library
- (name caqti_eio_unix)
- (public_name caqti-eio.unix)
+ (name caqti_eio)
+ (public_name caqti-eio)
  (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries
     caqti
     caqti.platform
     caqti.platform.net
-    caqti.platform.unix
-    caqti-eio
     eio
-    eio.unix
     logs))

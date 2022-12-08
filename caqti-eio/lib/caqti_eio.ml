@@ -21,30 +21,15 @@ open Caqti_platform
 let ( let/? ) r f = Result.bind r f
 let ( let-? ) r f = Result.map f r
 
-include Connector.Make_without_connect (Caqti_eio.System.Core)
+module System = System
 
 module Make (Stdenv : System.STDENV) = struct
-
-  module System_with_net = Caqti_eio.System.Make_with_net (Stdenv)
-  module Loader_net = Caqti_platform_net.Driver_loader.Make (System_with_net)
-
-  module System_with_unix = System.Make_with_unix (Stdenv)
-  module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System_with_unix)
-
-  module Loader = struct
-    module type DRIVER = Loader_unix.DRIVER
-    let load_driver ~uri scheme =
-      (match Loader_net.load_driver ~uri scheme with
-       | Ok _ as r -> r
-       | Error (`Load_rejected _) as r -> r
-       | Error (`Load_failed _) ->
-          (* TODO: Summarize errors. *)
-          Loader_unix.load_driver ~uri scheme)
-  end
-
-  include Connector.Make_connect (Caqti_eio.System.Core) (Loader)
-
+  module System_with_net = System.Make_with_net (Stdenv)
+  module Loader = Caqti_platform_net.Driver_loader.Make (System_with_net)
+  include Connector.Make_connect (System.Core) (Loader)
 end
+
+include Connector.Make_without_connect (System.Core)
 
 let connect ?env ?tweaks_version stdenv ~sw uri =
   Switch.check sw;

@@ -15,10 +15,10 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Establinging Connections for Eio with Unix
+(** Establishing Connections for Eio without Unix
 
-    This module provides database connections for applications using Eio.  It
-    supports all database drivers. *)
+    This module provides connections to the PGX database for Eio applications.
+    For other database systems, you will need {!Caqti_eio_unix}. *)
 
 include Caqti_connect_sig.S_without_connect with type 'a future := 'a
 include Caqti_connect_sig.Connect
@@ -30,3 +30,7 @@ include Caqti_connect_sig.Connect
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Eliminates the error-case by raising {!Caqti_error.Exn}. *)
+
+(**/**)
+module System = System (* for private use by caqti-eio.unix *)
+(**/**)

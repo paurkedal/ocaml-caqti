@@ -25,7 +25,7 @@ include Caqti_connect_sig.Connect
   with type 'a future := 'a
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and type connection := connection
-   and type 'a connect_fun := Eio.Stdenv.t -> sw: Eio.Switch.t -> Uri.t -> 'a
+   and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
    and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a

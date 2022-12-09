@@ -46,7 +46,7 @@ module Make (Stdenv : System.STDENV) = struct
 
 end
 
-let connect ?env ?tweaks_version stdenv ~sw uri =
+let connect ?env ?tweaks_version ~sw stdenv uri =
   Switch.check sw;
   let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
   let-? connection = Connector.connect ?env ?tweaks_version uri in
@@ -57,7 +57,7 @@ let connect ?env ?tweaks_version stdenv ~sw uri =
 let connect_pool
       ?max_size ?max_idle_size ?max_use_count
       ?post_connect ?env ?tweaks_version
-      stdenv ~sw uri =
+      ~sw stdenv uri =
   Switch.check sw;
   let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
   let-? pool =

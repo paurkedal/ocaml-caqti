@@ -20,8 +20,8 @@
 
 (** {2 Error Causes}
 
-    The {!cause} type is an incomplete enumeration of consolidated causes of
-    errors between different database systems.  The selection includes the
+    The {!type:cause} type is an incomplete enumeration of consolidated causes
+    of errors between different database systems.  The selection includes the
     causes which are believed to be useful to handle and excludes causes which
     are specific to the implementation of a certain database system.
 
@@ -77,7 +77,7 @@ type integrity_constraint_violation = [
   | `Integrity_constraint_violation__don't_match
       (** An yet unclassified cause; match the full subtype instead. *)
 ]
-(** A subtype of {!cause} informing about violation of SQL constraints. *)
+(** A subtype of {!type:cause} informing about violation of SQL constraints. *)
 
 type insufficient_resources = [
   | `Disk_full
@@ -91,8 +91,8 @@ type insufficient_resources = [
   | `Insufficient_resources__don't_match
       (** An yet unclassified cause; match the full subtype instead. *)
 ]
-(** A subtype of {!cause} informing about insufficient resources on the server
-    side. *)
+(** A subtype of {!type:cause} informing about insufficient resources on the
+    server side. *)
 
 type cause = [
   | integrity_constraint_violation

@@ -17,9 +17,8 @@
 
 (** Internal min-heap implementation.
 
-    This is a very simple implementation deemed sufficient for {!Caqti_pool}.
-    There are more optimal algorithms if you need the best performance on larger
-    heaps. *)
+    This is a simple min-heap implementation deemed sufficient for the {!Pool}
+    module.  There are algorithms better suited for larger heaps. *)
 
 module type S = sig
   type t

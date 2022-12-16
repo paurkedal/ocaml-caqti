@@ -18,7 +18,7 @@
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
-let default_log_src = Logs.Src.create "Caqti_pool"
+let default_log_src = Logs.Src.create "Caqti_platform.Pool"
 
 module Option = struct
   let for_all f = function None -> true | Some x -> f x

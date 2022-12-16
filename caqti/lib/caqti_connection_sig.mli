@@ -113,12 +113,12 @@ module type Base = sig
       up related resources. *)
 
   val validate : unit -> bool future
-  (** For internal use by {!Caqti_pool}.  Tries to ensure the validity of the
-      connection and must return [false] if unsuccessful. *)
+  (** For internal use by pool implementations.  Tries to ensure the validity of
+      the connection and must return [false] if unsuccessful. *)
 
   val check : (bool -> unit) -> unit
-  (** For internal use by {!Caqti_pool}.  Called after a connection has been
-      used.  [check f] must call [f ()] exactly once with an argument
+  (** For internal use by pool implementations.  Called after a connection has
+      been used.  [check f] must call [f ()] exactly once with an argument
       indicating whether to keep the connection in the pool or discard it. *)
 
 end

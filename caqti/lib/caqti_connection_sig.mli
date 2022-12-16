@@ -17,8 +17,10 @@
 
 (** Signature of connection handles.
 
-    You can obtain a connection handle from {!Caqti_lwt} or {!Caqti_async},
-    which both implement the {!Caqti_connect_sig} interface.
+    The main signature {!S} of this module represents a database connection
+    handle.  This is obtained by {{!Caqti_connect_sig} connection functions}
+    implemented in the subpackages [caqti-async], [caqti-eio], [caqti-lwt], and
+    [caqti-mirage].
 
     While {!Caqti_request.t} objects hold SQL code to be sent to the database,
     connection handles defined here provide the means to execute them with
@@ -33,20 +35,9 @@
 
     The result type of {!Caqti_request.t} only describes how to decode {e
     individual rows}, leaving the decision of how to process multiple rows to
-    the execution interface.  That is, the request does not detail how to fold
-    over rows, and for this reason, the separation into request constructors and
-    executors entails a collection of pairwise compatible convenience functions
-    across multiplicities between the APIs.  E.g. when there are like-named
-    {!Caqti_request.find_opt} and {!S.find_opt} functions, the first declares
-    the row multiplicity, while the latter implements a way to fold rows into an
-    OCaml datatype for that multiplicity.
-
-    Though a request object stipulates the expected multiplicity, there is
-    still choice left for how to fold rows.  E.g., a request constructed by
-    {!Caqti_request.collect}, or in fact any request, can be processed with
-    {!S.fold}, {!S.fold_s}, {!S.iter_s}, or {!S.collect_list}.  The two
-    functions {!Caqti_request.create} and {!S.fold} can construct and process
-    any supported SQL query. *)
+    the execution interface.  Therefore, for each request constructor from
+    {!Caqti_request.Infix}, there are one or more matching retrieval functions
+    in the present signature. *)
 
 type driver_connection = ..
 (** This type is only to be extended by drivers. *)
@@ -128,78 +119,93 @@ module type Convenience = sig
 
   (** {2 Retrieval Convenience}
 
-      These are shortcuts for {!call} combined with retrieval functions from
-      {!Caqti_response_sig.S} of the same name. *)
+      Each of these shortcuts combine [call] with the correspondingly named
+      retrieval function from {!Caqti_response_sig.S}. *)
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
     (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.exec}, this sends a request to the
-      database and checks that no rows are returned. *)
+  (** [exec req x] performs [req] with parameters [x] and checks that no rows
+      are returned.
+      See also {!Caqti_response_sig.S.exec}. *)
 
   val exec_with_affected_count :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
     (int, [> Caqti_error.call_or_retrieve | `Unsupported] as 'e) result future
-  (** Combining {!call} with {!Response.exec} and {!Response.affected_count},
-      this sends a request to the database, checks that no rows are returned and
-      returns the number of affected rows. *)
+  (** [exec_with_affected_count req x] performs [req] with parameters [x],
+      checks that no rows are returned, and returns the number of affected rows.
+
+      See also {!Caqti_response_sig.S.exec} and
+      {!Caqti_response_sig.S.affected_count}. *)
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
     ('b, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.find}, this sends a request to the
-      database, checks that a single row is returned, and extracts it. *)
+  (** [find req x] performs [req] with parameters [x], checks that a single row
+      is retured, and returns it.
+
+      See also {!Caqti_response_sig.S.find}. *)
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
     ('b option, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.find_opt}, this sends a request to the
-      database, checks that at most one row is returned, and extracts it if
-      present. *)
+  (** [find_opt req x] performs [req] with parameters [x] and returns either
+      [None] if no rows are returned or [Some y] if a single now [y] is returned
+      and fails otherwise.
+
+      See also {!Caqti_response_sig.S.find_opt}. *)
 
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.fold}, this sends a request to the
-      database and folds over the result rows. *)
+  (** [fold req f x acc] performs [req] with parameters [x] and passes [acc]
+      through the composition of [f y] across the result rows [y] in the order
+      of retrieval.
+
+      See also {!Caqti_response_sig.S.fold}. *)
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> ('c, 'e) result future) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.fold_s}, this sends a request to the
-      database and folds sequentially over the result rows in a non-blocking
-      manner.
+  (** [fold_s f x acc] performs [req] with parameters [x] and passes [acc]
+      through the monadic composition of [f y] across the returned rows [y] in
+      the order of retrieval.
 
       Please be aware of possible deadlocks when using resources from the
       callback.  In particular, if the same connection pool is invoked as the
       one used to obtain the current connection, it will deadlock if the pool
       has just run out of connections.  An alternative is to collect the rows
-      first e.g. with {!fold} and do the nested queries after exiting. *)
+      first e.g. with {!fold} and do the nested queries after exiting.
+
+      See also {!Caqti_response_sig.S.fold_s}. *)
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> (unit, 'e) result future) ->
     'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** Combining {!call} with {!Response.iter_s}, this sends a request to the
-      database and iterates sequentially over the result rows in a non-blocking
-      manner.  Please see the warning in {!fold_s} about resource usage in the
-      callback. *)
+  (** [iter_s f x] performs [req] with parameters [x] and sequences calls to [f
+      y] for each result row [y] in the order of retrieval.
+
+      Please see the warning in {!fold_s} about resource usage in the callback.
+
+      See also {!Caqti_response_sig.S.iter_s}. *)
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
     ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** [collect_list request param] performs a {!call} on [request], extracting
-      the result as a list. *)
+  (** [collect_list request x] performs a [req] with parameters [x] and returns
+      a list of rows in order of retrieval.  The accumulation is tail recursive
+      but slightly less efficient than {!rev_collect_list}. *)
 
   val rev_collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
     ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
-  (** [rev_collect_list request param] performs a {!call} on [request],
-      extracting the result as a reversed list.  This is more efficient than
-      {!collect_list} and fits well with a subsequent {!List.rev_map}, though it
-      may not matter much in practise. *)
+  (** [rev_collect_list request x] performs [request] with parameters [x] and
+      returns a list of rows in the reverse order of retrieval.  The
+      accumulation is tail recursive and slighly more efficient than
+      {!collect_list}. *)
 
 
   (** {2 Transactions} *)

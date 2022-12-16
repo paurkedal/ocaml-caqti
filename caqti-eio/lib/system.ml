@@ -103,15 +103,15 @@ module Make_with_net (Stdenv : STDENV) = struct
         Eio.Net.getaddrinfo_stream stdenv#net
           ~service:(string_of_int port) (Domain_name.to_string host)
           >|= Result.ok
-      with Eio.Net.Connection_failure exn ->
-        Error (`Msg (Printexc.to_string exn))
+      with Eio.Exn.Io _ as exn ->
+        Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
     let connect sockaddr =
       try
         let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
         Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))
-      with Eio.Net.Connection_failure exn ->
-        Error (`Msg (Printexc.to_string exn))
+      with Eio.Exn.Io _ as exn ->
+        Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
     let output_char sink c = Eio.Flow.copy_string (String.make 1 c) sink
     let output_string sink s = Eio.Flow.copy_string s sink

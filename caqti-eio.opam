@@ -13,7 +13,7 @@ depends: [
   "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "2.5"}
-  "eio"
+  "eio" {>= "0.7"}
   "eio_main" {with-test}
   "logs"
   "ocaml" {>= "5.0.0~"}

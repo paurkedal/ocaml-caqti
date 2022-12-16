@@ -1,8 +1,4 @@
 (library
-  (name caqti_lwt)
-  (public_name caqti-lwt)
-  (modules Caqti_lwt)
-  (libraries
-    caqti caqti.platform caqti.platform.net caqti.platform.unix
-    domain-name ipaddr
-    logs logs.lwt lwt lwt.unix))
+ (name caqti_lwt)
+ (public_name caqti-lwt)
+ (libraries logs.lwt lwt caqti.platform caqti.platform.net))

@@ -23,5 +23,6 @@ include Benchmark_fetch_many.Make (struct
   let run_main f = f ()
   include Lwt.Infix
   include Caqti_lwt
+  include Caqti_lwt_unix
   let connect () uri = connect uri
 end)

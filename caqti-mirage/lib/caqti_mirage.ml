@@ -15,59 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_platform
 open Lwt.Syntax
-
-module Future = struct
-  type 'a future = 'a Lwt.t
-  let (>>=) = Lwt.(>>=)
-  let (>|=) = Lwt.(>|=)
-  let return = Lwt.return
-end
-
-module System_common = struct
-  include Future
-
-  let catch = Lwt.catch
-  let finally = Lwt.finalize
-  let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
-
-  module Semaphore = struct
-    type t = unit Lwt_mvar.t
-    let create = Lwt_mvar.create_empty
-    let release v = Lwt.async (Lwt_mvar.put v)
-    let acquire = Lwt_mvar.take
-  end
-
-  module Log = struct
-    type 'a log = 'a Logs_lwt.log
-    let err ?(src = Logging.default_log_src) = Logs_lwt.err ~src
-    let warn ?(src = Logging.default_log_src) = Logs_lwt.warn ~src
-    let info ?(src = Logging.default_log_src) = Logs_lwt.info ~src
-    let debug ?(src = Logging.default_log_src) = Logs_lwt.debug ~src
-  end
-
-  module Stream = Caqti_platform.Stream.Make (Future)
-end
-
-module System_except_networking = struct
-
-  include System_common
-
-  module Sequencer = struct
-    type 'a t = 'a * Lwt_mutex.t
-    let create m = (m, Lwt_mutex.create ())
-    let enqueue (m, mutex) f = Lwt_mutex.with_lock mutex (fun () -> f m)
-  end
-
-end
-
-include System_except_networking
-include Connector.Make_without_connect (System_common)
-
-module type S = Caqti_connect_sig.S
-  with type 'a future := 'a Lwt.t
-   and module Stream = Stream
+open Caqti_platform
+open Caqti_lwt
 
 module Make
   (RANDOM : Mirage_random.S)
@@ -82,7 +32,7 @@ struct
   module TCP = Conduit_mirage.TCP (STACK)
 
   module System (Arg : sig val stack : STACK.t end) = struct
-    include System_except_networking
+    include Caqti_lwt.System
 
     module Net = struct
       let dns = Dns_client.create Arg.stack
@@ -180,7 +130,7 @@ struct
   end
 
   module type CONNECT = Caqti_connect_sig.Connect
-    with type 'a future := 'a future
+    with type 'a future := 'a Lwt.t
      and type connection := connection
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a connect_fun := Uri.t -> 'a
@@ -195,7 +145,7 @@ struct
 
       let load_driver = Platform_net.load_driver
     end in
-    (module Connector.Make_connect (System_common) (Loader) : CONNECT)
+    (module Connector.Make_connect (Caqti_lwt.System) (Loader) : CONNECT)
 
   let connect ?env ?tweaks_version stack uri =
     let module C = (val connect_stack stack) in

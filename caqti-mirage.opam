@@ -8,6 +8,7 @@ doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "caqti" {>= "1.9.0" & < "1.10.0~"}
+  "caqti-lwt" {>= "1.9.0" & < "1.10.0~"}
   "conduit-mirage"
   "dns-client"
   "dune" {>= "2.5"}

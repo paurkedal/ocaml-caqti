@@ -15,8 +15,13 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-include Caqti_connect_sig.S_without_connect
-  with type 'a future := 'a Lwt.t
+(** Functions for connecting to databases from MirageOS unikernels
+
+    This module contains functions for connecting to databases using the
+    MirageOS platform libraries, providing support for PGX but not drivers based
+    on bindings.
+
+    See also {!Caqti_lwt} for basic Lwt support. *)
 
 module Make :
   functor (RANDOM : Mirage_random.S) ->
@@ -26,7 +31,7 @@ module Make :
   functor (STACK : Tcpip.Stack.V4V6) ->
   Caqti_connect_sig.Connect
     with type 'a future := 'a Lwt.t
-     and type ('a, 'e) pool := ('a, 'e) Pool.t
-     and type connection := connection
+     and type ('a, 'e) pool := ('a, 'e) Caqti_lwt.Pool.t
+     and type connection := Caqti_lwt.connection
      and type 'a connect_fun := STACK.t -> Uri.t -> 'a
      and type 'a with_connection_fun := STACK.t -> Uri.t -> 'a

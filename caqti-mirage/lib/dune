@@ -3,6 +3,7 @@
  (public_name caqti-mirage)
  (libraries
     caqti caqti.platform caqti.platform.net
+    caqti-lwt
     conduit-mirage
     dns-client dns-client.mirage
     domain-name ipaddr

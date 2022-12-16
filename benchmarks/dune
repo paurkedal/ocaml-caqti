@@ -33,6 +33,7 @@
  (libraries
     benchmark_fetch_many
     caqti-lwt
+    caqti-lwt.unix
     lwt
     lwt.unix))
 

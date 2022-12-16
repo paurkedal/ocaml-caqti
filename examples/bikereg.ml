@@ -149,7 +149,7 @@ let report_error = function
 
 let main {Testlib.uris; tweaks_version} = Lwt_main.run begin
   uris |> Lwt_list.iter_s begin fun uri ->
-    Caqti_lwt.with_connection ?tweaks_version uri test >>= report_error
+    Caqti_lwt_unix.with_connection ?tweaks_version uri test >>= report_error
   end
 end
 

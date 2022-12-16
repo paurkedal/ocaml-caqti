@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,19 +15,16 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Prerequisities for connecting to databases using Lwt
+(** Connecting on Unix-like platforms using Lwt
 
-    This provides basics for {!Caqti_lwt_unix} and {!Caqti_mirage}. *)
+    This module contains functions for connecting to databases using the
+    lwt.unix library, providing support for all drivers.
 
-include Caqti_connect_sig.S_without_connect
+    See also {!Caqti_lwt} for basic Lwt support. *)
+
+include Caqti_connect_sig.Connect
   with type 'a future := 'a Lwt.t
-   and module Stream = System.Stream
-   and module Pool = Caqti_platform.Connector.Make_without_connect (System).Pool
-
-val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
-(** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
-    exception holding the error. *)
-
-(**/**)
-module System = System (* for private use by caqti-lwt.unix and caqti-mirage *)
-(**/**)
+   and type ('a, 'e) pool := ('a, 'e) Caqti_lwt.Pool.t
+   and type connection := Caqti_lwt.connection
+   and type 'a connect_fun := Uri.t -> 'a
+   and type 'a with_connection_fun := Uri.t -> 'a

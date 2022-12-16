@@ -63,7 +63,7 @@
   (name main_lwt)
   (modules main_lwt)
   (libraries
-    caqti caqti.platform caqti-dynload caqti-lwt
+    caqti caqti.platform caqti-dynload caqti-lwt caqti-lwt.unix
     alcotest-lwt testlib testlib_lwt testsuite))
 
 (rule

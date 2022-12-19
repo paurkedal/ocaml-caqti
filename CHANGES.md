@@ -2,20 +2,57 @@
 
 New features:
 
-  - Added driver based on PGX.
+  - Added driver based on the pure-OCaml PGX library (#38).  However, due to
+    lack of TLS support it is not suitable for production, unless you have a
+    dedicated secure network.
+
   - Added support for MirageOS.  This only works for the PGX driver, since
     the other drivers link against external C libraries.
-  - The internal API for drivers and concurrency implementations have been
-    significatly revised to accomodate for MirageOS.
+
+  - Added experimental support for Eio, both pure-OCaml and Unix.  The
+    former supports PGX while the latter supports all drivers.
+
+  - Implemented single-row mode for PostgreSQL (#24), but while this avoids
+    uncontrolled memory consumption when a large number of rows is returned,
+    it is a lot less efficient.
+
+Breaking changes:
+
+  - The minimal OCaml requirement is now 4.08.0.
+
+  - The connection functions previously found in `caqti-lwt` has been moved
+    into a sublibrary `caqti-lwt.unix` as part of the addition of
+    `caqti-mirage`, whereas shared functionality remains in `caqti-lwt`.
+
+  - Removed all deprecated functionality and a few unintended or
+    undocumented definitions like the type `Caqti_blocking.future` and
+    `Caqti_driver_info.describe_has_typed_*`.
+
+  - Reworked the driver API to accommodate the addition of the PGX driver
+    and MirageOS and Eio support, and to avoid exposting internal interfaces
+    in the main library.  These modules are now found in the sublibraries
+    `caqti.platform`, `caqti.platform.net` and `caqti.platform.unix`,
+    depending on their external depnedencies.  They are not meant for use by
+    applications, though this might not have fully clear previously.
+
+Fixes:
+
+  - Fixed a missing `Preemptive.detach` call for `to_stream` for Sqlite3.
 
 Other:
 
-  - The documentation of `call` now makes clear that the result must be
-    retrieved in order to make sure the request is performed.  This is
-    made relevant by the addition of the PGX driver where request and
-    retrieval are fused.
-  - Deprecated functionality has been removed (along with
-    `Caqti_blocking.future`).
+  - The documentation of `call` now makes clear that the result *must* be
+    retrieved in order to make sure the request is performed.  This is made
+    relevant by the addition of the PGX driver where request and retrieval
+    are fused.
+
+  - Customized the top-level index and some other documentation work.  Maybe
+    the biggest improvement to documentation, though, is the removal of
+    private modules from the main libary.
+
+  - Added a benchmark.
+
+  - Improved decoding performance by partially applying the type descriptor.
 
 ## v1.9.1 - 2022-09-21
 

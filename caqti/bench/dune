@@ -1,4 +1,0 @@
-(executable
- (name bench_stream)
- (modules bench_stream)
- (libraries benchmark caqti caqti.platform lwt lwt.unix))

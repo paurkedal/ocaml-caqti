@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,7 @@
     implemented in the subpackages [caqti-async], [caqti-eio], [caqti-lwt], and
     [caqti-mirage].
 
-    While {!Caqti_request.t} objects hold SQL code to be sent to the database,
+    While values of {!Caqti_request.t} hold SQL code to be sent to the database,
     connection handles defined here provide the means to execute them with
     actual parameters on an RDBMS.  So, there is a separation between
     preparation and execution.  This is motivated by the common support for

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -109,8 +109,8 @@ val show_cause : [< cause] -> string
 type msg = ..
 (** In this type, drivers can stash information about any errors in their own
     format, which can later be used for pretty-printing and or future
-    operations. Drivers must {!define_msg} on each constructor added to this
-    type. *)
+    operations. Drivers must call {!define_msg} on each constructor added to
+    this type. *)
 
 val define_msg :
   pp: (Format.formatter -> msg -> unit) ->

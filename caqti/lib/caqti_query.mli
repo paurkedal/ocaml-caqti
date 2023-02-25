@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,8 +42,8 @@ val equal : t -> t -> bool
 (** Equality predicate for {!t}. *)
 
 val hash : t -> int
-(** A hash function compatible with {!equal}.  This is currently
-    {!Hashtbl.hash}. *)
+(** A hash function compatible with {!equal}.  The hash function may change
+    across minor versions and may depend on architecture. *)
 
 val pp : Format.formatter -> t -> unit
 (** [pp ppf q] prints a {e human}-readable representation of [q] on [ppf].

@@ -23,6 +23,7 @@ Breaking changes:
   - The connection functions previously found in `caqti-lwt` has been moved
     into a sublibrary `caqti-lwt.unix` as part of the addition of
     `caqti-mirage`, whereas shared functionality remains in `caqti-lwt`.
+    The LWT connection function is therefore now found in `Caqti_lwt_unix`.
 
   - Removed all deprecated functionality and a few unintended or
     undocumented definitions like the type `Caqti_blocking.future` and

@@ -10,7 +10,8 @@ depends: [
   "caqti" {>= "1.9.0" & < "1.10.0~"}
   "caqti-lwt" {>= "1.9.0" & < "1.10.0~"}
   "conduit-mirage"
-  "dns-client"
+  "dns-client" {>= "7.0.0"}
+  "dns-client-mirage" {>= "7.0.0"}
   "dune" {>= "2.5"}
   "logs"
   "lwt" {>= "3.2.0"}

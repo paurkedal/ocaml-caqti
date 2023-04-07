@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -52,7 +52,7 @@ module Make (System : System_sig.S) = struct
     max_size: int;
     max_use_count: int option;
     mutable cur_size: int;
-    pool: 'a entry Queue.t;
+    queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
   }
 
@@ -69,89 +69,91 @@ module Make (System : System_sig.S) = struct
     assert (Option.for_all (fun n -> n > 0) max_use_count);
     { create; free; check; validate; log_src;
       max_idle_size; max_size; max_use_count;
-      cur_size = 0; pool = Queue.create (); waiting = Taskq.empty }
+      cur_size = 0; queue = Queue.create (); waiting = Taskq.empty }
 
   let size {cur_size; _} = cur_size
 
-  let wait ~priority p =
+  let wait ~priority pool =
     let semaphore = Semaphore.create () in
-    p.waiting <- Taskq.push Task.({priority; semaphore}) p.waiting;
+    pool.waiting <- Taskq.push Task.({priority; semaphore}) pool.waiting;
     Semaphore.acquire semaphore
 
-  let schedule p =
-    if not (Taskq.is_empty p.waiting) then begin
-      let task, taskq = Taskq.pop_e p.waiting in
-      p.waiting <- taskq;
+  let schedule pool =
+    if not (Taskq.is_empty pool.waiting) then begin
+      let task, taskq = Taskq.pop_e pool.waiting in
+      pool.waiting <- taskq;
       Task.wake task
     end
 
-  let realloc p =
-    p.create () >|=
+  let realloc pool =
+    pool.create () >|=
     (function
-     | Ok e -> Ok {resource = e; used_count = 0}
+     | Ok resource -> Ok {resource; used_count = 0}
      | Error err ->
-        p.cur_size <- p.cur_size - 1;
-        schedule p;
+        pool.cur_size <- pool.cur_size - 1;
+        schedule pool;
         Error err)
 
-  let rec acquire ~priority p =
-    if Queue.is_empty p.pool then begin
-      if p.cur_size < p.max_size then
+  let rec acquire ~priority pool =
+    if Queue.is_empty pool.queue then begin
+      if pool.cur_size < pool.max_size then
         begin
-          p.cur_size <- p.cur_size + 1;
-          realloc p
+          pool.cur_size <- pool.cur_size + 1;
+          realloc pool
         end
       else
-        wait ~priority p >>= fun () ->
-        acquire ~priority p
+        wait ~priority pool >>= fun () ->
+        acquire ~priority pool
     end else begin
-      let e = Queue.take p.pool in
-      p.validate e.resource >>= fun ok ->
+      let entry = Queue.take pool.queue in
+      pool.validate entry.resource >>= fun ok ->
       if ok then
-        return (Ok e)
+        return (Ok entry)
       else begin
-        Log.warn ~src:p.log_src (fun f ->
+        Log.warn ~src:pool.log_src (fun f ->
           f "Dropped pooled connection due to invalidation.") >>= fun () ->
-        realloc p
+        realloc pool
       end
     end
 
-  let can_reuse p e =
-       p.cur_size <= p.max_idle_size
-    && Option.for_all (fun n -> e.used_count < n) p.max_use_count
+  let can_reuse pool entry =
+       pool.cur_size <= pool.max_idle_size
+    && Option.for_all (fun n -> entry.used_count < n) pool.max_use_count
 
-  let release p e =
-    if not (can_reuse p e) then begin
-      p.cur_size <- p.cur_size - 1;
-      p.free e.resource >|= fun () ->
-      schedule p
+  let release pool entry =
+    if not (can_reuse pool entry) then begin
+      pool.cur_size <- pool.cur_size - 1;
+      pool.free entry.resource >|= fun () ->
+      schedule pool
     end else begin
-      p.check e.resource begin fun ok ->
+      pool.check entry.resource begin fun ok ->
         if ok then
-          Queue.add e p.pool
+          Queue.add entry pool.queue
         else begin
-          Logs.warn ~src:p.log_src (fun f ->
+          Logs.warn ~src:pool.log_src (fun f ->
             f "Will not repool connection due to invalidation.");
-          p.cur_size <- p.cur_size - 1
+          pool.cur_size <- pool.cur_size - 1
         end;
-        schedule p
+        schedule pool
       end;
       return ()
     end
 
-  let use ?(priority = 0.0) f p =
-    acquire ~priority p >>=? fun e ->
+  let use ?(priority = 0.0) f pool =
+    acquire ~priority pool >>=? fun entry ->
     finally
-      (fun () -> f e.resource)
-      (fun () -> e.used_count <- e.used_count + 1; release p e)
+      (fun () -> f entry.resource)
+      (fun () -> entry.used_count <- entry.used_count + 1; release pool entry)
 
-  let dispose p e = p.free e >|= fun () -> p.cur_size <- p.cur_size - 1
+  let dispose pool resource =
+    pool.free resource >|= fun () ->
+    pool.cur_size <- pool.cur_size - 1
 
-  let rec drain p =
-    if p.cur_size = 0 then return () else
-    (if Queue.is_empty p.pool
-     then wait ~priority:0.0 p
-     else dispose p (Queue.take p.pool).resource) >>= fun () ->
-    drain p
+  let rec drain pool =
+    if pool.cur_size = 0 then return () else
+    (if Queue.is_empty pool.queue
+     then wait ~priority:0.0 pool
+     else dispose pool (Queue.take pool.queue).resource) >>= fun () ->
+    drain pool
 
 end

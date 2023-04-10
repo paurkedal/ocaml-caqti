@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,7 +56,7 @@ let env =
 let mk_tests (stdenv, sw) {uris; tweaks_version} =
   let connect_pool (stdenv, sw) uri =
     (match Caqti_eio_unix.connect_pool stdenv ~sw uri
-            ~max_size:1 ~post_connect ?tweaks_version ~env with
+            ~max_size:16 ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

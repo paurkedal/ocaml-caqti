@@ -60,8 +60,8 @@
   (action (setenv OCAMLPATH . (run %{test}))))
 
 (executable
-  (name main_lwt)
-  (modules main_lwt)
+  (name main_lwt_unix)
+  (modules main_lwt_unix)
   (libraries
     caqti caqti.platform caqti-dynload caqti-lwt caqti-lwt.unix
     alcotest-lwt testlib testlib_lwt testsuite))
@@ -69,7 +69,7 @@
 (rule
   (alias runtest)
   (package caqti-lwt)
-  (deps (:test main_lwt.exe) (alias drivers) uris.conf)
+  (deps (:test main_lwt_unix.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))
 

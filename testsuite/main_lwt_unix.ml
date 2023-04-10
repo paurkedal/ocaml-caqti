@@ -64,6 +64,6 @@ let mk_tests {uris; tweaks_version} =
   List.map mk_test pools
 
 let () = Lwt_main.run begin
-  Alcotest_cli.run_with_args_dependency "test_sql_lwt"
+  Alcotest_cli.run_with_args_dependency "test_sql_lwt_unix"
     Testlib.common_args mk_tests
 end

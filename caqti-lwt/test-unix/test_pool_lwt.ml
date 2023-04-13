@@ -16,8 +16,9 @@
  *)
 
 open Lwt.Infix
+open Lwt.Syntax
 
-module Pool = Caqti_lwt_unix.Pool
+module Pool = Caqti_lwt_unix.System.Pool
 
 module Resource = struct
   type t = {
@@ -30,12 +31,13 @@ module Resource = struct
   let latest_id = ref 0
 
   let create () =
+    incr latest_id;
+    Hashtbl.add alive !latest_id ();
+    Lwt.return_ok {id = !latest_id; use_count = 0}
+
+  let create_or_fail () =
     if Random.int 4 = 0 then Lwt.return_error () else
-    begin
-      incr latest_id;
-      Hashtbl.add alive !latest_id ();
-      Lwt.return_ok {id = !latest_id; use_count = 0}
-    end
+    create ()
 
   let free resource =
     assert (Hashtbl.mem alive resource.id);
@@ -52,8 +54,8 @@ let test_n n =
      | true -> Some (1 + Random.int 8))
   in
   let pool =
-    Pool.create ~max_idle_size ~max_size ~max_use_count
-      Resource.create Resource.free
+    Pool.create ~max_idle_size ~max_size ~max_use_count ~connect_env:()
+      Resource.create_or_fail Resource.free
   in
   let wakers = Array.make n None in
   let wait_count = ref 0 in
@@ -114,6 +116,26 @@ let test _ () =
   in
   loop 500
 
+let test_age _ () =
+  let max_size = 8 in
+  let max_idle_size = 4 in
+  let max_idle_age = Mtime.Span.(100 * ms) in
+  let pool =
+    Pool.create
+      ~max_size ~max_idle_size ~max_idle_age ~connect_env:()
+      Resource.create Resource.free
+  in
+  let* () =
+    let f _i _resource = Lwt_unix.sleep 0.01 >|= Result.ok in
+    List.init 8 f
+      |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
+      |> Lwt.join
+  in
+  Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
+  let+ () = Lwt_unix.sleep 0.15 in
+  Alcotest.(check int) "pool size after sleep" 0 (Pool.size pool)
+
 let test_cases = [
   Alcotest_lwt.V1.test_case "basic usage" `Quick test;
+  Alcotest_lwt.V1.test_case "timed cleanup" `Quick test_age;
 ]

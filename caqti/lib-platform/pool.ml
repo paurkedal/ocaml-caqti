@@ -20,13 +20,16 @@ let default_max_size =
 
 let default_log_src = Logs.Src.create "Caqti_platform.Pool"
 
-module Option = struct
+module Option' = struct
   let for_all f = function None -> true | Some x -> f x
 end
 
-module type S = Caqti_pool_sig.S
+module type S = System_sig.POOL
 
-module Make (System : System_sig.CORE) = struct
+module Make
+  (System : System_sig.CORE)
+  (Alarm : System_sig.ALARM with type connect_env := System.connect_env) =
+struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
@@ -42,36 +45,48 @@ module Make (System : System_sig.CORE) = struct
   type 'a entry = {
     resource: 'a;
     mutable used_count: int;
+    mutable used_latest: Mtime.t;
   }
 
   type ('a, +'e) t = {
+    connect_env: connect_env;
     create: unit -> ('a, 'e) result future;
     free: 'a -> unit future;
     check: 'a -> (bool -> unit) -> unit;
     validate: 'a -> bool future;
     log_src: Logs.Src.t;
     max_idle_size: int;
+    max_idle_age: Mtime.Span.t option;
     max_size: int;
     max_use_count: int option;
     mutable cur_size: int;
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
+    mutable alarm: Alarm.t option;
   }
 
   let create
         ?(max_size = default_max_size)
         ?(max_idle_size = max_size)
+        ?max_idle_age
         ?(max_use_count = None)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
         ?(log_src = default_log_src)
+        ~connect_env
         create free =
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
-    assert (Option.for_all (fun n -> n > 0) max_use_count);
-    { create; free; check; validate; log_src;
-      max_idle_size; max_size; max_use_count;
-      cur_size = 0; queue = Queue.create (); waiting = Taskq.empty }
+    assert (Option'.for_all (fun n -> n > 0) max_use_count);
+    {
+      connect_env;
+      create; free; check; validate; log_src;
+      max_idle_size; max_size; max_use_count; max_idle_age;
+      cur_size = 0;
+      queue = Queue.create ();
+      waiting = Taskq.empty;
+      alarm = None;
+    }
 
   let size {cur_size; _} = cur_size
 
@@ -90,7 +105,8 @@ module Make (System : System_sig.CORE) = struct
   let realloc pool =
     pool.create () >|=
     (function
-     | Ok resource -> Ok {resource; used_count = 0}
+     | Ok resource ->
+        Ok {resource; used_count = 0; used_latest = Mtime_clock.now ()}
      | Error err ->
         pool.cur_size <- pool.cur_size - 1;
         schedule pool;
@@ -120,7 +136,44 @@ module Make (System : System_sig.CORE) = struct
 
   let can_reuse pool entry =
        pool.cur_size <= pool.max_idle_size
-    && Option.for_all (fun n -> entry.used_count < n) pool.max_use_count
+    && Option'.for_all (fun n -> entry.used_count < n) pool.max_use_count
+
+  let rec dispose_expiring pool =
+    (match pool.max_idle_age, pool.alarm with
+     | None, None -> ()
+     | Some _, Some _ -> ()
+     | None, Some alarm ->
+        Alarm.unschedule alarm;
+        pool.alarm <- None
+     | Some max_idle_age, None ->
+        let now = Mtime_clock.now () in
+        let rec loop () =
+          (match Queue.peek_opt pool.queue with
+           | None -> ()
+           | Some entry ->
+              (match Mtime.add_span entry.used_latest max_idle_age with
+               | None ->
+                  Logs.warn ~src:pool.log_src (fun f -> f
+                    "Cannot schedule pool expiration check due to \
+                     Mtime overflow.")
+               | Some expiry ->
+                  if Mtime.compare now expiry >= 0 then
+                    begin
+                      let entry = Queue.take pool.queue in
+                      pool.cur_size <- pool.cur_size - 1;
+                      async ~connect_env:pool.connect_env
+                        (fun () -> pool.free entry.resource);
+                      loop ()
+                    end
+                  else
+                    pool.alarm <- Option.some @@
+                      Alarm.schedule ~connect_env:pool.connect_env expiry
+                        begin fun () ->
+                          pool.alarm <- None;
+                          dispose_expiring pool
+                        end))
+        in
+        loop ())
 
   let release pool entry =
     if not (can_reuse pool entry) then begin
@@ -130,12 +183,17 @@ module Make (System : System_sig.CORE) = struct
     end else begin
       pool.check entry.resource begin fun ok ->
         if ok then
-          Queue.add entry pool.queue
-        else begin
-          Logs.warn ~src:pool.log_src (fun f ->
-            f "Will not repool connection due to invalidation.");
-          pool.cur_size <- pool.cur_size - 1
-        end;
+          begin
+            entry.used_latest <- Mtime_clock.now ();
+            Queue.add entry pool.queue;
+            dispose_expiring pool
+          end
+        else
+          begin
+            Logs.warn ~src:pool.log_src (fun f ->
+              f "Will not repool connection due to invalidation.");
+            pool.cur_size <- pool.cur_size - 1
+          end;
         schedule pool
       end;
       return ()
@@ -147,15 +205,29 @@ module Make (System : System_sig.CORE) = struct
       (fun () -> f entry.resource)
       (fun () -> entry.used_count <- entry.used_count + 1; release pool entry)
 
-  let dispose pool resource =
-    pool.free resource >|= fun () ->
-    pool.cur_size <- pool.cur_size - 1
-
   let rec drain pool =
-    if pool.cur_size = 0 then return () else
-    (if Queue.is_empty pool.queue
-     then wait ~priority:0.0 pool
-     else dispose pool (Queue.take pool.queue).resource) >>= fun () ->
-    drain pool
+    if pool.cur_size = 0 then
+      begin
+        pool.alarm |> Option.iter begin fun alarm ->
+          Alarm.unschedule alarm;
+          pool.alarm <- None
+        end;
+      return ()
+      end
+    else
+      (match Queue.take_opt pool.queue with
+       | None -> wait ~priority:0.0 pool
+       | Some entry ->
+          pool.cur_size <- pool.cur_size - 1;
+          pool.free entry.resource) >>= fun () ->
+      drain pool
 
 end
+
+module No_alarm = struct
+  type t = unit
+  let schedule ~connect_env:_ _ _ = ()
+  let unschedule _ = ()
+end
+
+module Make_without_alarm (System : System_sig.CORE) = Make (System) (No_alarm)

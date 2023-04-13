@@ -4,4 +4,5 @@
   (libraries
     caqti caqti-lwt caqti.platform caqti.platform.net caqti.platform.unix
     domain-name ipaddr
-    logs logs.lwt lwt lwt.unix))
+    logs logs.lwt lwt lwt.unix
+    mtime mtime.clock.os))

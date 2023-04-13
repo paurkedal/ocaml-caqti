@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,6 +29,7 @@ include Future
 let catch = Lwt.catch
 let finally = Lwt.finalize
 let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
+let async ~connect_env:() = Lwt.async
 
 module Semaphore = struct
   type t = unit Lwt_mvar.t

@@ -66,17 +66,75 @@ module type CORE = sig
     val debug : ?src: Logs.src -> 'a log
   end
 
+  type connect_env
+  (** Type of an extra argument to connect functions used to pass through the
+      network stack in Mirage and stdenv and switch in EIO.  This is eliminated
+      at the service API where not needed. *)
+
+  val async : connect_env: connect_env -> (unit -> unit future) -> unit
+  (** [async f] runs [f ()] asynchroneously if possible, else immediately. *)
 end
 
+(** Scheduling taks in the future. *)
+module type ALARM = sig
+  type t
+  (** A handle for cancelling the alarm if supported. *)
+
+  type connect_env
+
+  val schedule : connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+  (** This schedules the alarm if supported. The caqti-blocking implementation
+      does nothing. The pool implementation using it makes additional
+      opportunistic calls to the handler. *)
+
+  val unschedule : t -> unit
+  (** Cancels the alarm if supported. This is only used for early clean-up, so
+      the implementation may choose to let it time out instead. *)
+end
+
+module type POOL = sig
+  include Caqti_pool_sig.S
+
+  type connect_env
+
+  val create :
+    ?max_size: int ->
+    ?max_idle_size: int ->
+    ?max_idle_age: Mtime.Span.t ->
+    ?max_use_count: int option ->
+    ?check: ('a -> (bool -> unit) -> unit) ->
+    ?validate: ('a -> bool future) ->
+    ?log_src: Logs.Src.t ->
+    connect_env: connect_env ->
+    (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
+    ('a, 'e) t
+  (** {b Internal:} [create alloc free] is a pool of resources allocated by
+      [alloc] and freed by [free]. This is primarily intended for implementing
+      the [connect_pool] functions.
+
+      @param max_size
+        The maximum number of allocated resources.
+
+      @param max_idle_size
+        The maximum number of resources to pool for later use. Defaults to
+        [max_size].
+
+      @param max_use_count
+        The maximum number of times to use a connection, or [None] for no limit.
+
+      @param check
+        A function used to check a resource after use.
+
+      @param validate
+        A function to check before use that a resource is still valid. *)
+end
+
+(** The full shared system signature, as needed by {!Make_connect}. *)
 module type S = sig
   include CORE
 
   module Stream : Caqti_stream_sig.S with type 'a future := 'a future
 
-  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
-
-  type connect_env
-  (** Type of an extra argument to connect functions used to pass through the
-      network stack in Mirage and stdenv and switch in EIO.  This is eliminated
-      at the service API where not needed. *)
+  module Pool : POOL
+    with type 'a future := 'a future and type connect_env := connect_env
 end

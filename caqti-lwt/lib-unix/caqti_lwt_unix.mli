@@ -22,6 +22,10 @@
 
     See also {!Caqti_lwt} for basic Lwt support. *)
 
+(**/**)
+module System = System
+(**/**)
+
 include Caqti_connect_sig.S
   with type 'a future := 'a Lwt.t
    and module Stream = Caqti_lwt.Stream

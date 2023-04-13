@@ -4,4 +4,4 @@
  (modules_without_implementation
     driver_sig
     system_sig)
- (libraries caqti))
+ (libraries caqti mtime.clock.os))

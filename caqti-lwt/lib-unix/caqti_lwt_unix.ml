@@ -17,82 +17,9 @@
 
 open Caqti_platform
 
-module System = struct
-  include Caqti_lwt.System
-
-  type connect_env = unit
-
-  module Pool = Caqti_platform.Pool.Make (Caqti_lwt.System)
-
-  module Net = struct
-
-    module Sockaddr = struct
-      type t = Unix.sockaddr
-      let unix s = Unix.ADDR_UNIX s
-      let tcp (addr, port) =
-        Unix.ADDR_INET (Unix.inet_addr_of_string (Ipaddr.to_string addr), port)
-    end
-
-    type in_channel = Lwt_io.input_channel
-    type out_channel = Lwt_io.output_channel
-
-    let getaddrinfo ~connect_env:() host port =
-      Lwt.catch
-        (fun () ->
-          let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
-          Lwt_unix.getaddrinfo
-            (Domain_name.to_string host) (string_of_int port) opts
-            >|= List.map (fun ai -> ai.Unix.ai_addr) >|= Result.ok)
-        (function
-         | Not_found -> Lwt.return_ok []
-         | Unix.Unix_error (code, _, _) ->
-            Lwt.return_error
-              (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
-         | exn -> Lwt.fail exn)
-
-    let connect ~connect_env:() sockaddr =
-      Lwt.catch
-        (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
-        (function
-         | Unix.Unix_error (code, _, _) ->
-            Lwt.return_error
-              (`Msg ("Cannot connect: " ^ Unix.error_message code))
-         | exn -> Lwt.fail exn)
-
-    let output_char = Lwt_io.write_char
-    let output_string = Lwt_io.write
-    let flush = Lwt_io.flush
-    let input_char = Lwt_io.read_char
-    let really_input = Lwt_io.read_into_exactly
-    let close_in = Lwt_io.close
-  end
-
-  module Preemptive = Lwt_preemptive
-
-  module Unix = struct
-    type file_descr = Lwt_unix.file_descr
-
-    let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
-
-    let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
-      let choices = []
-        |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
-        |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
-        |> Option.fold
-            ~none:Fun.id ~some:(fun t acc -> Lwt_unix.timeout t :: acc) timeout
-      in
-      if choices = [] then
-        Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
-      else
-      Lwt.catch
-        (fun () -> Lwt.choose choices >|= fun _ -> false)
-        (function
-         | Lwt_unix.Timeout -> Lwt.return_true
-         | exn -> Lwt.fail exn)
-        >|= fun timed_out ->
-      (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
-  end
-end
+(**/**)
+module System = System
+(**/**)
 
 module Loader = struct
 

@@ -17,7 +17,14 @@
 
 (** Internal resource pool implementation. *)
 
-module type S = Caqti_pool_sig.S
+module type S = System_sig.POOL
 
-module Make (System : System_sig.CORE) :
+module Make
+  (System : System_sig.CORE)
+  (Alarm : System_sig.ALARM with type connect_env := System.connect_env) :
   S with type 'a future := 'a System.future
+     and type connect_env := System.connect_env
+
+module Make_without_alarm (System : System_sig.CORE) :
+  S with type 'a future := 'a System.future
+     and type connect_env := System.connect_env

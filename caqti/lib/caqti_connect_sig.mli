@@ -82,7 +82,10 @@ module type S = sig
       @param env Passed to {!connect}. *)
 
   val connect_pool :
-    ?max_size: int -> ?max_idle_size: int -> ?max_use_count: int option ->
+    ?max_size: int ->
+    ?max_idle_size: int ->
+    ?max_idle_age: Mtime.Span.t ->
+    ?max_use_count: int option ->
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->

@@ -48,16 +48,39 @@ module Core = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
+  type connect_env = {
+    stdenv: Eio.Stdenv.t;
+    sw: Eio.Switch.t;
+  }
+
+  (* TODO: Log error. *)
+  let async ~connect_env:{sw; _} f =
+    Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
 end
 include Core
 
-module Stream = Caqti_platform.Stream.Make (Core)
-module Pool = Caqti_platform.Pool.Make (Core)
+module Alarm = struct
+  type t = Eio.Cancel.t
 
-type connect_env = {
-  stdenv: Eio.Stdenv.t;
-  sw: Eio.Switch.t;
-}
+  exception Unscheduled
+
+  let schedule ~connect_env:{stdenv; sw} t f =
+    let alarm = ref None in
+    Eio.Fiber.fork ~sw begin fun () ->
+      Eio.Cancel.sub begin fun cctx ->
+        alarm := Some cctx;
+        Eio.Time.Mono.sleep_until stdenv#mono_clock t;
+        f ()
+      end
+    end;
+    Option.get !alarm
+
+  let unschedule alarm =
+    Eio.Cancel.cancel alarm Unscheduled
+end
+
+module Stream = Caqti_platform.Stream.Make (Core)
+module Pool = Caqti_platform.Pool.Make (Core) (Alarm)
 
 module Sequencer = struct
   type 'a t = 'a * Eio.Mutex.t
@@ -74,6 +97,7 @@ module Sequencer = struct
 end
 
 module Net = struct
+
   module Sockaddr = struct
     type t = Eio.Net.Sockaddr.stream
 

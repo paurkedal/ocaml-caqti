@@ -15,6 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Lwt.Infix
 open Lwt.Syntax
 open Caqti_platform
 
@@ -29,15 +30,40 @@ struct
   module Channel = Mirage_channel.Make (STACK.TCP)
   module TCP = Conduit_mirage.TCP (STACK)
 
-  module System = struct
+  module System_core = struct
     include Caqti_lwt.System
-
-    module Pool = Caqti_platform.Pool.Make (Caqti_lwt.System)
 
     type connect_env = {
       stack: STACK.t;
       dns: DNS.t;
     }
+
+    let async ~connect_env:_ = async ~connect_env:()
+  end
+
+  module Alarm = struct
+    type t = {cancel: unit -> unit}
+
+    let schedule ~connect_env:_ t f =
+      let t_now = Mtime_clock.now () in
+      if Mtime.is_later t ~than:t_now then
+        begin
+          f ();
+          {cancel = Fun.id}
+        end
+      else
+        let task =
+          TIME.sleep_ns (Mtime.Span.to_uint64_ns (Mtime.span t t_now)) >|= f
+        in
+        {cancel = (fun () -> Lwt.cancel task)}
+
+    let unschedule alarm = alarm.cancel ()
+  end
+
+  module System = struct
+    include System_core
+
+    module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 
     module Net = struct
 
@@ -144,10 +170,10 @@ struct
     with_connection ?env ?tweaks_version ~connect_env:{stack; dns} uri f
 
   let connect_pool
-        ?max_size ?max_idle_size ?max_use_count ?post_connect
+        ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
         ?env ?tweaks_version stack dns uri =
     connect_pool
-      ?max_size ?max_idle_size ?max_use_count ?post_connect
+      ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
       ?env ?tweaks_version ~connect_env:{stack; dns} uri
 
 end

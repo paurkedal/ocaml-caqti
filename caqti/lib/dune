@@ -24,4 +24,4 @@
     Caqti_stream_sig
     Caqti_type_sig)
   (library_flags (:standard -linkall))
-  (libraries angstrom bigstringaf logs ptime uri))
+  (libraries angstrom bigstringaf logs mtime ptime uri))

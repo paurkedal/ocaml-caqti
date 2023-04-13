@@ -33,6 +33,8 @@ module System_core = struct
 
   let cleanup f g = try f () with exn -> g (); raise exn
 
+  let async ~connect_env:() f = f ()
+
   module Semaphore = struct
     type t = bool ref
     let create () = ref false
@@ -50,12 +52,12 @@ module System_core = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
+  type connect_env = unit
+
 end
 
 module System = struct
   include System_core
-
-  type connect_env = unit
 
   module Sequencer = struct
     type 'a t = 'a
@@ -115,7 +117,7 @@ module System = struct
 
   module Stream = Caqti_platform.Stream.Make (System_core)
 
-  module Pool = Caqti_platform.Pool.Make (System_core)
+  module Pool = Caqti_platform.Pool.Make_without_alarm (System_core)
 
 end
 

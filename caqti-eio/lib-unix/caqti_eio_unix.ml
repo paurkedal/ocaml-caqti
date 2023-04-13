@@ -49,14 +49,15 @@ let connect ?env ?tweaks_version ~sw stdenv uri =
   connection
 
 let connect_pool
-      ?max_size ?max_idle_size ?max_use_count
+      ?max_size ?max_idle_size ?max_idle_age ?max_use_count
       ?post_connect ?env ?tweaks_version
       ~sw stdenv uri =
   let connect_env = System.{stdenv; sw} in
   Switch.check sw;
   let-? pool =
     connect_pool ~connect_env
-      ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
+      ?max_size ?max_idle_size ?max_idle_age ?max_use_count
+      ?post_connect ?env ?tweaks_version
       uri
   in
   Switch.on_release sw (fun () -> Pool.drain pool);

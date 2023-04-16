@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,7 @@ module type DRIVER_FUNCTOR =
   Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+     and type connect_env := System.connect_env
 
 let drivers = Hashtbl.create 5
 let register scheme p = Hashtbl.add drivers scheme p
@@ -28,6 +29,7 @@ module Make (System : System_sig.S) = struct
   module type DRIVER = Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+     and type connect_env := System.connect_env
 
   let load_driver ~uri scheme =
     (match Hashtbl.find_opt drivers scheme with

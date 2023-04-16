@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,33 +23,36 @@ let ( let-? ) r f = Result.map f r
 
 include Connector.Make_without_connect (Caqti_eio.System.Core)
 
-module Make (Stdenv : System.STDENV) = struct
+open Caqti_eio.System.Core
 
-  module System_with_net = Caqti_eio.System.Make_with_net (Stdenv)
-  module Loader_net = Caqti_platform_net.Driver_loader.Make (System_with_net)
+module System_with_net = Caqti_eio.System.With_net
+module Loader_net = Caqti_platform_net.Driver_loader.Make (System_with_net)
 
-  module System_with_unix = System.Make_with_unix (Stdenv)
-  module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System_with_unix)
+module System_with_unix = System
+module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System_with_unix)
 
-  module Loader = struct
-    module type DRIVER = Loader_unix.DRIVER
-    let load_driver ~uri scheme =
-      (match Loader_net.load_driver ~uri scheme with
-       | Ok _ as r -> r
-       | Error (`Load_rejected _) as r -> r
-       | Error (`Load_failed _) ->
-          (* TODO: Summarize errors. *)
-          Loader_unix.load_driver ~uri scheme)
-  end
+module Loader = struct
 
-  include Connector.Make_connect (Caqti_eio.System.Core) (Loader)
+  type connect_env = System_with_net.connect_env
+
+  module type DRIVER = Loader_unix.DRIVER
+
+  let load_driver ~uri scheme =
+    (match Loader_net.load_driver ~uri scheme with
+     | Ok _ as r -> r
+     | Error (`Load_rejected _) as r -> r
+     | Error (`Load_failed _) ->
+        (* TODO: Summarize errors. *)
+        Loader_unix.load_driver ~uri scheme)
 
 end
 
+include Connector.Make_connect (Caqti_eio.System.Core) (Loader)
+
 let connect ?env ?tweaks_version ~sw stdenv uri =
+  let connect_env = {stdenv; sw} in
   Switch.check sw;
-  let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
-  let-? connection = Connector.connect ?env ?tweaks_version uri in
+  let-? connection = connect ~connect_env ?env ?tweaks_version uri in
   let module C = (val connection : CONNECTION) in
   Switch.on_release sw C.disconnect;
   connection
@@ -58,10 +61,10 @@ let connect_pool
       ?max_size ?max_idle_size ?max_use_count
       ?post_connect ?env ?tweaks_version
       ~sw stdenv uri =
+  let connect_env = {stdenv; sw} in
   Switch.check sw;
-  let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
   let-? pool =
-    Connector.connect_pool
+    connect_pool ~connect_env
       ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
       uri
   in

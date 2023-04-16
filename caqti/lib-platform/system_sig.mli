@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,7 +26,7 @@
         network stack implemented in pure OCaml
   *)
 
-module type S = sig
+module type CORE = sig
 
   type +'a future
   (** A concurrency monad with an optional failure monad, or just the identity
@@ -68,4 +68,13 @@ module type S = sig
 
   module Stream : Caqti_stream_sig.S with type 'a future := 'a future
 
+end
+
+module type S = sig
+  include CORE
+
+  type connect_env
+  (** Type of an extra argument to connect functions used to pass through the
+      network stack in Mirage and stdenv and switch in EIO.  This is eliminated
+      at the service API where not needed. *)
 end

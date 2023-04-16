@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,18 +23,22 @@ let ( let-? ) r f = Result.map f r
 
 module System = System
 
-module Make (Stdenv : System.STDENV) = struct
-  module System_with_net = System.Make_with_net (Stdenv)
-  module Loader = Caqti_platform_net.Driver_loader.Make (System_with_net)
-  include Connector.Make_connect (System.Core) (Loader)
+module System_with_net = System.With_net
+
+module Loader = struct
+  type connect_env = System_with_net.connect_env
+  include Caqti_platform_net.Driver_loader.Make (System_with_net)
 end
 
-include Connector.Make_without_connect (System.Core)
+include Connector.Make_without_connect (System_with_net)
+include Connector.Make_connect (System_with_net) (Loader)
+
+open System_with_net
 
 let connect ?env ?tweaks_version ~sw stdenv uri =
+  let connect_env = {stdenv; sw} in
   Switch.check sw;
-  let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
-  let-? connection = Connector.connect ?env ?tweaks_version uri in
+  let-? connection = connect ~connect_env ?env ?tweaks_version uri in
   let module C = (val connection : CONNECTION) in
   Switch.on_release sw C.disconnect;
   connection
@@ -43,10 +47,10 @@ let connect_pool
       ?max_size ?max_idle_size ?max_use_count
       ?post_connect ?env ?tweaks_version
       ~sw stdenv uri =
+  let connect_env = {stdenv; sw} in
   Switch.check sw;
-  let module Connector = Make (struct let stdenv = stdenv let sw = sw end) in
   let-? pool =
-    Connector.connect_pool
+    connect_pool ~connect_env
       ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
       uri
   in

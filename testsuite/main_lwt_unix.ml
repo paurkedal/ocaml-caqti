@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,18 +16,18 @@
  *)
 
 open Testlib
-open Testlib_lwt
+open Testlib_lwt_unix
 
-module Test_error_cause = Test_error_cause.Make (Testlib_lwt)
-module Test_parallel = Test_parallel.Make (Testlib_lwt)
-module Test_param = Test_param.Make (Testlib_lwt)
-module Test_sql = Test_sql.Make (Testlib_lwt)
-module Test_failure = Test_failure.Make (Testlib_lwt)
+module Test_error_cause = Test_error_cause.Make (Testlib_lwt_unix)
+module Test_parallel = Test_parallel.Make (Testlib_lwt_unix)
+module Test_param = Test_param.Make (Testlib_lwt_unix)
+module Test_sql = Test_sql.Make (Testlib_lwt_unix)
+module Test_failure = Test_failure.Make (Testlib_lwt_unix)
 
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
     let f' () =
-      Caqti_lwt.Pool.use (fun c -> Lwt_result.ok (f c)) pool >|= function
+      Caqti_lwt_unix.Pool.use (fun c -> Lwt_result.ok (f c)) pool >|= function
        | Ok () -> ()
        | Error err -> Alcotest.failf "%a" Caqti_error.pp err
     in

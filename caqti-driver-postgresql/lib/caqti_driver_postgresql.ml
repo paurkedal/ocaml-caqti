@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -362,16 +362,16 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
 
   module Pg_io = struct
 
-    let communicate db step =
+    let communicate ~connect_env db step =
       let aux fd =
         let rec loop = function
          | Pg.Polling_reading ->
-            Unix.poll ~read:true fd >>= fun _ ->
+            Unix.poll ~connect_env ~read:true fd >>= fun _ ->
             (match step () with
              | exception Pg.Error msg -> return (Error msg)
              | ps -> loop ps)
          | Pg.Polling_writing ->
-            Unix.poll ~write:true fd >>= fun _ ->
+            Unix.poll ~connect_env ~write:true fd >>= fun _ ->
             (match step () with
              | exception Pg.Error msg -> return (Error msg)
              | ps -> loop ps)
@@ -384,11 +384,11 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
        | exception Pg.Error msg -> return (Error msg)
        | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
-    let get_next_result ~uri ~query db =
+    let get_next_result ~connect_env ~uri ~query db =
       let rec retry fd =
         db#consume_input;
         if db#is_busy then
-          Unix.poll ~read:true fd >>= (fun _ -> retry fd)
+          Unix.poll ~connect_env ~read:true fd >>= (fun _ -> retry fd)
         else
           return (Ok db#get_result)
       in
@@ -397,17 +397,17 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         let msg = extract_communication_error db err in
         return (Error (Caqti_error.request_failed ~uri ~query msg))
 
-    let get_one_result ~uri ~query db =
-      get_next_result ~uri ~query db >>=? function
+    let get_one_result ~connect_env ~uri ~query db =
+      get_next_result ~connect_env ~uri ~query db >>=? function
        | None ->
           let msg = Caqti_error.Msg "No response received after send." in
           return (Error (Caqti_error.request_failed ~uri ~query msg))
        | Some result ->
           return (Ok result)
 
-    let get_final_result ~uri ~query db =
-      get_one_result ~uri ~query db >>=? fun result ->
-      get_next_result ~uri ~query db >>=? function
+    let get_final_result ~connect_env ~uri ~query db =
+      get_one_result ~connect_env ~uri ~query db >>=? fun result ->
+      get_next_result ~connect_env ~uri ~query db >>=? function
        | None ->
           return (Ok result)
        | Some _ ->
@@ -477,6 +477,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
 
   module Make_connection_base
     (Connection_arg : sig
+      val connect_env : connect_env
       val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
       val db : Pg.connection
@@ -525,7 +526,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
        | exception Pg.Error _ -> return false
        | true ->
           Int_hashtbl.clear prepare_cache;
-          Pg_io.communicate db (fun () -> db#reset_poll) >|=
+          Pg_io.communicate ~connect_env db (fun () -> db#reset_poll) >|=
           (function
            | Error _ -> false
            | Ok () -> (try db#status = Pg.Ok with Pg.Error _ -> false))
@@ -570,7 +571,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
             db#send_prepare ~param_types (query_name_of_id query_id) query;
             db#consume_input
           end >>=? fun () ->
-          Pg_io.get_final_result ~uri ~query db >|=? fun result ->
+          Pg_io.get_final_result ~connect_env ~uri ~query db >|=? fun result ->
           Pg_io.check_command_result ~uri ~query result |>? fun () ->
           Ok (Int_hashtbl.add prepare_cache query_id prepared)
         end >|=? fun () ->
@@ -582,18 +583,21 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         end
       end
 
-    let fetch_one_result ~query () = Pg_io.get_one_result ~uri ~query db
-    let fetch_final_result ~query () = Pg_io.get_final_result ~uri ~query db
+    let fetch_one_result ~query () =
+      Pg_io.get_one_result ~connect_env ~uri ~query db
+
+    let fetch_final_result ~query () =
+      Pg_io.get_final_result ~connect_env ~uri ~query db
 
     let fetch_single_row ~query () =
-      Pg_io.get_one_result ~uri ~query db >>=? fun result ->
+      Pg_io.get_one_result ~connect_env ~uri ~query db >>=? fun result ->
       (match result#status with
        | Pg.Single_tuple ->
           assert (result#ntuples = 1);
           return (Ok (Some result))
        | Pg.Tuples_ok ->
           assert (result#ntuples = 0);
-          Pg_io.get_next_result ~uri ~query db >|=?
+          Pg_io.get_next_result ~connect_env ~uri ~query db >|=?
           (function
            | None -> Ok None
            | Some _ ->
@@ -932,7 +936,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
           | Pg.Put_copy_queued ->
               return (Ok ())
           | Pg.Put_copy_not_queued ->
-              Unix.poll ~write:true fd >>= fun _ -> loop fd
+              Unix.poll ~connect_env ~write:true fd >>= fun _ -> loop fd
         in
         (match db#socket with
          | exception Pg.Error msg -> pg_error msg
@@ -971,7 +975,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
             | Pg.Put_copy_error ->
                 fail "Unable to finalize copy"
             | Pg.Put_copy_not_queued ->
-                Unix.poll ~write:true fd >>= fun _ -> copy_end_loop fd
+                Unix.poll ~connect_env ~write:true fd >>= fun _ ->
+                copy_end_loop fd
             | Pg.Put_copy_queued ->
                 return (Ok ())
           in
@@ -986,7 +991,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
       end
   end
 
-  let connect ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
     return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
@@ -994,7 +999,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         let msg = extract_connect_error err in
         return (Error (Caqti_error.connect_failed ~uri msg))
      | db ->
-        Pg_io.communicate db (fun () -> db#connect_poll) >>=
+        Pg_io.communicate ~connect_env db (fun () -> db#connect_poll) >>=
         (function
          | Error err ->
             let msg = extract_communication_error db err in
@@ -1012,6 +1017,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
                 let module B = Make_connection_base
                   (struct
                     let env = env
+                    let connect_env = connect_env
                     let uri = uri
                     let db = db
                     let use_single_row_mode = use_single_row_mode

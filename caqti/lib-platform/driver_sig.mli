@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,7 @@
 module type S = sig
   type +'a future
   type (+'a, +'err) stream
+  type connect_env
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
@@ -32,18 +33,22 @@ module type S = sig
   val driver_info : Caqti_driver_info.t
 
   val connect :
+    connect_env: connect_env ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     tweaks_version: int * int ->
-    Uri.t -> ((module CONNECTION), [> Caqti_error.connect]) result future
+    Uri.t ->
+    ((module CONNECTION), [> Caqti_error.connect]) result future
 end
 
 module type Loader = sig
   type +'a future
   type (+'a, +'e) stream
+  type connect_env
 
   module type DRIVER = S
     with type 'a future := 'a future
      and type ('a, 'e) stream := ('a, 'e) stream
+     and type connect_env := connect_env
 
   val load_driver :
     uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result

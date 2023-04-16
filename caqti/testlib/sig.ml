@@ -1,4 +1,4 @@
-(* Copyright (C) 2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -52,6 +52,9 @@ module type Ground = sig
   val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
 
   module Caqti_sys : Caqti_connect_sig.S_without_connect
+    with type 'a future := 'a future
+
+  module Pool : Caqti_pool_sig.S
     with type 'a future := 'a future
 
   module Alcotest_cli : Alcotest_cli with type return = unit future

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,5 +17,5 @@
 
 include Testlib.Sig.Ground
   with type 'a future = 'a
-   and module Caqti_sys.Pool = Caqti_eio_unix.Pool
    and module Caqti_sys.Stream = Caqti_eio_unix.Stream
+   and module Pool = Caqti_eio_unix.Pool

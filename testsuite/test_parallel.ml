@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,7 +41,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
 
   let do_query pool =
-    pool |> Caqti_sys.Pool.use @@ fun (module C : Caqti_sys.CONNECTION) ->
+    pool |> Pool.use @@ fun (module C : Caqti_sys.CONNECTION) ->
     (match Random.int 4 with
      | 0 ->
         C.exec Q.insert (random_int (), random_int ()) >>=? fun () ->
@@ -84,7 +84,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_parallel pool =
     begin
-      Caqti_sys.Pool.use
+      Pool.use
         (fun (module C : Caqti_sys.CONNECTION) ->
           C.exec Q.drop () >>=? fun () ->
           C.exec Q.create ())

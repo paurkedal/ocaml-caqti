@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,7 +24,6 @@
 
 include Caqti_connect_sig.Connect
   with type 'a future := 'a Lwt.t
-   and type ('a, 'e) pool := ('a, 'e) Caqti_lwt.Pool.t
    and type connection := Caqti_lwt.connection
    and type 'a connect_fun := Uri.t -> 'a
    and type 'a with_connection_fun := Uri.t -> 'a

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,11 +16,6 @@
  *)
 
 open Caqti_platform
-
-module type STDENV = sig
-  val stdenv : Eio.Stdenv.t
-  val sw : Eio.Switch.t
-end
 
 module Core = struct
   type 'a future = 'a
@@ -59,11 +54,14 @@ module Core = struct
     let (>|=) x f = f x
     let return x = x
   end)
+
+  type connect_env = {
+    stdenv: Eio.Stdenv.t;
+    sw: Eio.Switch.t;
+  }
 end
 
-module Make_with_net (Stdenv : STDENV) = struct
-  open Stdenv
-
+module With_net = struct
   include Core
 
   module Sequencer = struct
@@ -98,7 +96,7 @@ module Make_with_net (Stdenv : STDENV) = struct
     type in_channel = <Eio.Flow.source; Eio.Flow.close>
     type out_channel = Eio.Flow.sink
 
-    let getaddrinfo host port =
+    let getaddrinfo ~connect_env:{stdenv; _} host port =
       try
         Eio.Net.getaddrinfo_stream stdenv#net
           ~service:(string_of_int port) (Domain_name.to_string host)
@@ -106,7 +104,7 @@ module Make_with_net (Stdenv : STDENV) = struct
       with Eio.Exn.Io _ as exn ->
         Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-    let connect sockaddr =
+    let connect ~connect_env:{stdenv; sw} sockaddr =
       try
         let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
         Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))

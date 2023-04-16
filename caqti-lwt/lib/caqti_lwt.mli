@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,6 @@
 include Caqti_connect_sig.S_without_connect
   with type 'a future := 'a Lwt.t
    and module Stream = System.Stream
-   and module Pool = Caqti_platform.Connector.Make_without_connect (System).Pool
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}

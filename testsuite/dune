@@ -64,7 +64,7 @@
   (modules main_lwt_unix)
   (libraries
     caqti caqti.platform caqti-dynload caqti-lwt caqti-lwt.unix
-    alcotest-lwt testlib testlib_lwt testsuite))
+    alcotest-lwt testlib testlib_lwt_unix testsuite))
 
 (rule
   (alias runtest)

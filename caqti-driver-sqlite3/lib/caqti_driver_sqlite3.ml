@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -565,7 +565,7 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ?(env = no_env) ~tweaks_version uri =
+  let connect ~connect_env:_ ?(env = no_env) ~tweaks_version uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");

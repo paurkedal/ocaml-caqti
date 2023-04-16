@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,7 @@ module type S = sig
     type out_channel
 
     val getaddrinfo :
-      [`host] Domain_name.t -> int ->
+      connect_env: connect_env -> [`host] Domain_name.t -> int ->
       (Sockaddr.t list, [> `Msg of string]) result future
     (** This should be a specialized version of getaddrinfo, which only returns
         entries which is expected to work with the corresponding connect on the
@@ -54,7 +54,8 @@ module type S = sig
         queried. *)
 
     val connect :
-      Sockaddr.t -> (in_channel * out_channel, [> `Msg of string]) result future
+      connect_env: connect_env -> Sockaddr.t ->
+      (in_channel * out_channel, [> `Msg of string]) result future
 
     (* TODO: STARTTLS *)
 

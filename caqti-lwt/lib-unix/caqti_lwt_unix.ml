@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,8 @@ open Caqti_platform
 module System = struct
   include Caqti_lwt.System
 
+  type connect_env = unit
+
   module Net = struct
 
     module Sockaddr = struct
@@ -32,7 +34,7 @@ module System = struct
     type in_channel = Lwt_io.input_channel
     type out_channel = Lwt_io.output_channel
 
-    let getaddrinfo host port =
+    let getaddrinfo ~connect_env:() host port =
       Lwt.catch
         (fun () ->
           let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
@@ -46,7 +48,7 @@ module System = struct
               (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
          | exn -> Lwt.fail exn)
 
-    let connect sockaddr =
+    let connect ~connect_env:() sockaddr =
       Lwt.catch
         (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
         (function
@@ -70,7 +72,7 @@ module System = struct
 
     let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
 
-    let poll ?(read = false) ?(write = false) ?timeout fd =
+    let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
       let choices = []
         |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
         |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
@@ -91,6 +93,9 @@ module System = struct
 end
 
 module Loader = struct
+
+  type connect_env = System.connect_env
+
   module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
   module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
@@ -105,4 +110,8 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make_connect (Caqti_lwt.System) (Loader)
+include Connector.Make_connect (System) (Loader)
+
+let connect = connect ~connect_env:()
+let with_connection = with_connection ~connect_env:()
+let connect_pool = connect_pool ~connect_env:()

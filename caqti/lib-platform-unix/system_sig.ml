@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +22,7 @@ module type S = sig
     type file_descr
     val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
     val poll :
+      connect_env: connect_env ->
       ?read: bool -> ?write: bool -> ?timeout: float ->
       file_descr -> (bool * bool * bool) future
   end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,8 @@ let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
 let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
 
 module Caqti_sys = Caqti_eio_unix
+
+module Pool = Caqti_eio_unix.Pool
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli

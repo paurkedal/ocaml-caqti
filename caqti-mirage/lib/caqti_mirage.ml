@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,18 +24,21 @@ module Make
   (TIME : Mirage_time.S)
   (MCLOCK : Mirage_clock.MCLOCK)
   (PCLOCK : Mirage_clock.PCLOCK)
-  (STACK : Tcpip.Stack.V4V6) =
+  (STACK : Tcpip.Stack.V4V6)
+  (DNS : Dns_client_mirage.S) =
 struct
   module Channel = Mirage_channel.Make (STACK.TCP)
-  module Dns_client =
-    Dns_client_mirage.Make (RANDOM) (TIME) (MCLOCK) (PCLOCK) (STACK)
   module TCP = Conduit_mirage.TCP (STACK)
 
-  module System (Arg : sig val stack : STACK.t end) = struct
+  module System = struct
     include Caqti_lwt.System
 
+    type connect_env = {
+      stack: STACK.t;
+      dns: DNS.t;
+    }
+
     module Net = struct
-      let dns = Dns_client.create Arg.stack
 
       module Sockaddr = struct
         type t = [`Tcp of Ipaddr.t * int | `Unix of string]
@@ -46,47 +49,47 @@ struct
       type in_channel = Channel.t
       type out_channel = Channel.t
 
-      let getaddrinfo_ipv4 host port =
+      let getaddrinfo_ipv4 dns host port =
         let extract (_, ips) =
           Ipaddr.V4.Set.elements ips
             |> List.map (fun ip -> `Tcp (Ipaddr.V4 ip, port))
         in
-        Dns_client.getaddrinfo dns Dns.Rr_map.A host >|= Result.map extract
+        DNS.getaddrinfo dns Dns.Rr_map.A host >|= Result.map extract
 
-      let getaddrinfo_ipv6 host port =
+      let getaddrinfo_ipv6 dns host port =
         let extract (_, ips) =
           Ipaddr.V6.Set.elements ips
             |> List.map (fun ip -> `Tcp (Ipaddr.V6 ip, port))
         in
-        Dns_client.getaddrinfo dns Dns.Rr_map.Aaaa host >|= Result.map extract
+        DNS.getaddrinfo dns Dns.Rr_map.Aaaa host >|= Result.map extract
 
-      let getaddrinfo host port =
-        let laddrs = STACK.IP.get_ip (STACK.ip Arg.stack) in
+      let getaddrinfo ~connect_env:{stack; dns} host port =
+        let laddrs = STACK.IP.get_ip (STACK.ip stack) in
         (match
           List.exists Ipaddr.(function V4 _ -> true | V6 _ -> false) laddrs,
           List.exists Ipaddr.(function V4 _ -> false | V6 _ -> true) laddrs
          with
          | true, true ->
-            getaddrinfo_ipv4 host port >>= fun r4 ->
-            getaddrinfo_ipv6 host port >|= fun r6 ->
+            getaddrinfo_ipv4 dns host port >>= fun r4 ->
+            getaddrinfo_ipv6 dns host port >|= fun r6 ->
             (match r4, r6 with
              | Ok addrs4, Ok addrs6 -> Ok (addrs4 @ addrs6)
              | Ok addrs, Error _ | Error _, Ok addrs -> Ok addrs
              | Error (`Msg msg4), Error (`Msg msg6) ->
                 if String.equal msg4 msg6 then Error (`Msg msg4) else
                 Error (`Msg ("IPv4: " ^ msg4 ^ " IPv6: " ^ msg6)))
-         | true, false -> getaddrinfo_ipv4 host port
-         | false, true -> getaddrinfo_ipv6 host port
+         | true, false -> getaddrinfo_ipv4 dns host port
+         | false, true -> getaddrinfo_ipv6 dns host port
          | false, false ->
             return (Error (`Msg "No IP address assigned to host.")))
 
-      let connect sockaddr =
+      let connect ~connect_env:{stack; _} sockaddr =
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
               (`Msg "Unix sockets are not available under MirageOS.")
          | `Tcp (ipaddr, port) ->
-            let+ flow = TCP.connect Arg.stack (`TCP (ipaddr, port)) in
+            let+ flow = TCP.connect stack (`TCP (ipaddr, port)) in
             let ch = Channel.create flow in
             Ok (ch, ch))
 
@@ -132,36 +135,34 @@ struct
   module type CONNECT = Caqti_connect_sig.Connect
     with type 'a future := 'a Lwt.t
      and type connection := connection
-     and type ('a, 'e) pool := ('a, 'e) Pool.t
-     and type 'a connect_fun := Uri.t -> 'a
-     and type 'a with_connection_fun := Uri.t -> 'a
+     and type 'a connect_fun := STACK.t -> DNS.t -> Uri.t -> 'a
+     and type 'a with_connection_fun := STACK.t -> DNS.t -> Uri.t -> 'a
 
-  let connect_stack stack =
-    let module System = System (struct let stack = stack end) in
-    let module Loader = struct
-      module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
+  module Loader = struct
 
-      module type DRIVER = Platform_net.DRIVER
+    type connect_env = System.connect_env
 
-      let load_driver = Platform_net.load_driver
-    end in
-    (module Connector.Make_connect (Caqti_lwt.System) (Loader) : CONNECT)
+    module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
-  let connect ?env ?tweaks_version stack uri =
-    let module C = (val connect_stack stack) in
-    C.connect ?env ?tweaks_version uri
+    module type DRIVER = Platform_net.DRIVER
 
-  let with_connection ?env ?tweaks_version stack uri f =
-    let module C = (val connect_stack stack) in
-    C.with_connection ?env ?tweaks_version uri f
+    let load_driver = Platform_net.load_driver
+
+  end
+
+  include Connector.Make_connect (System) (Loader)
+
+  let connect ?env ?tweaks_version stack dns uri =
+    connect ?env ?tweaks_version ~connect_env:{stack; dns} uri
+
+  let with_connection ?env ?tweaks_version stack dns uri f =
+    with_connection ?env ?tweaks_version ~connect_env:{stack; dns} uri f
 
   let connect_pool
-        ?max_size ?max_idle_size ?max_use_count
-        ?post_connect ?env ?tweaks_version
-        stack uri =
-    let module C = (val connect_stack stack) in
-    C.connect_pool
-      ?max_size ?max_idle_size ?max_use_count ?post_connect ?env ?tweaks_version
-      uri
+        ?max_size ?max_idle_size ?max_use_count ?post_connect
+        ?env ?tweaks_version stack dns uri =
+    connect_pool
+      ?max_size ?max_idle_size ?max_use_count ?post_connect
+      ?env ?tweaks_version ~connect_env:{stack; dns} uri
 
 end

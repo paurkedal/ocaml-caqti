@@ -22,9 +22,6 @@ module type S_without_connect = sig
   type +'a future
   (** The type of a deferred value of type ['a]. *)
 
-  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
-  (** A pool implementation for the current concurrency library. *)
-
   module Stream : Caqti_stream_sig.S with type 'a future := 'a future
 
   module type CONNECTION = Caqti_connection_sig.S
@@ -40,9 +37,11 @@ end
 module type Connect = sig
   type +'a future
   type connection
-  type ('a, +'e) pool
   type +'a connect_fun
   type +'a with_connection_fun
+
+  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
+  (** A pool implementation for the current concurrency library. *)
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -87,7 +86,7 @@ module type Connect = sig
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    ((connection, [> Caqti_error.connect] as 'connect_error) pool,
+    ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
      [> Caqti_error.load]) result connect_fun
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].
@@ -133,7 +132,6 @@ module type S = sig
   include Connect
     with type 'a future := 'a future
      and type connection := connection
-     and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a connect_fun := Uri.t -> 'a
      and type 'a with_connection_fun := Uri.t -> 'a
 end

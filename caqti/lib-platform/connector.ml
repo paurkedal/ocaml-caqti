@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -49,10 +49,9 @@ let retry_with_library load_driver ~uri scheme =
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
 
-module Make_without_connect (System : System_sig.S) = struct
+module Make_without_connect (System : System_sig.CORE) = struct
   type 'a future = 'a System.future
 
-  module Pool = Pool.Make (System)
   module Stream = System.Stream
 
   module type CONNECTION = Caqti_connection_sig.S
@@ -69,6 +68,7 @@ module Make_connect
                and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   include Make_without_connect (System)
+  module Pool = Pool.Make (System)
   open System
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
@@ -77,6 +77,7 @@ struct
   module type DRIVER = Driver_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
+     and type connect_env := Loader.connect_env
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -94,25 +95,27 @@ struct
                 Ok driver
              | Error _ as r -> r)))
 
-  let connect ?env ?(tweaks_version = default_tweaks_version) uri
+  let connect ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri
       : ((module CONNECTION), _) result future =
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect ?env ~tweaks_version uri
+        Driver.connect ~connect_env ?env ~tweaks_version uri
      | Error err ->
         return (Error err))
 
-  let with_connection ?env ?(tweaks_version = default_tweaks_version) uri f =
-    connect ?env ~tweaks_version uri >>=? fun ((module Db) as conn) ->
+  let with_connection
+        ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri f =
+    connect ~connect_env ?env ~tweaks_version uri
+      >>=? fun ((module Conn) as conn) ->
     try
-      f conn >>= fun result -> Db.disconnect () >|= fun () -> result
+      f conn >>= fun result -> Conn.disconnect () >|= fun () -> result
     with exn ->
-      Db.disconnect () >|= fun () -> raise exn
+      Conn.disconnect () >|= fun () -> raise exn
 
   let connect_pool
         ?max_size ?max_idle_size ?(max_use_count = Some 100) ?post_connect
-        ?env ?(tweaks_version = default_tweaks_version) uri =
+        ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri =
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
@@ -130,11 +133,11 @@ struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ?env ~tweaks_version uri
+                (Driver.connect ~connect_env ?env ~tweaks_version uri
                     :> (connection, _) result future)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ?env ~tweaks_version uri
+                (Driver.connect ~connect_env ?env ~tweaks_version uri
                     :> (connection, _) result future)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)

@@ -1,9 +1,10 @@
 (library
- (name testlib_lwt)
- (modules testlib_lwt)
+ (name testlib_lwt_unix)
+ (modules testlib_lwt_unix)
  (libraries
     alcotest
     caqti
     caqti_lwt
+    caqti_lwt_unix
     lwt
     testlib))

@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -290,65 +290,74 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
   let intercept_connect_failed ~uri =
     intercept (Caqti_error.connect_failed ~uri)
 
-  module Pgx_with_io = Pgx.Make (struct
-    type 'a t = 'a future
-    let return = return
-    let ( >>= ) = ( >>= )
-    let catch = catch
+  (* We need to pass connect_env into open_connection below.  This means that
+   * PGX will be instantiated for each connection. *)
+  module Pass_connect_env
+    (Connect_env : sig val connect_env : connect_env end) =
+  struct
+    open Connect_env
 
-    include Net
+    module Pgx_with_io = Pgx.Make (struct
+      type 'a t = 'a future
+      let return = return
+      let ( >>= ) = ( >>= )
+      let catch = catch
 
-    type sockaddr = Unix of string | Inet of string * int
+      include Net
 
-    let open_connection sockaddr =
-      (match sockaddr with
-       | Unix path ->
-          connect (Sockaddr.unix path)
-       | Inet (host, port) ->
-          (match Ipaddr.of_string host with
-           | Ok ipaddr ->
-              connect (Sockaddr.tcp (ipaddr, port))
-           | Error _ ->
-              let host' = host
-                |> Domain_name.of_string_exn
-                |> Domain_name.host_exn
-              in
-              getaddrinfo host' port >>= (function
-               | Ok [] ->
-                  failwith "The host name does not resolve."
-               | Ok (sockaddr :: _) ->
-                  connect sockaddr
-               | Error (`Msg msg) ->
-                  failwith msg)))
-      >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
+      type sockaddr = Unix of string | Inet of string * int
 
-    (* TODO *)
-    type ssl_config
-    let upgrade_ssl = `Not_supported
+      let open_connection sockaddr =
+        (match sockaddr with
+         | Unix path ->
+            connect ~connect_env (Sockaddr.unix path)
+         | Inet (host, port) ->
+            (match Ipaddr.of_string host with
+             | Ok ipaddr ->
+                connect ~connect_env (Sockaddr.tcp (ipaddr, port))
+             | Error _ ->
+                let host' = host
+                  |> Domain_name.of_string_exn
+                  |> Domain_name.host_exn
+                in
+                getaddrinfo ~connect_env host' port >>= (function
+                 | Ok [] ->
+                    failwith "The host name does not resolve."
+                 | Ok (sockaddr :: _) ->
+                    connect ~connect_env sockaddr
+                 | Error (`Msg msg) ->
+                    failwith msg)))
+        >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
 
-    let output_binary_int oc x =
-      let buf = Bytes.create 4 in
-      Bytes.set_int32_be buf 0 (Int32.of_int x);
-      output_string oc (Bytes.to_string buf)
+      (* TODO *)
+      type ssl_config
+      let upgrade_ssl = `Not_supported
 
-    let input_binary_int ic =
-      let buf = Bytes.create 4 in
-      really_input ic buf 0 4 >|= fun () ->
-      Int32.to_int (Bytes.get_int32_be buf 0)
+      let output_binary_int oc x =
+        let buf = Bytes.create 4 in
+        Bytes.set_int32_be buf 0 (Int32.of_int x);
+        output_string oc (Bytes.to_string buf)
 
-    let getlogin () = failwith "The DB user must be provided."
+      let input_binary_int ic =
+        let buf = Bytes.create 4 in
+        really_input ic buf 0 4 >|= fun () ->
+        Int32.to_int (Bytes.get_int32_be buf 0)
 
-    let debug msg = Log.debug (fun f -> f "%s" msg)
+      let getlogin () = failwith "The DB user must be provided."
 
-    let protect f ~finally = System.finally f finally
+      let debug msg = Log.debug (fun f -> f "%s" msg)
 
-    module Sequencer = struct
-      type 'a monad = 'a future
-      include Sequencer
-    end
-  end)
+      let protect f ~finally = System.finally f finally
+
+      module Sequencer = struct
+        type 'a monad = 'a future
+        include Sequencer
+      end
+    end)
+  end
 
   module Make_connection_base
+    (Pgx_with_io : Pgx.S with type 'a Io.t = 'a future)
     (Connection_arg : sig
       val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
@@ -667,10 +676,11 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
      | Ok () -> Ok ()
      | Error err -> Error (`Post_connect err)
 
-  let connect ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       return (parse_uri uri)
     in
+    let open Pass_connect_env (struct let connect_env = connect_env end) in
     let*? db =
       intercept_connect_failed ~uri
         (Pgx_with_io.connect
@@ -681,7 +691,7 @@ module Connect_functor (System : Caqti_platform_net.System_sig.S) = struct
         (fun () -> Pgx_with_io.Prepared.prepare db ~query:Q.select_type_oid)
       >|= Result.map_error (fun err -> `Post_connect err)
     in
-    let module B = Make_connection_base (struct
+    let module B = Make_connection_base (Pgx_with_io) (struct
       let env = env
       let uri = uri
       let db_arg = db

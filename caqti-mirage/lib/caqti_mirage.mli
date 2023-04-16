@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,9 +29,9 @@ module Make :
   functor (MCLOCK : Mirage_clock.MCLOCK) ->
   functor (PCLOCK : Mirage_clock.PCLOCK) ->
   functor (STACK : Tcpip.Stack.V4V6) ->
+  functor (DNS : Dns_client_mirage.S) ->
   Caqti_connect_sig.Connect
     with type 'a future := 'a Lwt.t
-     and type ('a, 'e) pool := ('a, 'e) Caqti_lwt.Pool.t
      and type connection := Caqti_lwt.connection
-     and type 'a connect_fun := STACK.t -> Uri.t -> 'a
-     and type 'a with_connection_fun := STACK.t -> Uri.t -> 'a
+     and type 'a connect_fun := STACK.t -> DNS.t -> Uri.t -> 'a
+     and type 'a with_connection_fun := STACK.t -> DNS.t -> Uri.t -> 'a

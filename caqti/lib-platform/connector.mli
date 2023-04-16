@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,7 @@ val define_loader : (string -> (unit, string) result) -> unit
 val load_library : string -> (unit, string) result
 
 module Make_without_connect :
-  functor (System : System_sig.S) ->
+  functor (System : System_sig.CORE) ->
   Caqti_connect_sig.S_without_connect
     with type 'a future = 'a System.future
      and module Stream = System.Stream
@@ -38,8 +38,8 @@ module Make_connect :
   Caqti_connect_sig.Connect
     with type 'a future = 'a System.future
      and type connection := Make_without_connect (System).connection
-     and type ('a, 'e) pool := ('a, 'e) Make_without_connect (System).Pool.t
-     and type 'a connect_fun := Uri.t -> 'a
-     and type 'a with_connection_fun := Uri.t -> 'a
+     and type 'a connect_fun := connect_env: Loader.connect_env -> Uri.t -> 'a
+     and type 'a with_connection_fun :=
+                                connect_env: Loader.connect_env -> Uri.t -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

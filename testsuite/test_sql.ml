@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -579,7 +579,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     assert (actual = all_pairs);
     Db.exec Q.drop_tmp () >>= or_fail
 
-  let test_drain pool = Caqti_sys.Pool.drain pool
+  let test_drain pool = Pool.drain pool
 
   let connection_test_cases = [
     "post_connect", `Quick, test_post_connect;

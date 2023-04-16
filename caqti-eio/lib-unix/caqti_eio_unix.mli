@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,6 @@
 include Caqti_connect_sig.S_without_connect with type 'a future := 'a
 include Caqti_connect_sig.Connect
   with type 'a future := 'a
-   and type ('a, 'e) pool := ('a, 'e) Pool.t
    and type connection := connection
    and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
    and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a

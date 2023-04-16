@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 
 open Lwt.Infix
 
-module Pool = Caqti_lwt.Pool
+module Pool = Caqti_lwt_unix.Pool
 
 module Resource = struct
   type t = {

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -78,6 +78,8 @@ module System = struct
     let debug ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Debug msgf
   end
 
+  type connect_env = unit
+
   module Preemptive = struct
     let detach f x = In_thread.run (fun () -> f x)
     let run_in_main f = Thread_safe.block_on_async_exn f
@@ -111,14 +113,14 @@ module System = struct
     type in_channel = Reader.t
     type out_channel = Writer.t
 
-    let getaddrinfo host port =
+    let getaddrinfo ~connect_env:() host port =
       let module Ai = Async_unix.Unix.Addr_info in
       let extract ai = ai.Ai.ai_addr in
       Ai.get ~host:(Domain_name.to_string host) ~service:(string_of_int port)
              Ai.[AI_SOCKTYPE SOCK_STREAM]
       >|= List.map ~f:extract >|= (fun addrs -> Ok addrs)
 
-    let connect = function
+    let connect ~connect_env:() = function
      | Async_unix.Unix.ADDR_INET (addr, port) ->
         Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
@@ -155,7 +157,7 @@ module System = struct
         >>= fun () ->
       return r
 
-    let poll ?(read = false) ?(write = false) ?timeout fd =
+    let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
       let wait_read =
         if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
       let wait_write =
@@ -180,6 +182,8 @@ module System = struct
 end
 
 module Loader = struct
+  type connect_env = System.connect_env
+
   module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
   module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
@@ -196,3 +200,7 @@ end
 
 include Connector.Make_without_connect (System)
 include Connector.Make_connect (System) (Loader)
+
+let connect = connect ~connect_env:()
+let with_connection = with_connection ~connect_env:()
+let connect_pool = connect_pool ~connect_env:()

@@ -1,4 +1,4 @@
-(* Copyright (C) 2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,6 +40,8 @@ let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
 let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
 
 module Caqti_sys = Caqti_async
+
+module Pool = Caqti_async.Pool
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli

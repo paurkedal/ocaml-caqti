@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,6 +50,8 @@ module System = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
+  type connect_env = unit
+
   module Sequencer = struct
     type 'a t = 'a
     let create m = m
@@ -67,7 +69,7 @@ module System = struct
     type nonrec in_channel = in_channel
     type nonrec out_channel = out_channel
 
-    let getaddrinfo host port =
+    let getaddrinfo ~connect_env:() host port =
       try
         let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
         Unix.getaddrinfo (Domain_name.to_string host) (string_of_int port) opts
@@ -77,7 +79,7 @@ module System = struct
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
 
-    let connect sockaddr =
+    let connect ~connect_env:() sockaddr =
       try Ok (Unix.open_connection sockaddr) with
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
@@ -93,7 +95,8 @@ module System = struct
   module Unix = struct
     type file_descr = Unix.file_descr
     let wrap_fd f fd = f fd
-    let poll ?(read = false) ?(write = false) ?(timeout = -1.0) fd =
+    let poll ~connect_env:()
+             ?(read = false) ?(write = false) ?(timeout = -1.0) fd =
       let read_fds = if read then [fd] else [] in
       let write_fds = if write then [fd] else [] in
       let read_fds, write_fds, _ = Unix.select read_fds write_fds [] timeout in
@@ -115,6 +118,9 @@ module System = struct
 end
 
 module Loader = struct
+
+  type connect_env = unit
+
   module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
   module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
@@ -131,6 +137,10 @@ end
 
 include Connector.Make_without_connect (System)
 include Connector.Make_connect (System) (Loader)
+
+let connect = connect ~connect_env:()
+let with_connection = with_connection ~connect_env:()
+let connect_pool = connect_pool ~connect_env:()
 
 let or_fail = function
  | Ok x -> x

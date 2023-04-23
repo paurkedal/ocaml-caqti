@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,7 @@ include Benchmark_fetch_many.Make (struct
     Eio_main.run (fun stdenv -> Switch.run (fun sw -> f (stdenv, sw)))
   let (>>=) x f = f x
   let (>|=) x f = f x
+  include Caqti_eio
   include Caqti_eio_unix
   let connect (stdenv, sw) uri = connect stdenv ~sw uri
 end)

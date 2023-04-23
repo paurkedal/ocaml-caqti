@@ -28,8 +28,8 @@ module System = System
 
 include Caqti_connect_sig.S
   with type 'a future := 'a Lwt.t
-   and module Stream = Caqti_lwt.Stream
-   and module type CONNECTION = Caqti_lwt.CONNECTION
-   and type connection = Caqti_lwt.connection
+   and module Stream := Caqti_lwt.Stream
+   and module type CONNECTION := Caqti_lwt.CONNECTION
+   and type connection := Caqti_lwt.connection
    and type 'a connect_fun := Uri.t -> 'a
    and type 'a with_connection_fun := Uri.t -> 'a

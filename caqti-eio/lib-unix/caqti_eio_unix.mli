@@ -22,10 +22,10 @@
 
 include Caqti_connect_sig.S
   with type 'a future := 'a
-   and module Stream = Caqti_eio.Stream
-   and module Pool = Caqti_eio.Pool
-   and module type CONNECTION = Caqti_eio.CONNECTION
-   and type connection = Caqti_eio.connection
+   and module Stream := Caqti_eio.Stream
+   and module Pool := Caqti_eio.Pool
+   and module type CONNECTION := Caqti_eio.CONNECTION
+   and type connection := Caqti_eio.connection
    and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
    and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
 

@@ -17,5 +17,5 @@
 
 include Testlib.Sig.Ground
   with type 'a future = 'a
-   and module Stream = Caqti_eio_unix.Stream
-   and module Pool = Caqti_eio_unix.Pool
+   and module Stream = Caqti_eio.Stream
+   and module Pool = Caqti_eio.Pool

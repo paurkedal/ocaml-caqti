@@ -19,12 +19,12 @@ type 'a future = 'a Lwt.t
 let return = Lwt.return
 let catch = Lwt.catch
 let fail = Lwt.fail
-let or_fail = Caqti_lwt.or_fail
 let (>>=) = Lwt.Infix.(>>=)
 let (>|=) = Lwt.Infix.(>|=)
 let (>>=?) = Lwt_result.Infix.(>>=)
 let (>|=?) = Lwt_result.Infix.(>|=)
 
+include Caqti_lwt
 include Caqti_lwt_unix
 
 module Alcotest_cli = Testlib.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)

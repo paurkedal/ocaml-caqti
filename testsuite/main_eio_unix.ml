@@ -28,7 +28,7 @@ module Test_failure = Test_failure.Make (Testlib_eio_unix)
 let mk_test (name, pool) =
   let pass_conn pool (name, speed, f) =
     let f' () =
-      Caqti_eio_unix.Pool.use (fun c -> Ok (f c)) pool |> function
+      Caqti_eio.Pool.use (fun c -> Ok (f c)) pool |> function
        | Ok () -> ()
        | Error err -> Alcotest.failf "%a" Caqti_error.pp err
     in

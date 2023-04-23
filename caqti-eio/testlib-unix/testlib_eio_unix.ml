@@ -16,6 +16,7 @@
  *)
 
 include Caqti_eio.System.Core
+include Caqti_eio
 include Caqti_eio_unix
 
 let fail = raise

@@ -25,9 +25,7 @@ let (>|=) = Lwt.Infix.(>|=)
 let (>>=?) = Lwt_result.Infix.(>>=)
 let (>|=?) = Lwt_result.Infix.(>|=)
 
-module Caqti_sys = Caqti_lwt
-
-module Pool = Caqti_lwt_unix.Pool
+include Caqti_lwt_unix
 
 module Alcotest_cli = Testlib.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)
 

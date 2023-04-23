@@ -21,19 +21,10 @@ open Caqti_platform
 let ( let/? ) r f = Result.bind r f
 let ( let-? ) r f = Result.map f r
 
-include Connector.Make_without_connect (Caqti_eio.System.Core)
-
-open Caqti_eio.System.Core
-
-module System_with_net = Caqti_eio.System.With_net
-module Loader_net = Caqti_platform_net.Driver_loader.Make (System_with_net)
-
-module System_with_unix = System
-module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System_with_unix)
+module Loader_net = Caqti_platform_net.Driver_loader.Make (System)
+module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System)
 
 module Loader = struct
-
-  type connect_env = System_with_net.connect_env
 
   module type DRIVER = Loader_unix.DRIVER
 
@@ -47,10 +38,10 @@ module Loader = struct
 
 end
 
-include Connector.Make_connect (Caqti_eio.System.Core) (Loader)
+include Connector.Make (System) (Loader)
 
 let connect ?env ?tweaks_version ~sw stdenv uri =
-  let connect_env = {stdenv; sw} in
+  let connect_env = System.{stdenv; sw} in
   Switch.check sw;
   let-? connection = connect ~connect_env ?env ?tweaks_version uri in
   let module C = (val connection : CONNECTION) in
@@ -61,7 +52,7 @@ let connect_pool
       ?max_size ?max_idle_size ?max_use_count
       ?post_connect ?env ?tweaks_version
       ~sw stdenv uri =
-  let connect_env = {stdenv; sw} in
+  let connect_env = System.{stdenv; sw} in
   Switch.check sw;
   let-? pool =
     connect_pool ~connect_env

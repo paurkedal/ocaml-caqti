@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,10 @@
     You can use a connection pool to cache a single DB connection, additional
     connections will not be allocated, since usage is serial. *)
 
-include Caqti_connect_sig.S with type 'a future := 'a
+include Caqti_connect_sig.S
+  with type 'a future := 'a
+   and type 'a connect_fun := Uri.t -> 'a
+   and type 'a with_connection_fun := Uri.t -> 'a
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Takes [Ok x] to [x] and raises {!Caqti_error.Exn}[ err] on [Error err]. *)

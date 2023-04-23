@@ -24,7 +24,9 @@ module Option = struct
   let for_all f = function None -> true | Some x -> f x
 end
 
-module Make (System : System_sig.S) = struct
+module type S = Caqti_pool_sig.S
+
+module Make (System : System_sig.CORE) = struct
   open System
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))

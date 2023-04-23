@@ -24,22 +24,18 @@ val define_loader : (string -> (unit, string) result) -> unit
 
 val load_library : string -> (unit, string) result
 
-module Make_without_connect :
-  functor (System : System_sig.CORE) ->
-  Caqti_connect_sig.S_without_connect
-    with type 'a future = 'a System.future
-     and module Stream = System.Stream
-
-module Make_connect :
+module Make :
   functor (System : System_sig.S) ->
   functor (Loader : Driver_sig.Loader
             with type 'a future := 'a System.future
+             and type connect_env := System.connect_env
              and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
-  Caqti_connect_sig.Connect
-    with type 'a future = 'a System.future
-     and type connection := Make_without_connect (System).connection
-     and type 'a connect_fun := connect_env: Loader.connect_env -> Uri.t -> 'a
+  Caqti_connect_sig.S
+    with type 'a future := 'a System.future
+     and module Stream = System.Stream
+     and module Pool = System.Pool
+     and type 'a connect_fun := connect_env: System.connect_env -> Uri.t -> 'a
      and type 'a with_connection_fun :=
-                                connect_env: Loader.connect_env -> Uri.t -> 'a
+                                connect_env: System.connect_env -> Uri.t -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

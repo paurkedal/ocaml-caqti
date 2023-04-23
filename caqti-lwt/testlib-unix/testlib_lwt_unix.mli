@@ -17,5 +17,5 @@
 
 include Testlib.Sig.Ground
   with type 'a future = 'a Lwt.t
-   and module Caqti_sys.Stream = Caqti_lwt.Stream
+   and module Stream = Caqti_lwt.Stream
    and module Pool = Caqti_lwt_unix.Pool

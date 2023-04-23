@@ -39,9 +39,7 @@ let (>|=) = (>>|)
 let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
 let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
 
-module Caqti_sys = Caqti_async
-
-module Pool = Caqti_async.Pool
+include Caqti_async
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli

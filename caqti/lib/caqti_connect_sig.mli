@@ -17,12 +17,23 @@
 
 (** Signatures providing functions for establishing database connections. *)
 
-module type S_without_connect = sig
+module type S = sig
 
   type +'a future
   (** The type of a deferred value of type ['a]. *)
 
+  type +'a connect_fun
+  (** Adds system dependent arguments relevant for {!connect} and
+      {!connect_pool}. *)
+
+  type +'a with_connection_fun
+  (** Adds system dependent arguments relevant for {!with_connection}. *)
+
   module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+  (** A stream implementation. *)
+
+  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
+  (** A pool implementation for the current concurrency library. *)
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
@@ -31,17 +42,6 @@ module type S_without_connect = sig
 
   type connection = (module CONNECTION)
   (** Shortcut for the connection API passed as a value. *)
-
-end
-
-module type Connect = sig
-  type +'a future
-  type connection
-  type +'a connect_fun
-  type +'a with_connection_fun
-
-  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
-  (** A pool implementation for the current concurrency library. *)
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -125,13 +125,4 @@ module type Connect = sig
         be changed in the future based on real-world experience.  The reason
         this setting was introduced is that we have seen state being retained on
         the server side. *)
-end
-
-module type S = sig
-  include S_without_connect
-  include Connect
-    with type 'a future := 'a future
-     and type connection := connection
-     and type 'a connect_fun := Uri.t -> 'a
-     and type 'a with_connection_fun := Uri.t -> 'a
 end

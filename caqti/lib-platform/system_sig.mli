@@ -66,12 +66,14 @@ module type CORE = sig
     val debug : ?src: Logs.src -> 'a log
   end
 
-  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
-
 end
 
 module type S = sig
   include CORE
+
+  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+
+  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
 
   type connect_env
   (** Type of an extra argument to connect functions used to pass through the

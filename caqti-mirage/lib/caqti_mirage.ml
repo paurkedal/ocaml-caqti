@@ -17,7 +17,6 @@
 
 open Lwt.Syntax
 open Caqti_platform
-open Caqti_lwt
 
 module Make
   (RANDOM : Mirage_random.S)
@@ -32,6 +31,8 @@ struct
 
   module System = struct
     include Caqti_lwt.System
+
+    module Pool = Caqti_platform.Pool.Make (Caqti_lwt.System)
 
     type connect_env = {
       stack: STACK.t;
@@ -132,25 +133,9 @@ struct
     end
   end
 
-  module type CONNECT = Caqti_connect_sig.Connect
-    with type 'a future := 'a Lwt.t
-     and type connection := connection
-     and type 'a connect_fun := STACK.t -> DNS.t -> Uri.t -> 'a
-     and type 'a with_connection_fun := STACK.t -> DNS.t -> Uri.t -> 'a
+  module Loader = Caqti_platform_net.Driver_loader.Make (System)
 
-  module Loader = struct
-
-    type connect_env = System.connect_env
-
-    module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
-
-    module type DRIVER = Platform_net.DRIVER
-
-    let load_driver = Platform_net.load_driver
-
-  end
-
-  include Connector.Make_connect (System) (Loader)
+  include Connector.Make (System) (Loader)
 
   let connect ?env ?tweaks_version stack dns uri =
     connect ?env ?tweaks_version ~connect_env:{stack; dns} uri

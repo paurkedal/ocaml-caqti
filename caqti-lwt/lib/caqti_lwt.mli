@@ -19,14 +19,18 @@
 
     This provides basics for {!Caqti_lwt_unix} and {!Caqti_mirage}. *)
 
-include Caqti_connect_sig.S_without_connect
+(**/**)
+module System = System (* for private use by caqti-lwt.unix and caqti-mirage *)
+(**/**)
+
+module Stream = System.Stream
+
+module type CONNECTION = Caqti_connection_sig.S
   with type 'a future := 'a Lwt.t
-   and module Stream = System.Stream
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
+type connection = (module CONNECTION)
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a Lwt.t
 (** Converts an error to an Lwt future failed with a {!Caqti_error.Exn}
     exception holding the error. *)
-
-(**/**)
-module System = System (* for private use by caqti-lwt.unix and caqti-mirage *)
-(**/**)

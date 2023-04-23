@@ -20,16 +20,16 @@
     This module provides connections to the PGX database for Eio applications.
     For other database systems, you will need {!Caqti_eio_unix}. *)
 
-include Caqti_connect_sig.S_without_connect with type 'a future := 'a
-include Caqti_connect_sig.Connect
+(**/**)
+module System = System (* for private use by caqti-eio.unix *)
+(**/**)
+
+include Caqti_connect_sig.S
   with type 'a future := 'a
-   and type connection := connection
+   and module Stream = System.Stream
+   and module Pool = System.Pool
    and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
    and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Eliminates the error-case by raising {!Caqti_error.Exn}. *)
-
-(**/**)
-module System = System (* for private use by caqti-eio.unix *)
-(**/**)

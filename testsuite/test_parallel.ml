@@ -41,7 +41,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
 
   let do_query pool =
-    pool |> Pool.use @@ fun (module C : Caqti_sys.CONNECTION) ->
+    pool |> Pool.use @@ fun (module C : CONNECTION) ->
     (match Random.int 4 with
      | 0 ->
         C.exec Q.insert (random_int (), random_int ()) >>=? fun () ->
@@ -85,7 +85,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   let test_parallel pool =
     begin
       Pool.use
-        (fun (module C : Caqti_sys.CONNECTION) ->
+        (fun (module C : CONNECTION) ->
           C.exec Q.drop () >>=? fun () ->
           C.exec Q.create ())
         pool >>=? fun () ->

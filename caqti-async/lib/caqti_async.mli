@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,4 +19,7 @@
 
 open Async_kernel
 
-include Caqti_connect_sig.S with type 'a future := 'a Deferred.t
+include Caqti_connect_sig.S
+  with type 'a future := 'a Deferred.t
+   and type 'a connect_fun := Uri.t -> 'a
+   and type 'a with_connection_fun := Uri.t -> 'a

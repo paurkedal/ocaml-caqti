@@ -22,6 +22,8 @@ module System = struct
 
   type connect_env = unit
 
+  module Pool = Caqti_platform.Pool.Make (Caqti_lwt.System)
+
   module Net = struct
 
     module Sockaddr = struct
@@ -94,8 +96,6 @@ end
 
 module Loader = struct
 
-  type connect_env = System.connect_env
-
   module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
   module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
 
@@ -110,7 +110,7 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make_connect (System) (Loader)
+include Connector.Make (System) (Loader)
 
 let connect = connect ~connect_env:()
 let with_connection = with_connection ~connect_env:()

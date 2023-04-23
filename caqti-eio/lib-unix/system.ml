@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-include Caqti_eio.System.Core
+include Caqti_eio.System
 
 module Unix = struct
   type file_descr = Unix.file_descr

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,5 +17,7 @@
 
 (** Internal resource pool implementation. *)
 
-module Make (System : System_sig.S) :
-  Caqti_pool_sig.S with type 'a future := 'a System.future
+module type S = Caqti_pool_sig.S
+
+module Make (System : System_sig.CORE) :
+  S with type 'a future := 'a System.future

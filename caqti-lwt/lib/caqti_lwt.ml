@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,11 +15,15 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_platform
-
 module System = System
 
-include Connector.Make_without_connect (System)
+module Stream = System.Stream
+
+module type CONNECTION = Caqti_connection_sig.S
+  with type 'a future := 'a Lwt.t
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
+type connection = (module CONNECTION)
 
 let or_fail = function
  | Ok x -> Lwt.return x

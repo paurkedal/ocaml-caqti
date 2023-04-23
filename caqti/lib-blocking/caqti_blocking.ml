@@ -17,7 +17,7 @@
 
 open Caqti_platform
 
-module System = struct
+module System_core = struct
 
   type 'a future = 'a
   let (>>=) x f = f x
@@ -49,6 +49,11 @@ module System = struct
     let info ?(src = Logging.default_log_src) = Logs.info ~src
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
+
+end
+
+module System = struct
+  include System_core
 
   type connect_env = unit
 
@@ -108,18 +113,13 @@ module System = struct
     let run_in_main f = f ()
   end
 
-  module Stream = Caqti_platform.Stream.Make (struct
-    type 'a future = 'a
-    let (>>=) x f = f x
-    let (>|=) x f = f x
-    let return x = x
-  end)
+  module Stream = Caqti_platform.Stream.Make (System_core)
+
+  module Pool = Caqti_platform.Pool.Make (System_core)
 
 end
 
 module Loader = struct
-
-  type connect_env = unit
 
   module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
   module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
@@ -135,8 +135,7 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make_without_connect (System)
-include Connector.Make_connect (System) (Loader)
+include Connector.Make (System) (Loader)
 
 let connect = connect ~connect_env:()
 let with_connection = with_connection ~connect_env:()

@@ -17,5 +17,5 @@
 
 include Testlib.Sig.Ground
   with type 'a future = 'a
-   and module Caqti_sys.Stream = Caqti_blocking.Stream
+   and module Stream = Caqti_blocking.Stream
    and module Pool = Caqti_blocking.Pool

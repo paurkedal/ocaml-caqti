@@ -189,20 +189,20 @@ module Make (Ground : Testlib.Sig.Ground) = struct
    | "x2" -> Q"I'm quoted."
    | _ -> raise Not_found
 
-  let test_expand (module Db : Caqti_sys.CONNECTION) =
+  let test_expand (module Db : CONNECTION) =
     Db.find Q.select_expanded () >>= or_fail >|= fun (x1, x2) ->
     Alcotest.(check int) "expanded int" 734 x1;
     Alcotest.(check string) "expanded quote" "I'm quoted." x2
 
-  let post_connect (module Db : Caqti_sys.CONNECTION) =
+  let post_connect (module Db : CONNECTION) =
     Db.exec Q.create_post_connect () >|= function
      | Ok x -> Ok x
      | Error err -> Error (`Post_connect err)
 
-  let test_post_connect (module Db : Caqti_sys.CONNECTION) =
+  let test_post_connect (module Db : CONNECTION) =
     Db.exec Q.insert_into_post_connect "swallow" >>= or_fail
 
-  let test_expr (module Db : Caqti_sys.CONNECTION) =
+  let test_expr (module Db : CONNECTION) =
 
     let maybe_deallocate q =
       if Random.int 50 = 0 then
@@ -356,7 +356,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     check (Some 7) None (Some (Some 8, None, Some 8)) >>= fun () ->
     check (Some 7) (Some 3) (Some (Some 8, Some 4, Some 8))
 
-  let test_enum (module Db : Caqti_sys.CONNECTION) =
+  let test_enum (module Db : CONNECTION) =
     let with_type_abc f =
       (match Caqti_driver_info.dialect_tag Db.driver_info with
        | `Sqlite | `Mysql -> f ()
@@ -374,7 +374,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Db.exec Q.drop_table_test_abc ()
     end >>= or_fail
 
-  let test_table (module Db : Caqti_sys.CONNECTION) =
+  let test_table (module Db : CONNECTION) =
 
     (* Create, insert, select *)
     Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
@@ -406,7 +406,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     assert (o_acc = "zero+two+three+five");
     Db.exec Q.drop_tmp () >>= or_fail
 
-  let test_affected_count (module Db : Caqti_sys.CONNECTION) =
+  let test_affected_count (module Db : CONNECTION) =
     let select_all exp_i exp_s exp_o =
       Db.fold Q.select_from_tmp
         (fun (i, s, o) (i_acc, s_acc, o_acc) ->
@@ -473,12 +473,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     Db.commit () >>= or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= or_fail
 
-  let test_stream (module Db : Caqti_sys.CONNECTION) =
+  let test_stream (module Db : CONNECTION) =
     let assert_stream_is expected =
       Db.call
         ~f:(fun response ->
             let open Db.Response in
-            Caqti_sys.Stream.to_list @@ to_stream response >>= fun actual ->
+            Stream.to_list @@ to_stream response >>= fun actual ->
             assert (actual = expected);
             return (Ok ()))
         Q.select_from_tmp
@@ -493,13 +493,13 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     >>= or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= or_fail
 
-  let test_stream_both_ways (module Db : Caqti_sys.CONNECTION) =
+  let test_stream_both_ways (module Db : CONNECTION) =
     let show_string_option = function
       | None -> "None"
       | Some s -> "Some \"" ^ s ^ "\""
     in
     let assert_stream_both_ways expected =
-      let input_stream = Caqti_sys.Stream.of_list expected in
+      let input_stream = Stream.of_list expected in
       Db.exec Q.create_tmp_nullable () >>= or_fail >>= fun () ->
       Db.populate
         ~table:"test_sql"
@@ -538,7 +538,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
        (4, Some "", Some "");
        (5, Some "\\\"", Some "\\\"")] >>= or_fail
 
-  let test_stream_binary (module Db : Caqti_sys.CONNECTION) =
+  let test_stream_binary (module Db : CONNECTION) =
     (* Insert and retrieve all pairs of bytes as strings *)
     let all_bytes =
       Testlib.init_list 256 (fun c -> String.make 1 (Char.chr c))
@@ -549,7 +549,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     in
     let all_pairs_len = List.length all_pairs in
     assert (all_pairs_len = 65536);
-    let input_stream = Caqti_sys.Stream.of_list all_pairs in
+    let input_stream = Stream.of_list all_pairs in
     Db.exec Q.create_tmp_binary () >>= or_fail >>= fun () ->
     Db.populate
       ~table:"test_sql"

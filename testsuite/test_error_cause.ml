@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -83,12 +83,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   (* TODO: exclusion *)
 
-  let harness (module Db : Caqti_sys.CONNECTION) =
+  let harness (module Db : CONNECTION) =
     List_result_future.iter_s (fun req -> Db.exec req ()) create_reqs
       >>= or_fail
 
   let make_test_case (expected_cause, req) =
-    let test (module Db : Caqti_sys.CONNECTION) =
+    let test (module Db : CONNECTION) =
       let dialect = Caqti_driver_info.dialect_tag Db.driver_info in
       Db.exec req () >|= function
        | Ok () -> Alcotest.fail "Error not reported."

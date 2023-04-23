@@ -19,15 +19,12 @@ type 'a future = 'a
 let return x = x
 let catch f g = try f () with exn -> g exn
 let fail = raise
-let or_fail = Caqti_blocking.or_fail
 let (>>=) x f = f x
 let (>|=) x f = f x
 let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
 let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
 
-module Caqti_sys = Caqti_blocking
-
-module Pool = Caqti_blocking.Pool
+include Caqti_blocking
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli

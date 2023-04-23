@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1
 
-  let test_nonlin (module Db : Caqti_sys.CONNECTION) =
+  let test_nonlin (module Db : CONNECTION) =
     let rec loop n =
       if n = 0 then return () else
       let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
@@ -57,7 +57,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     in
     loop 1000
 
-  let test_env (module Db : Caqti_sys.CONNECTION) =
+  let test_env (module Db : CONNECTION) =
     Db.find Q.env1 () >>= or_fail >|= fun y -> assert (y = 60)
 
   let test_cases = [

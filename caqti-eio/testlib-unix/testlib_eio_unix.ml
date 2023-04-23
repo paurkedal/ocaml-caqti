@@ -15,19 +15,13 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type 'a future = 'a
-let return x = x
-let catch f g = try f () with exn -> g exn
+include Caqti_eio.System.Core
+include Caqti_eio_unix
+
 let fail = raise
-let or_fail = Caqti_eio_unix.or_fail
-let (>>=) x f = f x
-let (>|=) x f = f x
+
 let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
 let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
-
-module Caqti_sys = Caqti_eio_unix
-
-module Pool = Caqti_eio_unix.Pool
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli

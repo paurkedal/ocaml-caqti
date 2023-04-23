@@ -1,4 +1,4 @@
-(* Copyright (C) 2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@ end
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
 
-  let test_raise_in_call fail' (module Db : Caqti_sys.CONNECTION) =
+  let test_raise_in_call fail' (module Db : CONNECTION) =
     let test i =
       catch
         (fun () ->
@@ -48,7 +48,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     test 5 >>= fun () ->
     test 15
 
-  let test_statement_timeout (module Db : Caqti_sys.CONNECTION) =
+  let test_statement_timeout (module Db : CONNECTION) =
     if Caqti_driver_info.dialect_tag Db.driver_info = `Sqlite then
       return () (* Does not support statement timeout. *)
     else

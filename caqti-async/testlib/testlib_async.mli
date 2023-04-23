@@ -17,5 +17,5 @@
 
 include Testlib.Sig.Ground
   with type 'a future = 'a Async_kernel.Deferred.t
-   and module Caqti_sys.Stream = Caqti_async.Stream
+   and module Stream = Caqti_async.Stream
    and module Pool = Caqti_async.Pool

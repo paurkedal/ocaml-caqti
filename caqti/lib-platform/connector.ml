@@ -49,27 +49,24 @@ let retry_with_library load_driver ~uri scheme =
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
 
-module Make_without_connect (System : System_sig.CORE) = struct
-  type 'a future = 'a System.future
+module Make
+  (System : System_sig.S)
+  (Loader : Driver_sig.Loader
+              with type 'a future := 'a System.future
+               and type connect_env := System.connect_env
+               and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
+struct
+  open System
 
-  module Stream = System.Stream
+  module Stream = Stream
+
+  module Pool = Pool
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   type connection = (module CONNECTION)
-end
-
-module Make_connect
-  (System : System_sig.S)
-  (Loader : Driver_sig.Loader
-              with type 'a future := 'a System.future
-               and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
-struct
-  include Make_without_connect (System)
-  module Pool = Pool.Make (System)
-  open System
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
@@ -77,7 +74,7 @@ struct
   module type DRIVER = Driver_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
-     and type connect_env := Loader.connect_env
+     and type connect_env := System.connect_env
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 

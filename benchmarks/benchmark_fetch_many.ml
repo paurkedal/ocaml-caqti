@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -39,7 +39,15 @@ module type PLATFORM = sig
   val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
   val (>|=) : 'a future -> ('a -> 'b) -> 'b future
   val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
-  include Caqti_connect_sig.S_without_connect with type 'a future := 'a future
+
+  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a future := 'a future
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
+
+  type connection = (module CONNECTION)
+
   val connect :
     context -> Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result future

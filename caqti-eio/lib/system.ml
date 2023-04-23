@@ -48,84 +48,78 @@ module Core = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
-  module Stream = Caqti_platform.Stream.Make (struct
-    type 'a future = 'a
-    let (>>=) x f = f x
-    let (>|=) x f = f x
-    let return x = x
-  end)
+end
+include Core
 
-  type connect_env = {
-    stdenv: Eio.Stdenv.t;
-    sw: Eio.Switch.t;
-  }
+module Stream = Caqti_platform.Stream.Make (Core)
+module Pool = Caqti_platform.Pool.Make (Core)
+
+type connect_env = {
+  stdenv: Eio.Stdenv.t;
+  sw: Eio.Switch.t;
+}
+
+module Sequencer = struct
+  type 'a t = 'a * Eio.Mutex.t
+
+  let create x = (x, Eio.Mutex.create ())
+
+  let enqueue (x, mutex) f =
+    (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
+     * preventing recovery from e.g. a statement timeout. *)
+    Eio.Mutex.lock mutex;
+    (match f x with
+     | y -> Eio.Mutex.unlock mutex; y
+     | exception exn -> Eio.Mutex.unlock mutex; raise exn)
 end
 
-module With_net = struct
-  include Core
+module Net = struct
+  module Sockaddr = struct
+    type t = Eio.Net.Sockaddr.stream
 
-  module Sequencer = struct
-    type 'a t = 'a * Eio.Mutex.t
+    let tcp ((addr : Ipaddr.t), port) =
+      let addr_octets =
+        (match addr with
+         | V4 addr4 -> Ipaddr.V4.to_octets addr4
+         | V6 addr6 -> Ipaddr.V6.to_octets addr6)
+      in
+      `Tcp (Eio.Net.Ipaddr.of_raw addr_octets, port)
 
-    let create x = (x, Eio.Mutex.create ())
-
-    let enqueue (x, mutex) f =
-      (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
-       * preventing recovery from e.g. a statement timeout. *)
-      Eio.Mutex.lock mutex;
-      (match f x with
-       | y -> Eio.Mutex.unlock mutex; y
-       | exception exn -> Eio.Mutex.unlock mutex; raise exn)
+    let unix path = `Unix path
   end
 
-  module Net = struct
-    module Sockaddr = struct
-      type t = Eio.Net.Sockaddr.stream
+  type in_channel = <Eio.Flow.source; Eio.Flow.close>
+  type out_channel = Eio.Flow.sink
 
-      let tcp ((addr : Ipaddr.t), port) =
-        let addr_octets =
-          (match addr with
-           | V4 addr4 -> Ipaddr.V4.to_octets addr4
-           | V6 addr6 -> Ipaddr.V6.to_octets addr6)
-        in
-        `Tcp (Eio.Net.Ipaddr.of_raw addr_octets, port)
+  let getaddrinfo ~connect_env:{stdenv; _} host port =
+    try
+      Eio.Net.getaddrinfo_stream stdenv#net
+        ~service:(string_of_int port) (Domain_name.to_string host)
+        >|= Result.ok
+    with Eio.Exn.Io _ as exn ->
+      Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-      let unix path = `Unix path
-    end
+  let connect ~connect_env:{stdenv; sw} sockaddr =
+    try
+      let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
+      Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))
+    with Eio.Exn.Io _ as exn ->
+      Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-    type in_channel = <Eio.Flow.source; Eio.Flow.close>
-    type out_channel = Eio.Flow.sink
+  let output_char sink c = Eio.Flow.copy_string (String.make 1 c) sink
+  let output_string sink s = Eio.Flow.copy_string s sink
+  let flush _sink = ()
 
-    let getaddrinfo ~connect_env:{stdenv; _} host port =
-      try
-        Eio.Net.getaddrinfo_stream stdenv#net
-          ~service:(string_of_int port) (Domain_name.to_string host)
-          >|= Result.ok
-      with Eio.Exn.Io _ as exn ->
-        Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
+  let input_char source =
+    let buf = Cstruct.create 1 in
+    Eio.Flow.read_exact source buf;
+    Cstruct.get_char buf 0
 
-    let connect ~connect_env:{stdenv; sw} sockaddr =
-      try
-        let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
-        Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))
-      with Eio.Exn.Io _ as exn ->
-        Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
+  let really_input source buf i n =
+    let cbuf = Cstruct.create n in
+    Eio.Flow.read_exact source cbuf;
+    Cstruct.blit_to_bytes cbuf 0 buf i n
 
-    let output_char sink c = Eio.Flow.copy_string (String.make 1 c) sink
-    let output_string sink s = Eio.Flow.copy_string s sink
-    let flush _sink = ()
-
-    let input_char source =
-      let buf = Cstruct.create 1 in
-      Eio.Flow.read_exact source buf;
-      Cstruct.get_char buf 0
-
-    let really_input source buf i n =
-      let cbuf = Cstruct.create n in
-      Eio.Flow.read_exact source cbuf;
-      Cstruct.blit_to_bytes cbuf 0 buf i n
-
-    (* TODO: Check shutdown semantics, or maybe leave it to the switch. *)
-    let close_in source = Eio.Flow.close source
-  end
+  (* TODO: Check shutdown semantics, or maybe leave it to the switch. *)
+  let close_in source = Eio.Flow.close source
 end

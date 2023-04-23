@@ -23,17 +23,11 @@ let ( let-? ) r f = Result.map f r
 
 module System = System
 
-module System_with_net = System.With_net
+module Loader = Caqti_platform_net.Driver_loader.Make (System)
 
-module Loader = struct
-  type connect_env = System_with_net.connect_env
-  include Caqti_platform_net.Driver_loader.Make (System_with_net)
-end
+include Connector.Make (System) (Loader)
 
-include Connector.Make_without_connect (System_with_net)
-include Connector.Make_connect (System_with_net) (Loader)
-
-open System_with_net
+open System
 
 let connect ?env ?tweaks_version ~sw stdenv uri =
   let connect_env = {stdenv; sw} in

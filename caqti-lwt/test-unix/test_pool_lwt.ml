@@ -126,13 +126,13 @@ let test_age _ () =
       Resource.create Resource.free
   in
   let* () =
-    let f _i _resource = Lwt_unix.sleep 0.01 >|= Result.ok in
+    let f _i _resource = Lwt_unix.sleep 0.1 >|= Result.ok in
     List.init 8 f
       |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
       |> Lwt.join
   in
   Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
-  let+ () = Lwt_unix.sleep 0.15 in
+  let+ () = Lwt_unix.sleep 0.2 in
   Alcotest.(check int) "pool size after sleep" 0 (Pool.size pool)
 
 let test_cases = [

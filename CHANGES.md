@@ -16,6 +16,9 @@ New features:
     uncontrolled memory consumption when a large number of rows is returned,
     it is a lot less efficient.
 
+  - A new pool connection parameter `?max_idle_age` provides removal
+    resources from pools which have been unused for the given period.
+
 Breaking changes:
 
   - The minimal OCaml requirement is now 4.08.0.

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,13 +24,21 @@
     {[
       postgresql://<user>:<password>@<host>:<port>/<rest>
     ]}
-    which are passed verbatim to {!Postgresql.connection}, and URIs of the form
-    [postgresql://<query>] which are first split into [<key> = '<value>'] form.
+    which are passed verbatim to {!Postgresql.connection}, except as noted
+    below, and URIs of the form [postgresql://<query>] which are first split
+    into [<key> = '<value>'] form.
 
-    Additionally the query option [notice_processing] can be set to [quiet] (the
-    default) to suppress notices or to [stderr] to emit notices to standard
-    error.  This option is interpreted by the Caqti driver and stripped off
-    before passing the URI to libpq.
+    In addition to libpq parameters, the following will be interpreted by Caqti
+    and stripped of before passing the URI to libpq:
+
+      - [notice_processing] can be set to [quite] (the default) to suppress
+        notices or to [stderr] to let libpq emit notices to standard error.
+
+      - [use_single_row_mode] can be set to [true] to enable single row mode for
+        queries which may return more than one row.  The default is [false]
+        because it is significantly faster.  Single row mode is needed if query
+        results may exceed whan can be stored in memory, but consider batching
+        the results with [LIMIT] and [OFFSET] instead for better perfomance.
 
     The interface provided by this module {e should normally not be used by
     applications}, but provides access to some PostgreSQL specifics in case they

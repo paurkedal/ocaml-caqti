@@ -22,12 +22,17 @@ open Async_unix
 open Caqti_platform
 open Core
 
-module System_core = struct
-
+module Future = struct
   type 'a future = 'a Deferred.t
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
+end
+
+module Stream = Caqti_platform.Stream.Make (Future)
+
+module System_core = struct
+  include Future
 
   let catch f g =
     try_with ~extract_exn:true f >>= function
@@ -47,6 +52,8 @@ module System_core = struct
   type connect_env = unit
 
   let async ~connect_env:() f = don't_wait_for (f ())
+
+  module Stream = Stream
 
   module Semaphore = struct
     type t = unit Ivar.t
@@ -101,17 +108,16 @@ module Alarm = struct
   let unschedule () = ()
 end
 
+module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
+
 module System = struct
   include System_core
+  module Stream = Stream
 
   module Preemptive = struct
     let detach f x = In_thread.run (fun () -> f x)
     let run_in_main f = Thread_safe.block_on_async_exn f
   end
-
-  module Stream = Caqti_platform.Stream.Make (System_core)
-
-  module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 
   (* Cf. pgx_async. *)
   module Sequencer = struct
@@ -218,7 +224,7 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make (System) (Loader)
+include Connector.Make (System) (Pool) (Loader)
 
 let connect = connect ~connect_env:()
 let with_connection = with_connection ~connect_env:()

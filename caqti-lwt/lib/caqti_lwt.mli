@@ -19,11 +19,19 @@
 
     This provides basics for {!Caqti_lwt_unix} and {!Caqti_mirage}. *)
 
-(**/**)
-module System = System (* for private use by caqti-lwt.unix and caqti-mirage *)
-(**/**)
+module Stream : Caqti_stream_sig.S with type 'a future := 'a Lwt.t
 
-module Stream = System.Stream
+(**/**)
+(* For private use by caqti-lwt.unix and caqti-mirage. *)
+module System_core : sig
+  include Caqti_platform.System_sig.S
+    with type 'a future = 'a Lwt.t
+     and module Stream = Stream
+     and type connect_env := unit
+  module Sequencer : Caqti_platform_net.System_sig.SEQUENCER
+    with type 'a future := 'a Lwt.t
+end
+(**/**)
 
 module type CONNECTION = Caqti_connection_sig.S
   with type 'a future := 'a Lwt.t

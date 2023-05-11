@@ -16,7 +16,7 @@
  *)
 
 module System_core = struct
-  include Caqti_lwt.System
+  include Caqti_lwt.System_core
   type connect_env = unit
 end
 include System_core
@@ -43,6 +43,7 @@ module Alarm = struct
   let unschedule alarm = alarm.cancel ()
 end
 
+module Stream = Caqti_lwt.Stream
 module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 
 module Net = struct

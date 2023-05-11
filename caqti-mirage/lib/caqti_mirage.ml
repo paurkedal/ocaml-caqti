@@ -31,7 +31,7 @@ struct
   module TCP = Conduit_mirage.TCP (STACK)
 
   module System_core = struct
-    include Caqti_lwt.System
+    include Caqti_lwt.System_core
 
     type connect_env = {
       stack: STACK.t;
@@ -60,10 +60,11 @@ struct
     let unschedule alarm = alarm.cancel ()
   end
 
+  module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
+
   module System = struct
     include System_core
-
-    module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
+    module Pool = Pool
 
     module Net = struct
 
@@ -161,7 +162,7 @@ struct
 
   module Loader = Caqti_platform_net.Driver_loader.Make (System)
 
-  include Connector.Make (System) (Loader)
+  include Connector.Make (System) (Pool) (Loader)
 
   let connect ?env ?tweaks_version stack dns uri =
     connect ?env ?tweaks_version ~connect_env:{stack; dns} uri

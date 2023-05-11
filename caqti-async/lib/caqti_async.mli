@@ -19,7 +19,12 @@
 
 open Async_kernel
 
+module Stream : Caqti_stream_sig.S with type 'a future := 'a Deferred.t
+module Pool : Caqti_pool_sig.S with type 'a future := 'a Deferred.t
+
 include Caqti_connect_sig.S
   with type 'a future := 'a Deferred.t
    and type 'a connect_fun := Uri.t -> 'a
    and type 'a with_connection_fun := Uri.t -> 'a
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+   and type ('a, 'e) pool := ('a, 'e) Pool.t

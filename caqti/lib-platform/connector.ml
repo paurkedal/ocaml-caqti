@@ -51,16 +51,15 @@ let retry_with_library load_driver ~uri scheme =
 
 module Make
   (System : System_sig.S)
+  (Pool : Pool.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env)
   (Loader : Driver_sig.Loader
-              with type 'a future := 'a System.future
-               and type connect_env := System.connect_env
-               and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env
+     and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   open System
-
-  module Stream = Stream
-
-  module Pool = Pool
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future

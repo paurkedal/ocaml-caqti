@@ -17,9 +17,8 @@
 
 open Caqti_platform
 
-(**/**)
 module System = System
-(**/**)
+module Pool = System.Pool
 
 module Loader = struct
 
@@ -37,7 +36,7 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make (System) (Loader)
+include Connector.Make (System) (Pool) (Loader)
 
 let connect = connect ~connect_env:()
 let with_connection = with_connection ~connect_env:()

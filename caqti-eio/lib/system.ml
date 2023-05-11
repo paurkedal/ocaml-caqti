@@ -17,11 +17,15 @@
 
 open Caqti_platform
 
-module Core = struct
+module Future = struct
   type 'a future = 'a
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
+end
+
+module Core = struct
+  include Future
 
   let catch f g = try f () with exn -> g exn
 
@@ -31,6 +35,8 @@ module Core = struct
      | exception exn -> g (); raise exn)
 
   let cleanup f g = try f () with exn -> g (); raise exn
+
+  module Stream = Caqti_platform.Stream.Make (Future)
 
   module Semaphore = struct
     type t = Eio.Semaphore.t
@@ -78,9 +84,6 @@ module Alarm = struct
   let unschedule alarm =
     Eio.Cancel.cancel alarm Unscheduled
 end
-
-module Stream = Caqti_platform.Stream.Make (Core)
-module Pool = Caqti_platform.Pool.Make (Core) (Alarm)
 
 module Sequencer = struct
   type 'a t = 'a * Eio.Mutex.t

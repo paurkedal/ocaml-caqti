@@ -15,14 +15,17 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module type SEQUENCER = sig
+  type 'a t
+  type 'a future
+  val create : 'a -> 'a t
+  val enqueue : 'a t -> ('a -> 'b future) -> 'b future
+end
+
 module type S = sig
   include Caqti_platform.System_sig.S
 
-  module Sequencer : sig
-    type 'a t
-    val create : 'a -> 'a t
-    val enqueue : 'a t -> ('a -> 'b future) -> 'b future
-  end
+  module Sequencer : SEQUENCER with type 'a future := 'a future
 
   module Net : sig
 

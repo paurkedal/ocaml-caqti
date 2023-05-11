@@ -38,7 +38,7 @@ module Loader = struct
 
 end
 
-include Connector.Make (System) (Loader)
+include Connector.Make (System) (Caqti_eio.Pool) (Loader)
 
 let connect ?env ?tweaks_version ~sw stdenv uri =
   let connect_env = System.{stdenv; sw} in
@@ -60,7 +60,7 @@ let connect_pool
       ?post_connect ?env ?tweaks_version
       uri
   in
-  Switch.on_release sw (fun () -> Pool.drain pool);
+  Switch.on_release sw (fun () -> Caqti_eio.Pool.drain pool);
   pool
 
 let with_connection ?env ?tweaks_version stdenv uri f =
@@ -68,7 +68,3 @@ let with_connection ?env ?tweaks_version stdenv uri f =
     let/? connection = connect ?env ?tweaks_version stdenv ~sw uri in
     f connection
   end
-
-let or_fail = function
- | Ok x -> x
- | Error (#Caqti_error.t as err) -> raise (Caqti_error.Exn err)

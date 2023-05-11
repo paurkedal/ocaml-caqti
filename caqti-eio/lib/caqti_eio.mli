@@ -20,16 +20,44 @@
     This module provides connections to the PGX database for Eio applications.
     For other database systems, you will need {!Caqti_eio_unix}. *)
 
+module Stream : Caqti_stream_sig.S with type 'a future := 'a
+
+(**/**) (* for private use by caqti-eio.unix *)
+module System : sig
+  type connect_env = {
+    stdenv: Eio.Stdenv.t;
+    sw: Eio.Switch.t;
+  }
+  include Caqti_platform_net.System_sig.S
+    with type 'a future = 'a
+     and type connect_env := connect_env
+     and module Stream = Stream
+end
 (**/**)
-module System = System (* for private use by caqti-eio.unix *)
-(**/**)
+
+module Pool : sig
+  include Caqti_pool_sig.S with type 'a future := 'a
+
+  (**/**)
+  val create :
+    ?max_size: int ->
+    ?max_idle_size: int ->
+    ?max_idle_age: Mtime.Span.t ->
+    ?max_use_count: int option ->
+    ?check: ('a -> (bool -> unit) -> unit) ->
+    ?validate: ('a -> bool) ->
+    ?log_src: Logs.Src.t ->
+    connect_env: System.connect_env ->
+    (unit -> ('a, 'e) result) -> ('a -> unit) ->
+    ('a, 'e) t
+end
 
 include Caqti_connect_sig.S
   with type 'a future := 'a
-   and module Stream = System.Stream
-   and module Pool = System.Pool
    and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
    and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+   and type ('a, 'e) pool := ('a, 'e) Pool.t
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Eliminates the error-case by raising {!Caqti_error.Exn}. *)

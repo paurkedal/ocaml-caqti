@@ -24,11 +24,34 @@ module Option' = struct
   let for_all f = function None -> true | Some x -> f x
 end
 
-module type S = System_sig.POOL
+module type ALARM = sig
+  type t
+  type connect_env
+  val schedule : connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+  val unschedule : t -> unit
+end
+
+module type S = sig
+  include Caqti_pool_sig.S
+
+  type connect_env
+
+  val create :
+    ?max_size: int ->
+    ?max_idle_size: int ->
+    ?max_idle_age: Mtime.Span.t ->
+    ?max_use_count: int option ->
+    ?check: ('a -> (bool -> unit) -> unit) ->
+    ?validate: ('a -> bool future) ->
+    ?log_src: Logs.Src.t ->
+    connect_env: connect_env ->
+    (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
+    ('a, 'e) t
+end
 
 module Make
-  (System : System_sig.CORE)
-  (Alarm : System_sig.ALARM with type connect_env := System.connect_env) =
+  (System : System_sig.S)
+  (Alarm : ALARM with type connect_env := System.connect_env) =
 struct
   open System
 
@@ -230,4 +253,4 @@ module No_alarm = struct
   let unschedule _ = ()
 end
 
-module Make_without_alarm (System : System_sig.CORE) = Make (System) (No_alarm)
+module Make_without_alarm (System : System_sig.S) = Make (System) (No_alarm)

@@ -29,15 +29,15 @@ module type S = sig
   type +'a with_connection_fun
   (** Adds system dependent arguments relevant for {!with_connection}. *)
 
-  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+  type (+'a, +'e) stream
   (** A stream implementation. *)
 
-  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
+  type ('a, +'e) pool
   (** A pool implementation for the current concurrency library. *)
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a future := 'a future
-     and type ('a, 'err) stream := ('a, 'err) Stream.t
+     and type ('a, 'e) stream := ('a, 'e) stream
   (** The connection API specialized for the current concurrency library. *)
 
   type connection = (module CONNECTION)
@@ -89,7 +89,7 @@ module type S = sig
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    ((connection, [> Caqti_error.connect] as 'connect_error) Pool.t,
+    ((connection, [> Caqti_error.connect] as 'connect_error) pool,
      [> Caqti_error.load]) result connect_fun
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].

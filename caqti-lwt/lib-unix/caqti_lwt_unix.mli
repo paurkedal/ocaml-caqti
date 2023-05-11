@@ -22,13 +22,16 @@
 
     See also {!Caqti_lwt} for basic Lwt support. *)
 
-(**/**)
+(**/**) (* for test_pool_lwt.ml *)
 module System = System
 (**/**)
 
+module Pool : Caqti_pool_sig.S with type 'a future := 'a Lwt.t
+
 include Caqti_connect_sig.S
   with type 'a future := 'a Lwt.t
-   and module Stream := Caqti_lwt.Stream
+   and type ('a, 'e) stream := ('a, 'e) Caqti_lwt.Stream.t
+   and type ('a, 'e) pool := ('a, 'e) Pool.t
    and module type CONNECTION := Caqti_lwt.CONNECTION
    and type connection := Caqti_lwt.connection
    and type 'a connect_fun := Uri.t -> 'a

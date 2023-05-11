@@ -22,10 +22,12 @@ let ( let/? ) r f = Result.bind r f
 let ( let-? ) r f = Result.map f r
 
 module System = System
+module Stream = System.Stream
+module Pool = Caqti_platform.Pool.Make (System.Core) (System.Alarm)
 
 module Loader = Caqti_platform_net.Driver_loader.Make (System)
 
-include Connector.Make (System) (Loader)
+include Connector.Make (System) (Pool) (Loader)
 
 open System
 

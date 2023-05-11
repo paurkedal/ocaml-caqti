@@ -17,12 +17,17 @@
 
 open Caqti_platform
 
-module System_core = struct
-
+module Future = struct
   type 'a future = 'a
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
+end
+
+module Stream = Caqti_platform.Stream.Make (Future)
+
+module System_core = struct
+  include Future
 
   let catch f g = try f () with exn -> g exn
 
@@ -34,6 +39,8 @@ module System_core = struct
   let cleanup f g = try f () with exn -> g (); raise exn
 
   let async ~connect_env:() f = f ()
+
+  module Stream = Stream
 
   module Semaphore = struct
     type t = bool ref
@@ -55,6 +62,8 @@ module System_core = struct
   type connect_env = unit
 
 end
+
+module Pool = Caqti_platform.Pool.Make_without_alarm (System_core)
 
 module System = struct
   include System_core
@@ -115,10 +124,6 @@ module System = struct
     let run_in_main f = f ()
   end
 
-  module Stream = Caqti_platform.Stream.Make (System_core)
-
-  module Pool = Caqti_platform.Pool.Make_without_alarm (System_core)
-
 end
 
 module Loader = struct
@@ -137,7 +142,7 @@ module Loader = struct
         Platform_unix.load_driver ~uri scheme)
 end
 
-include Connector.Make (System) (Loader)
+include Connector.Make (System) (Pool) (Loader)
 
 let connect = connect ~connect_env:()
 let with_connection = with_connection ~connect_env:()

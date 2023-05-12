@@ -20,21 +20,7 @@ open Caqti_platform
 module System = System
 module Pool = System.Pool
 
-module Loader = struct
-
-  module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
-  module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
-
-  module type DRIVER = Platform_unix.DRIVER
-
-  let load_driver ~uri scheme =
-    (match Platform_net.load_driver ~uri scheme with
-     | Ok _ as r -> r
-     | Error (`Load_rejected _) as r -> r
-     | Error (`Load_failed _) ->
-        (* TODO: Summarize errors. *)
-        Platform_unix.load_driver ~uri scheme)
-end
+module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 

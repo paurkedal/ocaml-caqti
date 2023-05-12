@@ -72,11 +72,11 @@ module type S = sig
 end
 
 module Make
-  (System : System_sig.S)
+  (System : System_sig.CORE)
   (Alarm : ALARM with type connect_env := System.connect_env) :
   S with type 'a future := 'a System.future
      and type connect_env := System.connect_env
 
-module Make_without_alarm (System : System_sig.S) :
+module Make_without_alarm (System : System_sig.CORE) :
   S with type 'a future := 'a System.future
      and type connect_env := System.connect_env

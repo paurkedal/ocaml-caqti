@@ -28,7 +28,7 @@ module System : sig
     stdenv: Eio.Stdenv.t;
     sw: Eio.Switch.t;
   }
-  include Caqti_platform_net.System_sig.S
+  include Caqti_platform.System_sig.S
     with type 'a future = 'a
      and type connect_env := connect_env
      and module Stream = Stream

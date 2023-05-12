@@ -61,18 +61,17 @@ module System_core = struct
 
   type connect_env = unit
 
+  module Sequencer = struct
+    type 'a t = 'a
+    let create m = m
+    let enqueue m f = f m
+  end
 end
 
 module Pool = Caqti_platform.Pool.Make_without_alarm (System_core)
 
 module System = struct
   include System_core
-
-  module Sequencer = struct
-    type 'a t = 'a
-    let create m = m
-    let enqueue m f = f m
-  end
 
   module Net = struct
     module Sockaddr = struct
@@ -108,6 +107,10 @@ module System = struct
     let close_in = close_in
   end
 
+end
+
+module System_unix = struct
+
   module Unix = struct
     type file_descr = Unix.file_descr
     let wrap_fd f fd = f fd
@@ -126,21 +129,7 @@ module System = struct
 
 end
 
-module Loader = struct
-
-  module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
-  module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
-
-  module type DRIVER = Platform_unix.DRIVER
-
-  let load_driver ~uri scheme =
-    (match Platform_net.load_driver ~uri scheme with
-     | Ok _ as r -> r
-     | Error (`Load_rejected _) as r -> r
-     | Error (`Load_failed _) ->
-        (* TODO: Summarize errors. *)
-        Platform_unix.load_driver ~uri scheme)
-end
+module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 

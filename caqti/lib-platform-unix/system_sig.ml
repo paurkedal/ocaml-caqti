@@ -16,7 +16,8 @@
  *)
 
 module type S = sig
-  include Caqti_platform.System_sig.S
+  type 'a future
+  type connect_env
 
   module Unix : sig
     type file_descr

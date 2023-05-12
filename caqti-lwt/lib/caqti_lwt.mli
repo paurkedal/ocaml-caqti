@@ -24,12 +24,10 @@ module Stream : Caqti_stream_sig.S with type 'a future := 'a Lwt.t
 (**/**)
 (* For private use by caqti-lwt.unix and caqti-mirage. *)
 module System_core : sig
-  include Caqti_platform.System_sig.S
+  include Caqti_platform.System_sig.CORE
     with type 'a future = 'a Lwt.t
      and module Stream = Stream
      and type connect_env := unit
-  module Sequencer : Caqti_platform_net.System_sig.SEQUENCER
-    with type 'a future := 'a Lwt.t
 end
 (**/**)
 

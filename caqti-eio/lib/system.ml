@@ -62,6 +62,20 @@ module Core = struct
   (* TODO: Log error. *)
   let async ~connect_env:{sw; _} f =
     Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
+
+  module Sequencer = struct
+    type 'a t = 'a * Eio.Mutex.t
+
+    let create x = (x, Eio.Mutex.create ())
+
+    let enqueue (x, mutex) f =
+      (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
+       * preventing recovery from e.g. a statement timeout. *)
+      Eio.Mutex.lock mutex;
+      (match f x with
+       | y -> Eio.Mutex.unlock mutex; y
+       | exception exn -> Eio.Mutex.unlock mutex; raise exn)
+  end
 end
 include Core
 
@@ -83,20 +97,6 @@ module Alarm = struct
 
   let unschedule alarm =
     Eio.Cancel.cancel alarm Unscheduled
-end
-
-module Sequencer = struct
-  type 'a t = 'a * Eio.Mutex.t
-
-  let create x = (x, Eio.Mutex.create ())
-
-  let enqueue (x, mutex) f =
-    (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
-     * preventing recovery from e.g. a statement timeout. *)
-    Eio.Mutex.lock mutex;
-    (match f x with
-     | y -> Eio.Mutex.unlock mutex; y
-     | exception exn -> Eio.Mutex.unlock mutex; raise exn)
 end
 
 module Net = struct

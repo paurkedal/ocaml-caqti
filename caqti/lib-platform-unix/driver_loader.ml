@@ -16,7 +16,10 @@
  *)
 
 module type DRIVER_FUNCTOR =
-  functor (System : System_sig.S) ->
+  functor (System : Caqti_platform.System_sig.S) ->
+  functor (System_unix : System_sig.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env) ->
   Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
@@ -25,21 +28,39 @@ module type DRIVER_FUNCTOR =
 let drivers = Hashtbl.create 5
 let register scheme p = Hashtbl.add drivers scheme p
 
-module Make (System : System_sig.S) = struct
+module Make
+  (System : Caqti_platform.System_sig.S)
+  (System_unix : System_sig.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env) =
+struct
+  module Core_loader = Caqti_platform.Driver_loader.Make (System)
 
   module type DRIVER = Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type connect_env := System.connect_env
 
-  let load_driver ~uri scheme =
+  let load_driver_unix ~uri scheme =
     (match Hashtbl.find_opt drivers scheme with
      | None ->
         let msg = "Driver not found for unix platform." in
         Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
      | Some make_driver ->
         let module Make_driver = (val make_driver : DRIVER_FUNCTOR) in
-        let module Driver = Make_driver (System) in
+        let module Driver = Make_driver (System) (System_unix) in
         Ok (module Driver : DRIVER))
+
+  let load_driver ~uri scheme =
+    (match Core_loader.load_driver ~uri scheme with
+     | Ok _ as r -> r
+     | Error (`Load_rejected _) as r -> r
+     | Error (`Load_failed _) ->
+        (match load_driver_unix ~uri scheme with
+         | Ok _ as r -> r
+         | Error (`Load_rejected _) as r -> r
+         | Error (`Load_failed _) ->
+            let msg = "Driver not found, including among UNIX drivers." in
+            Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
 
 end

@@ -50,7 +50,7 @@ module type S = sig
 end
 
 module Make
-  (System : System_sig.S)
+  (System : System_sig.CORE)
   (Alarm : ALARM with type connect_env := System.connect_env) =
 struct
   open System
@@ -253,4 +253,4 @@ module No_alarm = struct
   let unschedule _ = ()
 end
 
-module Make_without_alarm (System : System_sig.S) = Make (System) (No_alarm)
+module Make_without_alarm (System : System_sig.CORE) = Make (System) (No_alarm)

@@ -2,13 +2,17 @@
  (name caqti_mirage)
  (public_name caqti-mirage)
  (libraries
-    caqti caqti.platform caqti.platform.net
+    caqti
+    caqti.platform
     caqti-lwt
     conduit-mirage
     dns-client
     dns-client-mirage
-    domain-name ipaddr
-    logs logs.lwt lwt
+    domain-name
+    ipaddr
+    logs
+    logs.lwt
+    lwt
     mirage-channel
     mirage-clock
     mirage-random

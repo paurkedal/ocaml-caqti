@@ -63,7 +63,12 @@ end
 
 let no_env _ _ = raise Not_found
 
-module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
+module Connect_functor
+  (System : Caqti_platform.System_sig.S)
+  (System_unix : Caqti_platform_unix.System_sig.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env) =
+struct
   open System
   module H = Connection_utils.Make_helpers (System)
 
@@ -103,8 +108,8 @@ module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
         end
 
         let wait db status =
-          Mariadb.Nonblocking.fd db |> System.Unix.wrap_fd @@ fun fd ->
-          System.Unix.poll
+          Mariadb.Nonblocking.fd db |> System_unix.Unix.wrap_fd @@ fun fd ->
+          System_unix.Unix.poll
             ~connect_env
             ~read:(Mariadb.Nonblocking.Status.read status)
             ~write:(Mariadb.Nonblocking.Status.write status) fd

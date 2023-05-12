@@ -5,6 +5,5 @@
  (libraries
     caqti
     caqti.platform
-    caqti.platform.net
     eio
     logs))

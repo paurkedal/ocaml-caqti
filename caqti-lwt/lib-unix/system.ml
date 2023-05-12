@@ -88,29 +88,3 @@ module Net = struct
   let really_input = Lwt_io.read_into_exactly
   let close_in = Lwt_io.close
 end
-
-module Preemptive = Lwt_preemptive
-
-module Unix = struct
-  type file_descr = Lwt_unix.file_descr
-
-  let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
-
-  let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
-    let choices = []
-      |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
-      |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)
-      |> Option.fold
-          ~none:Fun.id ~some:(fun t acc -> Lwt_unix.timeout t :: acc) timeout
-    in
-    if choices = [] then
-      Lwt.fail_invalid_arg "Caqti_lwt.Unix.poll: No operation specified."
-    else
-    Lwt.catch
-      (fun () -> Lwt.choose choices >|= fun _ -> false)
-      (function
-       | Lwt_unix.Timeout -> Lwt.return_true
-       | exn -> Lwt.fail exn)
-      >|= fun timed_out ->
-    (Lwt_unix.readable fd, Lwt_unix.writable fd, timed_out)
-end

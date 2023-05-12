@@ -90,6 +90,13 @@ module System_core = struct
     let debug ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Debug msgf
   end
 
+  (* Cf. pgx_async. *)
+  module Sequencer = struct
+    type 'a t = 'a Sequencer.t
+    let create t = Sequencer.create ~continue_on_error:true t
+    let enqueue = Throttle.enqueue
+  end
+
 end
 
 module Alarm = struct
@@ -113,18 +120,6 @@ module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 module System = struct
   include System_core
   module Stream = Stream
-
-  module Preemptive = struct
-    let detach f x = In_thread.run (fun () -> f x)
-    let run_in_main f = Thread_safe.block_on_async_exn f
-  end
-
-  (* Cf. pgx_async. *)
-  module Sequencer = struct
-    type 'a t = 'a Sequencer.t
-    let create t = Sequencer.create ~continue_on_error:true t
-    let enqueue = Throttle.enqueue
-  end
 
   module Net = struct
 
@@ -170,6 +165,9 @@ module System = struct
 
     let close_in = Reader.close
   end
+end
+
+module System_unix = struct
 
   module Unix = struct
     type file_descr = Async_unix.Fd.t
@@ -206,23 +204,15 @@ module System = struct
         ignore (f ());
         (!did_read, !did_write, !did_timeout))
   end
+
+  module Preemptive = struct
+    let detach f x = In_thread.run (fun () -> f x)
+    let run_in_main f = Thread_safe.block_on_async_exn f
+  end
+
 end
 
-module Loader = struct
-
-  module Platform_unix = Caqti_platform_unix.Driver_loader.Make (System)
-  module Platform_net = Caqti_platform_net.Driver_loader.Make (System)
-
-  module type DRIVER = Platform_unix.DRIVER
-
-  let load_driver ~uri scheme =
-    (match Platform_net.load_driver ~uri scheme with
-     | Ok _ as r -> r
-     | Error (`Load_rejected _) as r -> r
-     | Error (`Load_failed _) ->
-        (* TODO: Summarize errors. *)
-        Platform_unix.load_driver ~uri scheme)
-end
+module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 

@@ -17,14 +17,27 @@
 
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Caqti_platform.Driver_sig.S
+  Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type connect_env := System.connect_env
 
-val register : string -> (module DRIVER_FUNCTOR) -> unit
+let drivers = Hashtbl.create 5
+let register scheme p = Hashtbl.add drivers scheme p
 
-module Make (System : System_sig.S) : Caqti_platform.Driver_sig.Loader
-  with type 'a future := 'a System.future
-   and type ('a, 'e) stream := ('a, 'e) System.Stream.t
-   and type connect_env := System.connect_env
+module Make (System : System_sig.S) = struct
+  module type DRIVER = Driver_sig.S
+    with type 'a future := 'a System.future
+     and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+     and type connect_env := System.connect_env
+
+  let load_driver ~uri scheme =
+    (match Hashtbl.find_opt drivers scheme with
+     | None ->
+        let msg = "Driver not found; UNIX drivers not considered." in
+        Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
+     | Some make_driver ->
+        let module Make_driver = (val make_driver : DRIVER_FUNCTOR) in
+        let module Driver = Make_driver (System) in
+        Ok (module Driver : DRIVER))
+end

@@ -160,7 +160,7 @@ struct
     end
   end
 
-  module Loader = Caqti_platform_net.Driver_loader.Make (System)
+  module Loader = Caqti_platform.Driver_loader.Make (System)
 
   include Connector.Make (System) (Pool) (Loader)
 

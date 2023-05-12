@@ -21,27 +21,12 @@ open Caqti_platform
 let ( let/? ) r f = Result.bind r f
 let ( let-? ) r f = Result.map f r
 
-module Loader_net = Caqti_platform_net.Driver_loader.Make (System)
-module Loader_unix = Caqti_platform_unix.Driver_loader.Make (System)
+module Loader = Caqti_platform_unix.Driver_loader.Make (Caqti_eio.System) (System_unix)
 
-module Loader = struct
-
-  module type DRIVER = Loader_unix.DRIVER
-
-  let load_driver ~uri scheme =
-    (match Loader_net.load_driver ~uri scheme with
-     | Ok _ as r -> r
-     | Error (`Load_rejected _) as r -> r
-     | Error (`Load_failed _) ->
-        (* TODO: Summarize errors. *)
-        Loader_unix.load_driver ~uri scheme)
-
-end
-
-include Connector.Make (System) (Caqti_eio.Pool) (Loader)
+include Connector.Make (Caqti_eio.System) (Caqti_eio.Pool) (Loader)
 
 let connect ?env ?tweaks_version ~sw stdenv uri =
-  let connect_env = System.{stdenv; sw} in
+  let connect_env = Caqti_eio.System.{stdenv; sw} in
   Switch.check sw;
   let-? connection = connect ~connect_env ?env ?tweaks_version uri in
   let module C = (val connection : CONNECTION) in
@@ -52,7 +37,7 @@ let connect_pool
       ?max_size ?max_idle_size ?max_idle_age ?max_use_count
       ?post_connect ?env ?tweaks_version
       ~sw stdenv uri =
-  let connect_env = System.{stdenv; sw} in
+  let connect_env = Caqti_eio.System.{stdenv; sw} in
   Switch.check sw;
   let-? pool =
     connect_pool ~connect_env

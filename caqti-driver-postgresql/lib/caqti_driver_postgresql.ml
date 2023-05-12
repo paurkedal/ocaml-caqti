@@ -351,8 +351,14 @@ type prepared = {
   single_row_mode: bool;
 }
 
-module Connect_functor (System : Caqti_platform_unix.System_sig.S) = struct
+module Connect_functor
+  (System : Caqti_platform.System_sig.S)
+  (System_unix : Caqti_platform_unix.System_sig.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env) =
+struct
   open System
+  open System_unix
   module H = Connection_utils.Make_helpers (System)
 
   let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)

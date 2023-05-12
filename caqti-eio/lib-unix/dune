@@ -5,7 +5,6 @@
  (libraries
     caqti
     caqti.platform
-    caqti.platform.net
     caqti.platform.unix
     caqti-eio
     eio

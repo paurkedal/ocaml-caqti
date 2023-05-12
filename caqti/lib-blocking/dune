@@ -3,7 +3,7 @@
   (public_name caqti.blocking)
   (modules Caqti_blocking)
   (libraries
-    caqti caqti.platform caqti.platform.net caqti.platform.unix
+    caqti caqti.platform caqti.platform.unix
     domain-name ipaddr
     logs threads unix))
   ; TODO: Can threads dependency be moved to drivers which need it?

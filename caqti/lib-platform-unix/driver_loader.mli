@@ -18,7 +18,10 @@
 (** Connection functor and registration for driver using the Unix module. *)
 
 module type DRIVER_FUNCTOR =
-  functor (System : System_sig.S) ->
+  functor (System : Caqti_platform.System_sig.S) ->
+  functor (System_unix : System_sig.S
+    with type 'a future := 'a System.future
+     and type connect_env := System.connect_env) ->
   Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
@@ -29,9 +32,14 @@ val register : string -> (module DRIVER_FUNCTOR) -> unit
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
-module Make (System : System_sig.S) : Caqti_platform.Driver_sig.Loader
-  with type 'a future := 'a System.future
-   and type ('a, 'e) stream := ('a, 'e) System.Stream.t
-   and type connect_env := System.connect_env
+module Make
+    (System : Caqti_platform.System_sig.S)
+    (System_unix : System_sig.S
+      with type 'a future := 'a System.future
+       and type connect_env := System.connect_env) :
+  Caqti_platform.Driver_sig.Loader
+    with type 'a future := 'a System.future
+     and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+     and type connect_env := System.connect_env
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

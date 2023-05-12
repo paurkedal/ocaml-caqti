@@ -18,7 +18,7 @@ depends: [
   "dune" {>= "2.5"}
   "ipaddr"
   "logs"
-  "mtime"
+  "mtime" {>= "2.0.0"}
   "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}
   "ptime"

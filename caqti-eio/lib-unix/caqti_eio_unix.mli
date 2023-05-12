@@ -26,5 +26,5 @@ include Caqti_connect_sig.S
    and type ('a, 'e) pool := ('a, 'e) Caqti_eio.Pool.t
    and module type CONNECTION := Caqti_eio.CONNECTION
    and type connection := Caqti_eio.connection
-   and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
-   and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
+   and type 'a with_switch := sw: Eio.Switch.t -> 'a
+   and type 'a with_stdenv := connect_env: Eio.Stdenv.t -> 'a

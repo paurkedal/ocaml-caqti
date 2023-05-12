@@ -26,7 +26,7 @@ module Alarm = struct
 
   type t = {cancel: unit -> unit}
 
-  let schedule ~connect_env:() t f =
+  let schedule ~sw:_ ~connect_env:() t f =
     let t_now = Mtime_clock.now () in
     if Mtime.is_later t ~than:t_now then
       begin
@@ -72,7 +72,7 @@ module Net = struct
             (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
        | exn -> Lwt.fail exn)
 
-  let connect ~connect_env:() sockaddr =
+  let connect ~sw:_ ~connect_env:() sockaddr =
     Lwt.catch
       (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
       (function

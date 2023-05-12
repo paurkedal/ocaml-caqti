@@ -53,9 +53,11 @@ module Make
   (System : System_sig.S)
   (Pool : Pool.S
     with type 'a future := 'a System.future
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env)
   (Loader : Driver_sig.Loader
     with type 'a future := 'a System.future
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
@@ -69,10 +71,12 @@ struct
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
+  let (let+?) = (>|=?)
 
   module type DRIVER = Driver_sig.S
     with type 'a future := 'a future
      and type ('a, 'err) stream := ('a, 'err) Stream.t
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
@@ -91,28 +95,36 @@ struct
                 Ok driver
              | Error _ as r -> r)))
 
-  let connect ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri
+  let connect
+        ?env ?(tweaks_version = default_tweaks_version) ~sw ~connect_env uri
       : ((module CONNECTION), _) result future =
+    Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        Driver.connect ~connect_env ?env ~tweaks_version uri
+        let+? conn = Driver.connect ~sw ~connect_env ?env ~tweaks_version uri in
+        let module Conn = (val conn : CONNECTION) in
+        let module Conn' = struct
+          include Conn
+          let disconnect =
+            let hook = Switch.on_release_cancellable sw disconnect in
+            fun () -> Switch.remove_hook hook; disconnect ()
+        end in
+        (module Conn' : CONNECTION)
      | Error err ->
         return (Error err))
 
   let with_connection
         ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri f =
-    connect ~connect_env ?env ~tweaks_version uri
-      >>=? fun ((module Conn) as conn) ->
-    try
-      f conn >>= fun result -> Conn.disconnect () >|= fun () -> result
-    with exn ->
-      Conn.disconnect () >|= fun () -> raise exn
+    Switch.run begin fun sw ->
+      connect ~sw ~connect_env ?env ~tweaks_version uri >>=? f
+    end
 
   let connect_pool
         ?max_size ?max_idle_size ?max_idle_age ?(max_use_count = Some 100)
         ?post_connect
-        ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri =
+        ?env ?(tweaks_version = default_tweaks_version) ~sw ~connect_env uri =
+    Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
@@ -130,11 +142,11 @@ struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ~connect_env ?env ~tweaks_version uri
+                (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
                     :> (connection, _) result future)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ~connect_env ?env ~tweaks_version uri
+                (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
                     :> (connection, _) result future)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)
@@ -155,9 +167,11 @@ struct
         let pool =
           Pool.create
             ?max_size ?max_idle_size ?max_idle_age ~max_use_count
-            ~validate ~check ~connect_env
+            ~validate ~check ~sw ~connect_env
             connect disconnect
         in
+        let hook = Switch.on_release_cancellable sw (fun () -> Pool.drain pool) in
+        Gc.finalise (fun _ -> Switch.remove_hook hook) pool;
         Ok pool
      | Error err ->
         Error err)

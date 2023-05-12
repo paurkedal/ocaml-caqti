@@ -25,16 +25,19 @@ module Option' = struct
 end
 
 module type ALARM = sig
-  type t
+  type switch
   type connect_env
-  val schedule : connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+
+  type t
+  val schedule : sw: switch -> connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
   val unschedule : t -> unit
 end
 
 module type S = sig
-  include Caqti_pool_sig.S
-
+  type switch
   type connect_env
+
+  include Caqti_pool_sig.S
 
   val create :
     ?max_size: int ->
@@ -44,6 +47,7 @@ module type S = sig
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool future) ->
     ?log_src: Logs.Src.t ->
+    sw: switch ->
     connect_env: connect_env ->
     (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
     ('a, 'e) t
@@ -51,7 +55,9 @@ end
 
 module Make
   (System : System_sig.CORE)
-  (Alarm : ALARM with type connect_env := System.connect_env) =
+  (Alarm : ALARM
+    with type connect_env := System.connect_env
+     and type switch := System.Switch.t) =
 struct
   open System
 
@@ -73,6 +79,7 @@ struct
 
   type ('a, +'e) t = {
     connect_env: connect_env;
+    switch: Switch.t;
     create: unit -> ('a, 'e) result future;
     free: 'a -> unit future;
     check: 'a -> (bool -> unit) -> unit;
@@ -96,13 +103,14 @@ struct
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> return true)
         ?(log_src = default_log_src)
+        ~sw
         ~connect_env
         create free =
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
     assert (Option'.for_all (fun n -> n > 0) max_use_count);
     {
-      connect_env;
+      connect_env; switch = sw;
       create; free; check; validate; log_src;
       max_idle_size; max_size; max_use_count; max_idle_age;
       cur_size = 0;
@@ -184,13 +192,14 @@ struct
                     begin
                       let entry = Queue.take pool.queue in
                       pool.cur_size <- pool.cur_size - 1;
-                      async ~connect_env:pool.connect_env
+                      async ~sw:pool.switch
                         (fun () -> pool.free entry.resource);
                       loop ()
                     end
                   else
                     pool.alarm <- Option.some @@
-                      Alarm.schedule ~connect_env:pool.connect_env expiry
+                      Alarm.schedule
+                        ~sw:pool.switch ~connect_env:pool.connect_env expiry
                         begin fun () ->
                           pool.alarm <- None;
                           dispose_expiring pool
@@ -249,7 +258,7 @@ end
 
 module No_alarm = struct
   type t = unit
-  let schedule ~connect_env:_ _ _ = ()
+  let schedule ~sw:_ ~connect_env:_ _ _ = ()
   let unschedule _ = ()
 end
 

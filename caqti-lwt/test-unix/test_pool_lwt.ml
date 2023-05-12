@@ -46,6 +46,7 @@ module Resource = struct
 end
 
 let test_n n =
+  Caqti_lwt.Switch.run @@ fun sw ->
   let max_idle_size = Random.int 11 in
   let max_size = max 1 (max_idle_size + Random.int 5) in
   let max_use_count =
@@ -54,7 +55,7 @@ let test_n n =
      | true -> Some (1 + Random.int 8))
   in
   let pool =
-    Pool.create ~max_idle_size ~max_size ~max_use_count ~connect_env:()
+    Pool.create ~max_idle_size ~max_size ~max_use_count ~sw ~connect_env:()
       Resource.create_or_fail Resource.free
   in
   let wakers = Array.make n None in
@@ -117,12 +118,13 @@ let test _ () =
   loop 500
 
 let test_age _ () =
+  Caqti_lwt.Switch.run @@ fun sw ->
   let max_size = 8 in
   let max_idle_size = 4 in
   let max_idle_age = Mtime.Span.(100 * ms) in
   let pool =
     Pool.create
-      ~max_size ~max_idle_size ~max_idle_age ~connect_env:()
+      ~max_size ~max_idle_size ~max_idle_age ~sw ~connect_env:()
       Resource.create Resource.free
   in
   let* () =

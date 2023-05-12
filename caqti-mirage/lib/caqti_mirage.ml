@@ -37,14 +37,12 @@ struct
       stack: STACK.t;
       dns: DNS.t;
     }
-
-    let async ~connect_env:_ = async ~connect_env:()
   end
 
   module Alarm = struct
     type t = {cancel: unit -> unit}
 
-    let schedule ~connect_env:_ t f =
+    let schedule ~sw ~connect_env:_ t f =
       let t_now = Mtime_clock.now () in
       if Mtime.is_later t ~than:t_now then
         begin
@@ -55,7 +53,11 @@ struct
         let task =
           TIME.sleep_ns (Mtime.Span.to_uint64_ns (Mtime.span t t_now)) >|= f
         in
-        {cancel = (fun () -> Lwt.cancel task)}
+        let hook =
+          Caqti_lwt.Switch.on_release_cancellable sw
+            (fun () -> Lwt.cancel task; Lwt.return_unit)
+        in
+        {cancel = (fun () -> Caqti_lwt.Switch.remove_hook hook; Lwt.cancel task)}
 
     let unschedule alarm = alarm.cancel ()
   end
@@ -111,7 +113,7 @@ struct
          | false, false ->
             return (Error (`Msg "No IP address assigned to host.")))
 
-      let connect ~connect_env:{stack; _} sockaddr =
+      let connect ~sw:_ ~connect_env:{stack; _} sockaddr =
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
@@ -164,17 +166,18 @@ struct
 
   include Connector.Make (System) (Pool) (Loader)
 
-  let connect ?env ?tweaks_version stack dns uri =
-    connect ?env ?tweaks_version ~connect_env:{stack; dns} uri
+  let connect
+        ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
+    connect ?env ?tweaks_version ~sw ~connect_env:{stack; dns} uri
 
   let with_connection ?env ?tweaks_version stack dns uri f =
     with_connection ?env ?tweaks_version ~connect_env:{stack; dns} uri f
 
   let connect_pool
         ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
-        ?env ?tweaks_version stack dns uri =
+        ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
     connect_pool
       ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
-      ?env ?tweaks_version ~connect_env:{stack; dns} uri
+      ?env ?tweaks_version ~sw ~connect_env:{stack; dns} uri
 
 end

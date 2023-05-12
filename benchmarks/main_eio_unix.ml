@@ -28,5 +28,5 @@ include Benchmark_fetch_many.Make (struct
   let (>|=) x f = f x
   include Caqti_eio
   include Caqti_eio_unix
-  let connect (stdenv, sw) uri = connect stdenv ~sw uri
+  let connect (stdenv, sw) uri = connect ~sw ~connect_env:stdenv uri
 end)

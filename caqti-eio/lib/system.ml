@@ -54,13 +54,12 @@ module Core = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
-  type connect_env = {
-    stdenv: Eio.Stdenv.t;
-    sw: Eio.Switch.t;
-  }
+  type connect_env = Eio.Stdenv.t
+
+  module Switch = Eio.Switch
 
   (* TODO: Log error. *)
-  let async ~connect_env:{sw; _} f =
+  let async ~sw f =
     Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
 
   module Sequencer = struct
@@ -84,7 +83,7 @@ module Alarm = struct
 
   exception Unscheduled
 
-  let schedule ~connect_env:{stdenv; sw} t f =
+  let schedule ~sw ~connect_env:stdenv t f =
     let alarm = ref None in
     Eio.Fiber.fork ~sw begin fun () ->
       Eio.Cancel.sub begin fun cctx ->
@@ -118,7 +117,7 @@ module Net = struct
   type in_channel = <Eio.Flow.source; Eio.Flow.close>
   type out_channel = Eio.Flow.sink
 
-  let getaddrinfo ~connect_env:{stdenv; _} host port =
+  let getaddrinfo ~connect_env:stdenv host port =
     try
       Eio.Net.getaddrinfo_stream stdenv#net
         ~service:(string_of_int port) (Domain_name.to_string host)
@@ -126,7 +125,7 @@ module Net = struct
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-  let connect ~connect_env:{stdenv; sw} sockaddr =
+  let connect ~sw ~connect_env:stdenv sockaddr =
     try
       let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
       Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))

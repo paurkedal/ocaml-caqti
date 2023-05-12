@@ -997,7 +997,7 @@ struct
       end
   end
 
-  let connect ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw:_ ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
     return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with

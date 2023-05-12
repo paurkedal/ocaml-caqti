@@ -24,13 +24,10 @@ module Stream : Caqti_stream_sig.S with type 'a future := 'a
 
 (**/**) (* for private use by caqti-eio.unix *)
 module System : sig
-  type connect_env = {
-    stdenv: Eio.Stdenv.t;
-    sw: Eio.Switch.t;
-  }
   include Caqti_platform.System_sig.S
     with type 'a future = 'a
-     and type connect_env := connect_env
+     and type Switch.t = Eio.Switch.t
+     and type connect_env = Eio.Stdenv.t
      and module Stream = Stream
 end
 (**/**)
@@ -47,15 +44,16 @@ module Pool : sig
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool) ->
     ?log_src: Logs.Src.t ->
-    connect_env: System.connect_env ->
+    sw: Eio.Switch.t ->
+    connect_env: Eio.Stdenv.t ->
     (unit -> ('a, 'e) result) -> ('a -> unit) ->
     ('a, 'e) t
 end
 
 include Caqti_connect_sig.S
   with type 'a future := 'a
-   and type 'a connect_fun := sw: Eio.Switch.t -> Eio.Stdenv.t -> Uri.t -> 'a
-   and type 'a with_connection_fun := Eio.Stdenv.t -> Uri.t -> 'a
+   and type 'a with_switch := sw: Eio.Switch.t -> 'a
+   and type 'a with_stdenv := connect_env: Eio.Stdenv.t -> 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
 

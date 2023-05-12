@@ -584,7 +584,7 @@ struct
       Ok {host; user; pass; port; db; flags = None; config_group}
   end
 
-  let connect ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw:_ ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
     let module With_connect_env =
       Pass_connect_env (struct let connect_env = connect_env end)
     in

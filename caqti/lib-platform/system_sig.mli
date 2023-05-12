@@ -41,8 +41,8 @@ module type CORE = sig
 
   type connect_env
   (** Type of an extra argument to connect functions used to pass through the
-      network stack in Mirage and stdenv and switch in EIO.  This is eliminated
-      at the service API where not needed. *)
+      network stack in Mirage and stdenv in EIO.  This is eliminated at the
+      service API where not needed. *)
 
   val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
   (** Bind operation of the concurrency monad. *)
@@ -63,7 +63,17 @@ module type CORE = sig
   (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
       and only if [f ()] failed with an exception or a monadic failure. *)
 
-  val async : connect_env: connect_env -> (unit -> unit future) -> unit
+  (** A module used by EIO to handle cleanup tasks; unit for other platforms. *)
+  module Switch : sig
+    type t
+    type hook
+    val run : (t -> 'a future) -> 'a future
+    val check : t -> unit
+    val on_release_cancellable : t -> (unit -> unit future) -> hook
+    val remove_hook : hook -> unit
+  end
+
+  val async : sw: Switch.t -> (unit -> unit future) -> unit
   (** [async f] runs [f ()] asynchroneously if possible, else immediately. *)
 
   module Semaphore : sig
@@ -120,7 +130,7 @@ module type S = sig
         queried. *)
 
     val connect :
-      connect_env: connect_env -> Sockaddr.t ->
+      sw: Switch.t -> connect_env: connect_env -> Sockaddr.t ->
       (in_channel * out_channel, [> `Msg of string]) result future
 
     (* TODO: STARTTLS *)

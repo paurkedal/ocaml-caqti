@@ -571,7 +571,7 @@ struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ~connect_env:_ ?(env = no_env) ~tweaks_version uri =
+  let connect ~sw:_ ~connect_env:_ ?(env = no_env) ~tweaks_version uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");

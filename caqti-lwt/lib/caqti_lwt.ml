@@ -22,17 +22,21 @@ module Future = struct
   let (>>=) = Lwt.(>>=)
   let (>|=) = Lwt.(>|=)
   let return = Lwt.return
+  let catch = Lwt.catch
+  let finally = Lwt.finalize
 end
 
 module Stream = Caqti_platform.Stream.Make (Future)
+module Switch = Caqti_platform.Switch.Make (Future)
 
 module System_core = struct
   include Future
 
-  let catch = Lwt.catch
-  let finally = Lwt.finalize
   let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
-  let async ~connect_env:() = Lwt.async
+
+  module Switch = Switch
+
+  let async ~sw:_ = Lwt.async
 
   module Stream = Stream
 

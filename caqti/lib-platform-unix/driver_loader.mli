@@ -25,6 +25,7 @@ module type DRIVER_FUNCTOR =
   Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
@@ -40,6 +41,7 @@ module Make
   Caqti_platform.Driver_sig.Loader
     with type 'a future := 'a System.future
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

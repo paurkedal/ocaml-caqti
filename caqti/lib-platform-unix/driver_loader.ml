@@ -23,6 +23,7 @@ module type DRIVER_FUNCTOR =
   Caqti_platform.Driver_sig.S
     with type 'a future := 'a System.future
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
 
 let drivers = Hashtbl.create 5
@@ -36,10 +37,7 @@ module Make
 struct
   module Core_loader = Caqti_platform.Driver_loader.Make (System)
 
-  module type DRIVER = Caqti_platform.Driver_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'e) stream := ('a, 'e) System.Stream.t
-     and type connect_env := System.connect_env
+  module type DRIVER = Core_loader.DRIVER
 
   let load_driver_unix ~uri scheme =
     (match Hashtbl.find_opt drivers scheme with

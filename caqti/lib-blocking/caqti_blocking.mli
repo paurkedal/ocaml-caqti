@@ -30,8 +30,8 @@ module Pool : Caqti_pool_sig.S with type 'a future := 'a
 
 include Caqti_connect_sig.S
   with type 'a future := 'a
-   and type 'a connect_fun := Uri.t -> 'a
-   and type 'a with_connection_fun := Uri.t -> 'a
+   and type 'a with_switch := 'a
+   and type 'a with_stdenv := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
 

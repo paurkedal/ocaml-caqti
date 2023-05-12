@@ -34,5 +34,5 @@ include Caqti_connect_sig.S
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and module type CONNECTION := Caqti_lwt.CONNECTION
    and type connection := Caqti_lwt.connection
-   and type 'a connect_fun := Uri.t -> 'a
-   and type 'a with_connection_fun := Uri.t -> 'a
+   and type 'a with_switch := ?sw: Caqti_lwt.Switch.t -> 'a
+   and type 'a with_stdenv := 'a

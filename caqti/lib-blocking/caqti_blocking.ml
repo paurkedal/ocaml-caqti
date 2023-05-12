@@ -22,12 +22,6 @@ module Future = struct
   let (>>=) x f = f x
   let (>|=) x f = f x
   let return x = x
-end
-
-module Stream = Caqti_platform.Stream.Make (Future)
-
-module System_core = struct
-  include Future
 
   let catch f g = try f () with exn -> g exn
 
@@ -35,10 +29,18 @@ module System_core = struct
     (match f () with
      | y -> g (); y
      | exception exn -> g (); raise exn)
+end
+
+module Stream = Caqti_platform.Stream.Make (Future)
+
+module System_core = struct
+  include Future
 
   let cleanup f g = try f () with exn -> g (); raise exn
 
-  let async ~connect_env:() f = f ()
+  module Switch = Caqti_platform.Switch.Make (Future)
+
+  let async ~sw:_ f = f ()
 
   module Stream = Stream
 
@@ -94,7 +96,7 @@ module System = struct
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
 
-    let connect ~connect_env:() sockaddr =
+    let connect ~sw:_ ~connect_env:() sockaddr =
       try Ok (Unix.open_connection sockaddr) with
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
@@ -133,9 +135,21 @@ module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 
-let connect = connect ~connect_env:()
+open System
+
+let connect ?env ?tweaks_version uri =
+  let sw = Switch.create () in
+  connect ?env ?tweaks_version ~sw ~connect_env:() uri
+
 let with_connection = with_connection ~connect_env:()
-let connect_pool = connect_pool ~connect_env:()
+
+let connect_pool
+      ?max_size ?max_idle_size ?max_idle_age ?max_use_count
+      ?post_connect ?env ?tweaks_version uri =
+  let sw = Switch.create () in
+  connect_pool
+    ?max_size ?max_idle_size ?max_idle_age ?max_use_count
+    ?post_connect ?env ?tweaks_version ~sw ~connect_env:() uri
 
 let or_fail = function
  | Ok x -> x

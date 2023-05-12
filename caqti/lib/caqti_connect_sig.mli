@@ -22,12 +22,11 @@ module type S = sig
   type +'a future
   (** The type of a deferred value of type ['a]. *)
 
-  type +'a connect_fun
-  (** Adds system dependent arguments relevant for {!connect} and
-      {!connect_pool}. *)
+  type +'a with_switch
+  (** Adds a switch argument to the type if relevant for the platform. *)
 
-  type +'a with_connection_fun
-  (** Adds system dependent arguments relevant for {!with_connection}. *)
+  type +'a with_stdenv
+  (** Adds environment argument(s) to the type if relevant for the platform. *)
 
   type (+'a, +'e) stream
   (** A stream implementation. *)
@@ -46,7 +45,8 @@ module type S = sig
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    (connection, [> Caqti_error.load_or_connect]) result future connect_fun
+    (Uri.t -> (connection, [> Caqti_error.load_or_connect]) result future)
+    with_stdenv with_switch
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
       first-class module implementing {!Caqti_connection_sig.S}.
@@ -70,9 +70,11 @@ module type S = sig
   val with_connection :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    ((connection ->
+    (Uri.t ->
+     (connection ->
       ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
-     ('a, 'e) result future) with_connection_fun
+     ('a, 'e) result future)
+    with_stdenv
   (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
       to [Ok connection], [with_connection] passes the connection to [f]. Once
       [f] either evaluates to a [result], or raises an exception,
@@ -89,8 +91,10 @@ module type S = sig
     ?post_connect: (connection -> (unit, 'connect_error) result future) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    ((connection, [> Caqti_error.connect] as 'connect_error) pool,
-     [> Caqti_error.load]) result connect_fun
+    (Uri.t ->
+     ((connection, [> Caqti_error.connect] as 'connect_error) pool,
+      [> Caqti_error.load]) result)
+    with_stdenv with_switch
   (** [connect_pool uri] is a pool of database connections constructed by
       [connect uri].
 

@@ -55,7 +55,7 @@ let env =
 
 let mk_tests (stdenv, sw) {uris; tweaks_version} =
   let connect_pool (stdenv, sw) uri =
-    (match Caqti_eio_unix.connect_pool stdenv ~sw uri
+    (match Caqti_eio_unix.connect_pool ~sw ~connect_env:stdenv uri
             ~max_size:16 ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))

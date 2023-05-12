@@ -27,12 +27,6 @@ module Future = struct
   let (>>=) m f = Deferred.bind m ~f
   let (>|=) = Deferred.(>>|)
   let return = Deferred.return
-end
-
-module Stream = Caqti_platform.Stream.Make (Future)
-
-module System_core = struct
-  include Future
 
   let catch f g =
     try_with ~extract_exn:true f >>= function
@@ -43,6 +37,12 @@ module System_core = struct
     try_with ~extract_exn:true f >>= function
      | Ok y -> g () >|= fun () -> y
      | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
+end
+
+module Stream = Caqti_platform.Stream.Make (Future)
+
+module System_core = struct
+  include Future
 
   let cleanup f g =
     try_with ~extract_exn:true f >>= function
@@ -51,7 +51,7 @@ module System_core = struct
 
   type connect_env = unit
 
-  let async ~connect_env:() f = don't_wait_for (f ())
+  let async ~sw:_ f = don't_wait_for (f ())
 
   module Stream = Stream
 
@@ -61,6 +61,8 @@ module System_core = struct
     let release v = Ivar.fill v ()
     let acquire v = Ivar.read v
   end
+
+  module Switch = Caqti_platform.Switch.Make (Future)
 
   module Log = struct
     type 'a log = ('a, unit Deferred.t) Logs.msgf -> unit Deferred.t
@@ -102,12 +104,10 @@ end
 module Alarm = struct
   type t = unit
 
-  let schedule ~connect_env:() t f =
+  let schedule ~sw:_ ~connect_env:() t f =
     let t_now = Mtime_clock.now () in
-    if Mtime.is_later t ~than:t_now then
-      f ()
-    else
-      let dt_ns = Mtime.Span.to_uint64_ns (Mtime.span t t_now) in
+    if Mtime.is_later t ~than:t_now then f () else
+    let dt_ns = Mtime.Span.to_uint64_ns (Mtime.span t t_now) in
     (match Int63.of_int64 dt_ns with
      | None -> failwith "Arithmetic overflow while computing scheduling time."
      | Some dt_ns -> Clock_ns.run_after (Time_ns.Span.of_int63_ns dt_ns) f ())
@@ -142,7 +142,7 @@ module System = struct
              Ai.[AI_SOCKTYPE SOCK_STREAM]
       >|= List.map ~f:extract >|= (fun addrs -> Ok addrs)
 
-    let connect ~connect_env:() = function
+    let connect ~sw:_ ~connect_env:() = function
      | Async_unix.Unix.ADDR_INET (addr, port) ->
         Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
@@ -216,6 +216,8 @@ module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 
-let connect = connect ~connect_env:()
+open System
+
+let connect = connect ~sw:Switch.eternal ~connect_env:()
 let with_connection = with_connection ~connect_env:()
-let connect_pool = connect_pool ~connect_env:()
+let connect_pool = connect_pool~sw:Switch.eternal  ~connect_env:()

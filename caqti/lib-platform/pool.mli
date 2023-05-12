@@ -19,12 +19,13 @@
 
 (** Scheduling taks in the future. *)
 module type ALARM = sig
+  type switch
+  type connect_env
+
   type t
   (** A handle for cancelling the alarm if supported. *)
 
-  type connect_env
-
-  val schedule : connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+  val schedule : sw: switch -> connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
   (** This schedules the alarm if supported. The caqti-blocking implementation
       does nothing. The pool implementation using it makes additional
       opportunistic calls to the handler. *)
@@ -35,9 +36,10 @@ module type ALARM = sig
 end
 
 module type S = sig
-  include Caqti_pool_sig.S
-
+  type switch
   type connect_env
+
+  include Caqti_pool_sig.S
 
   val create :
     ?max_size: int ->
@@ -47,6 +49,7 @@ module type S = sig
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool future) ->
     ?log_src: Logs.Src.t ->
+    sw: switch ->
     connect_env: connect_env ->
     (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
     ('a, 'e) t
@@ -73,10 +76,14 @@ end
 
 module Make
   (System : System_sig.CORE)
-  (Alarm : ALARM with type connect_env := System.connect_env) :
+  (Alarm : ALARM
+    with type switch := System.Switch.t
+     and type connect_env := System.connect_env) :
   S with type 'a future := 'a System.future
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env
 
 module Make_without_alarm (System : System_sig.CORE) :
   S with type 'a future := 'a System.future
+     and type switch := System.Switch.t
      and type connect_env := System.connect_env

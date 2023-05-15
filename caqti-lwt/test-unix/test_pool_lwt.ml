@@ -128,7 +128,7 @@ let test_age _ () =
       Resource.create Resource.free
   in
   let* () =
-    let f _i _resource = Lwt_unix.sleep 0.2 >|= Result.ok in
+    let f _i _resource = Lwt_unix.sleep 0.4 >|= Result.ok in
     List.init 8 f
       |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
       |> Lwt.join

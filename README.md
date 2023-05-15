@@ -106,7 +106,7 @@ val plus : (int * int, int, [< `Many | `One | `Zero > `One ]) Caqti_request.t =
 ## Related Software
 
   - [ppx\_rapper](https://github.com/roddyyaga/ppx_rapper) - a syntax
-    extension for Caqti/PostgreSQL queries
+    extension for Caqti queries, simplifying type specifications.
 
 ## Sponsor
 

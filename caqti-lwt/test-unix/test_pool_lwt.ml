@@ -117,6 +117,14 @@ let test _ () =
   in
   loop 500
 
+let create_gathering n =
+  let count = ref n in
+  let wait, disband = Lwt.task () in
+  fun () ->
+    decr count;
+    if !count > 0 then wait else
+    (Lwt.wakeup_later disband (); Lwt.return_unit)
+
 let test_age _ () =
   Caqti_lwt.Switch.run @@ fun sw ->
   let max_size = 8 in
@@ -127,9 +135,11 @@ let test_age _ () =
       ~max_size ~max_idle_size ~max_idle_age ~sw ~connect_env:()
       Resource.create Resource.free
   in
+  let user_count = 8 in
+  let join_gathering = create_gathering user_count in
   let* () =
-    let f _i _resource = Lwt_unix.sleep 0.4 >|= Result.ok in
-    List.init 8 f
+    let f _i _resource = join_gathering () >|= Result.ok in
+    List.init user_count f
       |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
       |> Lwt.join
   in

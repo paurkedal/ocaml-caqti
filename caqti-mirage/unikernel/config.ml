@@ -44,6 +44,8 @@ let packages = [
   package "caqti" ~pin ~pin_version;
   package "caqti-driver-pgx" ~pin ~pin_version;
   package "caqti-mirage" ~pin ~pin_version;
+  package "caqti-lwt" ~pin ~pin_version;
+  package "dns-client-mirage";
   package "logs";
   package "mirage-crypto-rng-mirage";
   package "mirage-clock-unix";
@@ -51,6 +53,10 @@ let packages = [
 ]
 
 let stack = generic_stackv4v6 default_network
+
+let nameservers =
+  let doc = Key.Arg.info ~doc:"Nameserver." ["nameserver"] in
+  Key.(create "nameserver" Arg.(opt_all string doc))
 
 let database_uri =
   let doc =
@@ -60,8 +66,9 @@ let database_uri =
   Key.(create "database-uri" Arg.(required string doc))
 
 let unikernel_functor =
-  foreign "Unikernel.Make" ~keys:[Key.v database_uri] ~packages
-    (random @-> time @-> pclock @-> mclock @-> stackv4v6 @-> job)
+  foreign "Unikernel.Make"
+    ~keys:[Key.v nameservers; Key.v database_uri] ~packages
+    (random @-> time @-> pclock @-> mclock @-> stackv4v6 @-> dns_client @-> job)
 
 let unikernel =
   unikernel_functor
@@ -70,5 +77,6 @@ let unikernel =
     $ default_posix_clock
     $ default_monotonic_clock
     $ stack
+    $ generic_dns_client ~nameservers stack
 
 let () = register "caqti-test-unikernel" [unikernel]

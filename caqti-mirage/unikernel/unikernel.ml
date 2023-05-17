@@ -30,24 +30,25 @@ module Make
   (TIME : Mirage_time.S)
   (PCLOCK : Mirage_clock.PCLOCK)
   (MCLOCK : Mirage_clock.MCLOCK)
-  (STACK : Tcpip.Stack.V4V6) =
+  (STACK : Tcpip.Stack.V4V6)
+  (DNS : Dns_client_mirage.S) =
 struct
   module Caqti_mirage_connect =
-    Caqti_mirage.Make (RANDOM) (TIME) (MCLOCK) (PCLOCK) (STACK)
+    Caqti_mirage.Make (RANDOM) (TIME) (MCLOCK) (PCLOCK) (STACK) (DNS)
   module Logs_reporter = Mirage_logs.Make (PCLOCK)
   module Log = (val Logs_lwt.src_log (Logs.Src.create "main"))
 
-  let test (module C : Caqti_mirage.CONNECTION) =
+  let test (module C : Caqti_lwt.CONNECTION) =
     let+? res = C.find minus_req (22, 17) in
     assert (res = 5)
 
-  let start _random _time _pclock _mclock stack =
+  let start _random _time _pclock _mclock stack dns =
     Logs.(set_level (Some Info));
     Logs_reporter.(create () |> run) @@ fun () ->
     begin
       let* () = Log.info (fun f -> f "Connecting to the database.") in
       let db_uri = Uri.of_string (Key_gen.database_uri ()) in
-      let*? db_conn = Caqti_mirage_connect.connect stack db_uri in
+      let*? db_conn = Caqti_mirage_connect.connect stack dns db_uri in
       let* () = Log.info (fun f -> f "Running tests.") in
       test db_conn
     end >>= function

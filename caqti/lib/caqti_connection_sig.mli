@@ -44,19 +44,19 @@ type driver_connection = ..
 
 (** Essential connection signature implemented by drivers. *)
 module type Base = sig
-  type +'a future
+  type +'a fiber
   type (+'a, +'err) stream
 
   (** {2 Query} *)
 
   module Response : Caqti_response_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a fiber
      and type ('a, 'err) stream := ('a, 'err) stream
 
   val call :
-    f: (('b, 'm) Response.t -> ('c, 'e) result future) ->
+    f: (('b, 'm) Response.t -> ('c, 'e) result fiber) ->
     ('a, 'b, 'm) Caqti_request.t -> 'a ->
-    ('c, [> Caqti_error.call] as 'e) result future
+    ('c, [> Caqti_error.call] as 'e) result fiber
   (** [call ~f request params] executes [request] with parameters [params]
       invoking [f] to process the result; except the driver may postpone the
       request until [f] attempts to retrieve the result.
@@ -70,7 +70,7 @@ module type Base = sig
       returned or operated on by other threads. *)
 
   val set_statement_timeout :
-    float option -> (unit, [> Caqti_error.call]) result future
+    float option -> (unit, [> Caqti_error.call]) result fiber
   (** Set or clear the timeout after which a running SQL statement will be
       terminated if supported by the driver.
       This is currently supported for MariaDB (using [max_statement_time]) and
@@ -79,15 +79,15 @@ module type Base = sig
 
   (** {2 Transactions} *)
 
-  val start : unit -> (unit, [> Caqti_error.transact]) result future
+  val start : unit -> (unit, [> Caqti_error.transact]) result fiber
   (** Starts a transaction if supported by the underlying database, otherwise
       does nothing. *)
 
-  val commit : unit -> (unit, [> Caqti_error.transact]) result future
+  val commit : unit -> (unit, [> Caqti_error.transact]) result fiber
   (** Commits the current transaction if supported by the underlying database,
       otherwise does nothing. *)
 
-  val rollback : unit -> (unit, [> Caqti_error.transact]) result future
+  val rollback : unit -> (unit, [> Caqti_error.transact]) result fiber
   (** Rolls back a transaction if supported by the underlying database,
       otherwise does nothing. *)
 
@@ -95,15 +95,15 @@ module type Base = sig
   (** {2 Disconnection and Reuse} *)
 
   val deallocate :
-    ('a, 'b, 'm) Caqti_request.t -> (unit, [> Caqti_error.call]) result future
+    ('a, 'b, 'm) Caqti_request.t -> (unit, [> Caqti_error.call]) result fiber
   (** [deallocate req] deallocates the prepared query for [req] if it was
       allocated. The request must not be oneshot. *)
 
-  val disconnect : unit -> unit future
+  val disconnect : unit -> unit fiber
   (** Calling [disconnect ()] closes the connection to the database and frees
       up related resources. *)
 
-  val validate : unit -> bool future
+  val validate : unit -> bool fiber
   (** For internal use by pool implementations.  Tries to ensure the validity of
       the connection and must return [false] if unsuccessful. *)
 
@@ -115,7 +115,7 @@ module type Base = sig
 end
 
 module type Convenience = sig
-  type +'a future
+  type +'a fiber
 
   (** {2 Retrieval Convenience}
 
@@ -124,14 +124,14 @@ module type Convenience = sig
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
+    (unit, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [exec req x] performs [req] with parameters [x] and checks that no rows
       are returned.
       See also {!Caqti_response_sig.S.exec}. *)
 
   val exec_with_affected_count :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (int, [> Caqti_error.call_or_retrieve | `Unsupported] as 'e) result future
+    (int, [> Caqti_error.call_or_retrieve | `Unsupported] as 'e) result fiber
   (** [exec_with_affected_count req x] performs [req] with parameters [x],
       checks that no rows are returned, and returns the number of affected rows.
 
@@ -140,7 +140,7 @@ module type Convenience = sig
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
-    ('b, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [find req x] performs [req] with parameters [x], checks that a single row
       is retured, and returns it.
 
@@ -148,7 +148,7 @@ module type Convenience = sig
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
-    ('b option, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b option, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [find_opt req x] performs [req] with parameters [x] and returns either
       [None] if no rows are returned or [Some y] if a single now [y] is returned
       and fails otherwise.
@@ -158,7 +158,7 @@ module type Convenience = sig
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
-    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
+    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [fold req f x acc] performs [req] with parameters [x] and passes [acc]
       through the composition of [f y] across the result rows [y] in the order
       of retrieval.
@@ -167,8 +167,8 @@ module type Convenience = sig
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
-    ('b -> 'c -> ('c, 'e) result future) ->
-    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b -> 'c -> ('c, 'e) result fiber) ->
+    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [fold_s f x acc] performs [req] with parameters [x] and passes [acc]
       through the monadic composition of [f y] across the returned rows [y] in
       the order of retrieval.
@@ -183,8 +183,8 @@ module type Convenience = sig
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
-    ('b -> (unit, 'e) result future) ->
-    'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b -> (unit, 'e) result fiber) ->
+    'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [iter_s f x] performs [req] with parameters [x] and sequences calls to [f
       y] for each result row [y] in the order of retrieval.
 
@@ -194,14 +194,14 @@ module type Convenience = sig
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
-    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [collect_list request x] performs a [req] with parameters [x] and returns
       a list of rows in order of retrieval.  The accumulation is tail recursive
       but slightly less efficient than {!rev_collect_list}. *)
 
   val rev_collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
-    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result future
+    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result fiber
   (** [rev_collect_list request x] performs [request] with parameters [x] and
       returns a list of rows in the reverse order of retrieval.  The
       accumulation is tail recursive and slighly more efficient than
@@ -211,14 +211,14 @@ module type Convenience = sig
   (** {2 Transactions} *)
 
   val with_transaction :
-    (unit -> ('a, 'e) result future) ->
-    ('a, [> Caqti_error.transact] as 'e) result future
+    (unit -> ('a, 'e) result fiber) ->
+    ('a, [> Caqti_error.transact] as 'e) result fiber
   (** [with_transaction f] wraps [f] in a transaction which is committed iff [f]
       returns [Ok _]. *)
 end
 
 module type Populate = sig
-  type +'a future
+  type +'a fiber
   type (+'a, +'err) stream
 
   (** {2 Insertion} *)
@@ -227,7 +227,7 @@ module type Populate = sig
     table: string ->
     columns: string list ->
     'a Caqti_type.t -> ('a, 'err) stream ->
-    (unit, [> Caqti_error.call_or_retrieve | `Congested of 'err]) result future
+    (unit, [> Caqti_error.call_or_retrieve | `Congested of 'err]) result fiber
   (** [populate table columns row_type seq] inputs the contents of [seq] into
       the database in whatever manner is most efficient as decided by the
       driver. *)
@@ -246,8 +246,8 @@ module type S = sig
       custom functions. *)
 
   include Base
-  include Convenience with type 'a future := 'a future
+  include Convenience with type 'a fiber := 'a fiber
   include Populate
-     with type 'a future := 'a future
+     with type 'a fiber := 'a fiber
       and type ('a, 'err) stream := ('a, 'err) stream
 end

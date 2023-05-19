@@ -30,42 +30,45 @@ module type Alcotest_cli = sig
 end
 
 module type Ground = sig
-  type +'a future
+  module Fiber : sig
+    type +'a t
 
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
+    module Infix : sig
+      val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+      val (>|=) : 'a t -> ('a -> 'b) -> 'b t
 
-  val (>>=?) :
-    ('a, 'e) result future -> ('a -> ('b, 'e) result future) ->
-    ('b, 'e) result future
+      val (>>=?) :
+        ('a, 'e) result t -> ('a -> ('b, 'e) result t) -> ('b, 'e) result t
 
-  val (>|=?) :
-    ('a, 'e) result future -> ('a -> 'b) ->
-    ('b, 'e) result future
+      val (>|=?) :
+        ('a, 'e) result t -> ('a -> 'b) -> ('b, 'e) result t
+    end
 
-  val return : 'a -> 'a future
+    val return : 'a -> 'a t
 
-  val catch : (unit -> 'a future) -> (exn -> 'a future) -> 'a future
+    val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
 
-  val fail : exn -> 'a future
+    val fail : exn -> 'a t
 
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
+  end
 
-  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+  val or_fail : ('a, [< Caqti_error.t]) result -> 'a Fiber.t
 
-  module Pool : Caqti_pool_sig.S with type 'a future := 'a future
+  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
+
+  module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Fiber.t
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   type connection = (module CONNECTION)
 
-  module Alcotest_cli : Alcotest_cli with type return = unit future
+  module Alcotest_cli : Alcotest_cli with type return = unit Fiber.t
 
-  module List_result_future : sig
+  module List_result_fiber : sig
     val iter_s :
-      ('a -> (unit, 'e) result future) -> 'a list -> (unit, 'e) result future
+      ('a -> (unit, 'e) result Fiber.t) -> 'a list -> (unit, 'e) result Fiber.t
   end
 
 end

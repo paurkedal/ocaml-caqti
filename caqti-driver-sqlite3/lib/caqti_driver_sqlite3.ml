@@ -268,21 +268,22 @@ end
 module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type connect_env := System.connect_env) =
 struct
   open System
   open System_unix
+  open System.Fiber.Infix
   module H = Connection_utils.Make_helpers (System)
 
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
+  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> Fiber.return r)
   let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
 
   let driver_info = driver_info
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+    with type 'a fiber := 'a Fiber.t
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   module Make_connection_base
     (Connection_arg : sig
@@ -309,15 +310,15 @@ struct
         mutable has_been_executed: bool;
       }
 
-      let returned_count _ = return (Error `Unsupported)
+      let returned_count _ = Fiber.return (Error `Unsupported)
 
       let affected_count {affected_count; has_been_executed; query; _} =
-        if has_been_executed then return (Ok affected_count) else
+        if has_been_executed then Fiber.return (Ok affected_count) else
         let msg =
           Caqti_error.Msg
             "Statement not executed yet, affected_count unavailable."
         in
-        return (Error (Caqti_error.response_rejected ~uri ~query msg))
+        Fiber.return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
       let run_step response =
         let ret = Sqlite3.step response.stmt in
@@ -426,9 +427,9 @@ struct
         let fetch = Preemptive.detach (fetch_row resp) in
         let rec seq () =
           fetch () >>= function
-           | Ok None -> return Stream.Nil
-           | Error err -> return (Stream.Error err)
-           | Ok (Some y) -> return (Stream.Cons (y, seq))
+           | Ok None -> Fiber.return Stream.Nil
+           | Error err -> Fiber.return (Stream.Error err)
+           | Ok (Some y) -> Fiber.return (Stream.Cons (y, seq))
         in
         seq
     end
@@ -467,7 +468,7 @@ struct
       (match Caqti_request.query_id req with
        | None -> prepare req
        | Some id ->
-          (try return (Ok (Hashtbl.find pcache id)) with
+          (try Fiber.return (Ok (Hashtbl.find pcache id)) with
            | Not_found ->
               prepare req >|=? fun pcache_entry ->
               Hashtbl.add pcache id pcache_entry;
@@ -475,7 +476,7 @@ struct
       >>=? fun (stmt, quotes, query) ->
 
       (* CHECKME: Does binding involve IO? *)
-      return (bind_quotes ~uri ~query stmt quotes) >>=? fun () ->
+      Fiber.return (bind_quotes ~uri ~query stmt quotes) >>=? fun () ->
       let nQ = List.length quotes in
       (match encode_param ~uri stmt param_type param nQ with
        | Ok nQP ->
@@ -488,9 +489,11 @@ struct
             failwith "Too few arguments passed to query; \
                       check that the parameter type is correct."
           else
-          return (Ok Response.{stmt; query; row_type;
-                               has_been_executed=false; affected_count = -1; })
-       | Error _ as r -> return r)
+          let resp = Response.{
+            stmt; query; row_type; has_been_executed=false; affected_count = -1;
+          } in
+          Fiber.return (Ok resp)
+       | Error _ as r -> Fiber.return r)
       >>=? fun resp ->
 
       (* CHECKME: Does finalize or reset involve IO? *)
@@ -498,26 +501,26 @@ struct
         (match Caqti_request.query_id req with
          | None ->
             (match Sqlite3.finalize stmt with
-             | Sqlite3.Rc.OK -> return ()
+             | Sqlite3.Rc.OK -> Fiber.return ()
              | rc ->
                 Log.warn (fun p ->
                   p "Ignoring error %s when finalizing statement."
                     (Sqlite3.Rc.to_string rc)))
          | Some id ->
             (match Sqlite3.reset stmt with
-             | Sqlite3.Rc.OK -> return ()
+             | Sqlite3.Rc.OK -> Fiber.return ()
              | _ ->
                 Log.warn (fun p ->
                   p "Dropping cache statement due to error.") >|= fun () ->
                 Hashtbl.remove pcache id))
       in
-      finally (fun () -> f resp) cleanup
+      Fiber.finally (fun () -> f resp) cleanup
 
     let deallocate req = using_db @@ fun () ->
       (match Caqti_request.query_id req with
        | Some query_id ->
           (match Hashtbl.find pcache query_id with
-           | exception Not_found -> return (Ok ())
+           | exception Not_found -> Fiber.return (Ok ())
            | (stmt, _, _) ->
               Preemptive.detach begin fun () ->
                 (match Sqlite3.finalize stmt with
@@ -546,28 +549,28 @@ struct
         (* If this reports busy, it means we missed an Sqlite3.finalize or other
          * cleanup action, so this should not happen. *)
       end () >>= fun () ->
-      (if !finalize_error_count = 0 then return () else
+      (if !finalize_error_count = 0 then Fiber.return () else
         Log.warn (fun p ->
           p "Finalization of %d during disconnect return error."
             !finalize_error_count)) >>= fun () ->
-      (if !not_busy then return () else
+      (if !not_busy then Fiber.return () else
         Log.warn (fun p -> p "Sqlite reported still busy when closing handle."))
 
-    let validate () = return true
+    let validate () = Fiber.return true
     let check f = f true
 
     let exec q p = call ~f:Response.exec q p
     let start () = exec Q.start ()
     let commit () = exec Q.commit ()
     let rollback () = exec Q.rollback ()
-    let set_statement_timeout _ = return (Ok ())
+    let set_statement_timeout _ = Fiber.return (Ok ())
   end
 
   let setup ~tweaks_version db =
-    if tweaks_version < (1, 8) then return () else
+    if tweaks_version < (1, 8) then Fiber.return () else
     Preemptive.detach (Sqlite3.exec db) "PRAGMA foreign_keys = ON"
       >>= fun rc ->
-    if rc = Sqlite3.Rc.OK then return () else
+    if rc = Sqlite3.Rc.OK then Fiber.return () else
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
@@ -611,9 +614,11 @@ struct
       Ok (module Connection : CONNECTION)
     with
      | Invalid_argument msg ->
-        return (Error (Caqti_error.connect_rejected ~uri (Caqti_error.Msg msg)))
+        Fiber.return
+          (Error (Caqti_error.connect_rejected ~uri (Caqti_error.Msg msg)))
      | Sqlite3.Error msg ->
-        return (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
+        Fiber.return
+          (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
 end
 
 let () =

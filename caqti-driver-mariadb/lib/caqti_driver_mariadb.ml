@@ -66,16 +66,17 @@ let no_env _ _ = raise Not_found
 module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type connect_env := System.connect_env) =
 struct
   open System
+  open System.Fiber.Infix
   module H = Connection_utils.Make_helpers (System)
 
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let driver_info =
@@ -102,9 +103,9 @@ struct
         open System
 
         module IO = struct
-          type 'a future = 'a System.future
-          let (>>=) = System.(>>=)
-          let return = System.return
+          type 'a future = 'a Fiber.t
+          let (>>=) = Fiber.Infix.(>>=)
+          let return = Fiber.return
         end
 
         let wait db status =
@@ -336,8 +337,8 @@ struct
 
         let reject_f ~query fmt = ksprintf (response_rejected ~query) fmt
 
-        let affected_count {res; _} = return (Ok (Mdb.Res.affected_rows res))
-        let returned_count {res; _} = return (Ok (Mdb.Res.num_rows res))
+        let affected_count {res; _} = Fiber.return (Ok (Mdb.Res.affected_rows res))
+        let returned_count {res; _} = Fiber.return (Ok (Mdb.Res.num_rows res))
 
         let decode_next_row ~query row_type =
           let decode = decode_row ~uri row_type in
@@ -349,8 +350,8 @@ struct
 
         let exec {res; query; _} =
           (match Mdb.Res.num_rows res with
-           | 0 -> return (Ok ())
-           | n -> return (reject_f ~query "Received %d tuples for exec." n))
+           | 0 -> Fiber.return (Ok ())
+           | n -> Fiber.return (reject_f ~query "Received %d tuples for exec." n))
 
         let find {query; res; row_type} =
           (match Mdb.Res.num_rows res with
@@ -360,21 +361,21 @@ struct
                | Ok None -> assert false
                | Ok (Some y) -> Ok y
                | Error _ as r -> r)
-           | n -> return (reject_f ~query "Received %d tuples for find." n))
+           | n -> Fiber.return (reject_f ~query "Received %d tuples for find." n))
 
         let find_opt {query; res; row_type} =
           (match Mdb.Res.num_rows res with
-           | 0 -> return (Ok None)
+           | 0 -> Fiber.return (Ok None)
            | 1 -> decode_next_row ~query row_type res
-           | n -> return (reject_f ~query "Received %d tuples for find_opt." n))
+           | n -> Fiber.return (reject_f ~query "Received %d tuples for find_opt." n))
 
         let fold f {query; res; row_type} =
           let decode = decode_next_row ~query row_type in
           let rec loop acc =
             decode res >>= function
-             | Ok None -> return (Ok acc)
+             | Ok None -> Fiber.return (Ok acc)
              | Ok (Some y) -> loop (f y acc)
-             | Error _ as r -> return r
+             | Error _ as r -> Fiber.return r
           in
           loop
 
@@ -382,9 +383,9 @@ struct
           let decode = decode_next_row ~query row_type in
           let rec loop acc =
             decode res >>= function
-             | Ok None -> return (Ok acc)
+             | Ok None -> Fiber.return (Ok acc)
              | Ok (Some y) -> f y acc >>=? loop
-             | Error _ as r -> return r
+             | Error _ as r -> Fiber.return r
           in
           loop
 
@@ -392,9 +393,9 @@ struct
           let decode = decode_next_row ~query row_type in
           let rec loop () =
             decode res >>= function
-             | Ok None -> return (Ok ())
+             | Ok None -> Fiber.return (Ok ())
              | Ok (Some y) -> f y >>=? loop
-             | Error _ as r -> return r
+             | Error _ as r -> Fiber.return r
           in
           loop ()
 
@@ -402,9 +403,9 @@ struct
           let decode = decode_next_row ~query row_type in
           let rec loop () =
             decode res >>= function
-             | Ok None -> return Stream.Nil
-             | Error err -> return (Stream.Error err)
-             | Ok (Some y) -> return (Stream.Cons (y, loop))
+             | Ok None -> Fiber.return Stream.Nil
+             | Error err -> Fiber.return (Stream.Error err)
+             | Ok (Some y) -> Fiber.return (Stream.Cons (y, loop))
           in
           loop
       end
@@ -433,11 +434,11 @@ struct
           let params = Array.make param_length `Null in
           List.iter (fun (j, s) -> params.(j) <- `String s) quotes;
           (match encode_param ~uri params param_type param param_order with
-           | Error _ as r -> return r
+           | Error _ as r -> Fiber.return r
            | Ok [] ->
               Mdb.Stmt.execute stmt params >>=
               (function
-               | Error err -> return (request_failed ~query err)
+               | Error err -> Fiber.return (request_failed ~query err)
                | Ok res -> f Response.{query; res; row_type})
            | Ok (_ :: _) -> assert false) in
 
@@ -448,7 +449,7 @@ struct
             let query = Request_utils.linear_query_string templ in
             Mdb.prepare db query >>=
             (function
-             | Error err -> return (request_failed ~query err)
+             | Error err -> Fiber.return (request_failed ~query err)
              | Ok stmt ->
                 let param_length = Request_utils.linear_param_length templ in
                 let param_order, quotes =
@@ -461,10 +462,10 @@ struct
                  | Error (code, msg) ->
                     Log.warn (fun p ->
                       p "Ignoring error while closing statement: %d %s" code msg)
-                 | Ok () -> return ()) >|= fun () ->
+                 | Ok () -> Fiber.return ()) >|= fun () ->
                 process_result)
          | Some id ->
-            (try return (Ok (Hashtbl.find pcache id)) with
+            (try Fiber.return (Ok (Hashtbl.find pcache id)) with
              | Not_found ->
                 let templ = Caqti_request.query req driver_info in
                 let templ = Caqti_query.expand ~final:true env' templ in
@@ -484,7 +485,7 @@ struct
             process pcache_entry >>= fun process_result ->
             Mdb.Stmt.reset pcache_entry.stmt >>= fun reset_result ->
             (match reset_result with
-             | Ok () -> return ()
+             | Ok () -> Fiber.return ()
              | Error (code, msg) ->
                 Log.warn (fun p ->
                   p "Removing statement from cache due to failed reset: %d %s"
@@ -496,16 +497,16 @@ struct
         (match Caqti_request.query_id req with
          | Some query_id ->
             (match Hashtbl.find pcache query_id with
-             | exception Not_found -> return (Ok ())
+             | exception Not_found -> Fiber.return (Ok ())
              | pcache_entry ->
                 Mdb.Stmt.close pcache_entry.stmt >>=
                 (function
                  | Ok () ->
                     Hashtbl.remove pcache query_id;
-                    return (Ok ())
+                    Fiber.return (Ok ())
                  | Error err ->
                     let query = sprintf "DEALLOCATE %d" query_id in
-                    return (request_failed ~query err)))
+                    Fiber.return (request_failed ~query err)))
          | None ->
             failwith "deallocate called on oneshot request")
 
@@ -514,11 +515,11 @@ struct
           prologue >>= fun () ->
           Mdb.Stmt.close pcache_entry.stmt >>=
           (function
-           | Ok () -> return ()
+           | Ok () -> Fiber.return ()
            | Error (code, msg) ->
               Log.warn (fun p ->
                 p "Ignoring failure during disconnect: %d %s" code msg)) in
-        Hashtbl.fold close_stmt pcache (return ()) >>= fun () ->
+        Hashtbl.fold close_stmt pcache (Fiber.return ()) >>= fun () ->
         Mdb.close db
 
       let validate () = using_db @@ fun () ->
@@ -528,26 +529,26 @@ struct
 
       let transaction_failed query (errno, error) =
         let msg = Error_msg {errno; error} in
-        return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
 
       let start () = using_db @@ fun () ->
         Mdb.autocommit db false >>=
         (function
-         | Ok () -> return (Ok ())
+         | Ok () -> Fiber.return (Ok ())
          | Error err -> transaction_failed "# SET autocommit = 0" err)
 
       let commit () = using_db @@ fun () ->
         Mdb.commit db >>= fun commit_result ->
         Mdb.autocommit db true >>= fun autocommit_result ->
         (match commit_result, autocommit_result with
-         | Ok (), Ok () -> return (Ok ())
+         | Ok (), Ok () -> Fiber.return (Ok ())
          | Error err, _ -> transaction_failed "# COMMIT" err
          | Ok (), Error err -> transaction_failed "# SET autocommit = 1" err)
 
       let rollback () = using_db @@ fun () ->
         Mdb.rollback db >>=
         (function
-         | Ok () -> return (Ok ())
+         | Ok () -> Fiber.return (Ok ())
          | Error err -> transaction_failed "# ROLLBACK" err)
 
       let set_statement_timeout t =
@@ -590,7 +591,7 @@ struct
     in
     let open With_connect_env in
 
-    return (parse_uri uri)
+    Fiber.return (parse_uri uri)
       >>=? fun {host; user; pass; port; db; flags; config_group} ->
 
     let config_group = match config_group with Some g -> g | None -> "caqti" in
@@ -615,7 +616,7 @@ struct
         end in
         Mdb.set_character_set db "utf8mb4" >>=
           (function
-           | Ok () -> return ()
+           | Ok () -> Fiber.return ()
            | Error (err_no, err_msg) ->
               Log.warn (fun f ->
                 f "Could not enable full Unicode coverage for this MariaDB \
@@ -629,7 +630,7 @@ struct
            | Ok () -> Ok (module C : CONNECTION)
            | Error err -> Error (`Post_connect err))
      | Error (errno, error) ->
-        return @@
+        Fiber.return @@
           Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
 end
 

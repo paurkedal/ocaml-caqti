@@ -15,22 +15,30 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type 'a future = 'a Lwt.t
-let return = Lwt.return
-let catch = Lwt.catch
-let fail = Lwt.fail
-let (>>=) = Lwt.Infix.(>>=)
-let (>|=) = Lwt.Infix.(>|=)
-let (>>=?) = Lwt_result.Infix.(>>=)
-let (>|=?) = Lwt_result.Infix.(>|=)
+module Fiber = struct
+  type 'a t = 'a Lwt.t
+
+  let return = Lwt.return
+  let catch = Lwt.catch
+  let fail = Lwt.fail
+
+  module Infix = struct
+    let (>>=) = Lwt.Infix.(>>=)
+    let (>|=) = Lwt.Infix.(>|=)
+    let (>>=?) = Lwt_result.Infix.(>>=)
+    let (>|=?) = Lwt_result.Infix.(>|=)
+  end
+end
+
+open Fiber.Infix
 
 include Caqti_lwt
 include Caqti_lwt_unix
 
 module Alcotest_cli = Testlib.Make_alcotest_cli (Alcotest.Unix_platform) (Lwt)
 
-module List_result_future = struct
+module List_result_fiber = struct
   let rec iter_s f = function
-   | [] -> return (Ok ())
+   | [] -> Fiber.return (Ok ())
    | x :: xs -> f x >>=? fun () -> iter_s f xs
 end

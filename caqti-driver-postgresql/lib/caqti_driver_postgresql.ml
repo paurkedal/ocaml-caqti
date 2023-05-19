@@ -354,15 +354,16 @@ type prepared = {
 module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type connect_env := System.connect_env) =
 struct
   open System
+  open System.Fiber.Infix
   open System_unix
   module H = Connection_utils.Make_helpers (System)
 
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> return r)
-  let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
+  let (>|=?) m f = m >|= function Ok x -> f x | Error _ as r -> r
 
   let driver_info = driver_info
 
@@ -374,20 +375,20 @@ struct
          | Pg.Polling_reading ->
             Unix.poll ~connect_env ~read:true fd >>= fun _ ->
             (match step () with
-             | exception Pg.Error msg -> return (Error msg)
+             | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
          | Pg.Polling_writing ->
             Unix.poll ~connect_env ~write:true fd >>= fun _ ->
             (match step () with
-             | exception Pg.Error msg -> return (Error msg)
+             | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
          | Pg.Polling_failed | Pg.Polling_ok ->
-            return (Ok ())
+            Fiber.return (Ok ())
         in
         loop Pg.Polling_writing
       in
       (match db#socket with
-       | exception Pg.Error msg -> return (Error msg)
+       | exception Pg.Error msg -> Fiber.return (Error msg)
        | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
     let get_next_result ~connect_env ~uri ~query db =
@@ -396,29 +397,29 @@ struct
         if db#is_busy then
           Unix.poll ~connect_env ~read:true fd >>= (fun _ -> retry fd)
         else
-          return (Ok db#get_result)
+          Fiber.return (Ok db#get_result)
       in
       try Unix.wrap_fd retry (Obj.magic db#socket)
       with Pg.Error err ->
         let msg = extract_communication_error db err in
-        return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
 
     let get_one_result ~connect_env ~uri ~query db =
       get_next_result ~connect_env ~uri ~query db >>=? function
        | None ->
           let msg = Caqti_error.Msg "No response received after send." in
-          return (Error (Caqti_error.request_failed ~uri ~query msg))
+          Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
        | Some result ->
-          return (Ok result)
+          Fiber.return (Ok result)
 
     let get_final_result ~connect_env ~uri ~query db =
       get_one_result ~connect_env ~uri ~query db >>=? fun result ->
       get_next_result ~connect_env ~uri ~query db >>=? function
        | None ->
-          return (Ok result)
+          Fiber.return (Ok result)
        | Some _ ->
           let msg = Caqti_error.Msg "More than one response received." in
-          return (Error (Caqti_error.response_rejected ~uri ~query msg))
+          Fiber.return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
     let check_query_result ~uri ~query ~row_mult ~single_row_mode result =
       let reject msg =
@@ -478,8 +479,8 @@ struct
   (* Driver Interface *)
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a System.future
-     and type ('a, 'err) stream := ('a, 'err) System.Stream.t
+    with type 'a fiber := 'a Fiber.t
+     and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   module Make_connection_base
     (Connection_arg : sig
@@ -529,7 +530,7 @@ struct
         >>= fun () ->
       in_transaction := false;
       (match db#reset_start with
-       | exception Pg.Error _ -> return false
+       | exception Pg.Error _ -> Fiber.return false
        | true ->
           Int_hashtbl.clear prepare_cache;
           Pg_io.communicate ~connect_env db (fun () -> db#reset_poll) >|=
@@ -537,13 +538,13 @@ struct
            | Error _ -> false
            | Ok () -> (try db#status = Pg.Ok with Pg.Error _ -> false))
        | false ->
-          return false)
+          Fiber.return false)
 
     let rec retry_on_connection_error ?(n = 1) f =
       if !in_transaction then f () else
-      (f () : (_, [> Caqti_error.call]) result future) >>=
+      (f () : (_, [> Caqti_error.call]) result Fiber.t) >>=
       (function
-       | Ok _ as r -> return r
+       | Ok _ as r -> Fiber.return r
        | Error (`Request_failed
             {Caqti_error.msg = Connection_error_msg
               {error = Postgresql.Connection_failure _; _}; _})
@@ -552,14 +553,14 @@ struct
           if reset_ok then
             retry_on_connection_error ~n:(n - 1) f
           else
-            return r
-       | Error _ as r -> return r)
+            Fiber.return r
+       | Error _ as r -> Fiber.return r)
 
     let send_oneshot_query
           ?params ?param_types ?binary_params ?(single_row_mode = false)
           query =
       retry_on_connection_error begin fun () ->
-        return @@ wrap_pg ~query begin fun () ->
+        Fiber.return @@ wrap_pg ~query begin fun () ->
           db#send_query ?params ?param_types ?binary_params query;
           if single_row_mode then db#set_single_row_mode;
           db#consume_input
@@ -572,8 +573,8 @@ struct
       in
       retry_on_connection_error begin fun () ->
         begin
-          if Int_hashtbl.mem prepare_cache query_id then return (Ok ()) else
-          return @@ wrap_pg ~query begin fun () ->
+          if Int_hashtbl.mem prepare_cache query_id then Fiber.return (Ok ()) else
+          Fiber.return @@ wrap_pg ~query begin fun () ->
             db#send_prepare ~param_types (query_name_of_id query_id) query;
             db#consume_input
           end >>=? fun () ->
@@ -600,7 +601,7 @@ struct
       (match result#status with
        | Pg.Single_tuple ->
           assert (result#ntuples = 1);
-          return (Ok (Some result))
+          Fiber.return (Ok (Some result))
        | Pg.Tuples_ok ->
           assert (result#ntuples = 0);
           Pg_io.get_next_result ~connect_env ~uri ~query db >|=?
@@ -611,7 +612,7 @@ struct
                 Caqti_error.Msg "Extra result after final single-row result." in
               Error (Caqti_error.response_rejected ~uri ~query msg))
        | _ ->
-          return @@ Result.map (fun () -> None) @@
+          Fiber.return @@ Result.map (fun () -> None) @@
           Pg_io.check_query_result
             ~uri ~query ~row_mult:Caqti_mult.zero_or_more ~single_row_mode:true
             result)
@@ -630,27 +631,27 @@ struct
 
       let returned_count = function
        | {source = Complete result; _} ->
-          return (Ok result#ntuples)
+          Fiber.return (Ok result#ntuples)
        | {source = Single_row; _} ->
-          return (Error `Unsupported)
+          Fiber.return (Error `Unsupported)
 
       let affected_count = function
        | {source = Complete result; _} ->
-          return (Ok (int_of_string result#cmd_tuples))
+          Fiber.return (Ok (int_of_string result#cmd_tuples))
        | {source = Single_row; _} ->
-          return (Error `Unsupported)
+          Fiber.return (Error `Unsupported)
 
-      let exec _ = return (Ok ())
+      let exec _ = Fiber.return (Ok ())
 
       let find = function
        | {row_type; source = Complete result; _} ->
-          return (decode_row ~uri row_type (result, 0))
+          Fiber.return (decode_row ~uri row_type (result, 0))
        | {source = Single_row; _} ->
           assert false
 
       let find_opt = function
        | {row_type; source = Complete result; _} ->
-          return begin
+          Fiber.return begin
             if result#ntuples = 0 then Ok None else
             (match decode_row ~uri row_type (result, 0) with
              | Ok y -> Ok (Some y)
@@ -670,15 +671,15 @@ struct
                | Ok y -> loop (i + 1) (f y acc)
                | Error _ as r -> r)
             in
-            fun acc -> return (loop 0 acc)
+            fun acc -> Fiber.return (loop 0 acc)
          | Single_row ->
             let rec loop acc =
               fetch_single_row ~query () >>=? function
-               | None -> return (Ok acc)
+               | None -> Fiber.return (Ok acc)
                | Some result ->
                   (match decode (result, 0) with
                    | Ok y -> loop (f y acc)
-                   | Error _ as r -> return r)
+                   | Error _ as r -> Fiber.return r)
             in
             loop)
 
@@ -688,20 +689,20 @@ struct
          | Complete result ->
             let n = result#ntuples in
             let rec loop i acc =
-              if i = n then return (Ok acc) else
+              if i = n then Fiber.return (Ok acc) else
               (match decode (result, i) with
                | Ok y -> f y acc >>=? loop (i + 1)
-               | Error _ as r -> return r)
+               | Error _ as r -> Fiber.return r)
             in
             loop 0
          | Single_row ->
             let rec loop acc =
               fetch_single_row ~query () >>=? function
-               | None -> return (Ok acc)
+               | None -> Fiber.return (Ok acc)
                | Some result ->
                   (match decode (result, 0) with
                    | Ok y -> f y acc >>=? loop
-                   | Error _ as r -> return r)
+                   | Error _ as r -> Fiber.return r)
             in
             loop)
 
@@ -711,20 +712,20 @@ struct
          | Complete result ->
             let n = result#ntuples in
             let rec loop i =
-              if i = n then return (Ok ()) else
+              if i = n then Fiber.return (Ok ()) else
               (match decode (result, i) with
                | Ok y -> f y >>=? fun () -> loop (i + 1)
-               | Error _ as r -> return r)
+               | Error _ as r -> Fiber.return r)
             in
             loop 0
          | Single_row ->
             let rec loop () =
               fetch_single_row ~query () >>=? function
-               | None -> return (Ok ())
+               | None -> Fiber.return (Ok ())
                | Some result ->
                   (match decode (result, 0) with
                    | Ok y -> f y >>=? fun () -> loop ()
-                   | Error _ as r -> return r)
+                   | Error _ as r -> Fiber.return r)
             in
             loop ())
 
@@ -734,10 +735,10 @@ struct
          | Complete result ->
             let n = result#ntuples in
             let rec seq i () =
-              if i = n then return Stream.Nil else
+              if i = n then Fiber.return Stream.Nil else
               (match decode (result, i) with
-               | Ok y -> return (Stream.Cons (y, seq (i + 1)))
-               | Error err -> return (Stream.Error err))
+               | Ok y -> Fiber.return (Stream.Cons (y, seq (i + 1)))
+               | Error err -> Fiber.return (Stream.Error err))
             in
             seq 0
          | Single_row ->
@@ -778,7 +779,7 @@ struct
           let binary_params = Array.make param_length false in
           init_param_types
               ~uri ~type_oid_cache param_types binary_params param_type
-            |> return >>=? fun () ->
+            |> Fiber.return >>=? fun () ->
           let params = Array.make param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
@@ -786,7 +787,7 @@ struct
                 >|=? fun () ->
               Ok query
            | Error _ as r ->
-              return r)
+              Fiber.return r)
        | Some query_id ->
           begin
             try Ok (Int_hashtbl.find prepare_cache query_id) with
@@ -801,14 +802,14 @@ struct
                   |>? fun () ->
                 Ok {query; param_length; param_types; binary_params;
                     single_row_mode}
-          end |> return >>=? fun prepared ->
+          end |> Fiber.return >>=? fun prepared ->
           let params = Array.make prepared.param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
            | Ok () ->
               send_prepared_query query_id prepared params >|=? fun () ->
               Ok prepared.query
            | Error _ as r ->
-              return r))
+              Fiber.return r))
         >>=? fun query ->
 
       (* Fetch and process the result. *)
@@ -823,17 +824,17 @@ struct
               ~uri ~query ~row_mult ~single_row_mode result
          with
          | Ok () -> f Response.{row_type; query; source = Complete result}
-         | Error _ as r -> return r)
+         | Error _ as r -> Fiber.return r)
       end
 
     let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
-     | Caqti_type.Unit -> return (Ok ())
+     | Caqti_type.Unit -> Fiber.return (Ok ())
      | Caqti_type.Field (Caqti_type.Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
         call' ~f:Response.find_opt Q.type_oid name >>=
         (function
          | Ok (Some oid) ->
-            return (Ok (Hashtbl.add type_oid_cache name oid))
+            Fiber.return (Ok (Hashtbl.add type_oid_cache name oid))
          | Ok None ->
             Log.warn (fun p ->
               p "Failed to query OID for enum %s." name) >|= fun () ->
@@ -845,8 +846,8 @@ struct
                 name Caqti_error.pp err) >|= fun () ->
             Error (Caqti_error.encode_missing ~uri ~field_type ())
          | Error #Caqti_error.call as r ->
-            return r)
-     | Caqti_type.Field _ -> return (Ok ())
+            Fiber.return r)
+     | Caqti_type.Field _ -> Fiber.return (Ok ())
      | Caqti_type.Option t -> fetch_type_oids t
      | Caqti_type.Tup2 (t1, t2) ->
         fetch_type_oids t1 >>=? fun () ->
@@ -867,7 +868,7 @@ struct
       if !in_use then
         failwith "Invalid concurrent usage of PostgreSQL connection detected.";
       in_use := true;
-      cleanup
+      Fiber.cleanup
         (fun () -> f () >|= fun res -> in_use := false; res)
         (fun () -> reset () >|= fun _ -> in_use := false)
 
@@ -889,12 +890,12 @@ struct
                 result
             end
           else
-            return (Ok ())
+            Fiber.return (Ok ())
        | None ->
           failwith "deallocate called on oneshot request")
 
     let disconnect () = using_db @@ fun () ->
-      try db#finish; return () with Pg.Error err ->
+      try db#finish; Fiber.return () with Pg.Error err ->
         Log.warn (fun p ->
           p "While disconnecting from <%a>: %s"
             Caqti_error.pp_uri uri (Pg.string_of_error err))
@@ -902,7 +903,7 @@ struct
     let validate () = using_db @@ fun () ->
       db#consume_input;
       if (try db#status = Pg.Ok with Pg.Error _ -> false) then
-        return true
+        Fiber.return true
       else
         reset ()
 
@@ -927,12 +928,12 @@ struct
       in
       let param_length = Caqti_type.length row_type in
       let fail msg =
-        return
+        Fiber.return
           (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))
       in
       let pg_error err =
         let msg = extract_communication_error db err in
-        return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
       in
       let put_copy_data data =
         let rec loop fd =
@@ -940,7 +941,7 @@ struct
           | Pg.Put_copy_error ->
               fail "Unable to put copy data"
           | Pg.Put_copy_queued ->
-              return (Ok ())
+              Fiber.return (Ok ())
           | Pg.Put_copy_not_queued ->
               Unix.poll ~connect_env ~write:true fd >>= fun _ -> loop fd
         in
@@ -952,9 +953,9 @@ struct
         let params = Array.make param_length "\\N" in
         (match Copy_encoder.encode ~uri params row_type row with
          | Ok () ->
-            return (Ok (String.concat "\t" (Array.to_list params)))
+            Fiber.return (Ok (String.concat "\t" (Array.to_list params)))
          | Error _ as r ->
-            return r)
+            Fiber.return r)
         >>=? fun param_string -> put_copy_data (param_string ^ "\n")
       in
       begin
@@ -970,9 +971,9 @@ struct
            * into errors, and delegate error handling.
            *)
           (match result#status with
-           | Pg.Copy_in -> return (Ok ())
+           | Pg.Copy_in -> Fiber.return (Ok ())
            | Pg.Command_ok -> fail "Received Command_ok when expecting Copy_in"
-           | _ -> return (Pg_io.check_command_result ~uri ~query result))
+           | _ -> Fiber.return (Pg_io.check_command_result ~uri ~query result))
         >>=? fun () -> System.Stream.iter_s ~f:copy_row data
         >>=? fun () ->
           (* End the copy *)
@@ -984,7 +985,7 @@ struct
                 Unix.poll ~connect_env ~write:true fd >>= fun _ ->
                 copy_end_loop fd
             | Pg.Put_copy_queued ->
-                return (Ok ())
+                Fiber.return (Ok ())
           in
           (match db#socket with
            | exception Pg.Error msg -> pg_error msg
@@ -998,26 +999,26 @@ struct
   end
 
   let connect ~sw:_ ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
-    return (Pg_ext.parse_uri uri)
+    Fiber.return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error err ->
         let msg = extract_connect_error err in
-        return (Error (Caqti_error.connect_failed ~uri msg))
+        Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
      | db ->
         Pg_io.communicate ~connect_env db (fun () -> db#connect_poll) >>=
         (function
          | Error err ->
             let msg = extract_communication_error db err in
-            return (Error (Caqti_error.connect_failed ~uri msg))
+            Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
          | Ok () ->
             (match db#status <> Pg.Ok with
              | exception Pg.Error err ->
                 let msg = extract_communication_error db err in
-                return (Error (Caqti_error.connect_failed ~uri msg))
+                Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
              | true ->
                 let msg = Caqti_error.Msg db#error_message in
-                return (Error (Caqti_error.connect_failed ~uri msg))
+                Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
                 let module B = Make_connection_base

@@ -18,7 +18,7 @@
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
   Driver_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env
@@ -28,7 +28,7 @@ let register scheme p = Hashtbl.add drivers scheme p
 
 module Make (System : System_sig.S) = struct
   module type DRIVER = Driver_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env

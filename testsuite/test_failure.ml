@@ -30,15 +30,16 @@ end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
+  open Ground.Fiber.Infix
 
   let test_raise_in_call fail' (module Db : CONNECTION) =
     let test i =
-      catch
+      Fiber.catch
         (fun () ->
           Db.call ~f:(fun _ -> fail' Not_found) Q.select_two ()
             >|= fun _ -> assert false)
         (function
-         | Not_found -> return ()
+         | Not_found -> Fiber.return ()
          | exn -> failwith ("unexpected exception: " ^ Printexc.to_string exn))
         >>= fun () ->
       Db.find Q.select_twice i
@@ -50,7 +51,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_statement_timeout (module Db : CONNECTION) =
     if Caqti_driver_info.dialect_tag Db.driver_info = `Sqlite then
-      return () (* Does not support statement timeout. *)
+      Fiber.return () (* Does not support statement timeout. *)
     else
     let check_timed_out = function
       | Error (`Request_failed _) -> ()
@@ -69,7 +70,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_cases = [
     "raise in call", `Quick, test_raise_in_call raise;
-    "fail in call", `Quick, test_raise_in_call fail;
+    "fail in call", `Quick, test_raise_in_call Fiber.fail;
     "statement timeout", `Quick, test_statement_timeout;
   ]
 end

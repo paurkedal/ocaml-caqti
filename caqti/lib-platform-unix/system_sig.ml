@@ -16,21 +16,21 @@
  *)
 
 module type S = sig
-  type 'a future
+  type 'a fiber
   type connect_env
 
   module Unix : sig
     type file_descr
-    val wrap_fd : (file_descr -> 'a future) -> Unix.file_descr -> 'a future
+    val wrap_fd : (file_descr -> 'a fiber) -> Unix.file_descr -> 'a fiber
     val poll :
       connect_env: connect_env ->
       ?read: bool -> ?write: bool -> ?timeout: float ->
-      file_descr -> (bool * bool * bool) future
+      file_descr -> (bool * bool * bool) fiber
   end
 
   module Preemptive : sig
-    val detach : ('a -> 'b) -> 'a -> 'b future
-    val run_in_main : (unit -> 'a future) -> 'a
+    val detach : ('a -> 'b) -> 'a -> 'b fiber
+    val run_in_main : (unit -> 'a fiber) -> 'a
   end
 
 end

@@ -19,7 +19,7 @@
 
 module type S = sig
 
-  type +'a future
+  type +'a fiber
 
   type ('a, +'e) t
 
@@ -28,7 +28,7 @@ module type S = sig
 
   val use :
     ?priority: float ->
-    ('a -> ('b, 'e) result future) -> ('a, 'e) t -> ('b, 'e) result future
+    ('a -> ('b, 'e) result fiber) -> ('a, 'e) t -> ('b, 'e) result fiber
   (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
       resource to the pool when [f] exits.
 
@@ -36,7 +36,7 @@ module type S = sig
         Requests for the resource are handled in decreasing order of priority.
         The default priority is [0.0]. *)
 
-  val drain : ('a, 'e) t -> unit future
+  val drain : ('a, 'e) t -> unit fiber
   (** [drain pool] closes all resources in [pool]. The pool is still usable, as
       new resources will be created on demand. *)
 

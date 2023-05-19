@@ -16,6 +16,6 @@
  *)
 
 include Testlib.Sig.Ground
-  with type 'a future = 'a Lwt.t
+  with type 'a Fiber.t = 'a Lwt.t
    and module Stream = Caqti_lwt.Stream
    and module Pool = Caqti_lwt_unix.Pool

@@ -17,28 +17,30 @@
 
 open Caqti_platform
 
-module Future = struct
-  type 'a future = 'a Lwt.t
-  let (>>=) = Lwt.(>>=)
-  let (>|=) = Lwt.(>|=)
+module Fiber = struct
+  type 'a t = 'a Lwt.t
+
+  module Infix = struct
+    let (>>=) = Lwt.Infix.(>>=)
+    let (>|=) = Lwt.Infix.(>|=)
+  end
+  open Infix
+
   let return = Lwt.return
   let catch = Lwt.catch
   let finally = Lwt.finalize
+  let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
 end
 
-module Stream = Caqti_platform.Stream.Make (Future)
-module Switch = Caqti_platform.Switch.Make (Future)
+module Stream = Caqti_platform.Stream.Make (Fiber)
+module Switch = Caqti_platform.Switch.Make (Fiber)
 
 module System_core = struct
-  include Future
-
-  let cleanup f g = Lwt.catch f (fun exn -> g () >>= fun () -> Lwt.fail exn)
-
+  module Fiber = Fiber
+  module Stream = Stream
   module Switch = Switch
 
   let async ~sw:_ = Lwt.async
-
-  module Stream = Stream
 
   module Semaphore = struct
     type t = unit Lwt_mvar.t
@@ -64,7 +66,7 @@ module System_core = struct
 end
 
 module type CONNECTION = Caqti_connection_sig.S
-  with type 'a future := 'a Lwt.t
+  with type 'a fiber := 'a Lwt.t
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
 type connection = (module CONNECTION)

@@ -16,6 +16,6 @@
  *)
 
 include Testlib.Sig.Ground
-  with type 'a future = 'a
+  with type 'a Fiber.t = 'a
    and module Stream = Caqti_blocking.Stream
    and module Pool = Caqti_blocking.Pool

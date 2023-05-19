@@ -39,16 +39,17 @@ let random_int () = Random.int (1 + Random.int 16)
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
+  open Ground.Fiber.Infix
 
   let do_query pool =
     pool |> Pool.use @@ fun (module C : CONNECTION) ->
     (match Random.int 4 with
      | 0 ->
         C.exec Q.insert (random_int (), random_int ()) >>=? fun () ->
-        return (Ok 0)
+        Fiber.return (Ok 0)
      | 1 ->
         C.exec Q.delete (random_int ()) >>=? fun () ->
-        return (Ok 0)
+        Fiber.return (Ok 0)
      | 2 ->
         C.fold Q.select_1 (fun x acc -> x + acc) (random_int ()) 0
      | 3 ->
@@ -64,13 +65,13 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let reduce f xs acc =
     let rec loop = function
-     | [] -> fun acc -> return (Ok acc)
+     | [] -> fun acc -> Fiber.return (Ok acc)
      | mx :: mxs -> fun acc -> mx >>=? fun x -> loop mxs (f x acc)
     in
     loop xs acc
 
   let rec test_parallel' pool n =
-    if n = 0 then return (Ok 0) else
+    if n = 0 then Fiber.return (Ok 0) else
     if n = 1 then do_query pool else
     let thread_count = Random.int n * (Random.int n + 1) / n + 1 in
     let ns = Array.init thread_count (fun _ -> Random.int n)

@@ -17,15 +17,13 @@
 
 open Caqti_platform
 
-module Future = struct
-  type 'a future = 'a
-  let (>>=) x f = f x
-  let (>|=) x f = f x
+module Fiber = struct
+  type 'a t = 'a
+  module Infix = struct
+    let (>>=) x f = f x
+    let (>|=) x f = f x
+  end
   let return x = x
-end
-
-module Core = struct
-  include Future
 
   let catch f g = try f () with exn -> g exn
 
@@ -35,48 +33,47 @@ module Core = struct
      | exception exn -> g (); raise exn)
 
   let cleanup f g = try f () with exn -> g (); raise exn
-
-  module Stream = Caqti_platform.Stream.Make (Future)
-
-  module Semaphore = struct
-    type t = Eio.Semaphore.t
-
-    let create () = Eio.Semaphore.make 0
-    let release = Eio.Semaphore.release
-    let acquire = Eio.Semaphore.acquire
-  end
-
-  module Log = struct
-    type 'a log = 'a Logs.log
-    let err ?(src = Logging.default_log_src) = Logs.err ~src
-    let warn ?(src = Logging.default_log_src) = Logs.warn ~src
-    let info ?(src = Logging.default_log_src) = Logs.info ~src
-    let debug ?(src = Logging.default_log_src) = Logs.debug ~src
-  end
-
-  type connect_env = Eio.Stdenv.t
-
-  module Switch = Eio.Switch
-
-  (* TODO: Log error. *)
-  let async ~sw f =
-    Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
-
-  module Sequencer = struct
-    type 'a t = 'a * Eio.Mutex.t
-
-    let create x = (x, Eio.Mutex.create ())
-
-    let enqueue (x, mutex) f =
-      (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
-       * preventing recovery from e.g. a statement timeout. *)
-      Eio.Mutex.lock mutex;
-      (match f x with
-       | y -> Eio.Mutex.unlock mutex; y
-       | exception exn -> Eio.Mutex.unlock mutex; raise exn)
-  end
 end
-include Core
+
+module Stream = Caqti_platform.Stream.Make (Fiber)
+
+module Semaphore = struct
+  type t = Eio.Semaphore.t
+
+  let create () = Eio.Semaphore.make 0
+  let release = Eio.Semaphore.release
+  let acquire = Eio.Semaphore.acquire
+end
+
+module Log = struct
+  type 'a log = 'a Logs.log
+  let err ?(src = Logging.default_log_src) = Logs.err ~src
+  let warn ?(src = Logging.default_log_src) = Logs.warn ~src
+  let info ?(src = Logging.default_log_src) = Logs.info ~src
+  let debug ?(src = Logging.default_log_src) = Logs.debug ~src
+end
+
+type connect_env = Eio.Stdenv.t
+
+module Switch = Eio.Switch
+
+(* TODO: Log error. *)
+let async ~sw f =
+  Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
+
+module Sequencer = struct
+  type 'a t = 'a * Eio.Mutex.t
+
+  let create x = (x, Eio.Mutex.create ())
+
+  let enqueue (x, mutex) f =
+    (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
+     * preventing recovery from e.g. a statement timeout. *)
+    Eio.Mutex.lock mutex;
+    (match f x with
+     | y -> Eio.Mutex.unlock mutex; y
+     | exception exn -> Eio.Mutex.unlock mutex; raise exn)
+end
 
 module Alarm = struct
   type t = Eio.Cancel.t
@@ -121,7 +118,7 @@ module Net = struct
     try
       Eio.Net.getaddrinfo_stream stdenv#net
         ~service:(string_of_int port) (Domain_name.to_string host)
-        >|= Result.ok
+        |> Result.ok
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 

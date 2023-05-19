@@ -17,12 +17,16 @@
 
 include Benchmark_fetch_many.Make (struct
   let name = "blocking"
-  type 'a future = 'a
+  module Fiber = struct
+    type 'a t = 'a
+    module Infix = struct
+      let (>>=) x f = f x
+      let (>|=) x f = f x
+    end
+  end
   type context = unit
   let run_fiber f = f ()
   let run_main f = f ()
-  let (>>=) x f = f x
-  let (>|=) x f = f x
   include Caqti_blocking
   let connect () uri = connect uri
 end)

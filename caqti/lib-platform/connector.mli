@@ -27,16 +27,16 @@ val load_library : string -> (unit, string) result
 module Make :
   functor (System : System_sig.S) ->
   functor (Pool : Pool.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env) ->
   functor (Loader : Driver_sig.Loader
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
   Caqti_connect_sig.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a with_switch := sw: System.Switch.t -> 'a

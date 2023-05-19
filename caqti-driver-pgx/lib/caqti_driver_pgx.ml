@@ -266,22 +266,23 @@ let parse_uri uri =
 
 module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   open System
+  open System.Fiber.Infix
 
-  let ( let*? ) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let ( let*? ) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
   let ( let+? ) m f = m >|= function Ok x -> Ok (f x) | Error _ as r -> r
   let ( >>=? ) = ( let*? )
   let ( >|=? ) = ( let+? )
 
   let intercept h f =
-    catch
+    Fiber.catch
       (fun () -> f () >|= fun y -> Ok y)
       (function
        | Pgx.PostgreSQL_Error (msg, err) ->
-          return (Error (h (Pgx_msg (msg, err))))
+          Fiber.return (Error (h (Pgx_msg (msg, err))))
        | End_of_file ->
-          return (Error (h (Caqti_error.Msg "Unexpected EOF from server.")))
+          Fiber.return (Error (h (Caqti_error.Msg "Unexpected EOF from server.")))
        | Failure msg -> (* Raised by our Pgx.Io implementation. *)
-          return (Error (h (Caqti_error.Msg msg)))
+          Fiber.return (Error (h (Caqti_error.Msg msg)))
        | exn ->
           raise exn)
 
@@ -298,10 +299,10 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     open Connect_env
 
     module Pgx_with_io = Pgx.Make (struct
-      type 'a t = 'a future
-      let return = return
+      type 'a t = 'a Fiber.t
+      let return = Fiber.return
       let ( >>= ) = ( >>= )
-      let catch = catch
+      let catch = Fiber.catch
 
       include Net
 
@@ -347,17 +348,17 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
       let debug msg = Log.debug (fun f -> f "%s" msg)
 
-      let protect f ~finally = System.finally f finally
+      let protect f ~finally = Fiber.finally f finally
 
       module Sequencer = struct
-        type 'a monad = 'a future
+        type 'a monad = 'a Fiber.t
         include Sequencer
       end
     end)
   end
 
   module Make_connection_base
-    (Pgx_with_io : Pgx.S with type 'a Io.t = 'a future)
+    (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t)
     (Connection_arg : sig
       val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
@@ -380,8 +381,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         params: Pgx.Value.t list;
       }
 
-      let returned_count _ = return (Error `Unsupported)
-      let affected_count _ = return (Error `Unsupported)
+      let returned_count _ = Fiber.return (Error `Unsupported)
+      let affected_count _ = Fiber.return (Error `Unsupported)
 
       let reject ~query msg =
         Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
@@ -421,7 +422,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let fold f {query; row_type; prepared; params} =
         let decode = decode_row ~uri row_type in
         let f acc row =
-          return @@ match acc with
+          Fiber.return @@ match acc with
            | Ok acc ->
               (match decode row with
                | Ok row -> Ok (f row acc)
@@ -440,8 +441,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
            | Ok acc ->
               (match decode row with
                | Ok row -> f row acc
-               | Error _ as r -> return r)
-           | Error _ as r -> return r)
+               | Error _ as r -> Fiber.return r)
+           | Error _ as r -> Fiber.return r)
         in
         fun acc ->
           intercept_request_failed ~uri ~query begin fun () ->
@@ -455,8 +456,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
            | Ok () ->
               (match decode row with
                | Ok row -> f row
-               | Error _ as r -> return r)
-           | Error _ as r -> return r)
+               | Error _ as r -> Fiber.return r)
+           | Error _ as r -> Fiber.return r)
         in
         intercept_request_failed ~uri ~query begin fun () ->
           Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok ())
@@ -478,14 +479,14 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let in_use = ref false
     let prepare_cache : (int, prepared) Hashtbl.t = Hashtbl.create 19
 
-    let reset _ = return () (* FIXME *)
+    let reset _ = Fiber.return () (* FIXME *)
 
     let using_db f =
       if !in_use then
         failwith "Invalid concurrent usage of PostgreSQL connection detected.";
       in_use := true;
       let db = match !db_txn with None -> db_arg | Some db -> db in
-      cleanup
+      Fiber.cleanup
         (fun () -> f db >|= fun res -> in_use := false; res)
         (fun () -> reset db >|= fun _ -> in_use := false)
 
@@ -494,7 +495,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let field_type_oid ft =
       let name = pg_type_name ft in
       (match Hashtbl.find_opt type_oid_cache name with
-       | Some oid -> return (Ok oid)
+       | Some oid -> Fiber.return (Ok oid)
        | None ->
           let params = [Pgx.Value.of_string name] in
           let*? row =
@@ -503,7 +504,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           in
           let fail s =
             let msg = Caqti_error.Msg s in
-            return (Error
+            Fiber.return (Error
               (Caqti_error.request_failed ~uri ~query:Q.select_type_oid msg))
           in
           let failf fmt = Format.kasprintf fail fmt in
@@ -512,7 +513,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
               (match Pgx.Value.to_int32 v with
                | Some oid ->
                   Hashtbl.add type_oid_cache name oid;
-                  return (Ok oid)
+                  Fiber.return (Ok oid)
                | None ->
                   failf "Expected an int32 in response from OID request.")
            | [] ->
@@ -525,9 +526,9 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let type_oids param_type =
       let rec loop :
           type a. a Caqti_type.t -> Pgx.oid list ->
-          (Pgx.oid list, _) result future =
+          (Pgx.oid list, _) result Fiber.t =
         (function
-         | Unit -> fun acc -> return (Ok acc)
+         | Unit -> fun acc -> Fiber.return (Ok acc)
          | Field ft -> fun acc -> field_type_oid ft >|=? fun ft -> ft :: acc
          | Option t -> loop t
          | Tup2 (t1, t2) ->
@@ -559,7 +560,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       in
       let post_prepare pq =
         (match encode_param ~uri (Caqti_request.param_type req) param with
-         | Error _ as r -> return r
+         | Error _ as r -> Fiber.return r
          | Ok regular_params ->
             let params = List.rev_append pq.rev_quotes regular_params in
             f {
@@ -572,7 +573,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       (match Caqti_request.query_id req with
        | Some query_id ->
           (match Hashtbl.find_opt prepare_cache query_id with
-           | Some pq -> return (Ok pq)
+           | Some pq -> Fiber.return (Ok pq)
            | None ->
               let*? query, types, rev_quotes = pre_prepare () in
               let name = sprintf "q%d" query_id in
@@ -594,7 +595,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Some query_id ->
           (match Hashtbl.find_opt prepare_cache query_id with
            | None ->
-              return (Ok ())
+              Fiber.return (Ok ())
            | Some prepared ->
               Hashtbl.remove prepare_cache query_id;
               intercept_request_failed ~uri ~query:"DEALLOCATE"
@@ -604,10 +605,10 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
     let disconnect () =
       using_db @@ fun _ ->
-      catch
+      Fiber.catch
         (fun () ->
           (match !db_txn with
-           | None -> return ()
+           | None -> Fiber.return ()
            | Some db -> Pgx_with_io.close db) >>= fun () ->
           Pgx_with_io.close db_arg)
         (function
@@ -668,7 +669,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   let driver_info = driver_info
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let setup (module Connection : CONNECTION) =
@@ -678,7 +679,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
   let connect ~sw ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
-      return (parse_uri uri)
+      Fiber.return (parse_uri uri)
     in
     let open
       Pass_connect_env (struct let sw = sw let connect_env = connect_env end)

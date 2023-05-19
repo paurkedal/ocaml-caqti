@@ -15,16 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module type FUTURE = sig
-  type 'a future
+module type FIBER = sig
+  type 'a t
 
-  val return : 'a -> 'a future
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
+  val return : 'a -> 'a t
+  module Infix : sig
+    val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  end
+  val finally : (unit -> 'a t) -> (unit -> unit t) -> 'a t
 end
 
 module type S = sig
-  type 'a future
+  type 'a fiber
   type t
   type hook
 
@@ -32,25 +34,25 @@ module type S = sig
 
   val eternal : t
   val create : unit -> t
-  val release : t -> unit future
-  val run : (t -> 'a future) -> 'a future
+  val release : t -> unit fiber
+  val run : (t -> 'a fiber) -> 'a fiber
   val check : t -> unit
-  val on_release_cancellable : t -> (unit -> unit future) -> hook
+  val on_release_cancellable : t -> (unit -> unit fiber) -> hook
   val remove_hook : hook -> unit
 end
 
-module Make (Future : FUTURE) = struct
-  open Future
+module Make (Fiber : FIBER) = struct
+  open Fiber.Infix
 
   type state =
-    | On of (unit -> unit future) Lwt_dllist.t
+    | On of (unit -> unit Fiber.t) Lwt_dllist.t
     | Off
 
   type t =
     | Eternal
     | Ephemeral of {mutable state: state}
 
-  type hook = (unit -> unit future) Lwt_dllist.node option
+  type hook = (unit -> unit Fiber.t) Lwt_dllist.node option
 
   exception Off
 
@@ -59,17 +61,17 @@ module Make (Future : FUTURE) = struct
 
   let release = function
    | Eternal -> failwith "Tried to release eternal switch."
-   | Ephemeral {state = Off} -> return ()
+   | Ephemeral {state = Off} -> Fiber.return ()
    | Ephemeral ({state = On tasks} as arg) ->
       let rec loop () =
-        if Lwt_dllist.is_empty tasks then return (arg.state <- Off) else
+        if Lwt_dllist.is_empty tasks then Fiber.return (arg.state <- Off) else
         Lwt_dllist.take_l tasks () >>= loop
       in
       loop ()
 
   let run f =
     let sw = create () in
-    finally (fun () -> f sw) (fun () -> release sw)
+    Fiber.finally (fun () -> f sw) (fun () -> release sw)
 
   let check = function
    | Ephemeral {state = On _} | Eternal -> ()

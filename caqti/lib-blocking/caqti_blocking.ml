@@ -17,10 +17,12 @@
 
 open Caqti_platform
 
-module Future = struct
-  type 'a future = 'a
-  let (>>=) x f = f x
-  let (>|=) x f = f x
+module Fiber = struct
+  type 'a t = 'a
+  module Infix = struct
+    let (>>=) x f = f x
+    let (>|=) x f = f x
+  end
   let return x = x
 
   let catch f g = try f () with exn -> g exn
@@ -29,16 +31,16 @@ module Future = struct
     (match f () with
      | y -> g (); y
      | exception exn -> g (); raise exn)
-end
-
-module Stream = Caqti_platform.Stream.Make (Future)
-
-module System_core = struct
-  include Future
 
   let cleanup f g = try f () with exn -> g (); raise exn
+end
 
-  module Switch = Caqti_platform.Switch.Make (Future)
+module Stream = Caqti_platform.Stream.Make (Fiber)
+
+module System_core = struct
+  module Fiber = Fiber
+
+  module Switch = Caqti_platform.Switch.Make (Fiber)
 
   let async ~sw:_ f = f ()
 

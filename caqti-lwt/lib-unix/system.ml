@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+open Lwt.Infix
+
 module System_core = struct
   include Caqti_lwt.System_core
   type connect_env = unit
@@ -22,7 +24,6 @@ end
 include System_core
 
 module Alarm = struct
-  open Lwt.Infix
 
   type t = {cancel: unit -> unit}
 

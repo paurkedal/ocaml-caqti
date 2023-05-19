@@ -22,10 +22,15 @@ open Async_unix
 open Caqti_platform
 open Core
 
-module Future = struct
-  type 'a future = 'a Deferred.t
-  let (>>=) m f = Deferred.bind m ~f
-  let (>|=) = Deferred.(>>|)
+module Fiber = struct
+  type 'a t = 'a Deferred.t
+
+  module Infix = struct
+    let (>>=) m f = Deferred.bind m ~f
+    let (>|=) = Deferred.(>>|)
+  end
+  open Infix
+
   let return = Deferred.return
 
   let catch f g =
@@ -37,17 +42,18 @@ module Future = struct
     try_with ~extract_exn:true f >>= function
      | Ok y -> g () >|= fun () -> y
      | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
-end
-
-module Stream = Caqti_platform.Stream.Make (Future)
-
-module System_core = struct
-  include Future
 
   let cleanup f g =
     try_with ~extract_exn:true f >>= function
      | Ok y -> return y
      | Error exn -> g () >|= fun () -> Error.raise (Error.of_exn exn)
+end
+open Fiber.Infix
+
+module Stream = Caqti_platform.Stream.Make (Fiber)
+
+module System_core = struct
+  module Fiber = Fiber
 
   type connect_env = unit
 
@@ -62,7 +68,7 @@ module System_core = struct
     let acquire v = Ivar.read v
   end
 
-  module Switch = Caqti_platform.Switch.Make (Future)
+  module Switch = Caqti_platform.Switch.Make (Fiber)
 
   module Log = struct
     type 'a log = ('a, unit Deferred.t) Logs.msgf -> unit Deferred.t

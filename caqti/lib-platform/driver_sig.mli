@@ -22,13 +22,13 @@
     requirements and to announce you need for a stable driver API. *)
 
 module type S = sig
-  type +'a future
+  type +'a fiber
   type (+'a, +'err) stream
   type switch
   type connect_env
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a fiber
      and type ('a, 'err) stream := ('a, 'err) stream
 
   val driver_info : Caqti_driver_info.t
@@ -39,17 +39,17 @@ module type S = sig
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     tweaks_version: int * int ->
     Uri.t ->
-    ((module CONNECTION), [> Caqti_error.connect]) result future
+    ((module CONNECTION), [> Caqti_error.connect]) result fiber
 end
 
 module type Loader = sig
-  type +'a future
+  type +'a fiber
   type (+'a, +'e) stream
   type switch
   type connect_env
 
   module type DRIVER = S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a fiber
      and type ('a, 'e) stream := ('a, 'e) stream
      and type switch := switch
      and type connect_env := connect_env

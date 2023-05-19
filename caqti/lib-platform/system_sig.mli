@@ -22,74 +22,82 @@
     {!Caqti_platform_unix.System_sig.S}.
   *)
 
+module type FIBER = sig
+
+  type +'a t
+  (** A concurrency monad with an optional failure monad, or just the identity
+      type constructor for blocking operation. *)
+
+  module Infix : sig
+
+    val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+    (** Bind operation of the concurrency monad. *)
+
+    val (>|=) : 'a t -> ('a -> 'b) -> 'b t
+    (** Map operation of the concurrency monad. *)
+
+  end
+
+  val return : 'a -> 'a t
+  (** Return operation of the  concurrency monad. *)
+
+  val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
+
+  val finally : (unit -> 'a t) -> (unit -> unit t) -> 'a t
+  (** [finally f g] runs [f ()] and then runs [g ()] whether the former
+      finished, failed with an exception, or failed with a monadic failure. *)
+
+  val cleanup : (unit -> 'a t) -> (unit -> unit t) -> 'a t
+  (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
+      and only if [f ()] failed with an exception or a monadic failure. *)
+end
+
 module type SEQUENCER = sig
+  type 'a fiber
   type 'a t
-  type 'a future
   val create : 'a -> 'a t
-  val enqueue : 'a t -> ('a -> 'b future) -> 'b future
+  val enqueue : 'a t -> ('a -> 'b fiber) -> 'b fiber
 end
 
 module type CORE = sig
-
-  type +'a future
-  (** A concurrency monad with an optional failure monad, or just the identity
-      type constructor for blocking operation. *)
+  module Fiber : FIBER
 
   type connect_env
   (** Type of an extra argument to connect functions used to pass through the
       network stack in Mirage and stdenv in EIO.  This is eliminated at the
       service API where not needed. *)
 
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  (** Bind operation of the concurrency monad. *)
-
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  (** Map operation of the concurrency monad. *)
-
-  val return : 'a -> 'a future
-  (** Return operation of the  concurrency monad. *)
-
-  val catch : (unit -> 'a future) -> (exn -> 'a future) -> 'a future
-
-  val finally : (unit -> 'a future) -> (unit -> unit future) -> 'a future
-  (** [finally f g] runs [f ()] and then runs [g ()] whether the former
-      finished, failed with an exception, or failed with a monadic failure. *)
-
-  val cleanup : (unit -> 'a future) -> (unit -> unit future) -> 'a future
-  (** [cleanup f g] runs [f ()] and then runs [g ()] and re-raise the failure if
-      and only if [f ()] failed with an exception or a monadic failure. *)
-
   (** A module used by EIO to handle cleanup tasks; unit for other platforms. *)
   module Switch : sig
     type t
     type hook
-    val run : (t -> 'a future) -> 'a future
+    val run : (t -> 'a Fiber.t) -> 'a Fiber.t
     val check : t -> unit
-    val on_release_cancellable : t -> (unit -> unit future) -> hook
+    val on_release_cancellable : t -> (unit -> unit Fiber.t) -> hook
     val remove_hook : hook -> unit
   end
 
-  val async : sw: Switch.t -> (unit -> unit future) -> unit
+  val async : sw: Switch.t -> (unit -> unit Fiber.t) -> unit
   (** [async f] runs [f ()] asynchroneously if possible, else immediately. *)
 
   module Semaphore : sig
     type t
     val create : unit -> t
     val release : t -> unit
-    val acquire : t -> unit future
+    val acquire : t -> unit Fiber.t
   end
 
   module Log : sig
-    type 'a log = ('a, unit future) Logs.msgf -> unit future
+    type 'a log = ('a, unit Fiber.t) Logs.msgf -> unit Fiber.t
     val err : ?src: Logs.src -> 'a log
     val warn : ?src: Logs.src -> 'a log
     val info : ?src: Logs.src -> 'a log
     val debug : ?src: Logs.src -> 'a log
   end
 
-  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
 
-  module Sequencer : SEQUENCER with type 'a future := 'a future
+  module Sequencer : SEQUENCER with type 'a fiber := 'a Fiber.t
 
 end
 
@@ -109,7 +117,7 @@ module type S = sig
 
     val getaddrinfo :
       connect_env: connect_env -> [`host] Domain_name.t -> int ->
-      (Sockaddr.t list, [> `Msg of string]) result future
+      (Sockaddr.t list, [> `Msg of string]) result Fiber.t
     (** This should be a specialized version of getaddrinfo, which only returns
         entries which is expected to work with the corresponding connect on the
         platform implementing this interface.  In particular:
@@ -127,18 +135,18 @@ module type S = sig
 
     val connect :
       sw: Switch.t -> connect_env: connect_env -> Sockaddr.t ->
-      (in_channel * out_channel, [> `Msg of string]) result future
+      (in_channel * out_channel, [> `Msg of string]) result Fiber.t
 
     (* TODO: STARTTLS *)
 
     (* These are currently only used by PGX.  Despite the flush, it PGX is doing
      * it's own buffering, so unbuffered should be okay.  output_char and
      * input_char are only used for the packet header. *)
-    val output_char : out_channel -> char -> unit future
-    val output_string : out_channel -> string -> unit future
-    val flush : out_channel -> unit future
-    val input_char : in_channel -> char future
-    val really_input : in_channel -> Bytes.t -> int -> int -> unit future
-    val close_in : in_channel -> unit future
+    val output_char : out_channel -> char -> unit Fiber.t
+    val output_string : out_channel -> string -> unit Fiber.t
+    val flush : out_channel -> unit Fiber.t
+    val input_char : in_channel -> char Fiber.t
+    val really_input : in_channel -> Bytes.t -> int -> int -> unit Fiber.t
+    val close_in : in_channel -> unit Fiber.t
   end
 end

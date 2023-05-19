@@ -15,14 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type 'a future = 'a
-let return x = x
-let catch f g = try f () with exn -> g exn
-let fail = raise
-let (>>=) x f = f x
-let (>|=) x f = f x
-let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
-let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
+module Fiber = struct
+  type 'a t = 'a
+  let return x = x
+  let catch f g = try f () with exn -> g exn
+  let fail = raise
+  module Infix = struct
+    let (>>=) x f = f x
+    let (>|=) x f = f x
+    let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
+    let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
+  end
+end
 
 include Caqti_blocking
 
@@ -31,8 +35,10 @@ module Alcotest_cli =
     (Alcotest.Unix_platform)
     (Alcotest_engine.Monad.Identity)
 
-module List_result_future = struct
+module List_result_fiber = struct
+  open Fiber.Infix
+
   let rec iter_s f = function
-   | [] -> return (Ok ())
+   | [] -> Fiber.return (Ok ())
    | x :: xs -> f x >>=? fun () -> iter_s f xs
 end

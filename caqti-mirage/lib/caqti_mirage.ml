@@ -111,7 +111,7 @@ struct
          | true, false -> getaddrinfo_ipv4 dns host port
          | false, true -> getaddrinfo_ipv6 dns host port
          | false, false ->
-            return (Error (`Msg "No IP address assigned to host.")))
+            Lwt.return (Error (`Msg "No IP address assigned to host.")))
 
       let connect ~sw:_ ~connect_env:{stack; _} sockaddr =
         (match sockaddr with

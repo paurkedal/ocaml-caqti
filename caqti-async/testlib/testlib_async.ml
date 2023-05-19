@@ -18,26 +18,30 @@
 open Async_kernel
 open Core
 
-type 'a future = 'a Deferred.t
+module Fiber = struct
+  type 'a t = 'a Deferred.t
 
-let return = return
+  let return = return
 
-let catch f g =
-  try_with ~extract_exn:true f >>= function
-   | Ok y -> return y
-   | Error exn -> g exn
+  let catch f g =
+    try_with ~extract_exn:true f >>= function
+     | Ok y -> return y
+     | Error exn -> g exn
 
-let fail exn = Error.raise (Error.of_exn exn)
+  let fail exn = Error.raise (Error.of_exn exn)
+
+  module Infix = struct
+    let (>>=) = (>>=)
+    let (>|=) = (>>|)
+    let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
+    let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
+  end
+end
 
 let or_fail = function
  | Ok x -> return x
  | Error (#Caqti_error.t as err) ->
     Error.raise (Error.of_exn (Caqti_error.Exn err))
-
-let (>>=) = (>>=)
-let (>|=) = (>>|)
-let (>>=?) m f = m >>= (function Ok x -> f x | Error _ as r -> return r)
-let (>|=?) m f = m >|= (function Ok x -> Ok (f x) | Error _ as r -> r)
 
 include Caqti_async
 
@@ -53,7 +57,7 @@ module Alcotest_cli =
          | Error exn -> g exn
     end)
 
-module List_result_future = struct
+module List_result_fiber = struct
   let rec iter_s f = function
    | [] -> return (Ok ())
    | x :: xs -> f x >>=? fun () -> iter_s f xs

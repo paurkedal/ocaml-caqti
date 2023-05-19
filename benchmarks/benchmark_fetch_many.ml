@@ -31,30 +31,35 @@ let fetch_many_request =
   |}
 
 module type PLATFORM = sig
-  type +'a future
   type context
+  module Fiber : sig
+    type +'a t
+    module Infix : sig
+      val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+      val (>|=) : 'a t -> ('a -> 'b) -> 'b t
+    end
+  end
   val name : string
-  val run_fiber : (unit -> 'a future) -> 'a
+  val run_fiber : (unit -> 'a Fiber.t) -> 'a
   val run_main : (context -> 'a) -> 'a
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a future
+  val or_fail : ('a, [< Caqti_error.t]) result -> 'a Fiber.t
 
-  module Stream : Caqti_stream_sig.S with type 'a future := 'a future
+  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   type connection = (module CONNECTION)
 
   val connect :
     context -> Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result future
+    (connection, [> Caqti_error.load_or_connect]) result Fiber.t
 end
 
 module Make (P : PLATFORM) = struct
   open P
+  open P.Fiber.Infix
 
   let test' _ = Staged.stage @@ fun (module C : CONNECTION) ->
     run_fiber begin fun () ->

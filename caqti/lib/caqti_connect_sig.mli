@@ -19,7 +19,7 @@
 
 module type S = sig
 
-  type +'a future
+  type +'a fiber
   (** The type of a deferred value of type ['a]. *)
 
   type +'a with_switch
@@ -35,7 +35,7 @@ module type S = sig
   (** A pool implementation for the current concurrency library. *)
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a fiber
      and type ('a, 'e) stream := ('a, 'e) stream
   (** The connection API specialized for the current concurrency library. *)
 
@@ -45,7 +45,7 @@ module type S = sig
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
-    (Uri.t -> (connection, [> Caqti_error.load_or_connect]) result future)
+    (Uri.t -> (connection, [> Caqti_error.load_or_connect]) result fiber)
     with_stdenv with_switch
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
@@ -72,8 +72,8 @@ module type S = sig
     ?tweaks_version: int * int ->
     (Uri.t ->
      (connection ->
-      ('a, [> Caqti_error.load_or_connect] as 'e) result future) ->
-     ('a, 'e) result future)
+      ('a, [> Caqti_error.load_or_connect] as 'e) result fiber) ->
+     ('a, 'e) result fiber)
     with_stdenv
   (** [with_connection uri f] calls {!connect} on [uri]. If {!connect} evaluates
       to [Ok connection], [with_connection] passes the connection to [f]. Once
@@ -88,7 +88,7 @@ module type S = sig
     ?max_idle_size: int ->
     ?max_idle_age: Mtime.Span.t ->
     ?max_use_count: int option ->
-    ?post_connect: (connection -> (unit, 'connect_error) result future) ->
+    ?post_connect: (connection -> (unit, 'connect_error) result fiber) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?tweaks_version: int * int ->
     (Uri.t ->

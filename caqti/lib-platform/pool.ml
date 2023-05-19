@@ -29,7 +29,12 @@ module type ALARM = sig
   type connect_env
 
   type t
-  val schedule : sw: switch -> connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+
+  val schedule :
+    sw: switch ->
+    connect_env: connect_env ->
+    Mtime.t -> (unit -> unit) -> t
+
   val unschedule : t -> unit
 end
 
@@ -45,11 +50,11 @@ module type S = sig
     ?max_idle_age: Mtime.Span.t ->
     ?max_use_count: int option ->
     ?check: ('a -> (bool -> unit) -> unit) ->
-    ?validate: ('a -> bool future) ->
+    ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
     sw: switch ->
     connect_env: connect_env ->
-    (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
+    (unit -> ('a, 'e) result fiber) -> ('a -> unit fiber) ->
     ('a, 'e) t
 end
 
@@ -60,8 +65,10 @@ module Make
      and type switch := System.Switch.t) =
 struct
   open System
+  open System.Fiber.Infix
 
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error e -> return (Error e))
+  let (>>=?) m f =
+    m >>= function Ok x -> f x | Error e -> Fiber.return (Error e)
 
   module Task = struct
     type t = {priority: float; semaphore: Semaphore.t}
@@ -80,10 +87,10 @@ struct
   type ('a, +'e) t = {
     connect_env: connect_env;
     switch: Switch.t;
-    create: unit -> ('a, 'e) result future;
-    free: 'a -> unit future;
+    create: unit -> ('a, 'e) result Fiber.t;
+    free: 'a -> unit Fiber.t;
     check: 'a -> (bool -> unit) -> unit;
-    validate: 'a -> bool future;
+    validate: 'a -> bool Fiber.t;
     log_src: Logs.Src.t;
     max_idle_size: int;
     max_idle_age: Mtime.Span.t option;
@@ -101,7 +108,7 @@ struct
         ?max_idle_age
         ?(max_use_count = None)
         ?(check = fun _ f -> f true)
-        ?(validate = fun _ -> return true)
+        ?(validate = fun _ -> Fiber.return true)
         ?(log_src = default_log_src)
         ~sw
         ~connect_env
@@ -157,7 +164,7 @@ struct
       let entry = Queue.take pool.queue in
       pool.validate entry.resource >>= fun ok ->
       if ok then
-        return (Ok entry)
+        Fiber.return (Ok entry)
       else begin
         Log.warn ~src:pool.log_src (fun f ->
           f "Dropped pooled connection due to invalidation.") >>= fun () ->
@@ -228,12 +235,12 @@ struct
           end;
         schedule pool
       end;
-      return ()
+      Fiber.return ()
     end
 
   let use ?(priority = 0.0) f pool =
     acquire ~priority pool >>=? fun entry ->
-    finally
+    Fiber.finally
       (fun () -> f entry.resource)
       (fun () -> entry.used_count <- entry.used_count + 1; release pool entry)
 
@@ -244,7 +251,7 @@ struct
           Alarm.unschedule alarm;
           pool.alarm <- None
         end;
-      return ()
+      Fiber.return ()
       end
     else
       (match Queue.take_opt pool.queue with

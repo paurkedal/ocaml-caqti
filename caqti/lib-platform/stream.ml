@@ -17,28 +17,31 @@
 
 open Caqti_stream_sig
 
-module type FUTURE = sig
-  type +'a future
+module type FIBER = sig
+  type +'a t
 
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  val return : 'a -> 'a future
+  module Infix : sig
+    val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+    val (>|=) : 'a t -> ('a -> 'b) -> 'b t
+  end
+
+  val return : 'a -> 'a t
 end
 
-module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
-  open X
+module Make(Fiber : FIBER) : S with type 'a fiber := 'a Fiber.t = struct
+  open Fiber.Infix
 
   let (>>=?) res_future f =
     res_future >>= function
     | Ok a -> f a
-    | Error _ as r -> return r
+    | Error _ as r -> Fiber.return r
 
   let (>|=?) res_future f =
     res_future >>= function
-    | Ok a -> return @@ Ok (f a)
-    | Error _ as r -> return r
+    | Ok a -> Fiber.return @@ Ok (f a)
+    | Error _ as r -> Fiber.return r
 
-  type ('a, 'err) t = unit -> ('a, 'err) node future
+  type ('a, 'err) t = unit -> ('a, 'err) node Fiber.t
   and ('a, 'err) node =
     | Nil
     | Error of 'err
@@ -46,20 +49,20 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
 
   let rec fold ~f t state =
     t () >>= function
-    | Nil -> return (Ok state)
-    | Error err -> return (Error err : ('a, 'err) result)
+    | Nil -> Fiber.return (Ok state)
+    | Error err -> Fiber.return (Error err : ('a, 'err) result)
     | Cons (a, t') -> fold ~f t' (f a state)
 
   let rec fold_s ~f t state =
     t () >>= function
-    | Nil -> return (Ok state)
-    | Error err -> return (Error (`Congested err) : ('a, 'err) result)
+    | Nil -> Fiber.return (Ok state)
+    | Error err -> Fiber.return (Error (`Congested err) : ('a, 'err) result)
     | Cons (a, t') -> f a state >>=? fold_s ~f t'
 
   let rec iter_s ~f t =
     t () >>= function
-    | Nil -> return (Ok ())
-    | Error err -> return (Error (`Congested err) : ('a, 'err) result)
+    | Nil -> Fiber.return (Ok ())
+    | Error err -> Fiber.return (Error (`Congested err) : ('a, 'err) result)
     | Cons (a, t') -> f a >>=? fun () -> iter_s ~f t'
 
   let to_rev_list t = fold ~f:List.cons t []
@@ -68,8 +71,8 @@ module Make(X : FUTURE) : S with type 'a future := 'a X.future = struct
 
   let rec of_list l =
     fun () -> match l with
-    | [] -> return Nil
-    | hd::tl -> return (Cons (hd, (of_list tl)))
+    | [] -> Fiber.return Nil
+    | hd::tl -> Fiber.return (Cons (hd, (of_list tl)))
 
   let rec map_result ~f xs () =
     xs () >|= function

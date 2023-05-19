@@ -18,9 +18,11 @@
 module A = Alcotest.V1
 
 module Switch = Caqti_platform.Switch.Make (struct
-  type 'a future = 'a
+  type 'a t = 'a
   let return = Fun.id
-  let (>>=) m f = f m
+  module Infix = struct
+    let (>>=) m f = f m
+  end
   let finally f h = try let y = f () in h (); y with exn -> h (); raise exn
 end)
 

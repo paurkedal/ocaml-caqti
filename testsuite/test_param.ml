@@ -42,12 +42,13 @@ end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
+  open Ground.Fiber.Infix
 
   let nonlin (p0, p1, p2) = 2 * p2 + p2 - 3 * p0 + 5 * p1
 
   let test_nonlin (module Db : CONNECTION) =
     let rec loop n =
-      if n = 0 then return () else
+      if n = 0 then Fiber.return () else
       let p = (Random.int 1000, Random.int 1000, Random.int 1000) in
       (Db.find Q.nonlin1 p >>= or_fail >|= fun y -> assert (y = nonlin p))
         >>= fun () ->

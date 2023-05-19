@@ -19,18 +19,26 @@ include Caqti_eio.System
 include Caqti_eio
 include Caqti_eio_unix
 
-let fail = raise
+module Fiber = struct
+  include Fiber
 
-let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
-let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
+  let fail = raise
+
+  module Infix = struct
+    include Infix
+    let (>>=?) x f = match x with Ok x -> f x | Error _ as r -> r
+    let (>|=?) x f = match x with Ok x -> Ok (f x) | Error _ as r -> r
+  end
+end
+open Fiber.Infix
 
 module Alcotest_cli =
   Testlib.Make_alcotest_cli
     (Alcotest.Unix_platform)
     (Alcotest_engine.Monad.Identity)
 
-module List_result_future = struct
+module List_result_fiber = struct
   let rec iter_s f = function
-   | [] -> return (Ok ())
+   | [] -> Fiber.return (Ok ())
    | x :: xs -> f x >>=? fun () -> iter_s f xs
 end

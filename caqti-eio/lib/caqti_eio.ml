@@ -20,7 +20,7 @@ open Caqti_platform
 module Stream = System.Stream
 module System = System
 
-module Pool = Caqti_platform.Pool.Make (System.Core) (System.Alarm)
+module Pool = Caqti_platform.Pool.Make (System) (System.Alarm)
 
 module Loader = Caqti_platform.Driver_loader.Make (System)
 

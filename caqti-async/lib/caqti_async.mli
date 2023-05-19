@@ -19,11 +19,11 @@
 
 open Async_kernel
 
-module Stream : Caqti_stream_sig.S with type 'a future := 'a Deferred.t
-module Pool : Caqti_pool_sig.S with type 'a future := 'a Deferred.t
+module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Deferred.t
+module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Deferred.t
 
 include Caqti_connect_sig.S
-  with type 'a future := 'a Deferred.t
+  with type 'a fiber := 'a Deferred.t
    and type 'a with_switch := 'a
    and type 'a with_stdenv := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t

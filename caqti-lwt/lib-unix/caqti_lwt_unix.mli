@@ -26,10 +26,10 @@
 module System = System
 (**/**)
 
-module Pool : Caqti_pool_sig.S with type 'a future := 'a Lwt.t
+module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Lwt.t
 
 include Caqti_connect_sig.S
-  with type 'a future := 'a Lwt.t
+  with type 'a fiber := 'a Lwt.t
    and type ('a, 'e) stream := ('a, 'e) Caqti_lwt.Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and module type CONNECTION := Caqti_lwt.CONNECTION

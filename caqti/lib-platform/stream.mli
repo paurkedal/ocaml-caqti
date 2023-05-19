@@ -17,13 +17,17 @@
 
 (** A stream with monadic concurrency and error handling. *)
 
-module type FUTURE = sig
-  type +'a future
+module type FIBER = sig
+  type +'a t
 
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val (>|=) : 'a future -> ('a -> 'b) -> 'b future
-  val return : 'a -> 'a future
+  module Infix : sig
+    val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+    val (>|=) : 'a t -> ('a -> 'b) -> 'b t
+  end
+
+  val return : 'a -> 'a t
 end
 
-module Make (X : FUTURE) : Caqti_stream_sig.S with type 'a future := 'a X.future
+module Make (Fiber : FIBER) :
+  Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
 (** Constructs a stream for the provided concurrency monad. *)

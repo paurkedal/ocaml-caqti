@@ -43,7 +43,7 @@ let mk_test (name, pool) =
   (name, test_cases)
 
 let post_connect conn =
-  List_result_future.iter_s (fun f -> f conn) [
+  List_result_fiber.iter_s (fun f -> f conn) [
     Test_sql.post_connect;
   ]
 

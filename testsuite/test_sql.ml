@@ -177,10 +177,11 @@ end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
+  open Ground.Fiber.Infix
 
   let repeat n f =
     let rec loop i =
-      if i = n then return () else
+      if i = n then Fiber.return () else
       f i >>= fun () -> loop (i + 1) in
     loop 0
 
@@ -208,7 +209,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       if Random.int 50 = 0 then
         Db.deallocate q >>= or_fail
       else
-        return ()
+        Fiber.return ()
     in
 
     (* Non-prepared and prepared with non-linear parameters and quotes. *)
@@ -239,7 +240,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       in
       Db.find req (i + 1, i + 2) >>= or_fail
         >>= fun (i12, i22, (i', s1', si', s2'), i11) ->
-      (if oneshot then return () else Db.deallocate req >>= or_fail)
+      (if oneshot then Fiber.return () else Db.deallocate req >>= or_fail)
         >|= fun () ->
       assert (i12 = i + 12);
       assert (i22 = i + 22);
@@ -255,7 +256,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       maybe_deallocate Q.select_null_etc >>= fun () ->
       Db.find Q.select_null_etc (None, None) >>= or_fail >>= fun (c1, c2) ->
       assert (c1 && c2 = None);
-      return ()
+      Fiber.return ()
     ) >>= fun () ->
 
     (* Prepared: bool *)
@@ -270,7 +271,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let ck_plus_int i j =
       maybe_deallocate Q.select_plus_int >>= fun () ->
       Db.find Q.select_plus_int (i, j) >>= or_fail >>= fun k ->
-      assert (k = (i + j)); return () in
+      assert (k = (i + j)); Fiber.return () in
     repeat 200 (fun _ ->
       let i, j = Random.int (1 lsl 29), Random.int (1 lsl 29) in
       ck_plus_int i j
@@ -292,7 +293,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       maybe_deallocate Q.select_plus_float >>= fun () ->
       Db.find Q.select_plus_float (x, y) >>= or_fail >>= fun z ->
       assert (abs_float (z -. (x +. y)) < 1e-6 *. (x +. y));
-      return () in
+      Fiber.return () in
     repeat 200 (fun _ ->
       let i, j = Random.float 1e8, Random.float 1e8 in
       ck_plus_float i j
@@ -302,7 +303,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let ck_string x y =
       maybe_deallocate Q.select_cat >>= fun () ->
       Db.find Q.select_cat (x, y) >>= or_fail >>= fun s ->
-      assert (s = x ^ y); return () in
+      assert (s = x ^ y); Fiber.return () in
     repeat 200 (fun _ ->
       let x = sprintf "%x" (Random.int (1 lsl 29)) in
       let y = sprintf "%x" (Random.int (1 lsl 29)) in
@@ -313,7 +314,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let ck_octets x =
       maybe_deallocate Q.select_cat >>= fun () ->
       Db.find Q.select_octets_identity x >>= or_fail >>= fun s ->
-      assert (s = x); return () in
+      assert (s = x); Fiber.return () in
     repeat 256 (fun i ->
       let x = sprintf "%c" (Char.chr i) in
       ck_octets x
@@ -332,7 +333,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
                >>= or_fail >>= fun r ->
       assert r;
       let rec test_times = function
-       | [] -> return ()
+       | [] -> Fiber.return ()
        | tf :: tfs ->
           let t =
             (match Ptime.Span.of_float_s tf with
@@ -385,7 +386,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
         >>= or_fail >>= fun () ->
         Db.rollback () >>= or_fail
       else
-        return ()
+        Fiber.return ()
     end >>= fun () ->
     Db.start () >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (2, "two", "two")
@@ -417,11 +418,11 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       assert (i_acc = exp_i);
       assert (s_acc = exp_s);
       assert (o_acc = exp_o);
-      return ()
+      Fiber.return ()
     in
     let check_affected n = function
-     | Ok nrows -> assert (nrows = n); return ()
-     | Error `Unsupported -> return ()
+     | Ok nrows -> assert (nrows = n); Fiber.return ()
+     | Error `Unsupported -> Fiber.return ()
      | Error #Caqti_error.t as err -> or_fail err
     in
 
@@ -480,7 +481,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
             let open Db.Response in
             Stream.to_list @@ to_stream response >>= fun actual ->
             assert (actual = expected);
-            return (Ok ()))
+            Fiber.return (Ok ()))
         Q.select_from_tmp
         ()
     in

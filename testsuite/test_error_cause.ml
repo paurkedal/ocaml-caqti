@@ -30,6 +30,7 @@ let is_indecernible_case expected actual =
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
+  open Ground.Fiber.Infix
 
   let env driver_info = function
    | "engine_innodb" ->
@@ -84,7 +85,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   (* TODO: exclusion *)
 
   let harness (module Db : CONNECTION) =
-    List_result_future.iter_s (fun req -> Db.exec req ()) create_reqs
+    List_result_fiber.iter_s (fun req -> Db.exec req ()) create_reqs
       >>= or_fail
 
   let make_test_case (expected_cause, req) =

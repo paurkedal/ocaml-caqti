@@ -20,12 +20,12 @@
     This module provides connections to the PGX database for Eio applications.
     For other database systems, you will need {!Caqti_eio_unix}. *)
 
-module Stream : Caqti_stream_sig.S with type 'a future := 'a
+module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
 
 (**/**) (* for private use by caqti-eio.unix *)
 module System : sig
   include Caqti_platform.System_sig.S
-    with type 'a future = 'a
+    with type 'a Fiber.t = 'a
      and type Switch.t = Eio.Switch.t
      and type connect_env = Eio.Stdenv.t
      and module Stream = Stream
@@ -33,7 +33,7 @@ end
 (**/**)
 
 module Pool : sig
-  include Caqti_pool_sig.S with type 'a future := 'a
+  include Caqti_pool_sig.S with type 'a fiber := 'a
 
   (**/**)
   val create :
@@ -51,7 +51,7 @@ module Pool : sig
 end
 
 include Caqti_connect_sig.S
-  with type 'a future := 'a
+  with type 'a fiber := 'a
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
    and type 'a with_stdenv := connect_env: Eio.Stdenv.t -> 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t

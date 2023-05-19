@@ -25,11 +25,11 @@
     You can use a connection pool to cache a single DB connection, additional
     connections will not be allocated, since usage is serial. *)
 
-module Stream : Caqti_stream_sig.S with type 'a future := 'a
-module Pool : Caqti_pool_sig.S with type 'a future := 'a
+module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
+module Pool : Caqti_pool_sig.S with type 'a fiber := 'a
 
 include Caqti_connect_sig.S
-  with type 'a future := 'a
+  with type 'a fiber := 'a
    and type 'a with_switch := 'a
    and type 'a with_stdenv := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t

@@ -24,17 +24,17 @@
 
 (* A custom stream implementation instantiated for Lwt.  This is similar to
  * {!Lwt_seq}, except with error handling. *)
-module Stream : Caqti_stream_sig.S with type 'a future := 'a Lwt.t
+module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Lwt.t
 
 (* This should ideally be {!Lwt_switch}, but we need a way to cancel cleanup
  * jobs in order to avoid a memory leaks for long-lived pools. *)
-module Switch : Caqti_platform.Switch.S with type 'a future := 'a Lwt.t
+module Switch : Caqti_platform.Switch.S with type 'a fiber := 'a Lwt.t
 
 (**/**)
 (* For private use by caqti-lwt.unix and caqti-mirage. *)
 module System_core : sig
   include Caqti_platform.System_sig.CORE
-    with type 'a future = 'a Lwt.t
+    with type 'a Fiber.t = 'a Lwt.t
      and module Stream = Stream
      and type Switch.t = Switch.t
      and type connect_env := unit
@@ -42,7 +42,7 @@ end
 (**/**)
 
 module type CONNECTION = Caqti_connection_sig.S
-  with type 'a future := 'a Lwt.t
+  with type 'a fiber := 'a Lwt.t
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
 type connection = (module CONNECTION)

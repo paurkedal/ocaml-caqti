@@ -18,9 +18,9 @@
 (** Concurrent stream signature. *)
 
 module type S = sig
-  type +'a future
+  type +'a fiber
 
-  type ('a, 'err) t = unit -> ('a, 'err) node future
+  type ('a, 'err) t = unit -> ('a, 'err) node fiber
   (** A stream, represented as a lazy chain of {!Cons}-nodes terminating in a
       {!Nil} or an {!Error}. *)
 
@@ -34,16 +34,16 @@ module type S = sig
     f: ('a -> 'state -> 'state) ->
     ('a, 'err) t ->
     'state ->
-    ('state, 'err) result future
+    ('state, 'err) result fiber
   (** [fold ~f stream acc] consumes the remainder elements [e1], ..., [eN] of
       [stream] and returns [Ok (acc |> f e1 |> ... |> f eN)] if no error
       occurred *)
 
   val fold_s :
-    f: ('a -> 'state -> ('state, 'err) result future) ->
+    f: ('a -> 'state -> ('state, 'err) result fiber) ->
     ('a, 'clog) t ->
     'state ->
-    ('state, [> `Congested of 'clog ] as 'err) result future
+    ('state, [> `Congested of 'clog ] as 'err) result fiber
   (** [fold_s ~f stream acc] consumes the remainder of [stream], passing each
       element in order to [f] along with the latest accumulation starting at
       [acc], and returning the final accumulation if successful.  An error
@@ -51,19 +51,19 @@ module type S = sig
       distinguished with the [`Congested] constructor. *)
 
   val iter_s :
-    f: ('a -> (unit, 'err) result future) ->
+    f: ('a -> (unit, 'err) result fiber) ->
     ('a, 'clog) t ->
-    (unit, [> `Congested of 'clog ] as 'err) result future
+    (unit, [> `Congested of 'clog ] as 'err) result fiber
   (** [iter_s ~f stream] consumes the remainder of [stream], passing each
       element in order to [f].  An error result may be due to either the steram
       provider or the callback, as distinguished with the [`Congested]
       constructor. *)
 
-  val to_rev_list : ('a, 'err) t -> ('a list, 'err) result future
+  val to_rev_list : ('a, 'err) t -> ('a list, 'err) result fiber
   (** [to_rev_list stream] consumes the remainder of [stream], returning a list
       of its element in reverse order of production. *)
 
-  val to_list : ('a, 'err) t -> ('a list, 'err) result future
+  val to_list : ('a, 'err) t -> ('a list, 'err) result fiber
   (** [to_list stream] consumes the remainder of [stream], returning a list of
       its element in order of production. *)
 

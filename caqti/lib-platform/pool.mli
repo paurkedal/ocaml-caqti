@@ -25,7 +25,10 @@ module type ALARM = sig
   type t
   (** A handle for cancelling the alarm if supported. *)
 
-  val schedule : sw: switch -> connect_env: connect_env -> Mtime.t -> (unit -> unit) -> t
+  val schedule :
+    sw: switch ->
+    connect_env: connect_env ->
+    Mtime.t -> (unit -> unit) -> t
   (** This schedules the alarm if supported. The caqti-blocking implementation
       does nothing. The pool implementation using it makes additional
       opportunistic calls to the handler. *)
@@ -47,11 +50,11 @@ module type S = sig
     ?max_idle_age: Mtime.Span.t ->
     ?max_use_count: int option ->
     ?check: ('a -> (bool -> unit) -> unit) ->
-    ?validate: ('a -> bool future) ->
+    ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
     sw: switch ->
     connect_env: connect_env ->
-    (unit -> ('a, 'e) result future) -> ('a -> unit future) ->
+    (unit -> ('a, 'e) result fiber) -> ('a -> unit fiber) ->
     ('a, 'e) t
   (** {b Internal:} [create alloc free] is a pool of resources allocated by
       [alloc] and freed by [free]. This is primarily intended for implementing
@@ -79,11 +82,11 @@ module Make
   (Alarm : ALARM
     with type switch := System.Switch.t
      and type connect_env := System.connect_env) :
-  S with type 'a future := 'a System.future
+  S with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env
 
 module Make_without_alarm (System : System_sig.CORE) :
-  S with type 'a future := 'a System.future
+  S with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env

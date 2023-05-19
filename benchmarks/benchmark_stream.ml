@@ -24,18 +24,15 @@ let data = List.init 100_000 begin fun i ->
 end
 
 module Stream_blocking = Caqti_platform.Stream.Make (struct
-  type 'a future = 'a
+  type 'a t = 'a
   let return x = x
-  let (>>=) x f = f x
-  let (>|=) x f = f x
+  module Infix = struct
+    let (>>=) x f = f x
+    let (>|=) x f = f x
+  end
 end)
 
-module Stream_lwt = Caqti_platform.Stream.Make (struct
-  type 'a future = 'a Lwt.t
-  let return = Lwt.return
-  let (>>=) = Lwt.(>>=)
-  let (>|=) = Lwt.(>|=)
-end)
+module Stream_lwt = Caqti_platform.Stream.Make (Lwt)
 
 let rec seq_of_list xs () =
   (match xs with

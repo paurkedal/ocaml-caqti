@@ -21,25 +21,27 @@ module Make_helpers
   (System : System_sig.S) =
 struct
   open System
+  open System.Fiber.Infix
 
   let assert_single_use ~what in_use f =
     if !in_use then
       failwith ("Invalid concurrent usage of " ^ what ^ " detected.");
     in_use := true;
-    cleanup
+    Fiber.cleanup
       (fun () -> f () >|= fun res -> in_use := false; res)
-      (fun () -> in_use := false; return ())
+      (fun () -> in_use := false; Fiber.return ())
 end
 
 module Make_convenience
   (System : System_sig.S)
   (C : Caqti_connection_sig.Base
-        with type 'a future := 'a System.future
+        with type 'a fiber := 'a System.Fiber.t
          and type ('a, 'err) stream := ('a, 'err) System.Stream.t) =
 struct
   open System
+  open System.Fiber.Infix
   module Response = C.Response
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
   let (>|=?) m f = m >|= function Ok r -> Ok (f r) | Error _ as r -> r
 
   let exec q p = C.call ~f:Response.exec q p
@@ -60,12 +62,12 @@ struct
       Response.exec response >>= fun execResult ->
       match execResult with
       | Ok () -> Response.affected_count response
-      | Error x -> return (Error x) in
+      | Error x -> Fiber.return (Error x) in
     C.call ~f q p
 
   let with_transaction f =
     C.start () >>=? fun () ->
-    cleanup
+    Fiber.cleanup
       (fun () ->
         f () >>= (function
          | Ok y -> C.commit () >|=? fun () -> y
@@ -76,11 +78,12 @@ end
 module Make_populate
   (System : System_sig.S)
   (C : Caqti_connection_sig.Base
-        with type 'a future := 'a System.future
+        with type 'a fiber := 'a System.Fiber.t
          and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   open System
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  open System.Fiber.Infix
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
 
   let populate ~table ~columns row_type data =
 
@@ -102,7 +105,7 @@ struct
         C.commit ()
      | Error (`Congested err) ->
         C.rollback () >>=? fun () ->
-        return (Error (`Congested err))
+        Fiber.return (Error (`Congested err))
      | Error err ->
-        return (Error err))
+        Fiber.return (Error err))
 end

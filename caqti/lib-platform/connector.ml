@@ -52,29 +52,30 @@ let retry_with_library load_driver ~uri scheme =
 module Make
   (System : System_sig.S)
   (Pool : Pool.S
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env)
   (Loader : Driver_sig.Loader
-    with type 'a future := 'a System.future
+    with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   open System
+  open System.Fiber.Infix
 
   module type CONNECTION = Caqti_connection_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   type connection = (module CONNECTION)
 
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> return r
+  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
   let (let+?) = (>|=?)
 
   module type DRIVER = Driver_sig.S
-    with type 'a future := 'a future
+    with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
      and type switch := System.Switch.t
      and type connect_env := System.connect_env
@@ -97,7 +98,7 @@ struct
 
   let connect
         ?env ?(tweaks_version = default_tweaks_version) ~sw ~connect_env uri
-      : ((module CONNECTION), _) result future =
+      : ((module CONNECTION), _) result Fiber.t =
     Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
@@ -112,7 +113,7 @@ struct
         end in
         (module Conn' : CONNECTION)
      | Error err ->
-        return (Error err))
+        Fiber.return (Error err))
 
   let with_connection
         ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri f =
@@ -143,11 +144,11 @@ struct
            | None ->
               fun () ->
                 (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
-                    :> (connection, _) result future)
+                    :> (connection, _) result Fiber.t)
            | Some post_connect ->
               fun () ->
                 (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
-                    :> (connection, _) result future)
+                    :> (connection, _) result Fiber.t)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)
         in

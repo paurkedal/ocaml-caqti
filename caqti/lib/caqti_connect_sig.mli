@@ -130,7 +130,7 @@ module type S = sig
         When set, if a resource in the pool has not been used for
         [max_idle_age], it will be removed from the pool at the earliest
         opportunity.  Where possible, a timer will be used to trigger the
-        cleanup.  For {!Caqti_blocking.connect_pool}, the cleanup will only be
+        cleanup.  For the [caqti.blocking] library, the cleanup will only be
         done opportunistically when the pool is used.
 
       @param max_use_count

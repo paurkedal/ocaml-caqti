@@ -17,7 +17,10 @@
 
 (** Prerequisities for connecting to databases using Lwt
 
-    This provides basics for {!Caqti_lwt_unix} and {!Caqti_mirage}. *)
+    This module contains most of the prerequisite types and modules.  Functions
+    to establish database connections are provided by the [caqti-lwt.unix] and
+    [caqti-mirage] libraries.  Pool instances are also found there due to
+    additional OS dependencies. *)
 
 (* A custom stream implementation instantiated for Lwt.  This is similar to
  * {!Lwt_seq}, except with error handling. *)

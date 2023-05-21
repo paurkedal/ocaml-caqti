@@ -18,12 +18,8 @@
 (** Signature for concurrency model and OS-calls.
 
     This is the common part of the signature declarning system dependencies.
-    Driver will usually require an extended signature, as provided by
-
-      - {!Caqti_platform_unix.System_sig.S} for drivers which depend on the unix
-        library
-      - {!Caqti_platform_net.System_sig.S} for drivers which can manage with a
-        network stack implemented in pure OCaml
+    Driver which depend on features from the unix library will also need
+    {!Caqti_platform_unix.System_sig.S}.
   *)
 
 module type SEQUENCER = sig

@@ -37,11 +37,6 @@ minor version and without prior deprecation notices.
 The entry point of this library is the module:
 {!module-Caqti_platform}.
 
-{2 Library caqti.platform.net}
-
-The entry point of this library is the module:
-{!module-Caqti_platform_net}.
-
 {2 Library caqti.platform.unix}
 
 The entry point of this library is the module:

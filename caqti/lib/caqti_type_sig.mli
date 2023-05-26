@@ -61,10 +61,7 @@ module type Std = sig
     'b t -> 'a t
   (** [custom ~encode ~decode rep] creates a custom type represented by [rep],
       where [encode] is used to encode parameters into [rep] and [decode] is
-      used to decode result rows from [rep].
-
-      {b Note.} This should be considered experimental and may be revised or
-      removed in a future version. *)
+      used to decode result rows from [rep]. *)
 
   val redacted : 'a t -> 'a t
   (** [redacted t] is the same type as [t] but sealed as potentially containing

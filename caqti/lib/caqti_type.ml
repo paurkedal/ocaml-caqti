@@ -221,23 +221,23 @@ module Std = struct
   let unit = Unit
   let option t = Option t
 
-  let tup2 t0 t1 = Tup2 (t0, t1)
-  let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
-  let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
+  let t2 t0 t1 = Tup2 (t0, t1)
+  let t3 t0 t1 t2 = Tup3 (t0, t1, t2)
+  let t4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
 
-  let tup5 t0 t1 t2 t3 t4 =
+  let t5 t0 t1 t2 t3 t4 =
     let rep = Tup4 (t0, t1, t2, Tup2 (t3, t4)) in
     let encode (x0, x1, x2, x3, x4) = Ok (x0, x1, x2, (x3, x4)) in
     let decode (x0, x1, x2, (x3, x4)) = Ok (x0, x1, x2, x3, x4) in
     Custom {rep; encode; decode}
 
-  let tup6 t0 t1 t2 t3 t4 t5 =
+  let t6 t0 t1 t2 t3 t4 t5 =
     let rep = Tup4 (t0, t1, t2, Tup3 (t3, t4, t5)) in
     let encode (x0, x1, x2, x3, x4, x5) = Ok (x0, x1, x2, (x3, x4, x5)) in
     let decode (x0, x1, x2, (x3, x4, x5)) = Ok (x0, x1, x2, x3, x4, x5) in
     Custom {rep; encode; decode}
 
-  let tup7 t0 t1 t2 t3 t4 t5 t6 =
+  let t7 t0 t1 t2 t3 t4 t5 t6 =
     let rep = Tup4 (t0, t1, t2, Tup4 (t3, t4, t5, t6)) in
     let encode (x0, x1, x2, x3, x4, x5, x6) =
       Ok (x0, x1, x2, (x3, x4, x5, x6))
@@ -247,7 +247,7 @@ module Std = struct
     in
     Custom {rep; encode; decode}
 
-  let tup8 t0 t1 t2 t3 t4 t5 t6 t7 =
+  let t8 t0 t1 t2 t3 t4 t5 t6 t7 =
     let rep = Tup2 (Tup4 (t0, t1, t2, t3), Tup4 (t4, t5, t6, t7)) in
     let encode (x0, x1, x2, x3, x4, x5, x6, x7) =
       Ok ((x0, x1, x2, x3), (x4, x5, x6, x7))
@@ -273,5 +273,10 @@ module Std = struct
   let pdate = Field Pdate
   let ptime = Field Ptime
   let ptime_span = Field Ptime_span
+
+  (* deprecated *)
+  let tup2 = t2
+  let tup3 = t3
+  let tup4 = t4
 end
 include Std

@@ -35,18 +35,18 @@ module Q = struct
   open Caqti_request.Infix
 
   let select_null_etc =
-    tup2 (option int) (option int) -->! tup2 bool (option int) @:-
+    t2 (option int) (option int) -->! t2 bool (option int) @:-
     "SELECT ? IS NULL, ?"
 
-  let select_and = tup2 bool bool -->! bool @:-
+  let select_and = t2 bool bool -->! bool @:-
     "SELECT ? AND ?"
-  let select_plus_int = tup2 int int -->! int @:-
+  let select_plus_int = t2 int int -->! int @:-
     "SELECT ? + ?"
-  let select_plus_int64 = tup2 int64 int64 -->! int64 @:-
+  let select_plus_int64 = t2 int64 int64 -->! int64 @:-
     "SELECT ? + ?"
-  let select_plus_float = tup2 float float -->! float @:-
+  let select_plus_float = t2 float float -->! float @:-
     "SELECT ? + ?"
-  let select_cat = tup2 string string -->! string @@:- function
+  let select_cat = t2 string string -->! string @@:- function
    | `Mysql -> "SELECT concat(?, ?)"
    | _ -> "SELECT ? || ?"
   let select_octets_identity = octets -->! octets @@:- function
@@ -56,8 +56,8 @@ module Q = struct
    | _ -> failwith "Unimplemented."
 
   let select_compound_option =
-    (tup2 (option int) (option int) -->!
-     tup3 int (option (tup3 (option int) (option int) (option int))) int) @:-
+    (t2 (option int) (option int) -->!
+     t3 int (option (t3 (option int) (option int) (option int))) int) @:-
     "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
 
   let abc = enum ~encode:string_of_abc ~decode:abc_of_string "abc"
@@ -77,12 +77,12 @@ module Q = struct
    | _ -> failwith "Unimplemented."
   let drop_table_test_abc = unit -->. unit @:-
     "DROP TABLE test_abc"
-  let insert_into_test_abc = tup2 abc string -->. unit @:-
+  let insert_into_test_abc = t2 abc string -->. unit @:-
     "INSERT INTO test_abc VALUES (?, ?)"
-  let select_from_test_abc = unit -->* tup2 abc string @:-
+  let select_from_test_abc = unit -->* t2 abc string @:-
     "SELECT * FROM test_abc"
 
-  let select_expanded = unit -->! tup2 int string @@:- function
+  let select_expanded = unit -->! t2 int string @@:- function
    | `Mysql -> "SELECT $(x1), CAST($(x2) AS char)"
    | _ -> "SELECT $(x1), $(x2)"
 
@@ -136,9 +136,9 @@ module Q = struct
    | _ -> failwith "Unimplemented"
   let drop_tmp = unit -->. unit @@:- function
    | _ -> "DROP TABLE test_sql"
-  let insert_into_tmp = tup3 int string octets -->. unit @:-
+  let insert_into_tmp = t3 int string octets -->. unit @:-
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
-  let update_in_tmp_where_i = tup2 octets int -->. unit @:-
+  let update_in_tmp_where_i = t2 octets int -->. unit @:-
     "UPDATE test_sql SET o = ? WHERE i = ?"
   let update_in_tmp = unit -->. unit @:-
     "UPDATE test_sql SET s = 'ZERO'"
@@ -146,13 +146,13 @@ module Q = struct
     "DELETE FROM test_sql WHERE i = ?"
   let delete_from_tmp = unit -->. unit @:-
     "DELETE FROM test_sql"
-  let select_from_tmp = unit -->* tup3 int string octets @:-
+  let select_from_tmp = unit -->* t3 int string octets @:-
     "SELECT i, s, o FROM test_sql ORDER BY i ASC"
   let select_from_tmp_where_i_lt =
-    int -->* tup3 int string octets @:-
+    int -->* t3 int string octets @:-
     "SELECT i, s, o FROM test_sql WHERE i < ?"
   let select_from_tmp_nullable =
-    unit -->* tup3 int (option string) (option octets) @:-
+    unit -->* t3 int (option string) (option octets) @:-
       "SELECT i, s, o FROM test_sql"
   let select_from_tmp_binary = unit -->* octets @:-
     "SELECT data FROM test_sql"
@@ -219,8 +219,8 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let s1 = String.make 1 (Char.chr i) in
       let s2 = String.make i '\'' in
       let req = Caqti_request.create ~oneshot
-        Caqti_type.(tup2 int int)
-        Caqti_type.(tup7 int int int string string string int)
+        Caqti_type.(t2 int int)
+        Caqti_type.(t7 int int int string string string int)
         Caqti_mult.one
         Caqti_query.(fun di ->
           let quote = match Caqti_driver_info.dialect_tag di with
@@ -505,7 +505,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Db.populate
         ~table:"test_sql"
         ~columns:["i"; "s"; "o"]
-        Caqti_type.(tup3 int (option string) (option octets))
+        Caqti_type.(t3 int (option string) (option octets))
         input_stream
       >|= Caqti_error.uncongested >>= or_fail >>= fun () ->
       Db.collect_list Q.select_from_tmp_nullable ()

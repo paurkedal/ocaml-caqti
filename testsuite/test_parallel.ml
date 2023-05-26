@@ -23,7 +23,7 @@ module Q = struct
     "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"
   let drop = unit -->. unit @:-
     "DROP TABLE IF EXISTS test_parallel"
-  let insert = tup2 int int -->. unit @:-
+  let insert = t2 int int -->. unit @:-
     "INSERT INTO test_parallel VALUES (?, ?)"
   let delete = int -->. unit @:-
     "DELETE FROM test_parallel WHERE x = ?"

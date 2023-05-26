@@ -47,7 +47,7 @@ module Q = struct
     let open Bike in
     let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
     let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
-    let rep = Caqti_type.(tup3 string string (option ptime)) in
+    let rep = Caqti_type.(t3 string string (option ptime)) in
     custom ~encode ~decode rep
 
   let create_bikereg =
@@ -61,7 +61,7 @@ module Q = struct
     |eos}
 
   let reg_bike =
-    tup2 string string ->. unit @@
+    t2 string string ->. unit @@
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
   let report_stolen =

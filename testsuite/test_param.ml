@@ -20,11 +20,11 @@ module Q = struct
   open Caqti_type.Std
 
   let nonlin1 =
-    tup3 int int int -->! int @@ fun _ ->
+    t3 int int int -->! int @@ fun _ ->
     S[L"SELECT 2 * "; P 2; L" + "; P 2; L" - 3 * "; P 0; L" + 5 * "; P 1]
 
   let nonlin2 =
-    tup3 int int int -->! int @:-
+    t3 int int int -->! int @:-
     "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
   let env1 =

@@ -46,31 +46,31 @@ module type Std = sig
       in tuples, in which case it will not contribute to the total number of
       fields. *)
 
-  val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
+  val t2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
   (** Creates a pair type. *)
 
-  val tup3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
+  val t3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
   (** Creates a 3-tuple type. *)
 
-  val tup4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
+  val t4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
   (** Creates a 4-tuple type. *)
 
-  val tup5 :
+  val t5 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
   (** Creates a 5-tuple type. This is implemented in terms of lower tuples. *)
 
-  val tup6 :
+  val t6 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
   (** Creates a 6-tuple type. This is implemented in terms of lower tuples. *)
 
-  val tup7 :
+  val t7 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
   (** Creates a 7-tuple type. This is implemented in terms of lower tuples. *)
 
-  val tup8 :
+  val t8 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
   (** Creates a 8-tuple type. This is implemented in terms of lower tuples. *)
@@ -174,4 +174,12 @@ module type Std = sig
       named [name], with cases which are converted with [encode] and [decode]
       functions. This is implemented in terms of the {!Caqti_type.Enum} field
       type. *)
+
+  (**/**)
+  val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
+  [@@deprecated "Renamed to t2."]
+  val tup3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
+  [@@deprecated "Renamed to t3."]
+  val tup4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
+  [@@deprecated "Renamed to t4."]
 end

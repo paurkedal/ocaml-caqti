@@ -14,6 +14,7 @@
     Caqti_request
     Caqti_response_sig
     Caqti_stream_sig
+    Caqti_switch_sig
     Caqti_type
     Caqti_type_sig)
   (modules_without_implementation
@@ -22,6 +23,7 @@
     Caqti_pool_sig
     Caqti_response_sig
     Caqti_stream_sig
+    Caqti_switch_sig
     Caqti_type_sig)
   (library_flags (:standard -linkall))
   (libraries angstrom bigstringaf logs mtime ptime uri))

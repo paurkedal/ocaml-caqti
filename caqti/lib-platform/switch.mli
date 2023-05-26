@@ -25,38 +25,6 @@ module type FIBER = sig
   val finally : (unit -> 'a t) -> (unit -> unit t) -> 'a t
 end
 
-module type S = sig
-  type 'a fiber
-  type t
-  type hook
-
-  exception Off
-
-  val eternal : t
-  (** A switch which is never released. *)
-
-  val create : unit -> t
-  (** Create a fresh releasable switch which is initially on. *)
-
-  val release : t -> unit fiber
-  (** [release sw] calls all cleanup handlers on [sw] in reverse order of
-      registration and marks the switch as being off. *)
-
-  val run : (t -> 'a fiber) -> 'a fiber
-  (** [run f] calls [f] with a fresh switch which will be released upon exit or
-      in case of failure. *)
-
-  val check : t -> unit
-  (** [check sw] raises [Off] if [sw] has been turned off. *)
-
-  val on_release_cancellable : t -> (unit -> unit fiber) -> hook
-  (** [on_release_cancellable sw f] registers [f] to be called upon the evetual
-      release of [sw] unless {!remove_hook} is called on the returned hook
-      before that happen. *)
-
-  val remove_hook : hook -> unit
-  (** Given a [hook] returned by {!on_release_cancellable}, [remove_hook hook]
-      cancels the cleanup registered by that call. *)
-end
+module type S = Caqti_switch_sig.S
 
 module Make (Fiber : FIBER) : S with type 'a fiber := 'a Fiber.t

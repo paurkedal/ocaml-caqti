@@ -28,7 +28,7 @@ module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Lwt.t
 
 (* This should ideally be {!Lwt_switch}, but we need a way to cancel cleanup
  * jobs in order to avoid a memory leaks for long-lived pools. *)
-module Switch : Caqti_platform.Switch.S with type 'a fiber := 'a Lwt.t
+module Switch : Caqti_switch_sig.S with type 'a fiber := 'a Lwt.t
 
 (**/**)
 (* For private use by caqti-lwt.unix and caqti-mirage. *)

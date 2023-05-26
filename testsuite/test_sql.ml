@@ -220,7 +220,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let s2 = String.make i '\'' in
       let req = Caqti_request.create ~oneshot
         Caqti_type.(tup2 int int)
-        Caqti_type.(tup4 int int (tup4 int string string string) int)
+        Caqti_type.(tup7 int int int string string string int)
         Caqti_mult.one
         Caqti_query.(fun di ->
           let quote = match Caqti_driver_info.dialect_tag di with
@@ -239,7 +239,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
           ])
       in
       Db.find req (i + 1, i + 2) >>= or_fail
-        >>= fun (i12, i22, (i', s1', si', s2'), i11) ->
+        >>= fun (i12, i22, i', s1', si', s2', i11) ->
       (if oneshot then Fiber.return () else Db.deallocate req >>= or_fail)
         >|= fun () ->
       assert (i12 = i + 12);

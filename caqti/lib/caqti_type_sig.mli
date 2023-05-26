@@ -46,14 +46,34 @@ module type Std = sig
       in tuples, in which case it will not contribute to the total number of
       fields. *)
 
-  val tup2 : 'a t -> 'b t -> ('a * 'b) t
+  val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
   (** Creates a pair type. *)
 
-  val tup3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
+  val tup3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
   (** Creates a 3-tuple type. *)
 
-  val tup4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
+  val tup4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
   (** Creates a 4-tuple type. *)
+
+  val tup5 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
+  (** Creates a 5-tuple type. This is implemented in terms of lower tuples. *)
+
+  val tup6 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
+  (** Creates a 6-tuple type. This is implemented in terms of lower tuples. *)
+
+  val tup7 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
+  (** Creates a 7-tuple type. This is implemented in terms of lower tuples. *)
+
+  val tup8 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
+  (** Creates a 8-tuple type. This is implemented in terms of lower tuples. *)
 
   val custom :
     encode: ('a -> ('b, string) result) ->

@@ -220,9 +220,43 @@ let field ft = Field ft
 module Std = struct
   let unit = Unit
   let option t = Option t
+
   let tup2 t0 t1 = Tup2 (t0, t1)
   let tup3 t0 t1 t2 = Tup3 (t0, t1, t2)
   let tup4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
+
+  let tup5 t0 t1 t2 t3 t4 =
+    let rep = Tup4 (t0, t1, t2, Tup2 (t3, t4)) in
+    let encode (x0, x1, x2, x3, x4) = Ok (x0, x1, x2, (x3, x4)) in
+    let decode (x0, x1, x2, (x3, x4)) = Ok (x0, x1, x2, x3, x4) in
+    Custom {rep; encode; decode}
+
+  let tup6 t0 t1 t2 t3 t4 t5 =
+    let rep = Tup4 (t0, t1, t2, Tup3 (t3, t4, t5)) in
+    let encode (x0, x1, x2, x3, x4, x5) = Ok (x0, x1, x2, (x3, x4, x5)) in
+    let decode (x0, x1, x2, (x3, x4, x5)) = Ok (x0, x1, x2, x3, x4, x5) in
+    Custom {rep; encode; decode}
+
+  let tup7 t0 t1 t2 t3 t4 t5 t6 =
+    let rep = Tup4 (t0, t1, t2, Tup4 (t3, t4, t5, t6)) in
+    let encode (x0, x1, x2, x3, x4, x5, x6) =
+      Ok (x0, x1, x2, (x3, x4, x5, x6))
+    in
+    let decode (x0, x1, x2, (x3, x4, x5, x6)) =
+      Ok (x0, x1, x2, x3, x4, x5, x6)
+    in
+    Custom {rep; encode; decode}
+
+  let tup8 t0 t1 t2 t3 t4 t5 t6 t7 =
+    let rep = Tup2 (Tup4 (t0, t1, t2, t3), Tup4 (t4, t5, t6, t7)) in
+    let encode (x0, x1, x2, x3, x4, x5, x6, x7) =
+      Ok ((x0, x1, x2, x3), (x4, x5, x6, x7))
+    in
+    let decode ((x0, x1, x2, x3), (x4, x5, x6, x7)) =
+      Ok (x0, x1, x2, x3, x4, x5, x6, x7)
+    in
+    Custom {rep; encode; decode}
+
   let custom ~encode ~decode rep = Custom {rep; encode; decode}
   let redacted t = Annot (`Redacted, t)
   let enum ~encode ~decode name =

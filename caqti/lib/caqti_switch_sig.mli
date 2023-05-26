@@ -26,6 +26,14 @@ module type S = sig
 
   exception Off
 
+  (** {1 Explicit Construction and Release}
+
+      These functions are somewhat unsafe, since they don't enforce lifetime by
+      passing a new switch as an argument to the user.  They are nevertheless
+      useful for applications which haven't been switch to the EIO-style
+      resource handling discipline, esp. when dealing with connection pools.
+      The [caqti-eio] package uses {!Eio.Switch} which lacks these functions. *)
+
   val eternal : t
   (** A switch which is never released. *)
 
@@ -35,6 +43,8 @@ module type S = sig
   val release : t -> unit fiber
   (** [release sw] calls all cleanup handlers on [sw] in reverse order of
       registration and marks the switch as being off. *)
+
+  (** {1 EIO-Compatible Interface} *)
 
   val run : (t -> 'a fiber) -> 'a fiber
   (** [run f] calls [f] with a fresh switch which will be released upon exit or

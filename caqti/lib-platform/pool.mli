@@ -28,7 +28,7 @@ module type ALARM = sig
   val schedule :
     sw: switch ->
     connect_env: connect_env ->
-    Mtime.t -> (unit -> unit) -> t option
+    Mtime.t -> (unit -> unit) -> t
   (** If supported, [schedule ~sw ~connect_env time f] schedules [f] to be run
       at [time] and returns a handle which can be used to {!unschedule} it.  The
       caqti-blocking implementation does nothing. The pool implementation using

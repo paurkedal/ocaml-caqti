@@ -101,52 +101,60 @@ module type CORE = sig
 
 end
 
+module type NET = sig
+  type 'a fiber
+  type switch
+  type connect_env
+
+  module Sockaddr : sig
+    type t
+    val unix : string -> t
+    val tcp : Ipaddr.t * int -> t
+  end
+
+  type in_channel
+  type out_channel
+
+  val getaddrinfo :
+    connect_env: connect_env -> [`host] Domain_name.t -> int ->
+    (Sockaddr.t list, [> `Msg of string]) result fiber
+  (** This should be a specialized version of getaddrinfo, which only returns
+      entries which is expected to work with the corresponding connect on the
+      platform implementing this interface.  In particular:
+
+        - The family can be IPv4 or IPv6, where supported, and this must be
+          encoded in the {!Sockaddr.t}.
+        - The socket type is restricted to STREAM.
+        - The protocol is assumed to be selected automatically from address
+          family, given the socket type restriction.
+
+      All returned values are TCP destinations.  If a distinction can be made,
+      an empty list indicates that the address has no DNS entries, while an
+      error return indicates that an appropriate DNS server could not be
+      queried. *)
+
+  val connect :
+    sw: switch -> connect_env: connect_env -> Sockaddr.t ->
+    (in_channel * out_channel, [> `Msg of string]) result fiber
+
+  (* TODO: STARTTLS *)
+
+  (* These are currently only used by PGX.  Despite the flush, it PGX is doing
+   * it's own buffering, so unbuffered should be okay.  output_char and
+   * input_char are only used for the packet header. *)
+  val output_char : out_channel -> char -> unit fiber
+  val output_string : out_channel -> string -> unit fiber
+  val flush : out_channel -> unit fiber
+  val input_char : in_channel -> char fiber
+  val really_input : in_channel -> Bytes.t -> int -> int -> unit fiber
+  val close_in : in_channel -> unit fiber
+end
+
 module type S = sig
   include CORE
 
-  module Net : sig
-
-    module Sockaddr : sig
-      type t
-      val unix : string -> t
-      val tcp : Ipaddr.t * int -> t
-    end
-
-    type in_channel
-    type out_channel
-
-    val getaddrinfo :
-      connect_env: connect_env -> [`host] Domain_name.t -> int ->
-      (Sockaddr.t list, [> `Msg of string]) result Fiber.t
-    (** This should be a specialized version of getaddrinfo, which only returns
-        entries which is expected to work with the corresponding connect on the
-        platform implementing this interface.  In particular:
-
-          - The family can be IPv4 or IPv6, where supported, and this must be
-            encoded in the {!Sockaddr.t}.
-          - The socket type is restricted to STREAM.
-          - The protocol is assumed to be selected automatically from address
-            family, given the socket type restriction.
-
-        All returned values are TCP destinations.  If a distinction can be made,
-        an empty list indicates that the address has no DNS entries, while an
-        error return indicates that an appropriate DNS server could not be
-        queried. *)
-
-    val connect :
-      sw: Switch.t -> connect_env: connect_env -> Sockaddr.t ->
-      (in_channel * out_channel, [> `Msg of string]) result Fiber.t
-
-    (* TODO: STARTTLS *)
-
-    (* These are currently only used by PGX.  Despite the flush, it PGX is doing
-     * it's own buffering, so unbuffered should be okay.  output_char and
-     * input_char are only used for the packet header. *)
-    val output_char : out_channel -> char -> unit Fiber.t
-    val output_string : out_channel -> string -> unit Fiber.t
-    val flush : out_channel -> unit Fiber.t
-    val input_char : in_channel -> char Fiber.t
-    val really_input : in_channel -> Bytes.t -> int -> int -> unit Fiber.t
-    val close_in : in_channel -> unit Fiber.t
-  end
+  module Net : NET
+    with type 'a fiber := 'a Fiber.t
+     and type switch := Switch.t
+     and type connect_env := connect_env
 end

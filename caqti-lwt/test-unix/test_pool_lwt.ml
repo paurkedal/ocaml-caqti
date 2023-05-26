@@ -144,7 +144,13 @@ let test_age _ () =
       |> Lwt.join
   in
   Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
-  let+ () = Lwt_unix.sleep 0.2 in
+  let+ () =
+    let rec wait_while_draining timeout =
+      if Pool.size pool = 0 then Lwt.return_unit else
+      Lwt_unix.sleep 0.1 >>= fun () -> wait_while_draining (timeout -. 0.1)
+    in
+    wait_while_draining 5.0
+  in
   Alcotest.(check int) "pool size after sleep" 0 (Pool.size pool)
 
 let test_cases = [

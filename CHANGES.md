@@ -19,6 +19,8 @@ New features:
   - A new pool connection parameter `?max_idle_age` provides removal
     resources from pools which have been unused for the given period.
 
+  - Printf-style function `Caqti_query.qprintf` for dynamic queries
+
 Breaking changes:
 
   - The minimal OCaml requirement is now 4.08.0.

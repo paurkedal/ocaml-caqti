@@ -107,6 +107,7 @@ let test_parse_special_cases () =
     (* Allowed by angstrom_parser_with_semicolon but not by angstrom_parser: *)
     {|a;b|};
   ];
+  check_expect (S[L"SELECT "; P 0; L"::smallint"]) {|SELECT ?::smallint|};
   check_expect (S[L"$$ "; E"x"; L" $$"]) "$$ $(x) $$";
   check_expect (S[L"$Q$ $(x) $Q$"]) "$Q$ $(x) $Q$";
   check_expect (S[P 0; L" $$ ? $$ "; P 1; L" "; P 2]) "? $$ ? $$ ? ?"

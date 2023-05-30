@@ -212,8 +212,12 @@ module Angstrom_parsers = struct
         ]
      | '?' ->
         let valid_lookahead = peek_char >>= function
+         | Some ':' ->
+            (peek_string 2 >>= function
+             | "::" -> return ()
+             | _ -> fail "':' is not allowed after parameter reference '?'")
          | Some ('A'..'Z' | 'a'..'z' | '0'..'9' | '_'
-               | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.' | ':'
+               | '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '.'
                | '<' | '=' | '>' | '?' | '@' | '^' | '`' | '|' | '~' as c) ->
             failf "%C is not allowed after parameter reference '?'" c
          | None | Some _ ->

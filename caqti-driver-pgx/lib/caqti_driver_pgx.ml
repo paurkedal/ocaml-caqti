@@ -531,12 +531,16 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
          | Unit -> fun acc -> Fiber.return (Ok acc)
          | Field ft -> fun acc -> field_type_oid ft >|=? fun ft -> ft :: acc
          | Option t -> loop t
-         | Tup2 (t1, t2) ->
-            fun acc -> acc |> loop t2 >>=? loop t1
-         | Tup3 (t1, t2, t3) ->
-            fun acc -> acc |> loop t3 >>=? loop t2 >>=? loop t1
-         | Tup4 (t1, t2, t3, t4) ->
-            fun acc -> acc |> loop t4 >>=? loop t3 >>=? loop t2 >>=? loop t1
+         | Product (_, prod) ->
+            let rec loop_prod : type i. (a, i) Caqti_type.product -> _ =
+              (function
+               | [] -> fun acc -> Fiber.return (Ok acc)
+               | (t, _) :: prod ->
+                  let loop_t = loop t in
+                  let loop_prod = loop_prod prod in
+                  fun acc -> loop_prod acc >>=? loop_t)
+            in
+            loop_prod prod
          | Custom {rep; _} -> loop rep
          | Annot (_, t) -> loop t)
       in

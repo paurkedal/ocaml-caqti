@@ -108,15 +108,16 @@ type _ t =
   | Unit : unit t
   | Field : 'a field -> 'a t
   | Option : 'a t -> 'a option t
-  | Tup2 : 'a0 t * 'a1 t -> ('a0 * 'a1) t
-  | Tup3 : 'a0 t * 'a1 t * 'a2 t -> ('a0 * 'a1 * 'a2) t
-  | Tup4 : 'a0 t * 'a1 t * 'a2 t * 'a3 t -> ('a0 * 'a1 * 'a2 * 'a3) t
+  | Product : 'i * ('a, 'i) product -> 'a t
   | Custom : {
       rep: 'b t;
       encode: 'a -> ('b, string) result;
       decode: 'b -> ('a, string) result;
     } -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
+and (_, _) product =
+  | [] : ('a, 'a) product
+  | (::) : ('b t * ('a -> 'b)) * ('a, 'i) product -> ('a, 'b -> 'i) product
 
 type any = Any : 'a t -> any
 
@@ -124,9 +125,12 @@ let rec length : type a. a t -> int = function
  | Unit -> 0
  | Field _ -> 1
  | Option t -> length t
- | Tup2 (t0, t1) -> length t0 + length t1
- | Tup3 (t0, t1, t2) -> length t0 + length t1 + length t2
- | Tup4 (t0, t1, t2, t3) -> length t0 + length t1 + length t2 + length t3
+ | Product (_, prod) ->
+    let rec loop : type a i. (a, i) product -> _ -> _ = function
+     | [] -> Fun.id
+     | (t, _) :: prod -> fun n -> loop prod (n + length t)
+    in
+    loop prod 0
  | Custom {rep; _} -> length rep
  | Annot (_, t) -> length t
 
@@ -135,29 +139,15 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
  | Unit -> Format.pp_print_string ppf "unit"
  | Field ft -> Format.pp_print_string ppf (Field.to_string ft)
  | Option t -> pp_at 1 ppf t; Format.pp_print_string ppf " option"
- | Tup2 (t0, t1) ->
+ | Product (_, prod) ->
     if prec > 0 then Format.pp_print_char ppf '(';
-    pp_at 1 ppf t0;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t1;
-    if prec > 0 then Format.pp_print_char ppf ')'
- | Tup3 (t0, t1, t2) ->
-    if prec > 0 then Format.pp_print_char ppf '(';
-    pp_at 1 ppf t0;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t1;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t2;
-    if prec > 0 then Format.pp_print_char ppf ')'
- | Tup4 (t0, t1, t2, t3) ->
-    if prec > 0 then Format.pp_print_char ppf '(';
-    pp_at 1 ppf t0;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t1;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t2;
-    Format.pp_print_string ppf " × ";
-    pp_at 1 ppf t3;
+    let rec loop : type a i. int -> (a, i) product -> _ = fun i -> function
+     | [] -> ()
+     | (t, _) :: prod ->
+        if i > 0 then Format.pp_print_string ppf " × ";
+        pp_at 1 ppf t; loop (i + 1) prod
+    in
+    loop 0 prod;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Custom {rep; _} ->
     Format.pp_print_string ppf "</";
@@ -177,30 +167,15 @@ let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
  | Option t, Some x ->
     Format.pp_print_string ppf "Some ";
     pp_value ppf (t, x)
- | Tup2 (t1, t2), (x1, x2) ->
-    Format.pp_print_char ppf '(';
-    pp_value ppf (t1, x1);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t2, x2);
-    Format.pp_print_char ppf ')'
- | Tup3 (t1, t2, t3), (x1, x2, x3) ->
-    Format.pp_print_char ppf '(';
-    pp_value ppf (t1, x1);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t2, x2);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t3, x3);
-    Format.pp_print_char ppf ')'
- | Tup4 (t1, t2, t3, t4), (x1, x2, x3, x4) ->
-    Format.pp_print_char ppf '(';
-    pp_value ppf (t1, x1);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t2, x2);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t3, x3);
-    Format.pp_print_string ppf ", ";
-    pp_value ppf (t4, x4);
-    Format.pp_print_char ppf ')'
+ | Product (_, prod), x ->
+    let rec loop : type i. int -> (a, i) product -> _ = fun i -> function
+     | [] -> ()
+     | (t, p) :: prod ->
+        if i > 0 then Format.pp_print_string ppf ", ";
+        pp_value ppf (t, p x);
+        loop (i + 1) prod
+    in
+    loop 0 prod
  | Custom {rep; encode; _}, x ->
     (match encode x with
      | Ok y -> pp_value ppf (rep, y)
@@ -221,41 +196,75 @@ module Std = struct
   let unit = Unit
   let option t = Option t
 
-  let t2 t0 t1 = Tup2 (t0, t1)
-  let t3 t0 t1 t2 = Tup3 (t0, t1, t2)
-  let t4 t0 t1 t2 t3 = Tup4 (t0, t1, t2, t3)
+  let t2 t1 t2 =
+    let intro x1 x2 = (x1, x2) in
+    Product (intro, [
+      t1, fst;
+      t2, snd;
+    ])
 
-  let t5 t0 t1 t2 t3 t4 =
-    let rep = Tup4 (t0, t1, t2, Tup2 (t3, t4)) in
-    let encode (x0, x1, x2, x3, x4) = Ok (x0, x1, x2, (x3, x4)) in
-    let decode (x0, x1, x2, (x3, x4)) = Ok (x0, x1, x2, x3, x4) in
-    Custom {rep; encode; decode}
+  let t3 t1 t2 t3 =
+    let intro x1 x2 x3 = (x1, x2, x3) in
+    Product (intro, [
+      t1, (fun (x, _, _) -> x);
+      t2, (fun (_, x, _) -> x);
+      t3, (fun (_, _, x) -> x);
+    ])
 
-  let t6 t0 t1 t2 t3 t4 t5 =
-    let rep = Tup4 (t0, t1, t2, Tup3 (t3, t4, t5)) in
-    let encode (x0, x1, x2, x3, x4, x5) = Ok (x0, x1, x2, (x3, x4, x5)) in
-    let decode (x0, x1, x2, (x3, x4, x5)) = Ok (x0, x1, x2, x3, x4, x5) in
-    Custom {rep; encode; decode}
+  let t4 t1 t2 t3 t4 =
+    let intro x1 x2 x3 x4 = (x1, x2, x3, x4) in
+    Product (intro, [
+      t1, (fun (x, _, _, _) -> x);
+      t2, (fun (_, x, _, _) -> x);
+      t3, (fun (_, _, x, _) -> x);
+      t4, (fun (_, _, _, x) -> x);
+    ])
 
-  let t7 t0 t1 t2 t3 t4 t5 t6 =
-    let rep = Tup4 (t0, t1, t2, Tup4 (t3, t4, t5, t6)) in
-    let encode (x0, x1, x2, x3, x4, x5, x6) =
-      Ok (x0, x1, x2, (x3, x4, x5, x6))
-    in
-    let decode (x0, x1, x2, (x3, x4, x5, x6)) =
-      Ok (x0, x1, x2, x3, x4, x5, x6)
-    in
-    Custom {rep; encode; decode}
+  let t5 t1 t2 t3 t4 t5 =
+    let intro x1 x2 x3 x4 x5 = (x1, x2, x3, x4, x5) in
+    Product (intro, [
+      t1, (fun (x, _, _, _, _) -> x);
+      t2, (fun (_, x, _, _, _) -> x);
+      t3, (fun (_, _, x, _, _) -> x);
+      t4, (fun (_, _, _, x, _) -> x);
+      t5, (fun (_, _, _, _, x) -> x);
+    ])
 
-  let t8 t0 t1 t2 t3 t4 t5 t6 t7 =
-    let rep = Tup2 (Tup4 (t0, t1, t2, t3), Tup4 (t4, t5, t6, t7)) in
-    let encode (x0, x1, x2, x3, x4, x5, x6, x7) =
-      Ok ((x0, x1, x2, x3), (x4, x5, x6, x7))
-    in
-    let decode ((x0, x1, x2, x3), (x4, x5, x6, x7)) =
-      Ok (x0, x1, x2, x3, x4, x5, x6, x7)
-    in
-    Custom {rep; encode; decode}
+  let t6 t1 t2 t3 t4 t5 t6 =
+    let intro x1 x2 x3 x4 x5 x6 = (x1, x2, x3, x4, x5, x6) in
+    Product (intro, [
+      t1, (fun (x, _, _, _, _, _) -> x);
+      t2, (fun (_, x, _, _, _, _) -> x);
+      t3, (fun (_, _, x, _, _, _) -> x);
+      t4, (fun (_, _, _, x, _, _) -> x);
+      t5, (fun (_, _, _, _, x, _) -> x);
+      t6, (fun (_, _, _, _, _, x) -> x);
+    ])
+
+  let t7 t1 t2 t3 t4 t5 t6 t7 =
+    let intro x1 x2 x3 x4 x5 x6 x7 = (x1, x2, x3, x4, x5, x6, x7) in
+    Product (intro, [
+      t1, (fun (x, _, _, _, _, _, _) -> x);
+      t2, (fun (_, x, _, _, _, _, _) -> x);
+      t3, (fun (_, _, x, _, _, _, _) -> x);
+      t4, (fun (_, _, _, x, _, _, _) -> x);
+      t5, (fun (_, _, _, _, x, _, _) -> x);
+      t6, (fun (_, _, _, _, _, x, _) -> x);
+      t7, (fun (_, _, _, _, _, _, x) -> x);
+    ])
+
+  let t8 t1 t2 t3 t4 t5 t6 t7 t8 =
+    let intro x1 x2 x3 x4 x5 x6 x7 x8 = (x1, x2, x3, x4, x5, x6, x7, x8) in
+    Product (intro, [
+      t1, (fun (x, _, _, _, _, _, _, _) -> x);
+      t2, (fun (_, x, _, _, _, _, _, _) -> x);
+      t3, (fun (_, _, x, _, _, _, _, _) -> x);
+      t4, (fun (_, _, _, x, _, _, _, _) -> x);
+      t5, (fun (_, _, _, _, x, _, _, _) -> x);
+      t6, (fun (_, _, _, _, _, x, _, _) -> x);
+      t7, (fun (_, _, _, _, _, _, x, _) -> x);
+      t8, (fun (_, _, _, _, _, _, _, x) -> x);
+    ])
 
   let custom ~encode ~decode rep = Custom {rep; encode; decode}
   let redacted t = Annot (`Redacted, t)

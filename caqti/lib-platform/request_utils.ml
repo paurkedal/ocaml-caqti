@@ -83,18 +83,12 @@ let rec encode_null_param
    | Unit -> fun acc -> Ok acc
    | Field ft -> f.write_null ~uri ft
    | Option t -> encode_null_param ~uri f t
-   | Tup2 (t1, t2) ->
-          encode_null_param ~uri f t1
-      %>? encode_null_param ~uri f t2
-   | Tup3 (t1, t2, t3) ->
-          encode_null_param ~uri f t1
-      %>? encode_null_param ~uri f t2
-      %>? encode_null_param ~uri f t3
-   | Tup4 (t1, t2, t3, t4) ->
-          encode_null_param ~uri f t1
-      %>? encode_null_param ~uri f t2
-      %>? encode_null_param ~uri f t3
-      %>? encode_null_param ~uri f t4
+   | Product (_, ts) ->
+      let rec loop : type a i. (a, i) product -> _ = function
+       | [] -> Result.ok
+       | (t, _) :: ts -> encode_null_param ~uri f t %>? loop ts
+      in
+      loop ts
    | Custom {rep; _} -> encode_null_param ~uri f rep
    | Annot (_, t) -> encode_null_param ~uri f t)
 
@@ -109,18 +103,15 @@ let rec encode_param
       (function
        | None -> encode_null_param ~uri f t
        | Some x -> encode_param ~uri f t x)
-   | Tup2 (t1, t2) -> fun (x1, x2) ->
-          encode_param ~uri f t1 x1
-      %>? encode_param ~uri f t2 x2
-   | Tup3 (t1, t2, t3) -> fun (x1, x2, x3) ->
-          encode_param ~uri f t1 x1
-      %>? encode_param ~uri f t2 x2
-      %>? encode_param ~uri f t3 x3
-   | Tup4 (t1, t2, t3, t4) -> fun (x1, x2, x3, x4) ->
-          encode_param ~uri f t1 x1
-      %>? encode_param ~uri f t2 x2
-      %>? encode_param ~uri f t3 x3
-      %>? encode_param ~uri f t4 x4
+   | Product (_, ts) ->
+      let rec loop : type i. (a, i) product -> _ = function
+       | [] -> fun _ -> Result.ok
+       | (t, p) :: ts ->
+          let encode_t = encode_param ~uri f t in
+          let encode_ts = loop ts in
+          fun x acc -> encode_t (p x) acc |>? encode_ts x
+      in
+      loop ts
    | Custom {rep; encode; _} as t -> fun x acc ->
       (match encode x with
        | Ok y -> encode_param ~uri f rep y acc
@@ -151,14 +142,14 @@ let rec decode_row
         (match f.skip_null (Caqti_type.length t) acc with
          | Some acc -> Ok (None, acc)
          | None -> decode_t acc |> Result.map (fun (x, acc) -> (Some x, acc)))
-   | Tup2 (t1, t2) ->
+   | Product (intro, [t1, _; t2, _]) -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       fun acc ->
         decode_t1 acc |>? fun (x1, acc) ->
         decode_t2 acc |>? fun (x2, acc) ->
-        Ok ((x1, x2), acc)
-   | Tup3 (t1, t2, t3) ->
+        Ok (intro x1 x2, acc)
+   | Product (intro, [t1, _; t2, _; t3, _]) -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -166,8 +157,8 @@ let rec decode_row
         decode_t1 acc |>? fun (x1, acc) ->
         decode_t2 acc |>? fun (x2, acc) ->
         decode_t3 acc |>? fun (x3, acc) ->
-        Ok ((x1, x2, x3), acc)
-   | Tup4 (t1, t2, t3, t4) ->
+        Ok (intro x1 x2 x3, acc)
+   | Product (intro, [t1, _; t2, _; t3, _; t4, _]) -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -177,7 +168,20 @@ let rec decode_row
         decode_t2 acc |>? fun (x2, acc) ->
         decode_t3 acc |>? fun (x3, acc) ->
         decode_t4 acc |>? fun (x4, acc) ->
-        Ok ((x1, x2, x3, x4), acc)
+        Ok (intro x1 x2 x3 x4, acc)
+   | Product (intro, ts) ->
+      let rec loop : type a i. (a, i) product -> i -> _ -> (a * _, _) result =
+        (function
+         | [] ->
+            fun intro acc -> Ok (intro, acc)
+         | (t, _) :: ts ->
+            let decode_t = decode_row ~uri f t in
+            let decode_ts = loop ts in
+            fun intro acc ->
+              decode_t acc |>? fun (x, acc) ->
+              decode_ts (intro x) acc)
+      in
+      loop ts intro
    | Custom {rep; decode; _} as typ ->
       let decode_rep = decode_row ~uri f rep in
       fun acc ->

@@ -74,15 +74,16 @@ type _ t = private
   | Unit : unit t
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
-  | Tup2 : 'a t * 'b t -> ('a * 'b) t
-  | Tup3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
-  | Tup4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
+  | Product : 'i * ('a, 'i) product -> 'a t
   | Custom : {
       rep: 'b t;
       encode: 'a -> ('b, string) result;
       decode: 'b -> ('a, string) result;
     } -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
+and (_, _) product =
+  | [] : ('a, 'a) product
+  | (::) : ('b t * ('a -> 'b)) * ('a, 'i) product -> ('a, 'b -> 'i) product
 
 (** {!t} with existentially wrapped static type. *)
 type any = Any : 'a t -> any

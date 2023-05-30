@@ -210,14 +210,12 @@ let init_param_types ~uri ~type_oid_cache =
       Ok (i + 1)
    | Caqti_type.Option t ->
       recurse pt bp t
-   | Caqti_type.Tup2 (t0, t1) ->
-      recurse pt bp t0 %>? recurse pt bp t1
-   | Caqti_type.Tup3 (t0, t1, t2) ->
-      recurse pt bp t0 %>? recurse pt bp t1 %>?
-      recurse pt bp t2
-   | Caqti_type.Tup4 (t0, t1, t2, t3) ->
-      recurse pt bp t0 %>? recurse pt bp t1 %>?
-      recurse pt bp t2 %>? recurse pt bp t3
+   | Caqti_type.Product (_, prod) ->
+      let rec loop : type i. (a, i) Caqti_type.product -> _ = function
+       | [] -> Result.ok
+       | (t, _) :: prod -> recurse pt bp t %>? loop prod
+      in
+      loop prod
    | Caqti_type.Custom {rep; _} ->
       recurse pt bp rep
    | Caqti_type.Annot (_, t0) ->
@@ -849,18 +847,12 @@ struct
             Fiber.return r)
      | Caqti_type.Field _ -> Fiber.return (Ok ())
      | Caqti_type.Option t -> fetch_type_oids t
-     | Caqti_type.Tup2 (t1, t2) ->
-        fetch_type_oids t1 >>=? fun () ->
-        fetch_type_oids t2
-     | Caqti_type.Tup3 (t1, t2, t3) ->
-        fetch_type_oids t1 >>=? fun () ->
-        fetch_type_oids t2 >>=? fun () ->
-        fetch_type_oids t3
-     | Caqti_type.Tup4 (t1, t2, t3, t4) ->
-        fetch_type_oids t1 >>=? fun () ->
-        fetch_type_oids t2 >>=? fun () ->
-        fetch_type_oids t3 >>=? fun () ->
-        fetch_type_oids t4
+     | Caqti_type.Product (_, prod) ->
+        let rec loop : type i. (a, i) Caqti_type.product -> _ = function
+         | [] -> Fiber.return (Ok ())
+         | (t, _) :: prod -> fetch_type_oids t >>=? fun () -> loop prod
+        in
+        loop prod
      | Caqti_type.Custom {rep; _} -> fetch_type_oids rep
      | Caqti_type.Annot (_, t0) -> fetch_type_oids t0
 

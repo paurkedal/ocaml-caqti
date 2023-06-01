@@ -165,9 +165,23 @@ let test_expand () =
   A.(check query) "same" q1' (Caqti_query.expand env2 q1);
   A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)
 
+let test_qprintf () =
+  let open Caqti_query in
+  let check_expect q1 q2 =
+    A.(check query "same" (normal q1) (normal q2))
+  in
+  check_expect
+    (S [L"SELECT "; P 0; L" WHERE "; Q"quote"; L" = "; E"env"])
+    (qprintf {|%a %a WHERE %a = %a|} query (L"SELECT") param 0 quote "quote" env "env");
+  check_expect
+    (S [L"WHERE "; E"tbl4"; L".name = "; Q"John Wayne"])
+    (qprintf {|WHERE @{<E>tbl%d@}.name = @{<Q>%s Wayne@}|} 4 "John")
+
+
 let test_cases = [
   A.test_case "show, hash" `Quick test_show_and_hash;
   A.test_case "parse special cases" `Quick test_parse_special_cases;
   A.test_case "parse random strings" `Quick test_parse_random_strings;
   A.test_case "expand" `Quick test_expand;
+  A.test_case "qprintf" `Quick test_qprintf;
 ]

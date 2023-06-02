@@ -20,6 +20,7 @@ New features:
     resources from pools which have been unused for the given period.
 
   - Printf-style function `Caqti_query.qprintf` for dynamic queries
+    (GPR#103, Basile Clément).
 
 Breaking changes:
 

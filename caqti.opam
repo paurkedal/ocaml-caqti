@@ -4,6 +4,7 @@ maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
 authors: [
   "Petter A. Urkedal <paurkedal@gmail.com>"
   "Nathan Rebours <nathan@cryptosense.com>"
+  "Basile Clément"
 ]
 license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
 homepage: "https://github.com/paurkedal/ocaml-caqti/"

@@ -112,8 +112,10 @@ module Alarm = struct
 
   let schedule ~sw:_ ~connect_env:() t f =
     let t_now = Mtime_clock.now () in
-    if Mtime.is_later t ~than:t_now then f () else
-    let dt_ns = Mtime.Span.to_uint64_ns (Mtime.span t t_now) in
+    let dt_ns =
+      if Mtime.is_later t ~than:t_now then 0L else
+      Mtime.Span.to_uint64_ns (Mtime.span t t_now)
+    in
     (match Int63.of_int64 dt_ns with
      | None -> failwith "Arithmetic overflow while computing scheduling time."
      | Some dt_ns -> Clock_ns.run_after (Time_ns.Span.of_int63_ns dt_ns) f ())

@@ -31,8 +31,10 @@ module type ALARM = sig
     Mtime.t -> (unit -> unit) -> t
   (** If supported, [schedule ~sw ~connect_env time f] schedules [f] to be run
       at [time] and returns a handle which can be used to {!unschedule} it.  The
-      caqti-blocking implementation does nothing. The pool implementation using
-      it makes additional opportunistic calls to the handler. *)
+      caqti-blocking implementation does nothing.  The pool implementation using
+      it makes additional opportunistic calls to the handler.  This function
+      must insert a yield before running the function even if the delay is
+      non-positive. *)
 
   val unschedule : t -> unit
   (** Cancels the alarm if supported. This is only used for early clean-up, so

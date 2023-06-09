@@ -29,17 +29,14 @@ module Alarm = struct
 
   let schedule ~sw:_ ~connect_env:() t f =
     let t_now = Mtime_clock.now () in
-    if Mtime.is_later t ~than:t_now then
-      begin
-        f ();
-        {cancel = Fun.id}
-      end
-    else
-      let task =
+    let delay =
+      if Mtime.is_later t ~than:t_now then
+        Lwt.pause ()
+      else
         Lwt_unix.sleep (Mtime.Span.to_float_ns (Mtime.span t t_now) *. 1e-9)
-          >|= f
-      in
-      {cancel = (fun () -> Lwt.cancel task)}
+    in
+    let task = delay >|= f in
+    {cancel = (fun () -> Lwt.cancel task)}
 
   let unschedule alarm = alarm.cancel ()
 end

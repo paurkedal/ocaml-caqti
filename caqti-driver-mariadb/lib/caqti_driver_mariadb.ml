@@ -176,63 +176,61 @@ struct
     end
 
     let rec encode_field
-        : type a. uri: Uri.t ->
-          a Caqti_type.Field.t -> a -> (Mdb.Field.value, _) result =
+        : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Mdb.Field.value =
       fun ~uri field_type x ->
       (match field_type with
-       | Caqti_type.Bool -> Ok (`Int (if x then 1 else 0))
-       | Caqti_type.Int -> Ok (`Int x)
-       | Caqti_type.Int16 -> Ok (`Int x)
-       | Caqti_type.Int32 -> Ok (`Int (Int32.to_int x))
-       | Caqti_type.Int64 -> Ok (`Int (Int64.to_int x))
-       | Caqti_type.Float -> Ok (`Float x)
-       | Caqti_type.String -> Ok (`String x)
-       | Caqti_type.Enum _ -> Ok (`String x)
-       | Caqti_type.Octets -> Ok (`Bytes (Bytes.of_string x))
+       | Caqti_type.Bool -> `Int (if x then 1 else 0)
+       | Caqti_type.Int -> `Int x
+       | Caqti_type.Int16 -> `Int x
+       | Caqti_type.Int32 -> `Int (Int32.to_int x)
+       | Caqti_type.Int64 -> `Int (Int64.to_int x)
+       | Caqti_type.Float -> `Float x
+       | Caqti_type.String -> `String x
+       | Caqti_type.Enum _ -> `String x
+       | Caqti_type.Octets -> `Bytes (Bytes.of_string x)
        | Caqti_type.Pdate ->
           let year, month, day = Ptime.to_date x in
-          Ok (`Time (Mdb.Time.date ~year ~month ~day ()))
+          `Time (Mdb.Time.date ~year ~month ~day ())
        | Caqti_type.Ptime ->
           let (year, month, day), ((hour, minute, second), _) =
             Ptime.to_date_time ~tz_offset_s:0 x in
           let ps = snd (Ptime.Span.to_d_ps (Ptime.to_span x)) in
           let tss = Int64.rem ps 1_000_000_000_000L in
           let microsecond = Int64.to_int (Int64.div tss 1_000_000L) in
-          Ok (`Time (Mdb.Time.datetime ~year ~month ~day
-                                       ~hour ~minute ~second ~microsecond ()))
+          `Time (Mdb.Time.datetime
+                  ~year ~month ~day ~hour ~minute ~second ~microsecond ())
        | Caqti_type.Ptime_span ->
-          Ok (`Float (Ptime.Span.to_float_s x))
+          `Float (Ptime.Span.to_float_s x)
        | _ ->
           (match Caqti_type.Field.coding driver_info field_type with
-           | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
+           | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
            | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
               (match encode x with
                | Ok y -> encode_field ~uri rep y
                | Error msg ->
                   let msg = Caqti_error.Msg msg in
                   let typ = Caqti_type.field field_type in
-                  Error (Caqti_error.encode_rejected ~uri ~typ msg))))
+                  Request_utils.raise_encode_rejected ~uri ~typ msg)))
 
     let rec decode_field
-        : type b. uri: Uri.t -> b Caqti_type.Field.t ->
-          Mdb.Field.t -> (b, _) result =
+        : type b. uri: Uri.t -> b Caqti_type.Field.t -> Mdb.Field.t -> b =
       fun ~uri field_type field ->
       try match field_type with
-       | Caqti_type.Bool -> Ok (Mdb_ext.Field.bool field)
-       | Caqti_type.Int -> Ok (Mdb_ext.Field.int field)
-       | Caqti_type.Int16 -> Ok (Mdb_ext.Field.int field)
-       | Caqti_type.Int32 -> Ok (Mdb_ext.Field.int32 field)
-       | Caqti_type.Int64 -> Ok (Mdb_ext.Field.int64 field)
-       | Caqti_type.Float -> Ok (Mdb.Field.float field)
-       | Caqti_type.String -> Ok (Mdb_ext.Field.string field)
-       | Caqti_type.Enum _ -> Ok (Mdb_ext.Field.string field)
-       | Caqti_type.Octets -> Ok (Mdb_ext.Field.string field)
+       | Caqti_type.Bool -> Mdb_ext.Field.bool field
+       | Caqti_type.Int -> Mdb_ext.Field.int field
+       | Caqti_type.Int16 -> Mdb_ext.Field.int field
+       | Caqti_type.Int32 -> Mdb_ext.Field.int32 field
+       | Caqti_type.Int64 -> Mdb_ext.Field.int64 field
+       | Caqti_type.Float -> Mdb.Field.float field
+       | Caqti_type.String -> Mdb_ext.Field.string field
+       | Caqti_type.Enum _ -> Mdb_ext.Field.string field
+       | Caqti_type.Octets -> Mdb_ext.Field.string field
        | Caqti_type.Pdate ->
           let t = Mdb.Field.time field in
           let date = Mdb.Time.(year t, month t, day t) in
           (match Ptime.of_date date with
            | None -> failwith "Ptime.of_date"
-           | Some t -> Ok t)
+           | Some t -> t)
        | Caqti_type.Ptime ->
           let t = Mdb.Field.time field in
           let date = Mdb.Time.(year t, month t, day t) in
@@ -244,49 +242,47 @@ struct
            | Some t, Some tss ->
               (match Ptime.add_span t tss with
                | None -> failwith "Ptime.of_date_time: Overflow."
-               | Some t' -> Ok t'))
+               | Some t' -> t'))
        | Caqti_type.Ptime_span ->
           let t = Mdb_ext.Field.float field in
           (match Ptime.Span.of_float_s t with
            | None -> failwith "Ptime.Span.of_float_s"
-           | Some t -> Ok t)
+           | Some t -> t)
        | field_type ->
           (match Caqti_type.Field.coding driver_info field_type with
-           | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
+           | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
            | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-              (match decode_field ~uri rep field with
-               | Ok y ->
-                  (match decode y with
-                   | Ok _ as r -> r
-                   | Error msg ->
-                      let msg = Caqti_error.Msg msg in
-                      let typ = Caqti_type.field field_type in
-                      Error (Caqti_error.decode_rejected ~uri ~typ msg))
-               | Error _ as r -> r))
+              let y = decode_field ~uri rep field in
+              (match decode y with
+               | Ok z -> z
+               | Error msg ->
+                  let msg = Caqti_error.Msg msg in
+                  let typ = Caqti_type.field field_type in
+                  Request_utils.raise_decode_rejected ~uri ~typ msg))
       with
        | Failure _ ->
           let typename = Mdb_ext.Field.typename field in
           let msg = Caqti_error.Msg ("Received " ^ typename ^ ".") in
           let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg)
+          Request_utils.raise_decode_rejected ~uri ~typ msg
 
     let encode_param ~uri params t v acc =
       let write_value ~uri ft fv os =
         assert (os <> []);
-        (match encode_field ~uri ft fv with
-         | Ok v ->
-            List.iter (fun j -> params.(j) <- v) (List.hd os);
-            Ok (List.tl os)
-         | Error _ as r -> r)
+        let v = encode_field ~uri ft fv in
+        List.iter (fun j -> params.(j) <- v) (List.hd os);
+        List.tl os
       in
-      let write_null ~uri:_ _ os = Ok (List.tl os) in
-      Request_utils.encode_param ~uri {write_value; write_null} t v acc
+      let write_null ~uri:_ _ os = List.tl os in
+      try
+        Ok (Request_utils.encode_param ~uri {write_value; write_null} t v acc)
+      with Caqti_error.Exn (#Caqti_error.call as err) ->
+        Error err
 
     let decode_row ~uri row_type =
       let read_value ~uri ft (row, j) =
-        (match decode_field ~uri ft row.(j) with
-         | Ok fv -> Ok (fv, (row, j + 1))
-         | Error _ as r -> r)
+        let fv = decode_field ~uri ft row.(j) in
+        (fv, (row, j + 1))
       in
       let skip_null n (row, j) =
         let j' = j + n in
@@ -298,11 +294,13 @@ struct
       let decode =
         Request_utils.decode_row ~uri {read_value; skip_null} row_type
       in
-      let extract (y, (_, j)) =
-        assert (j = Caqti_type.length row_type);
-        Some y
-      in
-      fun row -> Result.map extract (decode (row, 0))
+      fun row ->
+        try
+          let (y, (_, j)) = decode (row, 0) in
+          assert (j = Caqti_type.length row_type);
+          Ok (Some y)
+        with Caqti_error.Exn (#Caqti_error.retrieve as err) ->
+          Error err
 
     module Make_connection_base
       (Connection_arg : sig

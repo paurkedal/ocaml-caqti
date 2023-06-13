@@ -102,94 +102,92 @@ let query_string q =
   (quotes, Buffer.contents buf)
 
 let rec data_of_value
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a ->
-      (Sqlite3.Data.t, _) result =
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
   fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool   -> Ok (Sqlite3.Data.INT (if x then 1L else 0L))
-   | Caqti_type.Int    -> Ok (Sqlite3.Data.INT (Int64.of_int x))
-   | Caqti_type.Int16  -> Ok (Sqlite3.Data.INT (Int64.of_int x))
-   | Caqti_type.Int32  -> Ok (Sqlite3.Data.INT (Int64.of_int32 x))
-   | Caqti_type.Int64  -> Ok (Sqlite3.Data.INT x)
-   | Caqti_type.Float  -> Ok (Sqlite3.Data.FLOAT x)
-   | Caqti_type.String -> Ok (Sqlite3.Data.TEXT x)
-   | Caqti_type.Enum _ -> Ok (Sqlite3.Data.TEXT x)
-   | Caqti_type.Octets -> Ok (Sqlite3.Data.BLOB x)
-   | Caqti_type.Pdate -> Ok (Sqlite3.Data.TEXT (Conv.iso8601_of_pdate x))
+   | Caqti_type.Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
+   | Caqti_type.Int    -> Sqlite3.Data.INT (Int64.of_int x)
+   | Caqti_type.Int16  -> Sqlite3.Data.INT (Int64.of_int x)
+   | Caqti_type.Int32  -> Sqlite3.Data.INT (Int64.of_int32 x)
+   | Caqti_type.Int64  -> Sqlite3.Data.INT x
+   | Caqti_type.Float  -> Sqlite3.Data.FLOAT x
+   | Caqti_type.String -> Sqlite3.Data.TEXT x
+   | Caqti_type.Enum _ -> Sqlite3.Data.TEXT x
+   | Caqti_type.Octets -> Sqlite3.Data.BLOB x
+   | Caqti_type.Pdate -> Sqlite3.Data.TEXT (Conv.iso8601_of_pdate x)
    | Caqti_type.Ptime ->
       (* This is the suggested time representation according to
          https://sqlite.org/lang_datefunc.html, and is consistent with
          current_timestamp.  Three subsecond digits are significant. *)
       let s = Ptime.to_rfc3339 ~space:true ~frac_s:3 ~tz_offset_s:0 x in
-      Ok (Sqlite3.Data.TEXT (String.sub s 0 23))
+      Sqlite3.Data.TEXT (String.sub s 0 23)
    | Caqti_type.Ptime_span ->
-      Ok (Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x))
+      Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x)
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
        | None ->
-          Error (Caqti_error.encode_missing ~uri ~field_type ())
+          Request_utils.raise_encode_missing ~uri ~field_type ()
        | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
           (match encode x with
            | Ok y -> data_of_value ~uri rep y
            | Error msg ->
               let msg = Caqti_error.Msg msg in
               let typ = Caqti_type.field field_type in
-              Error (Caqti_error.encode_rejected ~uri ~typ msg))))
+              Request_utils.raise_encode_rejected ~uri ~typ msg)))
 
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
 let rec value_of_data
     : type a. uri: Uri.t ->
-      a Caqti_type.Field.t -> Sqlite3.Data.t -> (a, _) result =
+      a Caqti_type.Field.t -> Sqlite3.Data.t -> a =
   fun ~uri field_type data ->
   let to_ptime_span x =
     (match Ptime.Span.of_float_s x with
-     | Some t -> Ok t
+     | Some t -> t
      | None ->
         let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
         let typ = Caqti_type.field field_type in
-        Error (Caqti_error.decode_rejected ~uri ~typ msg)) in
+        Request_utils.raise_decode_rejected ~uri ~typ msg)
+  in
   (match field_type, data with
-   | Caqti_type.Bool, Sqlite3.Data.INT y -> Ok (y <> 0L)
-   | Caqti_type.Int, Sqlite3.Data.INT y -> Ok (Int64.to_int y)
-   | Caqti_type.Int32, Sqlite3.Data.INT y -> Ok (Int64.to_int32 y)
-   | Caqti_type.Int64, Sqlite3.Data.INT y -> Ok y
-   | Caqti_type.Float, Sqlite3.Data.FLOAT y -> Ok y
-   | Caqti_type.Float, Sqlite3.Data.INT y -> Ok (Int64.to_float y)
-   | Caqti_type.String, Sqlite3.Data.TEXT y -> Ok y
-   | Caqti_type.Enum _, Sqlite3.Data.TEXT y -> Ok y
-   | Caqti_type.Octets, Sqlite3.Data.BLOB y -> Ok y
+   | Caqti_type.Bool, Sqlite3.Data.INT y -> y <> 0L
+   | Caqti_type.Int, Sqlite3.Data.INT y -> Int64.to_int y
+   | Caqti_type.Int32, Sqlite3.Data.INT y -> Int64.to_int32 y
+   | Caqti_type.Int64, Sqlite3.Data.INT y -> y
+   | Caqti_type.Float, Sqlite3.Data.FLOAT y -> y
+   | Caqti_type.Float, Sqlite3.Data.INT y -> Int64.to_float y
+   | Caqti_type.String, Sqlite3.Data.TEXT y -> y
+   | Caqti_type.Enum _, Sqlite3.Data.TEXT y -> y
+   | Caqti_type.Octets, Sqlite3.Data.BLOB y -> y
    | Caqti_type.Pdate as field_type, Sqlite3.Data.TEXT y ->
       (match Conv.pdate_of_iso8601 y with
-       | Ok _ as r -> r
+       | Ok y -> y
        | Error msg ->
           let msg = Caqti_error.Msg msg in
           let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
+          Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Caqti_type.Ptime as field_type, Sqlite3.Data.TEXT y ->
       (* TODO: Improve parsing. *)
       (match Conv.ptime_of_rfc3339_utc y with
-       | Ok _ as r -> r
+       | Ok y -> y
        | Error msg ->
           let msg = Caqti_error.Msg msg in
           let typ = Caqti_type.field field_type in
-          Error (Caqti_error.decode_rejected ~uri ~typ msg))
+          Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Caqti_type.Ptime_span, Sqlite3.Data.FLOAT x ->
       to_ptime_span x
    | Caqti_type.Ptime_span, Sqlite3.Data.INT x ->
       to_ptime_span (Int64.to_float x)
    | field_type, d ->
       (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
+       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
        | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          (match value_of_data ~uri rep d with
-           | Ok y ->
-              (match decode y with
-               | Ok _ as r -> r
-               | Error msg ->
-                  let msg = Caqti_error.Msg msg in
-                  let typ = Caqti_type.field field_type in
-                  Error (Caqti_error.decode_rejected ~uri ~typ msg))
-           | Error _ as r -> r)))
+          let y = value_of_data ~uri rep d in
+          (match decode y with
+           | Ok y -> y
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Request_utils.raise_decode_rejected ~uri ~typ msg)))
 
 let bind_quotes ~uri ~query stmt oq =
   let aux j x =
@@ -203,39 +201,31 @@ let bind_quotes ~uri ~query stmt oq =
 
 let encode_null_field ~uri stmt field_type iP =
   (match Sqlite3.bind stmt (iP + 1) Sqlite3.Data.NULL with
-   | Sqlite3.Rc.OK -> Ok ()
+   | Sqlite3.Rc.OK -> ()
    | rc ->
       let typ = Caqti_type.field field_type in
-      Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
+      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc rc))
 
 let encode_field ~uri stmt field_type field_value iP =
-  (match data_of_value ~uri field_type field_value with
-   | Ok d ->
-      (match Sqlite3.bind stmt (iP + 1) d with
-       | Sqlite3.Rc.OK -> Ok ()
-       | rc ->
-          let typ = Caqti_type.field field_type in
-          Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
-   | Error _ as r -> r)
+  let d = data_of_value ~uri field_type field_value in
+  (match Sqlite3.bind stmt (iP + 1) d with
+   | Sqlite3.Rc.OK -> ()
+   | rc ->
+      let typ = Caqti_type.field field_type in
+      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc rc))
 
-let encode_param ~uri stmt t x =
-  let write_value ~uri ft fv iP =
-    (match encode_field ~uri stmt ft fv iP with
-     | Ok () -> Ok (iP + 1)
-     | Error _ as r -> r)
-  in
-  let write_null ~uri ft iP =
-    (match encode_null_field ~uri stmt ft iP with
-     | Ok () -> Ok (iP + 1)
-     | Error _ as r -> r)
-  in
-  Request_utils.encode_param ~uri {write_value; write_null} t x
+let encode_param ~uri stmt t =
+  let write_value ~uri ft fv iP = encode_field ~uri stmt ft fv iP; iP + 1 in
+  let write_null ~uri ft iP = encode_null_field ~uri stmt ft iP; iP + 1 in
+  let encode = Request_utils.encode_param ~uri {write_value; write_null} t in
+  fun x iP ->
+    try Ok (encode x iP) with
+     | Caqti_error.Exn (#Caqti_error.call as err) -> Error err
 
 let decode_row ~uri ~query row_type =
   let read_value ~uri ft (stmt, j) =
-    (match value_of_data ~uri ft (Sqlite3.column stmt j) with
-     | Ok fv -> Ok (fv, (stmt, j + 1))
-     | Error _ as r -> r)
+    let fv = value_of_data ~uri ft (Sqlite3.column stmt j) in
+    (fv, (stmt, j + 1))
   in
   let skip_null n (stmt, j) =
     let j' = j + n in
@@ -247,14 +237,12 @@ let decode_row ~uri ~query row_type =
   let field_decoder = {Request_utils.read_value; skip_null} in
   let decode = Request_utils.decode_row ~uri field_decoder row_type in
   fun stmt ->
-    (match decode (stmt, 0) with
-     | Ok (y, (_, n)) ->
-        let n' = Sqlite3.data_count stmt in
-        if n = n' then Ok (Some y) else
-        let msg = sprintf "Decoded only %d of %d fields." n n' in
-        let msg = Caqti_error.Msg msg in
-        Error (Caqti_error.response_rejected ~uri ~query msg)
-     | Error _ as r -> r)
+    let (y, (_, n)) = decode (stmt, 0) in
+    let n' = Sqlite3.data_count stmt in
+    if n = n' then Some y else
+    let msg = sprintf "Decoded only %d of %d fields." n n' in
+    let msg = Caqti_error.Msg msg in
+    Request_utils.raise_response_rejected ~uri ~query msg
 
 module Q = struct
   open Caqti_request.Infix
@@ -333,10 +321,10 @@ struct
         let decode = decode_row ~uri ~query row_type in
         fun () ->
           (match run_step response with
-           | Sqlite3.Rc.DONE -> Ok None
+           | Sqlite3.Rc.DONE -> None
            | Sqlite3.Rc.ROW -> decode stmt
            | rc ->
-              Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
+              Request_utils.raise_response_failed ~uri ~query (wrap_rc ~db rc))
 
       let exec ({row_type; query; _} as response) =
         assert (row_type = Caqti_type.unit);
@@ -353,85 +341,95 @@ struct
 
       let find resp =
         let retrieve () =
-          (match fetch_row resp () with
-           | Ok None ->
-              let msg = Caqti_error.Msg "Received no rows for find." in
-              Error (Caqti_error.response_rejected ~uri ~query:resp.query msg)
-           | Ok (Some y) ->
-              (match fetch_row resp () with
-               | Ok None -> Ok y
-               | Ok (Some _) ->
-                  let msg = "Received multiple rows for find." in
-                  let msg = Caqti_error.Msg msg in
-                  let query = resp.query in
-                  Error (Caqti_error.response_rejected ~uri ~query msg)
-               | Error _ as r -> r)
-           | Error _ as r -> r)
+          try
+            (match fetch_row resp () with
+             | None ->
+                let msg = Caqti_error.Msg "Received no rows for find." in
+                Error (Caqti_error.response_rejected ~uri ~query:resp.query msg)
+             | Some y ->
+                (match fetch_row resp () with
+                 | None -> Ok y
+                 | Some _ ->
+                    let msg = "Received multiple rows for find." in
+                    let msg = Caqti_error.Msg msg in
+                    let query = resp.query in
+                    Error (Caqti_error.response_rejected ~uri ~query msg)))
+           with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
       let find_opt resp =
         let retrieve () =
-          (match fetch_row resp () with
-           | Ok None -> Ok None
-           | Ok (Some y) ->
-              (match fetch_row resp () with
-               | Ok None -> Ok (Some y)
-               | Ok (Some _) ->
-                  let msg = "Received multiple rows for find_opt." in
-                  let msg = Caqti_error.Msg msg in
-                  let query = resp.query in
-                  Error (Caqti_error.response_rejected ~uri ~query msg)
-               | Error _ as r -> r)
-           | Error _ as r -> r)
+          try
+            (match fetch_row resp () with
+             | None -> Ok None
+             | Some y ->
+                (match fetch_row resp () with
+                 | None -> Ok (Some y)
+                 | Some _ ->
+                    let msg = "Received multiple rows for find_opt." in
+                    let msg = Caqti_error.Msg msg in
+                    let query = resp.query in
+                    Error (Caqti_error.response_rejected ~uri ~query msg)))
+          with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
       let fold f resp acc =
         let fetch = fetch_row resp in
-        let rec retrieve acc =
-          (match fetch () with
-           | Ok None -> Ok acc
-           | Ok (Some y) -> retrieve (f y acc)
-           | Error _ as r -> r)
+        let retrieve acc =
+          let rec loop acc =
+            (match fetch () with
+             | None -> Ok acc
+             | Some y -> loop (f y acc))
+          in
+          try loop acc with
+           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve acc
 
       let fold_s f resp acc =
         let fetch = fetch_row resp in
-        let rec retrieve acc =
-          (match fetch () with
-           | Ok None -> Ok acc
-           | Ok (Some y) ->
-              (match Preemptive.run_in_main (fun () -> f y acc) with
-               | Ok acc -> retrieve acc
-               | Error _ as r -> r)
-           | Error _ as r -> r)
+        let retrieve acc =
+          let rec loop acc =
+            (match fetch () with
+             | None -> Ok acc
+             | Some y ->
+                (match Preemptive.run_in_main (fun () -> f y acc) with
+                 | Ok acc -> loop acc
+                 | Error _ as r -> r))
+          in
+          try loop acc with
+           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve acc
 
       let iter_s f resp =
         let fetch = fetch_row resp in
-        let rec retrieve () =
-          (match fetch () with
-           | Ok None -> Ok ()
-           | Ok (Some y) ->
-              (match Preemptive.run_in_main (fun () -> f y) with
-               | Ok () -> retrieve ()
-               | Error _ as r -> r)
-           | Error _ as r -> r)
+        let retrieve () =
+          let rec loop () =
+            (match fetch () with
+             | None -> Ok ()
+             | Some y ->
+                (match Preemptive.run_in_main (fun () -> f y) with
+                 | Ok () -> loop ()
+                 | Error _ as r -> r))
+          in
+          try loop () with
+           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
       let to_stream resp =
-        let fetch = Preemptive.detach (fetch_row resp) in
+        let fetch = fetch_row resp in
         let rec seq () =
-          fetch () >>= function
-           | Ok None -> Fiber.return Stream.Nil
-           | Error err -> Fiber.return (Stream.Error err)
-           | Ok (Some y) -> Fiber.return (Stream.Cons (y, seq))
+          (match fetch () with
+           | None -> Stream.Nil
+           | Some y -> Stream.Cons (y, Preemptive.detach seq)
+           | exception Caqti_error.Exn (#Caqti_error.retrieve as err) ->
+              Stream.Error err)
         in
-        seq
+        Preemptive.detach seq
     end
 
     let pcache = Hashtbl.create 19

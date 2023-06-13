@@ -236,41 +236,43 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
   let rec encode_field
-      : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> (string, _) result =
+      : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> string =
     fun ~uri field_type x ->
     (match field_type with
-     | Caqti_type.Bool -> Ok (Pg_ext.pgstring_of_bool x)
-     | Caqti_type.Int -> Ok (string_of_int x)
-     | Caqti_type.Int16 -> Ok (string_of_int x)
-     | Caqti_type.Int32 -> Ok (Int32.to_string x)
-     | Caqti_type.Int64 -> Ok (Int64.to_string x)
-     | Caqti_type.Float -> Ok (sprintf "%.17g" x)
-     | Caqti_type.String -> Ok (encode_string x)
-     | Caqti_type.Enum _ -> Ok (encode_string x)
-     | Caqti_type.Octets -> Ok (encode_octets x)
-     | Caqti_type.Pdate -> Ok (Conv.iso8601_of_pdate x)
-     | Caqti_type.Ptime -> Ok (Pg_ext.pgstring_of_pdate x)
-     | Caqti_type.Ptime_span -> Ok (Pg_ext.pgstring_of_ptime_span x)
+     | Caqti_type.Bool -> Pg_ext.pgstring_of_bool x
+     | Caqti_type.Int -> string_of_int x
+     | Caqti_type.Int16 -> string_of_int x
+     | Caqti_type.Int32 -> Int32.to_string x
+     | Caqti_type.Int64 -> Int64.to_string x
+     | Caqti_type.Float -> sprintf "%.17g" x
+     | Caqti_type.String -> encode_string x
+     | Caqti_type.Enum _ -> encode_string x
+     | Caqti_type.Octets -> encode_octets x
+     | Caqti_type.Pdate -> Conv.iso8601_of_pdate x
+     | Caqti_type.Ptime -> Pg_ext.pgstring_of_pdate x
+     | Caqti_type.Ptime_span -> Pg_ext.pgstring_of_ptime_span x
      | _ ->
         (match Caqti_type.Field.coding driver_info field_type with
-         | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
+         | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
          | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
             (match encode x with
              | Ok y -> encode_field ~uri rep y
              | Error msg ->
                 let msg = Caqti_error.Msg msg in
                 let typ = Caqti_type.field field_type in
-                Error (Caqti_error.encode_rejected ~uri ~typ msg))))
+                Request_utils.raise_encode_rejected ~uri ~typ msg)))
 
   let encode ~uri params t x =
     let write_value ~uri ft fv i =
-      (match encode_field ~uri ft fv with
-       | Ok s -> params.(i) <- s; Ok (i + 1)
-       | Error _ as r -> r)
+      let s = encode_field ~uri ft fv in
+      params.(i) <- s; i + 1
     in
-    let write_null ~uri:_ _ i = Ok (i + 1) in
-    Request_utils.encode_param ~uri {write_value; write_null} t x 0
-      |> Result.map (fun n -> assert (n = Array.length params))
+    let write_null ~uri:_ _ i = i + 1 in
+    try
+      let n = Request_utils.encode_param ~uri {write_value; write_null} t x 0 in
+      assert (n = Array.length params);
+      Ok ()
+    with Caqti_error.Exn (#Caqti_error.call as err) -> Error err
 end
 
 module Param_encoder = Make_encoder (struct
@@ -279,23 +281,22 @@ module Param_encoder = Make_encoder (struct
 end)
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> string ->
-      (a, [> Caqti_error.retrieve]) result =
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> string -> a =
   fun ~uri field_type s ->
   let wrap_conv_exn f s =
-    (try Ok (f s) with
+    (try (f s) with
      | _ ->
         let msg = Caqti_error.Msg (sprintf "Invalid value %S." s) in
         let typ = Caqti_type.field field_type in
-        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+        Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   let wrap_conv_res f s =
     (match f s with
-     | Ok _ as r -> r
+     | Ok y -> y
      | Error msg ->
         let msg = Caqti_error.Msg msg in
         let typ = Caqti_type.field field_type in
-        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+        Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
    | Caqti_type.Bool -> wrap_conv_exn Pg_ext.bool_of_pgstring s
@@ -304,31 +305,28 @@ let rec decode_field
    | Caqti_type.Int32 -> wrap_conv_exn Int32.of_string s
    | Caqti_type.Int64 -> wrap_conv_exn Int64.of_string s
    | Caqti_type.Float -> wrap_conv_exn float_of_string s
-   | Caqti_type.String -> Ok s
-   | Caqti_type.Enum _ -> Ok s
-   | Caqti_type.Octets -> Ok (Postgresql.unescape_bytea s)
+   | Caqti_type.String -> s
+   | Caqti_type.Enum _ -> s
+   | Caqti_type.Octets -> Postgresql.unescape_bytea s
    | Caqti_type.Pdate -> wrap_conv_res Conv.pdate_of_iso8601 s
    | Caqti_type.Ptime -> wrap_conv_res Conv.ptime_of_rfc3339_utc s
    | Caqti_type.Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
+       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
        | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          (match decode_field ~uri rep s with
-           | Ok y ->
-              (match decode y with
-               | Ok _ as r -> r
-               | Error msg ->
-                  let msg = Caqti_error.Msg msg in
-                  let typ = Caqti_type.field field_type in
-                  Error (Caqti_error.decode_rejected ~uri ~typ msg))
-           | Error _ as r -> r)))
+          let y = decode_field ~uri rep s in
+          (match decode y with
+           | Ok z -> z
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Request_utils.raise_decode_rejected ~uri ~typ msg)))
 
 let decode_row ~uri row_type =
   let read_value ~uri ft (resp, i, j) =
-    (match decode_field ~uri ft (resp#getvalue i j) with
-     | Ok y -> Ok (y, (resp, i, j + 1))
-     | Error _ as r -> r)
+    let y = decode_field ~uri ft (resp#getvalue i j) in
+    (y, (resp, i, j + 1))
   in
   let skip_null n (resp, i, j) =
     let j' = j + n in
@@ -337,9 +335,9 @@ let decode_row ~uri row_type =
   in
   let decode = Request_utils.decode_row ~uri {read_value; skip_null} row_type in
   fun (resp, i) ->
-    Result.map
-      (fun (y, (_, _, j)) -> assert (j = Caqti_type.length row_type); y)
-      (decode (resp, i, 0))
+    (match decode (resp, i, 0) with
+     | (y, (_, _, j)) -> assert (j = Caqti_type.length row_type); Ok y
+     | exception Caqti_error.Exn (`Decode_rejected _ as err) -> Error err)
 
 type prepared = {
   query: string;

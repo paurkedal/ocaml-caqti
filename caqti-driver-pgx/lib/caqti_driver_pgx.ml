@@ -33,8 +33,6 @@ let () =
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
 
-let (|>?) = Result.bind
-
 let no_env _ _ = raise Not_found
 
 let driver_info =
@@ -85,63 +83,59 @@ let query_string ~env templ =
   (Buffer.contents buf, rev_quotes)
 
 let rec encode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> (Pgx.Value.t, _) result
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Pgx.Value.t
     = fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool -> Ok (Pgx.Value.of_bool x)
-   | Caqti_type.Int -> Ok (Pgx.Value.of_int x)
-   | Caqti_type.Int16 -> Ok (Pgx.Value.of_int x)
-   | Caqti_type.Int32 -> Ok (Pgx.Value.of_int32 x)
-   | Caqti_type.Int64 -> Ok (Pgx.Value.of_int64 x)
-   | Caqti_type.Float -> Ok (Pgx.Value.of_float x)
-   | Caqti_type.String -> Ok (Pgx.Value.of_string x)
-   | Caqti_type.Enum _ -> Ok (Pgx.Value.of_string x)
-   | Caqti_type.Octets -> Ok (Pgx.Value.of_binary x)
-   | Caqti_type.Pdate -> Ok (Pgx.Value.of_string (Conv.iso8601_of_pdate x))
-   | Caqti_type.Ptime -> Ok (Pgx.Value.of_string (pgstring_of_pdate x))
-   | Caqti_type.Ptime_span ->
-      Ok (Pgx.Value.of_string (pgstring_of_ptime_span x))
+   | Caqti_type.Bool -> Pgx.Value.of_bool x
+   | Caqti_type.Int -> Pgx.Value.of_int x
+   | Caqti_type.Int16 -> Pgx.Value.of_int x
+   | Caqti_type.Int32 -> Pgx.Value.of_int32 x
+   | Caqti_type.Int64 -> Pgx.Value.of_int64 x
+   | Caqti_type.Float -> Pgx.Value.of_float x
+   | Caqti_type.String -> Pgx.Value.of_string x
+   | Caqti_type.Enum _ -> Pgx.Value.of_string x
+   | Caqti_type.Octets -> Pgx.Value.of_binary x
+   | Caqti_type.Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
+   | Caqti_type.Ptime -> Pgx.Value.of_string (pgstring_of_pdate x)
+   | Caqti_type.Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x)
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Error (Caqti_error.encode_missing ~uri ~field_type ())
+       | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
        | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
           (match encode x with
            | Ok y -> encode_field ~uri rep y
            | Error msg ->
               let msg = Caqti_error.Msg msg in
               let typ = Caqti_type.field field_type in
-              Error (Caqti_error.encode_rejected ~uri ~typ msg))))
+              Request_utils.raise_encode_rejected ~uri ~typ msg)))
 
 let encode_param ~uri t param =
-  let write_value ~uri ft fv acc =
-    (match encode_field ~uri ft fv with
-     | Ok y -> Ok (y :: acc)
-     | Error _ as r -> r)
-  in
-  let write_null ~uri:_ _ acc =
-    Ok (Pgx.Value.null :: acc)
-  in
-  Request_utils.encode_param ~uri {write_value; write_null} t param []
-    |> Result.map List.rev
+  let write_value ~uri ft fv acc = encode_field ~uri ft fv :: acc in
+  let write_null ~uri:_ _ acc = Pgx.Value.null :: acc in
+  try
+    Request_utils.encode_param ~uri {write_value; write_null} t param []
+      |> List.rev |> Result.ok
+  with Caqti_error.Exn (#Caqti_error.call as err) ->
+    Error err
 
 let rec decode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> (a, _) result
+    : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> a
     = fun ~uri field_type v ->
   let wrap_conv_exn f s =
     (match f s with
-     | y -> Ok y
+     | y -> y
      | exception Pgx.Value.Conversion_failure msg_str ->
         let msg = Caqti_error.Msg msg_str in
         let typ = Caqti_type.field field_type in
-        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+        Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   let wrap_conv_res f s =
     (match f s with
-     | Ok _ as r -> r
+     | Ok y -> y
      | Error msg_str ->
         let msg = Caqti_error.Msg msg_str in
         let typ = Caqti_type.field field_type in
-        Error (Caqti_error.decode_rejected ~uri ~typ msg))
+        Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
    | Caqti_type.Bool -> wrap_conv_exn Pgx.Value.to_bool_exn v
@@ -154,35 +148,32 @@ let rec decode_field
    | Caqti_type.Enum _ -> wrap_conv_exn Pgx.Value.to_string_exn v
    | Caqti_type.Octets -> wrap_conv_exn Pgx.Value.to_binary_exn v
    | Caqti_type.Pdate ->
-      v |>  wrap_conv_exn Pgx.Value.to_string_exn
-        |>? wrap_conv_res Conv.pdate_of_iso8601
+      v |> wrap_conv_exn Pgx.Value.to_string_exn
+        |> wrap_conv_res Conv.pdate_of_iso8601
    | Caqti_type.Ptime ->
-      v |>  wrap_conv_exn Pgx.Value.to_string_exn
-        |>? wrap_conv_res Conv.ptime_of_rfc3339_utc
+      v |> wrap_conv_exn Pgx.Value.to_string_exn
+        |> wrap_conv_res Conv.ptime_of_rfc3339_utc
    | Caqti_type.Ptime_span ->
-      v |>  wrap_conv_exn Pgx.Value.to_string_exn
-        |>? wrap_conv_res ptime_span_of_pgstring
+      v |> wrap_conv_exn Pgx.Value.to_string_exn
+        |> wrap_conv_res ptime_span_of_pgstring
    | _ ->
       (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Error (Caqti_error.decode_missing ~uri ~field_type ())
+       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
        | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          (match decode_field ~uri rep v with
-           | Ok y ->
-              (match decode y with
-               | Ok _ as r -> r
-               | Error msg ->
-                  let msg = Caqti_error.Msg msg in
-                  let typ = Caqti_type.field field_type in
-                  Error (Caqti_error.decode_rejected ~uri ~typ msg))
-           | Error _ as r -> r)))
+          let y = decode_field ~uri rep v in
+          (match decode y with
+           | Ok y -> y
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Request_utils.raise_decode_rejected ~uri ~typ msg)))
 
 let decode_row ~uri row_type =
   let read_value ~uri ft = function
    | [] -> assert false
    | field :: fields ->
-      (match decode_field ~uri ft field with
-       | Ok y -> Ok (y, fields)
-       | Error _ as r -> r)
+      let y = decode_field ~uri ft field in
+      (y, fields)
   in
   let rec skip_null n xs =
     if n = 0 then Some xs else
@@ -193,7 +184,12 @@ let decode_row ~uri row_type =
   in
   let decode = Request_utils.decode_row ~uri {read_value; skip_null} row_type in
   fun fields ->
-    Result.map (fun (y, fields) -> assert (fields = []); y) (decode fields)
+    try
+      let (y, fields) = decode fields in
+      assert (fields = []);
+      Ok y
+    with
+     | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
 
 module Q = struct
   open Caqti_request.Infix

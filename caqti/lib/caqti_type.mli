@@ -17,6 +17,8 @@
 
 (** Type descriptors for fields and tuples. *)
 
+exception Reject of string
+
 (** {2 Primitive Field Types}
 
     The following is normally only needed for drivers and to define new field
@@ -75,11 +77,6 @@ type _ t = private
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t
-  | Custom : {
-      rep: 'b t;
-      encode: 'a -> ('b, string) result;
-      decode: 'b -> ('a, string) result;
-    } -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
 and (_, _) product =
   | [] : ('a, 'a) product

@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+exception Reject of string
+
 type _ field = ..
 
 type _ field +=
@@ -109,11 +111,6 @@ type _ t =
   | Field : 'a field -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t
-  | Custom : {
-      rep: 'b t;
-      encode: 'a -> ('b, string) result;
-      decode: 'b -> ('a, string) result;
-    } -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
 and (_, _) product =
   | [] : ('a, 'a) product
@@ -131,7 +128,6 @@ let rec length : type a. a t -> int = function
      | (t, _) :: prod -> fun n -> loop prod (n + length t)
     in
     loop prod 0
- | Custom {rep; _} -> length rep
  | Annot (_, t) -> length t
 
 let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
@@ -149,10 +145,6 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     in
     loop 0 prod;
     if prec > 0 then Format.pp_print_char ppf ')'
- | Custom {rep; _} ->
-    Format.pp_print_string ppf "</";
-    pp_at 0 ppf rep;
-    Format.pp_print_string ppf "/>"
  | Annot (`Redacted, t) ->
     Format.pp_print_string ppf "redacted ";
     pp_at 2 ppf t
@@ -176,10 +168,6 @@ let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
         loop (i + 1) prod
     in
     loop 0 prod
- | Custom {rep; encode; _}, x ->
-    (match encode x with
-     | Ok y -> pp_value ppf (rep, y)
-     | Error _ -> Format.pp_print_string ppf "INVALID")
  | Annot (`Redacted, _), _ ->
     Format.pp_print_string ppf "#redacted#"
 
@@ -266,10 +254,28 @@ module Std = struct
       t8, (fun (_, _, _, _, _, _, _, x) -> x);
     ])
 
-  let custom ~encode ~decode rep = Custom {rep; encode; decode}
+  let custom ~encode ~decode rep =
+    let encode' x =
+      (match encode x with
+       | Ok y -> y
+       | Error msg -> raise (Reject msg))
+    in
+    let decode' y =
+      (match decode y with
+       | Ok x -> x
+       | Error msg -> raise (Reject msg))
+    in
+    Product (decode', [rep, encode'])
+
   let redacted t = Annot (`Redacted, t)
+
   let enum ~encode ~decode name =
-    Custom {rep = Field (Enum name); encode = (fun x -> Ok (encode x)); decode}
+    let decode' y =
+      (match decode y with
+       | Ok x -> x
+       | Error msg -> raise (Reject msg))
+    in
+    Product (decode', [Field (Enum name), encode])
 
   let bool = Field Bool
   let int = Field Int

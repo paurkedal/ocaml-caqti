@@ -100,8 +100,11 @@ let rec encode_null_param : type a. uri: _ -> _ -> a Caqti_type.t -> _ =
        | (t, _) :: ts -> encode_null_param ~uri f t %> loop ts
       in
       loop ts
-   | Custom {rep; _} -> encode_null_param ~uri f rep
    | Annot (_, t) -> encode_null_param ~uri f t)
+
+let reject_encode ~uri ~typ msg =
+  let msg = Caqti_error.Msg msg in
+  raise_encode_rejected ~uri ~typ msg
 
 let rec encode_param
     : type a. uri: _ -> _ -> a Caqti_type.t -> a -> 'b -> 'b =
@@ -114,7 +117,7 @@ let rec encode_param
       (function
        | None -> encode_null_param ~uri f t
        | Some x -> encode_param ~uri f t x)
-   | Product (_, ts) ->
+   | Product (_, ts) as typ ->
       let rec loop : type i. (a, i) product -> _ = function
        | [] -> fun _ acc -> acc
        | (t, p) :: ts ->
@@ -122,13 +125,8 @@ let rec encode_param
           let encode_ts = loop ts in
           fun x acc -> encode_t (p x) acc |> encode_ts x
       in
-      loop ts
-   | Custom {rep; encode; _} as t -> fun x acc ->
-      (match encode x with
-       | Ok y -> encode_param ~uri f rep y acc
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          raise_encode_rejected ~uri ~typ:t msg)
+      (try loop ts with
+       | Caqti_type.Reject msg -> reject_encode ~uri ~typ msg)
    | Annot (_, t) -> encode_param ~uri f t)
 
 type 'a field_decoder = {
@@ -136,6 +134,10 @@ type 'a field_decoder = {
   skip_null: int -> 'a -> 'a option;
 }
 constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
+
+let reject_decode ~uri ~typ msg =
+  let msg = Caqti_error.Msg msg in
+  raise_decode_rejected ~uri ~typ msg
 
 let rec decode_row
     : type a. uri: _ -> _ -> a Caqti_type.t -> _ -> a * _ =
@@ -154,14 +156,15 @@ let rec decode_row
          | None ->
             let x, acc = decode_t acc in
             (Some x, acc))
-   | Product (intro, [t1, _; t2, _]) -> (* optimization *)
+   | Product (intro, [t1, _; t2, _]) as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       fun acc ->
         let x1, acc = decode_t1 acc in
         let x2, acc = decode_t2 acc in
-        (intro x1 x2, acc)
-   | Product (intro, [t1, _; t2, _; t3, _]) -> (* optimization *)
+        (try (intro x1 x2, acc) with
+         | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
+   | Product (intro, [t1, _; t2, _; t3, _]) as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -169,8 +172,9 @@ let rec decode_row
         let x1, acc = decode_t1 acc in
         let x2, acc = decode_t2 acc in
         let x3, acc = decode_t3 acc in
-        (intro x1 x2 x3, acc)
-   | Product (intro, [t1, _; t2, _; t3, _; t4, _]) -> (* optimization *)
+        (try (intro x1 x2 x3, acc) with
+         | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
+   | Product (intro, [t1, _; t2, _; t3, _; t4, _]) as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -180,8 +184,9 @@ let rec decode_row
         let x2, acc = decode_t2 acc in
         let x3, acc = decode_t3 acc in
         let x4, acc = decode_t4 acc in
-        (intro x1 x2 x3 x4, acc)
-   | Product (intro, ts) ->
+        (try (intro x1 x2 x3 x4, acc) with
+         | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
+   | Product (intro, ts) as typ ->
       let rec loop : type a i. (a, i) product -> i -> _ -> a * _ =
         (function
          | [] ->
@@ -193,15 +198,7 @@ let rec decode_row
               let x, acc = decode_t acc in
               decode_ts (intro x) acc)
       in
-      loop ts intro
-   | Custom {rep; decode; _} as typ ->
-      let decode_rep = decode_row ~uri f rep in
-      fun acc ->
-        let x, acc = decode_rep acc in
-        (match decode x with
-         | Ok y -> (y, acc)
-         | Error msg ->
-            let msg = Caqti_error.Msg msg in
-            raise_decode_rejected ~uri ~typ msg)
+      (try loop ts intro with
+       | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
    | Annot (_, t0) ->
       decode_row ~uri f t0)

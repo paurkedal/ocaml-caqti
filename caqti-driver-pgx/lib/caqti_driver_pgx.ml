@@ -537,7 +537,6 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
                   fun acc -> loop_prod acc >>=? loop_t)
             in
             loop_prod prod
-         | Custom {rep; _} -> loop rep
          | Annot (_, t) -> loop t)
       in
       loop (Caqti_type.option param_type) []

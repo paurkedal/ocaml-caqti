@@ -216,8 +216,6 @@ let init_param_types ~uri ~type_oid_cache =
        | (t, _) :: prod -> recurse pt bp t %>? loop prod
       in
       loop prod
-   | Caqti_type.Custom {rep; _} ->
-      recurse pt bp rep
    | Caqti_type.Annot (_, t0) ->
       recurse pt bp t0
   in
@@ -851,7 +849,6 @@ struct
          | (t, _) :: prod -> fetch_type_oids t >>=? fun () -> loop prod
         in
         loop prod
-     | Caqti_type.Custom {rep; _} -> fetch_type_oids rep
      | Caqti_type.Annot (_, t0) -> fetch_type_oids t0
 
     let using_db f =

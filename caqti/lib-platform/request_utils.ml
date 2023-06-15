@@ -96,8 +96,8 @@ let rec encode_null_param : type a. uri: _ -> _ -> a Caqti_type.t -> _ =
    | Option t -> encode_null_param ~uri f t
    | Product (_, ts) ->
       let rec loop : type a i. (a, i) product -> _ = function
-       | [] -> Fun.id
-       | (t, _) :: ts -> encode_null_param ~uri f t %> loop ts
+       | Proj_end -> Fun.id
+       | Proj (t, _, ts) -> encode_null_param ~uri f t %> loop ts
       in
       loop ts
    | Annot (_, t) -> encode_null_param ~uri f t)
@@ -119,8 +119,8 @@ let rec encode_param
        | Some x -> encode_param ~uri f t x)
    | Product (_, ts) as typ ->
       let rec loop : type i. (a, i) product -> _ = function
-       | [] -> fun _ acc -> acc
-       | (t, p) :: ts ->
+       | Proj_end -> fun _ acc -> acc
+       | Proj (t, p, ts) ->
           let encode_t = encode_param ~uri f t in
           let encode_ts = loop ts in
           fun x acc -> encode_t (p x) acc |> encode_ts x
@@ -156,7 +156,8 @@ let rec decode_row
          | None ->
             let x, acc = decode_t acc in
             (Some x, acc))
-   | Product (intro, [t1, _; t2, _]) as typ -> (* optimization *)
+   | Product (intro, Proj (t1, _, Proj (t2, _, Proj_end)))
+        as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       fun acc ->
@@ -164,7 +165,8 @@ let rec decode_row
         let x2, acc = decode_t2 acc in
         (try (intro x1 x2, acc) with
          | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (intro, [t1, _; t2, _; t3, _]) as typ -> (* optimization *)
+   | Product (intro, Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj_end))))
+        as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -174,7 +176,9 @@ let rec decode_row
         let x3, acc = decode_t3 acc in
         (try (intro x1 x2 x3, acc) with
          | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (intro, [t1, _; t2, _; t3, _; t4, _]) as typ -> (* optimization *)
+   | Product (intro,
+        Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj (t4, _, Proj_end)))))
+        as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       let decode_t3 = decode_row ~uri f t3 in
@@ -189,9 +193,9 @@ let rec decode_row
    | Product (intro, ts) as typ ->
       let rec loop : type a i. (a, i) product -> i -> _ -> a * _ =
         (function
-         | [] ->
+         | Proj_end ->
             fun intro acc -> (intro, acc)
-         | (t, _) :: ts ->
+         | Proj (t, _, ts) ->
             let decode_t = decode_row ~uri f t in
             let decode_ts = loop ts in
             fun intro acc ->

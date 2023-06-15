@@ -530,8 +530,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
          | Product (_, prod) ->
             let rec loop_prod : type i. (a, i) Caqti_type.product -> _ =
               (function
-               | [] -> fun acc -> Fiber.return (Ok acc)
-               | (t, _) :: prod ->
+               | Proj_end -> fun acc -> Fiber.return (Ok acc)
+               | Proj (t, _, prod) ->
                   let loop_t = loop t in
                   let loop_prod = loop_prod prod in
                   fun acc -> loop_prod acc >>=? loop_t)

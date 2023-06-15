@@ -212,8 +212,8 @@ let init_param_types ~uri ~type_oid_cache =
       recurse pt bp t
    | Caqti_type.Product (_, prod) ->
       let rec loop : type i. (a, i) Caqti_type.product -> _ = function
-       | [] -> Result.ok
-       | (t, _) :: prod -> recurse pt bp t %>? loop prod
+       | Proj_end -> Result.ok
+       | Proj (t, _, prod) -> recurse pt bp t %>? loop prod
       in
       loop prod
    | Caqti_type.Annot (_, t0) ->
@@ -845,8 +845,8 @@ struct
      | Caqti_type.Option t -> fetch_type_oids t
      | Caqti_type.Product (_, prod) ->
         let rec loop : type i. (a, i) Caqti_type.product -> _ = function
-         | [] -> Fiber.return (Ok ())
-         | (t, _) :: prod -> fetch_type_oids t >>=? fun () -> loop prod
+         | Proj_end -> Fiber.return (Ok ())
+         | Proj (t, _, prod) -> fetch_type_oids t >>=? fun () -> loop prod
         in
         loop prod
      | Caqti_type.Annot (_, t0) -> fetch_type_oids t0

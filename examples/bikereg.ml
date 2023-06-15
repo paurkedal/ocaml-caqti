@@ -45,10 +45,12 @@ module Q = struct
 
   let bike =
     let open Bike in
-    let encode {frameno; owner; stolen} = Ok (frameno, owner, stolen) in
-    let decode (frameno, owner, stolen) = Ok {frameno; owner; stolen} in
-    let rep = Caqti_type.(t3 string string (option ptime)) in
-    custom ~encode ~decode rep
+    let intro frameno owner stolen = {frameno; owner; stolen} in
+    product intro
+      @@ proj string (fun bike -> bike.frameno)
+      @@ proj string (fun bike -> bike.owner)
+      @@ proj (option ptime) (fun bike -> bike.stolen)
+      @@ proj_end
 
   let create_bikereg =
     unit ->. unit @@

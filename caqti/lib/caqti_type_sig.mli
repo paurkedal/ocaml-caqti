@@ -21,6 +21,7 @@
 module type Std = sig
 
   type 'a t
+  type ('a, 'i) product
 
   (** {3 Composite}
 
@@ -74,6 +75,10 @@ module type Std = sig
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
   (** Creates a 8-tuple type. This is implemented in terms of lower tuples. *)
+
+  val product : 'i -> ('a, 'i) product -> 'a t
+  val proj : 'b t -> ('a -> 'b) -> ('a, 'i) product -> ('a, 'b -> 'i) product
+  val proj_end : ('a, 'a) product
 
   val custom :
     encode: ('a -> ('b, string) result) ->

@@ -78,9 +78,9 @@ type _ t = private
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
-and (_, _) product =
-  | [] : ('a, 'a) product
-  | (::) : ('b t * ('a -> 'b)) * ('a, 'i) product -> ('a, 'b -> 'i) product
+and (_, _) product = private
+  | Proj_end : ('a, 'a) product
+  | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
 
 (** {!t} with existentially wrapped static type. *)
 type any = Any : 'a t -> any
@@ -107,7 +107,9 @@ val field : 'a Field.t -> 'a t
 (** [field ft] is a row of a single field of type [ft]. This function can be
     used when adding new field types; use the below functions otherwise. *)
 
-module Std : Caqti_type_sig.Std with type 'a t := 'a t
+module Std : Caqti_type_sig.Std
+  with type 'a t := 'a t and type ('a, 'i) product := ('a, 'i) product
 (** Standard type descriptors provided as a submodule for easy inclusion. *)
 
-include Caqti_type_sig.Std with type 'a t := 'a t
+include Caqti_type_sig.Std
+  with type 'a t := 'a t and type ('a, 'i) product := ('a, 'i) product

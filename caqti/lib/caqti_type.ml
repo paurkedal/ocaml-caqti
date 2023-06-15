@@ -113,8 +113,8 @@ type _ t =
   | Product : 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
 and (_, _) product =
-  | [] : ('a, 'a) product
-  | (::) : ('b t * ('a -> 'b)) * ('a, 'i) product -> ('a, 'b -> 'i) product
+  | Proj_end : ('a, 'a) product
+  | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
 
 type any = Any : 'a t -> any
 
@@ -124,8 +124,8 @@ let rec length : type a. a t -> int = function
  | Option t -> length t
  | Product (_, prod) ->
     let rec loop : type a i. (a, i) product -> _ -> _ = function
-     | [] -> Fun.id
-     | (t, _) :: prod -> fun n -> loop prod (n + length t)
+     | Proj_end -> Fun.id
+     | Proj (t, _, prod) -> fun n -> loop prod (n + length t)
     in
     loop prod 0
  | Annot (_, t) -> length t
@@ -138,8 +138,8 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
  | Product (_, prod) ->
     if prec > 0 then Format.pp_print_char ppf '(';
     let rec loop : type a i. int -> (a, i) product -> _ = fun i -> function
-     | [] -> ()
-     | (t, _) :: prod ->
+     | Proj_end -> ()
+     | Proj (t, _, prod) ->
         if i > 0 then Format.pp_print_string ppf " × ";
         pp_at 1 ppf t; loop (i + 1) prod
     in
@@ -161,8 +161,8 @@ let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
     pp_value ppf (t, x)
  | Product (_, prod), x ->
     let rec loop : type i. int -> (a, i) product -> _ = fun i -> function
-     | [] -> ()
-     | (t, p) :: prod ->
+     | Proj_end -> ()
+     | Proj (t, p, prod) ->
         if i > 0 then Format.pp_print_string ppf ", ";
         pp_value ppf (t, p x);
         loop (i + 1) prod
@@ -184,75 +184,79 @@ module Std = struct
   let unit = Unit
   let option t = Option t
 
+  let product intro prod = Product (intro, prod)
+  let proj t p prod = Proj (t, p, prod)
+  let proj_end = Proj_end
+
   let t2 t1 t2 =
     let intro x1 x2 = (x1, x2) in
-    Product (intro, [
-      t1, fst;
-      t2, snd;
-    ])
+    product intro
+      @@ proj t1 fst
+      @@ proj t2 snd
+      @@ proj_end
 
   let t3 t1 t2 t3 =
     let intro x1 x2 x3 = (x1, x2, x3) in
-    Product (intro, [
-      t1, (fun (x, _, _) -> x);
-      t2, (fun (_, x, _) -> x);
-      t3, (fun (_, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _) -> x)
+      @@ proj t2 (fun (_, x, _) -> x)
+      @@ proj t3 (fun (_, _, x) -> x)
+      @@ proj_end
 
   let t4 t1 t2 t3 t4 =
     let intro x1 x2 x3 x4 = (x1, x2, x3, x4) in
-    Product (intro, [
-      t1, (fun (x, _, _, _) -> x);
-      t2, (fun (_, x, _, _) -> x);
-      t3, (fun (_, _, x, _) -> x);
-      t4, (fun (_, _, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _) -> x)
+      @@ proj t4 (fun (_, _, _, x) -> x)
+      @@ proj_end
 
   let t5 t1 t2 t3 t4 t5 =
     let intro x1 x2 x3 x4 x5 = (x1, x2, x3, x4, x5) in
-    Product (intro, [
-      t1, (fun (x, _, _, _, _) -> x);
-      t2, (fun (_, x, _, _, _) -> x);
-      t3, (fun (_, _, x, _, _) -> x);
-      t4, (fun (_, _, _, x, _) -> x);
-      t5, (fun (_, _, _, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _, _) -> x)
+      @@ proj t4 (fun (_, _, _, x, _) -> x)
+      @@ proj t5 (fun (_, _, _, _, x) -> x)
+      @@ proj_end
 
   let t6 t1 t2 t3 t4 t5 t6 =
     let intro x1 x2 x3 x4 x5 x6 = (x1, x2, x3, x4, x5, x6) in
-    Product (intro, [
-      t1, (fun (x, _, _, _, _, _) -> x);
-      t2, (fun (_, x, _, _, _, _) -> x);
-      t3, (fun (_, _, x, _, _, _) -> x);
-      t4, (fun (_, _, _, x, _, _) -> x);
-      t5, (fun (_, _, _, _, x, _) -> x);
-      t6, (fun (_, _, _, _, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _, _, _) -> x)
+      @@ proj t4 (fun (_, _, _, x, _, _) -> x)
+      @@ proj t5 (fun (_, _, _, _, x, _) -> x)
+      @@ proj t6 (fun (_, _, _, _, _, x) -> x)
+      @@ proj_end
 
   let t7 t1 t2 t3 t4 t5 t6 t7 =
     let intro x1 x2 x3 x4 x5 x6 x7 = (x1, x2, x3, x4, x5, x6, x7) in
-    Product (intro, [
-      t1, (fun (x, _, _, _, _, _, _) -> x);
-      t2, (fun (_, x, _, _, _, _, _) -> x);
-      t3, (fun (_, _, x, _, _, _, _) -> x);
-      t4, (fun (_, _, _, x, _, _, _) -> x);
-      t5, (fun (_, _, _, _, x, _, _) -> x);
-      t6, (fun (_, _, _, _, _, x, _) -> x);
-      t7, (fun (_, _, _, _, _, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _, _, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _, _, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _, _, _, _) -> x)
+      @@ proj t4 (fun (_, _, _, x, _, _, _) -> x)
+      @@ proj t5 (fun (_, _, _, _, x, _, _) -> x)
+      @@ proj t6 (fun (_, _, _, _, _, x, _) -> x)
+      @@ proj t7 (fun (_, _, _, _, _, _, x) -> x)
+      @@ proj_end
 
   let t8 t1 t2 t3 t4 t5 t6 t7 t8 =
     let intro x1 x2 x3 x4 x5 x6 x7 x8 = (x1, x2, x3, x4, x5, x6, x7, x8) in
-    Product (intro, [
-      t1, (fun (x, _, _, _, _, _, _, _) -> x);
-      t2, (fun (_, x, _, _, _, _, _, _) -> x);
-      t3, (fun (_, _, x, _, _, _, _, _) -> x);
-      t4, (fun (_, _, _, x, _, _, _, _) -> x);
-      t5, (fun (_, _, _, _, x, _, _, _) -> x);
-      t6, (fun (_, _, _, _, _, x, _, _) -> x);
-      t7, (fun (_, _, _, _, _, _, x, _) -> x);
-      t8, (fun (_, _, _, _, _, _, _, x) -> x);
-    ])
+    product intro
+      @@ proj t1 (fun (x, _, _, _, _, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _, _, _, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _, _, _, _, _) -> x)
+      @@ proj t4 (fun (_, _, _, x, _, _, _, _) -> x)
+      @@ proj t5 (fun (_, _, _, _, x, _, _, _) -> x)
+      @@ proj t6 (fun (_, _, _, _, _, x, _, _) -> x)
+      @@ proj t7 (fun (_, _, _, _, _, _, x, _) -> x)
+      @@ proj t8 (fun (_, _, _, _, _, _, _, x) -> x)
+      @@ proj_end
 
   let custom ~encode ~decode rep =
     let encode' x =
@@ -265,7 +269,7 @@ module Std = struct
        | Ok x -> x
        | Error msg -> raise (Reject msg))
     in
-    Product (decode', [rep, encode'])
+    product decode' @@ proj rep encode' @@ proj_end
 
   let redacted t = Annot (`Redacted, t)
 
@@ -275,7 +279,7 @@ module Std = struct
        | Ok x -> x
        | Error msg -> raise (Reject msg))
     in
-    Product (decode', [Field (Enum name), encode])
+    product decode' @@ proj (Field (Enum name)) encode @@ proj_end
 
   let bool = Field Bool
   let int = Field Int

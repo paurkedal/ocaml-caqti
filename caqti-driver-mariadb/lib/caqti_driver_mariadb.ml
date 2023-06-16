@@ -179,19 +179,19 @@ struct
         : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Mdb.Field.value =
       fun ~uri field_type x ->
       (match field_type with
-       | Caqti_type.Bool -> `Int (if x then 1 else 0)
-       | Caqti_type.Int -> `Int x
-       | Caqti_type.Int16 -> `Int x
-       | Caqti_type.Int32 -> `Int (Int32.to_int x)
-       | Caqti_type.Int64 -> `Int (Int64.to_int x)
-       | Caqti_type.Float -> `Float x
-       | Caqti_type.String -> `String x
-       | Caqti_type.Enum _ -> `String x
-       | Caqti_type.Octets -> `Bytes (Bytes.of_string x)
-       | Caqti_type.Pdate ->
+       | Bool -> `Int (if x then 1 else 0)
+       | Int -> `Int x
+       | Int16 -> `Int x
+       | Int32 -> `Int (Int32.to_int x)
+       | Int64 -> `Int (Int64.to_int x)
+       | Float -> `Float x
+       | String -> `String x
+       | Enum _ -> `String x
+       | Octets -> `Bytes (Bytes.of_string x)
+       | Pdate ->
           let year, month, day = Ptime.to_date x in
           `Time (Mdb.Time.date ~year ~month ~day ())
-       | Caqti_type.Ptime ->
+       | Ptime ->
           let (year, month, day), ((hour, minute, second), _) =
             Ptime.to_date_time ~tz_offset_s:0 x in
           let ps = snd (Ptime.Span.to_d_ps (Ptime.to_span x)) in
@@ -199,39 +199,36 @@ struct
           let microsecond = Int64.to_int (Int64.div tss 1_000_000L) in
           `Time (Mdb.Time.datetime
                   ~year ~month ~day ~hour ~minute ~second ~microsecond ())
-       | Caqti_type.Ptime_span ->
+       | Ptime_span ->
           `Float (Ptime.Span.to_float_s x)
-       | _ ->
-          (match Caqti_type.Field.coding driver_info field_type with
-           | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
-           | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
-              (match encode x with
-               | Ok y -> encode_field ~uri rep y
-               | Error msg ->
-                  let msg = Caqti_error.Msg msg in
-                  let typ = Caqti_type.field field_type in
-                  Request_utils.raise_encode_rejected ~uri ~typ msg)))
+       | Custom {rep; encode; _} ->
+          (match encode x with
+           | Ok y -> encode_field ~uri rep y
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Request_utils.raise_encode_rejected ~uri ~typ msg))
 
     let rec decode_field
         : type b. uri: Uri.t -> b Caqti_type.Field.t -> Mdb.Field.t -> b =
       fun ~uri field_type field ->
       try match field_type with
-       | Caqti_type.Bool -> Mdb_ext.Field.bool field
-       | Caqti_type.Int -> Mdb_ext.Field.int field
-       | Caqti_type.Int16 -> Mdb_ext.Field.int field
-       | Caqti_type.Int32 -> Mdb_ext.Field.int32 field
-       | Caqti_type.Int64 -> Mdb_ext.Field.int64 field
-       | Caqti_type.Float -> Mdb.Field.float field
-       | Caqti_type.String -> Mdb_ext.Field.string field
-       | Caqti_type.Enum _ -> Mdb_ext.Field.string field
-       | Caqti_type.Octets -> Mdb_ext.Field.string field
-       | Caqti_type.Pdate ->
+       | Bool -> Mdb_ext.Field.bool field
+       | Int -> Mdb_ext.Field.int field
+       | Int16 -> Mdb_ext.Field.int field
+       | Int32 -> Mdb_ext.Field.int32 field
+       | Int64 -> Mdb_ext.Field.int64 field
+       | Float -> Mdb.Field.float field
+       | String -> Mdb_ext.Field.string field
+       | Enum _ -> Mdb_ext.Field.string field
+       | Octets -> Mdb_ext.Field.string field
+       | Pdate ->
           let t = Mdb.Field.time field in
           let date = Mdb.Time.(year t, month t, day t) in
           (match Ptime.of_date date with
            | None -> failwith "Ptime.of_date"
            | Some t -> t)
-       | Caqti_type.Ptime ->
+       | Ptime ->
           let t = Mdb.Field.time field in
           let date = Mdb.Time.(year t, month t, day t) in
           let time = Mdb.Time.(hour t, minute t, second t) in
@@ -243,22 +240,19 @@ struct
               (match Ptime.add_span t tss with
                | None -> failwith "Ptime.of_date_time: Overflow."
                | Some t' -> t'))
-       | Caqti_type.Ptime_span ->
+       | Ptime_span ->
           let t = Mdb_ext.Field.float field in
           (match Ptime.Span.of_float_s t with
            | None -> failwith "Ptime.Span.of_float_s"
            | Some t -> t)
-       | field_type ->
-          (match Caqti_type.Field.coding driver_info field_type with
-           | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
-           | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-              let y = decode_field ~uri rep field in
-              (match decode y with
-               | Ok z -> z
-               | Error msg ->
-                  let msg = Caqti_error.Msg msg in
-                  let typ = Caqti_type.field field_type in
-                  Request_utils.raise_decode_rejected ~uri ~typ msg))
+       | Custom {rep; decode; _} ->
+          let y = decode_field ~uri rep field in
+          (match decode y with
+           | Ok z -> z
+           | Error msg ->
+              let msg = Caqti_error.Msg msg in
+              let typ = Caqti_type.field field_type in
+              Request_utils.raise_decode_rejected ~uri ~typ msg)
       with
        | Failure _ ->
           let typename = Mdb_ext.Field.typename field in

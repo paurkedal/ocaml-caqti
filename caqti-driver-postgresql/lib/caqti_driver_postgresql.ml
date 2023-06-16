@@ -179,26 +179,21 @@ let timestamp_oid = Pg.oid_of_ftype Pg.TIMESTAMPTZ
 let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
 let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 
-let init_param_types ~uri ~type_oid_cache =
+let init_param_types ~type_oid_cache =
   let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
-   | Caqti_type.Bool -> Ok bool_oid
-   | Caqti_type.Int -> Ok int8_oid
-   | Caqti_type.Int16 -> Ok int2_oid
-   | Caqti_type.Int32 -> Ok int4_oid
-   | Caqti_type.Int64 -> Ok int8_oid
-   | Caqti_type.Float -> Ok float8_oid
-   | Caqti_type.String -> Ok unknown_oid
-   | Caqti_type.Octets -> Ok bytea_oid
-   | Caqti_type.Pdate -> Ok date_oid
-   | Caqti_type.Ptime -> Ok timestamp_oid
-   | Caqti_type.Ptime_span -> Ok interval_oid
-   | Caqti_type.Enum name -> Ok (Hashtbl.find type_oid_cache name)
-   | field_type ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None ->
-          Error (Caqti_error.encode_missing ~uri ~field_type ())
-       | Some (Caqti_type.Field.Coding {rep; _}) ->
-          oid_of_field_type rep)
+   | Bool -> Ok bool_oid
+   | Int -> Ok int8_oid
+   | Int16 -> Ok int2_oid
+   | Int32 -> Ok int4_oid
+   | Int64 -> Ok int8_oid
+   | Float -> Ok float8_oid
+   | String -> Ok unknown_oid
+   | Octets -> Ok bytea_oid
+   | Pdate -> Ok date_oid
+   | Ptime -> Ok timestamp_oid
+   | Ptime_span -> Ok interval_oid
+   | Enum name -> Ok (Hashtbl.find type_oid_cache name)
+   | Custom {rep; _} -> oid_of_field_type rep
   in
   let rec recurse : type a. _ -> _ -> a Caqti_type.t -> _ -> _
       = fun pt bp -> function
@@ -237,28 +232,25 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
       : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> string =
     fun ~uri field_type x ->
     (match field_type with
-     | Caqti_type.Bool -> Pg_ext.pgstring_of_bool x
-     | Caqti_type.Int -> string_of_int x
-     | Caqti_type.Int16 -> string_of_int x
-     | Caqti_type.Int32 -> Int32.to_string x
-     | Caqti_type.Int64 -> Int64.to_string x
-     | Caqti_type.Float -> sprintf "%.17g" x
-     | Caqti_type.String -> encode_string x
-     | Caqti_type.Enum _ -> encode_string x
-     | Caqti_type.Octets -> encode_octets x
-     | Caqti_type.Pdate -> Conv.iso8601_of_pdate x
-     | Caqti_type.Ptime -> Pg_ext.pgstring_of_pdate x
-     | Caqti_type.Ptime_span -> Pg_ext.pgstring_of_ptime_span x
-     | _ ->
-        (match Caqti_type.Field.coding driver_info field_type with
-         | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
-         | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
-            (match encode x with
-             | Ok y -> encode_field ~uri rep y
-             | Error msg ->
-                let msg = Caqti_error.Msg msg in
-                let typ = Caqti_type.field field_type in
-                Request_utils.raise_encode_rejected ~uri ~typ msg)))
+     | Bool -> Pg_ext.pgstring_of_bool x
+     | Int -> string_of_int x
+     | Int16 -> string_of_int x
+     | Int32 -> Int32.to_string x
+     | Int64 -> Int64.to_string x
+     | Float -> sprintf "%.17g" x
+     | String -> encode_string x
+     | Enum _ -> encode_string x
+     | Octets -> encode_octets x
+     | Pdate -> Conv.iso8601_of_pdate x
+     | Ptime -> Pg_ext.pgstring_of_pdate x
+     | Ptime_span -> Pg_ext.pgstring_of_ptime_span x
+     | Custom {rep; encode; _} ->
+        (match encode x with
+         | Ok y -> encode_field ~uri rep y
+         | Error msg ->
+            let msg = Caqti_error.Msg msg in
+            let typ = Caqti_type.field field_type in
+            Request_utils.raise_encode_rejected ~uri ~typ msg))
 
   let encode ~uri params t x =
     let write_value ~uri ft fv i =
@@ -297,29 +289,26 @@ let rec decode_field
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
-   | Caqti_type.Bool -> wrap_conv_exn Pg_ext.bool_of_pgstring s
-   | Caqti_type.Int -> wrap_conv_exn int_of_string s
-   | Caqti_type.Int16 -> wrap_conv_exn int_of_string s
-   | Caqti_type.Int32 -> wrap_conv_exn Int32.of_string s
-   | Caqti_type.Int64 -> wrap_conv_exn Int64.of_string s
-   | Caqti_type.Float -> wrap_conv_exn float_of_string s
-   | Caqti_type.String -> s
-   | Caqti_type.Enum _ -> s
-   | Caqti_type.Octets -> Postgresql.unescape_bytea s
-   | Caqti_type.Pdate -> wrap_conv_res Conv.pdate_of_iso8601 s
-   | Caqti_type.Ptime -> wrap_conv_res Conv.ptime_of_rfc3339_utc s
-   | Caqti_type.Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
-   | _ ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
-       | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          let y = decode_field ~uri rep s in
-          (match decode y with
-           | Ok z -> z
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_decode_rejected ~uri ~typ msg)))
+   | Bool -> wrap_conv_exn Pg_ext.bool_of_pgstring s
+   | Int -> wrap_conv_exn int_of_string s
+   | Int16 -> wrap_conv_exn int_of_string s
+   | Int32 -> wrap_conv_exn Int32.of_string s
+   | Int64 -> wrap_conv_exn Int64.of_string s
+   | Float -> wrap_conv_exn float_of_string s
+   | String -> s
+   | Enum _ -> s
+   | Octets -> Postgresql.unescape_bytea s
+   | Pdate -> wrap_conv_res Conv.pdate_of_iso8601 s
+   | Ptime -> wrap_conv_res Conv.ptime_of_rfc3339_utc s
+   | Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
+   | Custom {rep; decode; _} ->
+      let y = decode_field ~uri rep s in
+      (match decode y with
+       | Ok z -> z
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Request_utils.raise_decode_rejected ~uri ~typ msg))
 
 let decode_row ~uri row_type =
   let read_value ~uri ft (resp, i, j) =
@@ -771,8 +760,7 @@ struct
           let param_length = Caqti_type.length param_type in
           let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
-          init_param_types
-              ~uri ~type_oid_cache param_types binary_params param_type
+          init_param_types ~type_oid_cache param_types binary_params param_type
             |> Fiber.return >>=? fun () ->
           let params = Array.make param_length Pg.null in
           (match Param_encoder.encode ~uri params param_type param with
@@ -792,7 +780,7 @@ struct
                 let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
                 init_param_types
-                    ~uri ~type_oid_cache param_types binary_params param_type
+                    ~type_oid_cache param_types binary_params param_type
                   |>? fun () ->
                 Ok {query; param_length; param_types; binary_params;
                     single_row_mode}
@@ -823,7 +811,7 @@ struct
 
     let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
      | Caqti_type.Unit -> Fiber.return (Ok ())
-     | Caqti_type.Field (Caqti_type.Enum name as field_type)
+     | Caqti_type.Field (Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
         call' ~f:Response.find_opt Q.type_oid name >>=
         (function

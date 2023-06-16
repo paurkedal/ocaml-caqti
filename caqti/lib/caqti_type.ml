@@ -17,47 +17,29 @@
 
 exception Reject of string
 
-type _ field = ..
-
-type _ field +=
-  | Bool : bool field
-  | Int : int field
-  | Int16 : int field
-  | Int32 : int32 field
-  | Int64 : int64 field
-  | Float : float field
-  | String : string field
-  | Octets : string field
-  | Pdate : Ptime.t field
-  | Ptime : Ptime.t field
-  | Ptime_span : Ptime.span field
-  | Enum : string -> string field
-
 module Field = struct
 
-  type 'a t = 'a field = ..
+  type 'a t =
+    | Bool : bool t
+    | Int : int t
+    | Int16 : int t
+    | Int32 : int32 t
+    | Int64 : int64 t
+    | Float : float t
+    | String : string t
+    | Octets : string t
+    | Pdate : Ptime.t t
+    | Ptime : Ptime.t t
+    | Ptime_span : Ptime.span t
+    | Enum : string -> string t
+    | Custom : {
+        name: string;
+        rep: 'b t;
+        encode: 'a -> ('b, string) result;
+        decode: 'b -> ('a, string) result;
+      } -> 'a t
 
-  type _ coding = Coding : {
-    rep: 'b t;
-    encode: 'a -> ('b, string) result;
-    decode: 'b -> ('a, string) result;
-  } -> 'a coding
-
-  type get_coding = {get_coding: 'a. Caqti_driver_info.t -> 'a t -> 'a coding}
-
-  let coding_ht : (extension_constructor, get_coding) Hashtbl.t =
-    Hashtbl.create 11
-
-  let define_coding ft get =
-    let ec = Obj.Extension_constructor.of_val ft in
-    Hashtbl.add coding_ht ec get
-
-  let coding di ft =
-    let ec = Obj.Extension_constructor.of_val ft in
-    try Some ((Hashtbl.find coding_ht ec).get_coding di ft)
-    with Not_found -> None
-
-  let to_string : type a. a field -> string = function
+  let to_string : type a. a t -> string = function
    | Bool -> "bool"
    | Int -> "int"
    | Int16 -> "int16"
@@ -70,13 +52,13 @@ module Field = struct
    | Ptime -> "ptime"
    | Ptime_span -> "ptime_span"
    | Enum name -> name
-   | ft -> Obj.Extension_constructor.name (Obj.Extension_constructor.of_val ft)
+   | Custom {name; _} -> name
 
   let pp ppf ft = Format.pp_print_string ppf (to_string ft)
 
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
 
-  let rec pp_value : type a. _ -> a field * a -> unit = fun ppf -> function
+  let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
    | Bool, x -> Format.pp_print_bool ppf x
    | Int, x -> Format.pp_print_int ppf x
    | Int16, x -> Format.pp_print_int ppf x
@@ -91,24 +73,15 @@ module Field = struct
    | Ptime, x -> pp_ptime ppf x
    | Ptime_span, x -> Ptime.Span.pp ppf x
    | Enum _, x -> Format.pp_print_string ppf x
-   | (ft, x) ->
-      (match coding Caqti_driver_info.dummy ft with
-       | Some (Coding {rep; encode; _}) ->
-          (match encode x with
-           | Ok y -> pp_value ppf (rep, y)
-           | Error _ ->
-              Format.fprintf ppf "<%s,invalid>"
-                (Obj.Extension_constructor.name
-                  (Obj.Extension_constructor.of_val ft)))
-       | None ->
-          Format.fprintf ppf "<%s>"
-            (Obj.Extension_constructor.name
-              (Obj.Extension_constructor.of_val ft)))
+   | Custom {name; rep; encode; _}, x ->
+      (match encode x with
+       | Ok y -> pp_value ppf (rep, y)
+       | Error _ -> Format.fprintf ppf "<%s,invalid>" name)
 end
 
 type _ t =
   | Unit : unit t
-  | Field : 'a field -> 'a t
+  | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t

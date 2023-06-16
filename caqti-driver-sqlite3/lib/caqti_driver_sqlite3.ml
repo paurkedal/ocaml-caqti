@@ -105,35 +105,31 @@ let rec data_of_value
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
   fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
-   | Caqti_type.Int    -> Sqlite3.Data.INT (Int64.of_int x)
-   | Caqti_type.Int16  -> Sqlite3.Data.INT (Int64.of_int x)
-   | Caqti_type.Int32  -> Sqlite3.Data.INT (Int64.of_int32 x)
-   | Caqti_type.Int64  -> Sqlite3.Data.INT x
-   | Caqti_type.Float  -> Sqlite3.Data.FLOAT x
-   | Caqti_type.String -> Sqlite3.Data.TEXT x
-   | Caqti_type.Enum _ -> Sqlite3.Data.TEXT x
-   | Caqti_type.Octets -> Sqlite3.Data.BLOB x
-   | Caqti_type.Pdate -> Sqlite3.Data.TEXT (Conv.iso8601_of_pdate x)
-   | Caqti_type.Ptime ->
+   | Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
+   | Int    -> Sqlite3.Data.INT (Int64.of_int x)
+   | Int16  -> Sqlite3.Data.INT (Int64.of_int x)
+   | Int32  -> Sqlite3.Data.INT (Int64.of_int32 x)
+   | Int64  -> Sqlite3.Data.INT x
+   | Float  -> Sqlite3.Data.FLOAT x
+   | String -> Sqlite3.Data.TEXT x
+   | Enum _ -> Sqlite3.Data.TEXT x
+   | Octets -> Sqlite3.Data.BLOB x
+   | Pdate -> Sqlite3.Data.TEXT (Conv.iso8601_of_pdate x)
+   | Ptime ->
       (* This is the suggested time representation according to
          https://sqlite.org/lang_datefunc.html, and is consistent with
          current_timestamp.  Three subsecond digits are significant. *)
       let s = Ptime.to_rfc3339 ~space:true ~frac_s:3 ~tz_offset_s:0 x in
       Sqlite3.Data.TEXT (String.sub s 0 23)
-   | Caqti_type.Ptime_span ->
+   | Ptime_span ->
       Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x)
-   | _ ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None ->
-          Request_utils.raise_encode_missing ~uri ~field_type ()
-       | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
-          (match encode x with
-           | Ok y -> data_of_value ~uri rep y
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_encode_rejected ~uri ~typ msg)))
+   | Custom {rep; encode; _} ->
+      (match encode x with
+       | Ok y -> data_of_value ~uri rep y
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Request_utils.raise_encode_rejected ~uri ~typ msg))
 
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
 let rec value_of_data
@@ -148,24 +144,43 @@ let rec value_of_data
         let typ = Caqti_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
+  let cannot_convert_to ft =
+    let msg =
+      Printf.sprintf "Cannot convert %s to %s."
+        (Sqlite3.Data.to_string_debug data) ft
+    in
+    let typ = Caqti_type.field field_type in
+    Request_utils.raise_decode_rejected ~uri ~typ (Caqti_error.Msg msg)
+  in
   (match field_type, data with
-   | Caqti_type.Bool, Sqlite3.Data.INT y -> y <> 0L
-   | Caqti_type.Int, Sqlite3.Data.INT y -> Int64.to_int y
-   | Caqti_type.Int32, Sqlite3.Data.INT y -> Int64.to_int32 y
-   | Caqti_type.Int64, Sqlite3.Data.INT y -> y
-   | Caqti_type.Float, Sqlite3.Data.FLOAT y -> y
-   | Caqti_type.Float, Sqlite3.Data.INT y -> Int64.to_float y
-   | Caqti_type.String, Sqlite3.Data.TEXT y -> y
-   | Caqti_type.Enum _, Sqlite3.Data.TEXT y -> y
-   | Caqti_type.Octets, Sqlite3.Data.BLOB y -> y
-   | Caqti_type.Pdate as field_type, Sqlite3.Data.TEXT y ->
+   | Bool, Sqlite3.Data.INT y -> y <> 0L
+   | Bool, _ -> cannot_convert_to "bool"
+   | Int, Sqlite3.Data.INT y -> Int64.to_int y
+   | Int, _ -> cannot_convert_to "int"
+   | Int16, Sqlite3.Data.INT y -> Int64.to_int y
+   | Int16, _ -> cannot_convert_to "int"
+   | Int32, Sqlite3.Data.INT y -> Int64.to_int32 y
+   | Int32, _ -> cannot_convert_to "int32"
+   | Int64, Sqlite3.Data.INT y -> y
+   | Int64, _ -> cannot_convert_to "int64"
+   | Float, Sqlite3.Data.FLOAT y -> y
+   | Float, Sqlite3.Data.INT y -> Int64.to_float y
+   | Float, _ -> cannot_convert_to "float"
+   | String, Sqlite3.Data.TEXT y -> y
+   | String, _ -> cannot_convert_to "string"
+   | Enum _, Sqlite3.Data.TEXT y -> y
+   | Enum _, _ -> cannot_convert_to "enum"
+   | Octets, Sqlite3.Data.BLOB y -> y
+   | Octets, _ -> cannot_convert_to "octets"
+   | Pdate as field_type, Sqlite3.Data.TEXT y ->
       (match Conv.pdate_of_iso8601 y with
        | Ok y -> y
        | Error msg ->
           let msg = Caqti_error.Msg msg in
           let typ = Caqti_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
-   | Caqti_type.Ptime as field_type, Sqlite3.Data.TEXT y ->
+   | Pdate, _ -> cannot_convert_to "date"
+   | Ptime as field_type, Sqlite3.Data.TEXT y ->
       (* TODO: Improve parsing. *)
       (match Conv.ptime_of_rfc3339_utc y with
        | Ok y -> y
@@ -173,21 +188,20 @@ let rec value_of_data
           let msg = Caqti_error.Msg msg in
           let typ = Caqti_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
-   | Caqti_type.Ptime_span, Sqlite3.Data.FLOAT x ->
+   | Ptime, _ -> cannot_convert_to "time"
+   | Ptime_span, Sqlite3.Data.FLOAT x ->
       to_ptime_span x
-   | Caqti_type.Ptime_span, Sqlite3.Data.INT x ->
+   | Ptime_span, Sqlite3.Data.INT x ->
       to_ptime_span (Int64.to_float x)
-   | field_type, d ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
-       | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          let y = value_of_data ~uri rep d in
-          (match decode y with
-           | Ok y -> y
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_decode_rejected ~uri ~typ msg)))
+   | Ptime_span, _ -> cannot_convert_to "time span"
+   | Custom {rep; decode; _}, d ->
+      let y = value_of_data ~uri rep d in
+      (match decode y with
+       | Ok y -> y
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Request_utils.raise_decode_rejected ~uri ~typ msg))
 
 let bind_quotes ~uri ~query stmt oq =
   let aux j x =

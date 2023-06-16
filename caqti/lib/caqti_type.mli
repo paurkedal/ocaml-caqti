@@ -26,44 +26,30 @@ exception Reject of string
 
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
-  type 'a t = ..
-  (** An extensible type describing primitive SQL types and types which can be
-      converted to and from such types.  When adding a new constructor, register
-      the coding with {!Field.define_coding} if possible.  Otherwise, the type
-      will only work with drivers which handle it themselves.  The shipped
-      drivers only handle the constructors listed here. *)
-
-  type _ coding = Coding : {
-    rep: 'b t;
-    encode: 'a -> ('b, string) result;
-    decode: 'b -> ('a, string) result;
-  } -> 'a coding
-
-  type get_coding = {get_coding: 'a. Caqti_driver_info.t -> 'a t -> 'a coding}
-
-  val define_coding : 'a t -> get_coding -> unit
-
-  val coding : Caqti_driver_info.t -> 'a t -> 'a coding option
+  type 'a t =
+    | Bool : bool t
+    | Int : int t
+    | Int16 : int t
+    | Int32 : int32 t
+    | Int64 : int64 t
+    | Float : float t
+    | String : string t
+    | Octets : string t
+    | Pdate : Ptime.t t
+    | Ptime : Ptime.t t
+    | Ptime_span : Ptime.span t
+    | Enum : string -> string t
+    | Custom : {
+        name: string;
+        rep: 'b t;
+        encode: ('a -> ('b, string) result);
+        decode: ('b -> ('a, string) result);
+      } -> 'a t
 
   val to_string : 'a t -> string
 
   val pp : Format.formatter -> 'a t -> unit
 end
-
-(** Primitive field types handled by the shipped drivers. *)
-type _ Field.t +=
-  | Bool : bool Field.t
-  | Int : int Field.t
-  | Int16 : int Field.t
-  | Int32 : int32 Field.t
-  | Int64 : int64 Field.t
-  | Float : float Field.t
-  | String : string Field.t
-  | Octets : string Field.t
-  | Pdate : Ptime.t Field.t
-  | Ptime : Ptime.t Field.t
-  | Ptime_span : Ptime.span Field.t
-  | Enum : string -> string Field.t
 
 (** {2:row_types Row Types} *)
 

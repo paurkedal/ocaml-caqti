@@ -15,36 +15,32 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type _ Caqti_type.Field.t +=
-  | Cdate : CalendarLib.Date.t Caqti_type.Field.t
-  | Ctime : CalendarLib.Calendar.t Caqti_type.Field.t
+open CalendarLib
 
-let () =
-  let open Caqti_type.Field in
-  let open CalendarLib in
-  let get_coding : type a. _ -> a t -> a coding = fun _ -> function
-   | Cdate ->
-      let encode date =
-        (match Ptime.of_float_s (Date.to_unixfloat date) with
-         | None -> Error "Ptime rejected POSIX date float from CalendarLib."
-         | Some t -> Ok t) in
-      let decode pdate =
-        (try Ok (Date.from_unixfloat (Ptime.to_float_s pdate)) with
-         | _ -> Error "CalendarLib rejected POSIX date float from Ptime.") in
-      Coding {rep = Caqti_type.Pdate; encode; decode}
-   | Ctime ->
-      let encode time =
-        (match Ptime.of_float_s (Calendar.to_unixfloat time) with
-         | Some t -> Ok t
-         | None -> Error "Failed to convert Calendar.t to Ptime.t") in
-      let decode ptime =
-        (try Ok (Calendar.from_unixfloat (Ptime.to_float_s ptime)) with
-         | _ -> Error "CalendarLib rejected POSIX time float from Ptime.") in
-      Coding {rep = Caqti_type.Ptime; encode; decode}
-   | _ -> assert false
+let cdate =
+  let name = "CalendarLib.Date.t" in
+  let rep = Caqti_type.Field.Pdate in
+  let encode date =
+    (match Ptime.of_float_s (Date.to_unixfloat date) with
+     | None -> Error "Ptime rejected POSIX date float from CalendarLib."
+     | Some t -> Ok t)
   in
-  define_coding Cdate {get_coding};
-  define_coding Ctime {get_coding}
+  let decode pdate =
+    (try Ok (Date.from_unixfloat (Ptime.to_float_s pdate)) with
+     | _ -> Error "CalendarLib rejected POSIX date float from Ptime.")
+  in
+  Caqti_type.field (Caqti_type.Field.Custom {name; rep; encode; decode})
 
-let cdate = Caqti_type.field Cdate
-let ctime = Caqti_type.field Ctime
+let ctime =
+  let name = "CalendarLib.Calendar.t" in
+  let rep = Caqti_type.Field.Ptime in
+  let encode time =
+    (match Ptime.of_float_s (Calendar.to_unixfloat time) with
+     | Some t -> Ok t
+     | None -> Error "Failed to convert Calendar.t to Ptime.t")
+  in
+  let decode ptime =
+    (try Ok (Calendar.from_unixfloat (Ptime.to_float_s ptime)) with
+     | _ -> Error "CalendarLib rejected POSIX time float from Ptime.")
+  in
+  Caqti_type.field (Caqti_type.Field.Custom {name; rep; encode; decode})

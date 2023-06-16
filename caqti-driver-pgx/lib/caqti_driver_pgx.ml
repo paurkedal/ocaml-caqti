@@ -45,20 +45,20 @@ let driver_info =
     ~can_transact:true
     ()
 
-let pg_type_name : type a. a Caqti_type.Field.t -> string = function
- | Caqti_type.Bool -> "bool"
- | Caqti_type.Int -> "int8"
- | Caqti_type.Int16 -> "int2"
- | Caqti_type.Int32 -> "int4"
- | Caqti_type.Int64 -> "int8"
- | Caqti_type.Float -> "float8"
- | Caqti_type.String -> "text"
- | Caqti_type.Octets -> "bytea"
- | Caqti_type.Pdate -> "date"
- | Caqti_type.Ptime -> "timestamptz"
- | Caqti_type.Ptime_span -> "interval"
- | Caqti_type.Enum name -> name
- | _ -> "unknown"
+let rec pg_type_name : type a. a Caqti_type.Field.t -> string = function
+ | Bool -> "bool"
+ | Int -> "int8"
+ | Int16 -> "int2"
+ | Int32 -> "int4"
+ | Int64 -> "int8"
+ | Float -> "float8"
+ | String -> "text"
+ | Octets -> "bytea"
+ | Pdate -> "date"
+ | Ptime -> "timestamptz"
+ | Ptime_span -> "interval"
+ | Enum name -> name
+ | Custom {rep; _} -> pg_type_name rep
 
 let query_string ~env templ =
   let templ = Caqti_query.expand ~final:true env templ in
@@ -86,28 +86,25 @@ let rec encode_field
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Pgx.Value.t
     = fun ~uri field_type x ->
   (match field_type with
-   | Caqti_type.Bool -> Pgx.Value.of_bool x
-   | Caqti_type.Int -> Pgx.Value.of_int x
-   | Caqti_type.Int16 -> Pgx.Value.of_int x
-   | Caqti_type.Int32 -> Pgx.Value.of_int32 x
-   | Caqti_type.Int64 -> Pgx.Value.of_int64 x
-   | Caqti_type.Float -> Pgx.Value.of_float x
-   | Caqti_type.String -> Pgx.Value.of_string x
-   | Caqti_type.Enum _ -> Pgx.Value.of_string x
-   | Caqti_type.Octets -> Pgx.Value.of_binary x
-   | Caqti_type.Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
-   | Caqti_type.Ptime -> Pgx.Value.of_string (pgstring_of_pdate x)
-   | Caqti_type.Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x)
-   | _ ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Request_utils.raise_encode_missing ~uri ~field_type ()
-       | Some (Caqti_type.Field.Coding {rep; encode; _}) ->
-          (match encode x with
-           | Ok y -> encode_field ~uri rep y
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_encode_rejected ~uri ~typ msg)))
+   | Bool -> Pgx.Value.of_bool x
+   | Int -> Pgx.Value.of_int x
+   | Int16 -> Pgx.Value.of_int x
+   | Int32 -> Pgx.Value.of_int32 x
+   | Int64 -> Pgx.Value.of_int64 x
+   | Float -> Pgx.Value.of_float x
+   | String -> Pgx.Value.of_string x
+   | Enum _ -> Pgx.Value.of_string x
+   | Octets -> Pgx.Value.of_binary x
+   | Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
+   | Ptime -> Pgx.Value.of_string (pgstring_of_pdate x)
+   | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x)
+   | Custom {rep; encode; _} ->
+      (match encode x with
+       | Ok y -> encode_field ~uri rep y
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Request_utils.raise_encode_rejected ~uri ~typ msg))
 
 let encode_param ~uri t param =
   let write_value ~uri ft fv acc = encode_field ~uri ft fv :: acc in
@@ -138,35 +135,32 @@ let rec decode_field
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
-   | Caqti_type.Bool -> wrap_conv_exn Pgx.Value.to_bool_exn v
-   | Caqti_type.Int -> wrap_conv_exn Pgx.Value.to_int_exn v
-   | Caqti_type.Int16 -> wrap_conv_exn Pgx.Value.to_int_exn v
-   | Caqti_type.Int32 -> wrap_conv_exn Pgx.Value.to_int32_exn v
-   | Caqti_type.Int64 -> wrap_conv_exn Pgx.Value.to_int64_exn v
-   | Caqti_type.Float -> wrap_conv_exn Pgx.Value.to_float_exn v
-   | Caqti_type.String -> wrap_conv_exn Pgx.Value.to_string_exn v
-   | Caqti_type.Enum _ -> wrap_conv_exn Pgx.Value.to_string_exn v
-   | Caqti_type.Octets -> wrap_conv_exn Pgx.Value.to_binary_exn v
-   | Caqti_type.Pdate ->
+   | Bool -> wrap_conv_exn Pgx.Value.to_bool_exn v
+   | Int -> wrap_conv_exn Pgx.Value.to_int_exn v
+   | Int16 -> wrap_conv_exn Pgx.Value.to_int_exn v
+   | Int32 -> wrap_conv_exn Pgx.Value.to_int32_exn v
+   | Int64 -> wrap_conv_exn Pgx.Value.to_int64_exn v
+   | Float -> wrap_conv_exn Pgx.Value.to_float_exn v
+   | String -> wrap_conv_exn Pgx.Value.to_string_exn v
+   | Enum _ -> wrap_conv_exn Pgx.Value.to_string_exn v
+   | Octets -> wrap_conv_exn Pgx.Value.to_binary_exn v
+   | Pdate ->
       v |> wrap_conv_exn Pgx.Value.to_string_exn
         |> wrap_conv_res Conv.pdate_of_iso8601
-   | Caqti_type.Ptime ->
+   | Ptime ->
       v |> wrap_conv_exn Pgx.Value.to_string_exn
         |> wrap_conv_res Conv.ptime_of_rfc3339_utc
-   | Caqti_type.Ptime_span ->
+   | Ptime_span ->
       v |> wrap_conv_exn Pgx.Value.to_string_exn
         |> wrap_conv_res ptime_span_of_pgstring
-   | _ ->
-      (match Caqti_type.Field.coding driver_info field_type with
-       | None -> Request_utils.raise_decode_missing ~uri ~field_type ()
-       | Some (Caqti_type.Field.Coding {rep; decode; _}) ->
-          let y = decode_field ~uri rep v in
-          (match decode y with
-           | Ok y -> y
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_decode_rejected ~uri ~typ msg)))
+   | Custom {rep; decode; _} ->
+      let y = decode_field ~uri rep v in
+      (match decode y with
+       | Ok y -> y
+       | Error msg ->
+          let msg = Caqti_error.Msg msg in
+          let typ = Caqti_type.field field_type in
+          Request_utils.raise_decode_rejected ~uri ~typ msg))
 
 let decode_row ~uri row_type =
   let read_value ~uri ft = function
@@ -552,7 +546,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         let templ = Caqti_request.query req driver_info in
         let query, rev_quotes = query_string ~env:env' templ in
         let*? param_types = type_oids (Caqti_request.param_type req) in
-        let+? string_oid = field_type_oid Caqti_type.String in
+        let+? string_oid = field_type_oid Caqti_type.Field.String in
         let quote_types = List.rev_map (fun _ -> string_oid) rev_quotes in
         let types = List.rev_append quote_types param_types in
         (query, types, rev_quotes)

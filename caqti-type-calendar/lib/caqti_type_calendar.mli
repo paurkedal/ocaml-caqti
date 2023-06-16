@@ -17,9 +17,5 @@
 
 (** Caqti date and time field type based on the calendar package. *)
 
-type _ Caqti_type.Field.t +=
-  | Cdate : CalendarLib.Date.t Caqti_type.Field.t
-  | Ctime : CalendarLib.Calendar.t Caqti_type.Field.t
-
 val cdate : CalendarLib.Date.t Caqti_type.t
 val ctime : CalendarLib.Calendar.t Caqti_type.t

@@ -108,11 +108,11 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     loop prod;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Annot (`Redacted, t) ->
-    Format.pp_print_string ppf "redacted ";
-    pp_at 2 ppf t
+    pp_at 1 ppf t;
+    Format.pp_print_string ppf " redacted"
 
-let pp ppf = pp_at 1 ppf
-let pp_any ppf (Any t) = pp_at 1 ppf t
+let pp ppf = pp_at 0 ppf
+let pp_any ppf (Any t) = pp_at 0 ppf t
 
 let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
  | Field ft, fv -> Field.pp_value ppf (ft, fv)

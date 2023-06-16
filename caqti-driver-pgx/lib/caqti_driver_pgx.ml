@@ -45,7 +45,7 @@ let driver_info =
     ~can_transact:true
     ()
 
-let rec pg_type_name : type a. a Caqti_type.Field.t -> string = function
+let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Bool -> "bool"
  | Int -> "int8"
  | Int16 -> "int2"
@@ -58,7 +58,6 @@ let rec pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Ptime -> "timestamptz"
  | Ptime_span -> "interval"
  | Enum name -> name
- | Custom {rep; _} -> pg_type_name rep
 
 let query_string ~env templ =
   let templ = Caqti_query.expand ~final:true env templ in
@@ -82,9 +81,9 @@ let query_string ~env templ =
   let _jQ = write_query_string templ 1 in
   (Buffer.contents buf, rev_quotes)
 
-let rec encode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Pgx.Value.t
-    = fun ~uri field_type x ->
+let encode_field
+    : type a. a Caqti_type.Field.t -> a -> Pgx.Value.t
+    = fun field_type x ->
   (match field_type with
    | Bool -> Pgx.Value.of_bool x
    | Int -> Pgx.Value.of_int x
@@ -97,17 +96,10 @@ let rec encode_field
    | Octets -> Pgx.Value.of_binary x
    | Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
    | Ptime -> Pgx.Value.of_string (pgstring_of_pdate x)
-   | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x)
-   | Custom {rep; encode; _} ->
-      (match encode x with
-       | Ok y -> encode_field ~uri rep y
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Request_utils.raise_encode_rejected ~uri ~typ msg))
+   | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
 
 let encode_param ~uri t param =
-  let write_value ~uri ft fv acc = encode_field ~uri ft fv :: acc in
+  let write_value ~uri:_ ft fv acc = encode_field ft fv :: acc in
   let write_null ~uri:_ _ acc = Pgx.Value.null :: acc in
   try
     Request_utils.encode_param ~uri {write_value; write_null} t param []
@@ -115,7 +107,7 @@ let encode_param ~uri t param =
   with Caqti_error.Exn (#Caqti_error.call as err) ->
     Error err
 
-let rec decode_field
+let decode_field
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> a
     = fun ~uri field_type v ->
   let wrap_conv_exn f s =
@@ -152,15 +144,7 @@ let rec decode_field
         |> wrap_conv_res Conv.ptime_of_rfc3339_utc
    | Ptime_span ->
       v |> wrap_conv_exn Pgx.Value.to_string_exn
-        |> wrap_conv_res ptime_span_of_pgstring
-   | Custom {rep; decode; _} ->
-      let y = decode_field ~uri rep v in
-      (match decode y with
-       | Ok y -> y
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Request_utils.raise_decode_rejected ~uri ~typ msg))
+        |> wrap_conv_res ptime_span_of_pgstring)
 
 let decode_row ~uri row_type =
   let read_value ~uri ft = function

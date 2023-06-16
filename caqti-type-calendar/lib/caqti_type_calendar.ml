@@ -17,30 +17,31 @@
 
 open CalendarLib
 
+let msg_cdate_encode = "Failed to convert CalendarLib.Date.t to Ptime.t"
+let msg_cdate_decode = "Failed to convert Ptime.t to CalendarLib.Date.t"
+let msg_ctime_encode = "Failed to convert CalendarLib.Calendar.t to Ptime.t"
+let msg_ctime_decode = "Failed to convert Ptime.t to CalendarLib.Calendar.t"
+
 let cdate =
-  let name = "CalendarLib.Date.t" in
-  let rep = Caqti_type.Field.Pdate in
   let encode date =
     (match Ptime.of_float_s (Date.to_unixfloat date) with
-     | None -> Error "Ptime rejected POSIX date float from CalendarLib."
-     | Some t -> Ok t)
+     | Some t -> t
+     | None -> raise (Caqti_type.Reject msg_cdate_encode))
   in
   let decode pdate =
-    (try Ok (Date.from_unixfloat (Ptime.to_float_s pdate)) with
-     | _ -> Error "CalendarLib rejected POSIX date float from Ptime.")
+    (try Date.from_unixfloat (Ptime.to_float_s pdate) with
+     | Unix.Unix_error _ -> raise (Caqti_type.Reject msg_cdate_decode))
   in
-  Caqti_type.field (Caqti_type.Field.Custom {name; rep; encode; decode})
+  Caqti_type.(product decode @@ proj pdate encode @@ proj_end)
 
 let ctime =
-  let name = "CalendarLib.Calendar.t" in
-  let rep = Caqti_type.Field.Ptime in
   let encode time =
     (match Ptime.of_float_s (Calendar.to_unixfloat time) with
-     | Some t -> Ok t
-     | None -> Error "Failed to convert Calendar.t to Ptime.t")
+     | Some t -> t
+     | None -> raise (Caqti_type.Reject msg_ctime_encode))
   in
   let decode ptime =
-    (try Ok (Calendar.from_unixfloat (Ptime.to_float_s ptime)) with
-     | _ -> Error "CalendarLib rejected POSIX time float from Ptime.")
+    (try Calendar.from_unixfloat (Ptime.to_float_s ptime) with
+     | Unix.Unix_error _ -> raise (Caqti_type.Reject msg_ctime_decode))
   in
-  Caqti_type.field (Caqti_type.Field.Custom {name; rep; encode; decode})
+  Caqti_type.(product decode @@ proj ptime encode @@ proj_end)

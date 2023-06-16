@@ -101,7 +101,7 @@ let query_string q =
   loop q;
   (quotes, Buffer.contents buf)
 
-let rec data_of_value
+let data_of_value
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
   fun ~uri field_type x ->
   (match field_type with
@@ -122,17 +122,10 @@ let rec data_of_value
       let s = Ptime.to_rfc3339 ~space:true ~frac_s:3 ~tz_offset_s:0 x in
       Sqlite3.Data.TEXT (String.sub s 0 23)
    | Ptime_span ->
-      Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x)
-   | Custom {rep; encode; _} ->
-      (match encode x with
-       | Ok y -> data_of_value ~uri rep y
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Request_utils.raise_encode_rejected ~uri ~typ msg))
+      Sqlite3.Data.FLOAT (Ptime.Span.to_float_s x))
 
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
-let rec value_of_data
+let value_of_data
     : type a. uri: Uri.t ->
       a Caqti_type.Field.t -> Sqlite3.Data.t -> a =
   fun ~uri field_type data ->
@@ -193,15 +186,7 @@ let rec value_of_data
       to_ptime_span x
    | Ptime_span, Sqlite3.Data.INT x ->
       to_ptime_span (Int64.to_float x)
-   | Ptime_span, _ -> cannot_convert_to "time span"
-   | Custom {rep; decode; _}, d ->
-      let y = value_of_data ~uri rep d in
-      (match decode y with
-       | Ok y -> y
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Request_utils.raise_decode_rejected ~uri ~typ msg))
+   | Ptime_span, _ -> cannot_convert_to "time span")
 
 let bind_quotes ~uri ~query stmt oq =
   let aux j x =

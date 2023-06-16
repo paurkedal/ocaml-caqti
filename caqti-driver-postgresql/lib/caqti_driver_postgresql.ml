@@ -180,7 +180,7 @@ let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
 let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 
 let init_param_types ~type_oid_cache =
-  let rec oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
+  let oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
    | Bool -> Ok bool_oid
    | Int -> Ok int8_oid
    | Int16 -> Ok int2_oid
@@ -193,7 +193,6 @@ let init_param_types ~type_oid_cache =
    | Ptime -> Ok timestamp_oid
    | Ptime_span -> Ok interval_oid
    | Enum name -> Ok (Hashtbl.find type_oid_cache name)
-   | Custom {rep; _} -> oid_of_field_type rep
   in
   let rec recurse : type a. _ -> _ -> a Caqti_type.t -> _ -> _
       = fun pt bp -> function
@@ -228,9 +227,8 @@ end
 module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
-  let rec encode_field
-      : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> string =
-    fun ~uri field_type x ->
+  let encode_field : type a. a Caqti_type.Field.t -> a -> string =
+    fun field_type x ->
     (match field_type with
      | Bool -> Pg_ext.pgstring_of_bool x
      | Int -> string_of_int x
@@ -243,18 +241,11 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
      | Octets -> encode_octets x
      | Pdate -> Conv.iso8601_of_pdate x
      | Ptime -> Pg_ext.pgstring_of_pdate x
-     | Ptime_span -> Pg_ext.pgstring_of_ptime_span x
-     | Custom {rep; encode; _} ->
-        (match encode x with
-         | Ok y -> encode_field ~uri rep y
-         | Error msg ->
-            let msg = Caqti_error.Msg msg in
-            let typ = Caqti_type.field field_type in
-            Request_utils.raise_encode_rejected ~uri ~typ msg))
+     | Ptime_span -> Pg_ext.pgstring_of_ptime_span x)
 
   let encode ~uri params t x =
-    let write_value ~uri ft fv i =
-      let s = encode_field ~uri ft fv in
+    let write_value ~uri:_ ft fv i =
+      let s = encode_field ft fv in
       params.(i) <- s; i + 1
     in
     let write_null ~uri:_ _ i = i + 1 in
@@ -270,7 +261,7 @@ module Param_encoder = Make_encoder (struct
   let encode_octets s = s
 end)
 
-let rec decode_field
+let decode_field
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> string -> a =
   fun ~uri field_type s ->
   let wrap_conv_exn f s =
@@ -300,15 +291,7 @@ let rec decode_field
    | Octets -> Postgresql.unescape_bytea s
    | Pdate -> wrap_conv_res Conv.pdate_of_iso8601 s
    | Ptime -> wrap_conv_res Conv.ptime_of_rfc3339_utc s
-   | Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s
-   | Custom {rep; decode; _} ->
-      let y = decode_field ~uri rep s in
-      (match decode y with
-       | Ok z -> z
-       | Error msg ->
-          let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
-          Request_utils.raise_decode_rejected ~uri ~typ msg))
+   | Ptime_span -> wrap_conv_res Pg_ext.ptime_span_of_pgstring s)
 
 let decode_row ~uri row_type =
   let read_value ~uri ft (resp, i, j) =

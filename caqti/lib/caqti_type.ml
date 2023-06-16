@@ -32,12 +32,6 @@ module Field = struct
     | Ptime : Ptime.t t
     | Ptime_span : Ptime.span t
     | Enum : string -> string t
-    | Custom : {
-        name: string;
-        rep: 'b t;
-        encode: 'a -> ('b, string) result;
-        decode: 'b -> ('a, string) result;
-      } -> 'a t
 
   let to_string : type a. a t -> string = function
    | Bool -> "bool"
@@ -52,13 +46,12 @@ module Field = struct
    | Ptime -> "ptime"
    | Ptime_span -> "ptime_span"
    | Enum name -> name
-   | Custom {name; _} -> name
 
   let pp ppf ft = Format.pp_print_string ppf (to_string ft)
 
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
 
-  let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
+  let pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
    | Bool, x -> Format.pp_print_bool ppf x
    | Int, x -> Format.pp_print_int ppf x
    | Int16, x -> Format.pp_print_int ppf x
@@ -73,10 +66,6 @@ module Field = struct
    | Ptime, x -> pp_ptime ppf x
    | Ptime_span, x -> Ptime.Span.pp ppf x
    | Enum _, x -> Format.pp_print_string ppf x
-   | Custom {name; rep; encode; _}, x ->
-      (match encode x with
-       | Ok y -> pp_value ppf (rep, y)
-       | Error _ -> Format.fprintf ppf "<%s,invalid>" name)
 end
 
 type _ t =

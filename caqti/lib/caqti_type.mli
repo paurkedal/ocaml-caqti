@@ -39,12 +39,6 @@ module Field : sig
     | Ptime : Ptime.t t
     | Ptime_span : Ptime.span t
     | Enum : string -> string t
-    | Custom : {
-        name: string;
-        rep: 'b t;
-        encode: ('a -> ('b, string) result);
-        decode: ('b -> ('a, string) result);
-      } -> 'a t
 
   val to_string : 'a t -> string
 

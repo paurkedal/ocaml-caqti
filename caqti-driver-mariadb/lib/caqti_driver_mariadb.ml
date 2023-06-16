@@ -175,9 +175,9 @@ struct
       end
     end
 
-    let rec encode_field
-        : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Mdb.Field.value =
-      fun ~uri field_type x ->
+    let encode_field
+        : type a. a Caqti_type.Field.t -> a -> Mdb.Field.value =
+      fun field_type x ->
       (match field_type with
        | Bool -> `Int (if x then 1 else 0)
        | Int -> `Int x
@@ -200,16 +200,9 @@ struct
           `Time (Mdb.Time.datetime
                   ~year ~month ~day ~hour ~minute ~second ~microsecond ())
        | Ptime_span ->
-          `Float (Ptime.Span.to_float_s x)
-       | Custom {rep; encode; _} ->
-          (match encode x with
-           | Ok y -> encode_field ~uri rep y
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_encode_rejected ~uri ~typ msg))
+          `Float (Ptime.Span.to_float_s x))
 
-    let rec decode_field
+    let decode_field
         : type b. uri: Uri.t -> b Caqti_type.Field.t -> Mdb.Field.t -> b =
       fun ~uri field_type field ->
       try match field_type with
@@ -245,14 +238,6 @@ struct
           (match Ptime.Span.of_float_s t with
            | None -> failwith "Ptime.Span.of_float_s"
            | Some t -> t)
-       | Custom {rep; decode; _} ->
-          let y = decode_field ~uri rep field in
-          (match decode y with
-           | Ok z -> z
-           | Error msg ->
-              let msg = Caqti_error.Msg msg in
-              let typ = Caqti_type.field field_type in
-              Request_utils.raise_decode_rejected ~uri ~typ msg)
       with
        | Failure _ ->
           let typename = Mdb_ext.Field.typename field in
@@ -261,9 +246,9 @@ struct
           Request_utils.raise_decode_rejected ~uri ~typ msg
 
     let encode_param ~uri params t v acc =
-      let write_value ~uri ft fv os =
+      let write_value ~uri:_ ft fv os =
         assert (os <> []);
-        let v = encode_field ~uri ft fv in
+        let v = encode_field ft fv in
         List.iter (fun j -> params.(j) <- v) (List.hd os);
         List.tl os
       in

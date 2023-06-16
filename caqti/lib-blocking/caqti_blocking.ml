@@ -63,7 +63,7 @@ module System_core = struct
     let debug ?(src = Logging.default_log_src) = Logs.debug ~src
   end
 
-  type connect_env = unit
+  type stdenv = unit
 
   module Sequencer = struct
     type 'a t = 'a
@@ -88,7 +88,7 @@ module System = struct
     type nonrec in_channel = in_channel
     type nonrec out_channel = out_channel
 
-    let getaddrinfo ~connect_env:() host port =
+    let getaddrinfo ~stdenv:() host port =
       try
         let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
         Unix.getaddrinfo (Domain_name.to_string host) (string_of_int port) opts
@@ -98,7 +98,7 @@ module System = struct
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
 
-    let connect ~sw:_ ~connect_env:() sockaddr =
+    let connect ~sw:_ ~stdenv:() sockaddr =
       try Ok (Unix.open_connection sockaddr) with
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
@@ -118,7 +118,7 @@ module System_unix = struct
   module Unix = struct
     type file_descr = Unix.file_descr
     let wrap_fd f fd = f fd
-    let poll ~connect_env:()
+    let poll ~stdenv:()
              ?(read = false) ?(write = false) ?(timeout = -1.0) fd =
       let read_fds = if read then [fd] else [] in
       let write_fds = if write then [fd] else [] in
@@ -141,9 +141,9 @@ open System
 
 let connect ?env ?tweaks_version uri =
   let sw = Switch.create () in
-  connect ?env ?tweaks_version ~sw ~connect_env:() uri
+  connect ?env ?tweaks_version ~sw ~stdenv:() uri
 
-let with_connection = with_connection ~connect_env:()
+let with_connection = with_connection ~stdenv:()
 
 let connect_pool
       ?max_size ?max_idle_size ?max_idle_age ?max_use_count
@@ -151,7 +151,7 @@ let connect_pool
   let sw = Switch.create () in
   connect_pool
     ?max_size ?max_idle_size ?max_idle_age ?max_use_count
-    ?post_connect ?env ?tweaks_version ~sw ~connect_env:() uri
+    ?post_connect ?env ?tweaks_version ~sw ~stdenv:() uri
 
 let or_fail = function
  | Ok x -> x

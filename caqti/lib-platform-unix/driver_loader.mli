@@ -21,12 +21,12 @@ module type DRIVER_FUNCTOR =
   functor (System : Caqti_platform.System_sig.S) ->
   functor (System_unix : System_sig.S
     with type 'a fiber := 'a System.Fiber.t
-     and type connect_env := System.connect_env) ->
+     and type stdenv := System.stdenv) ->
   Caqti_platform.Driver_sig.S
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
 (** [define_unix_driver scheme m] installs [m] as a handler for the URI scheme
@@ -37,11 +37,11 @@ module Make
     (System : Caqti_platform.System_sig.S)
     (System_unix : System_sig.S
       with type 'a fiber := 'a System.Fiber.t
-       and type connect_env := System.connect_env) :
+       and type stdenv := System.stdenv) :
   Caqti_platform.Driver_sig.Loader
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

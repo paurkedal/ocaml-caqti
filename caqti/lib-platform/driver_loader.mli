@@ -21,7 +21,7 @@ module type DRIVER_FUNCTOR =
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
 
@@ -29,4 +29,4 @@ module Make (System : System_sig.S) : Driver_sig.Loader
   with type 'a fiber := 'a System.Fiber.t
    and type ('a, 'e) stream := ('a, 'e) System.Stream.t
    and type switch := System.Switch.t
-   and type connect_env := System.connect_env
+   and type stdenv := System.stdenv

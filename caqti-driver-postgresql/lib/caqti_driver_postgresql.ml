@@ -320,7 +320,7 @@ module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
     with type 'a fiber := 'a System.Fiber.t
-     and type connect_env := System.connect_env) =
+     and type stdenv := System.stdenv) =
 struct
   open System
   open System.Fiber.Infix
@@ -334,16 +334,16 @@ struct
 
   module Pg_io = struct
 
-    let communicate ~connect_env db step =
+    let communicate ~stdenv db step =
       let aux fd =
         let rec loop = function
          | Pg.Polling_reading ->
-            Unix.poll ~connect_env ~read:true fd >>= fun _ ->
+            Unix.poll ~stdenv ~read:true fd >>= fun _ ->
             (match step () with
              | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
          | Pg.Polling_writing ->
-            Unix.poll ~connect_env ~write:true fd >>= fun _ ->
+            Unix.poll ~stdenv ~write:true fd >>= fun _ ->
             (match step () with
              | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
@@ -356,11 +356,11 @@ struct
        | exception Pg.Error msg -> Fiber.return (Error msg)
        | socket -> Unix.wrap_fd aux (Obj.magic socket))
 
-    let get_next_result ~connect_env ~uri ~query db =
+    let get_next_result ~stdenv ~uri ~query db =
       let rec retry fd =
         db#consume_input;
         if db#is_busy then
-          Unix.poll ~connect_env ~read:true fd >>= (fun _ -> retry fd)
+          Unix.poll ~stdenv ~read:true fd >>= (fun _ -> retry fd)
         else
           Fiber.return (Ok db#get_result)
       in
@@ -369,17 +369,17 @@ struct
         let msg = extract_communication_error db err in
         Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
 
-    let get_one_result ~connect_env ~uri ~query db =
-      get_next_result ~connect_env ~uri ~query db >>=? function
+    let get_one_result ~stdenv ~uri ~query db =
+      get_next_result ~stdenv ~uri ~query db >>=? function
        | None ->
           let msg = Caqti_error.Msg "No response received after send." in
           Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
        | Some result ->
           Fiber.return (Ok result)
 
-    let get_final_result ~connect_env ~uri ~query db =
-      get_one_result ~connect_env ~uri ~query db >>=? fun result ->
-      get_next_result ~connect_env ~uri ~query db >>=? function
+    let get_final_result ~stdenv ~uri ~query db =
+      get_one_result ~stdenv ~uri ~query db >>=? fun result ->
+      get_next_result ~stdenv ~uri ~query db >>=? function
        | None ->
           Fiber.return (Ok result)
        | Some _ ->
@@ -449,7 +449,7 @@ struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val connect_env : connect_env
+      val stdenv : stdenv
       val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
       val db : Pg.connection
@@ -498,7 +498,7 @@ struct
        | exception Pg.Error _ -> Fiber.return false
        | true ->
           Int_hashtbl.clear prepare_cache;
-          Pg_io.communicate ~connect_env db (fun () -> db#reset_poll) >|=
+          Pg_io.communicate ~stdenv db (fun () -> db#reset_poll) >|=
           (function
            | Error _ -> false
            | Ok () -> (try db#status = Pg.Ok with Pg.Error _ -> false))
@@ -543,7 +543,7 @@ struct
             db#send_prepare ~param_types (query_name_of_id query_id) query;
             db#consume_input
           end >>=? fun () ->
-          Pg_io.get_final_result ~connect_env ~uri ~query db >|=? fun result ->
+          Pg_io.get_final_result ~stdenv ~uri ~query db >|=? fun result ->
           Pg_io.check_command_result ~uri ~query result |>? fun () ->
           Ok (Int_hashtbl.add prepare_cache query_id prepared)
         end >|=? fun () ->
@@ -556,20 +556,20 @@ struct
       end
 
     let fetch_one_result ~query () =
-      Pg_io.get_one_result ~connect_env ~uri ~query db
+      Pg_io.get_one_result ~stdenv ~uri ~query db
 
     let fetch_final_result ~query () =
-      Pg_io.get_final_result ~connect_env ~uri ~query db
+      Pg_io.get_final_result ~stdenv ~uri ~query db
 
     let fetch_single_row ~query () =
-      Pg_io.get_one_result ~connect_env ~uri ~query db >>=? fun result ->
+      Pg_io.get_one_result ~stdenv ~uri ~query db >>=? fun result ->
       (match result#status with
        | Pg.Single_tuple ->
           assert (result#ntuples = 1);
           Fiber.return (Ok (Some result))
        | Pg.Tuples_ok ->
           assert (result#ntuples = 0);
-          Pg_io.get_next_result ~connect_env ~uri ~query db >|=?
+          Pg_io.get_next_result ~stdenv ~uri ~query db >|=?
           (function
            | None -> Ok None
            | Some _ ->
@@ -899,7 +899,7 @@ struct
           | Pg.Put_copy_queued ->
               Fiber.return (Ok ())
           | Pg.Put_copy_not_queued ->
-              Unix.poll ~connect_env ~write:true fd >>= fun _ -> loop fd
+              Unix.poll ~stdenv ~write:true fd >>= fun _ -> loop fd
         in
         (match db#socket with
          | exception Pg.Error msg -> pg_error msg
@@ -938,7 +938,7 @@ struct
             | Pg.Put_copy_error ->
                 fail "Unable to finalize copy"
             | Pg.Put_copy_not_queued ->
-                Unix.poll ~connect_env ~write:true fd >>= fun _ ->
+                Unix.poll ~stdenv ~write:true fd >>= fun _ ->
                 copy_end_loop fd
             | Pg.Put_copy_queued ->
                 Fiber.return (Ok ())
@@ -954,7 +954,7 @@ struct
       end
   end
 
-  let connect ~sw:_ ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw:_ ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
     Fiber.return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
@@ -962,7 +962,7 @@ struct
         let msg = extract_connect_error err in
         Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
      | db ->
-        Pg_io.communicate ~connect_env db (fun () -> db#connect_poll) >>=
+        Pg_io.communicate ~stdenv db (fun () -> db#connect_poll) >>=
         (function
          | Error err ->
             let msg = extract_communication_error db err in
@@ -980,7 +980,7 @@ struct
                 let module B = Make_connection_base
                   (struct
                     let env = env
-                    let connect_env = connect_env
+                    let stdenv = stdenv
                     let uri = uri
                     let db = db
                     let use_single_row_mode = use_single_row_mode

@@ -19,7 +19,7 @@ open Lwt.Infix
 
 module System_core = struct
   include Caqti_lwt.System_core
-  type connect_env = unit
+  type stdenv = unit
 end
 include System_core
 
@@ -27,7 +27,7 @@ module Alarm = struct
 
   type t = {cancel: unit -> unit}
 
-  let schedule ~sw:_ ~connect_env:() t f =
+  let schedule ~sw:_ ~stdenv:() t f =
     let t_now = Mtime_clock.now () in
     let delay =
       if Mtime.is_later t ~than:t_now then
@@ -56,7 +56,7 @@ module Net = struct
   type in_channel = Lwt_io.input_channel
   type out_channel = Lwt_io.output_channel
 
-  let getaddrinfo ~connect_env:() host port =
+  let getaddrinfo ~stdenv:() host port =
     Lwt.catch
       (fun () ->
         let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
@@ -70,7 +70,7 @@ module Net = struct
             (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
        | exn -> Lwt.fail exn)
 
-  let connect ~sw:_ ~connect_env:() sockaddr =
+  let connect ~sw:_ ~stdenv:() sockaddr =
     Lwt.catch
       (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
       (function

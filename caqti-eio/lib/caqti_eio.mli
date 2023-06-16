@@ -27,7 +27,7 @@ module System : sig
   include Caqti_platform.System_sig.S
     with type 'a Fiber.t = 'a
      and type Switch.t = Eio.Switch.t
-     and type connect_env = Eio.Stdenv.t
+     and type stdenv = Eio.Stdenv.t
      and module Stream = Stream
 end
 (**/**)
@@ -45,7 +45,7 @@ module Pool : sig
     ?validate: ('a -> bool) ->
     ?log_src: Logs.Src.t ->
     sw: Eio.Switch.t ->
-    connect_env: Eio.Stdenv.t ->
+    stdenv: Eio.Stdenv.t ->
     (unit -> ('a, 'e) result) -> ('a -> unit) ->
     ('a, 'e) t
 end
@@ -53,7 +53,7 @@ end
 include Caqti_connect_sig.S
   with type 'a fiber := 'a
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
-   and type 'a with_stdenv := connect_env: Eio.Stdenv.t -> 'a
+   and type 'a with_stdenv := stdenv: Eio.Stdenv.t -> 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
 

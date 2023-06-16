@@ -26,13 +26,13 @@ end
 
 module type ALARM = sig
   type switch
-  type connect_env
+  type stdenv
 
   type t
 
   val schedule :
     sw: switch ->
-    connect_env: connect_env ->
+    stdenv: stdenv ->
     Mtime.t -> (unit -> unit) -> t
 
   val unschedule : t -> unit
@@ -40,7 +40,7 @@ end
 
 module type S = sig
   type switch
-  type connect_env
+  type stdenv
 
   include Caqti_pool_sig.S
 
@@ -53,7 +53,7 @@ module type S = sig
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
     sw: switch ->
-    connect_env: connect_env ->
+    stdenv: stdenv ->
     (unit -> ('a, 'e) result fiber) -> ('a -> unit fiber) ->
     ('a, 'e) t
 end
@@ -61,7 +61,7 @@ end
 module Make
   (System : System_sig.CORE)
   (Alarm : ALARM
-    with type connect_env := System.connect_env
+    with type stdenv := System.stdenv
      and type switch := System.Switch.t) =
 struct
   open System
@@ -85,7 +85,7 @@ struct
   }
 
   type ('a, +'e) t = {
-    connect_env: connect_env;
+    stdenv: stdenv;
     switch: Switch.t;
     create: unit -> ('a, 'e) result Fiber.t;
     free: 'a -> unit Fiber.t;
@@ -111,13 +111,13 @@ struct
         ?(validate = fun _ -> Fiber.return true)
         ?(log_src = default_log_src)
         ~sw
-        ~connect_env
+        ~stdenv
         create free =
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
     assert (Option'.for_all (fun n -> n > 0) max_use_count);
     {
-      connect_env; switch = sw;
+      stdenv; switch = sw;
       create; free; check; validate; log_src;
       max_idle_size; max_size; max_use_count; max_idle_age;
       cur_size = 0;
@@ -206,7 +206,7 @@ struct
                   else
                     pool.alarm <- Option.some @@
                       Alarm.schedule
-                        ~sw:pool.switch ~connect_env:pool.connect_env expiry
+                        ~sw:pool.switch ~stdenv:pool.stdenv expiry
                         begin fun () ->
                           pool.alarm <- None;
                           dispose_expiring pool
@@ -265,7 +265,7 @@ end
 
 module No_alarm = struct
   type t = unit
-  let schedule ~sw:_ ~connect_env:_ _ _ = ()
+  let schedule ~sw:_ ~stdenv:_ _ _ = ()
   let unschedule _ = ()
 end
 

@@ -55,7 +55,7 @@ module Stream = Caqti_platform.Stream.Make (Fiber)
 module System_core = struct
   module Fiber = Fiber
 
-  type connect_env = unit
+  type stdenv = unit
 
   let async ~sw:_ f = don't_wait_for (f ())
 
@@ -110,7 +110,7 @@ end
 module Alarm = struct
   type t = unit
 
-  let schedule ~sw:_ ~connect_env:() t f =
+  let schedule ~sw:_ ~stdenv:() t f =
     let t_now = Mtime_clock.now () in
     let dt_ns =
       if Mtime.is_later t ~than:t_now then 0L else
@@ -143,14 +143,14 @@ module System = struct
     type in_channel = Reader.t
     type out_channel = Writer.t
 
-    let getaddrinfo ~connect_env:() host port =
+    let getaddrinfo ~stdenv:() host port =
       let module Ai = Async_unix.Unix.Addr_info in
       let extract ai = ai.Ai.ai_addr in
       Ai.get ~host:(Domain_name.to_string host) ~service:(string_of_int port)
              Ai.[AI_SOCKTYPE SOCK_STREAM]
       >|= List.map ~f:extract >|= (fun addrs -> Ok addrs)
 
-    let connect ~sw:_ ~connect_env:() = function
+    let connect ~sw:_ ~stdenv:() = function
      | Async_unix.Unix.ADDR_INET (addr, port) ->
         Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
@@ -190,7 +190,7 @@ module System_unix = struct
         >>= fun () ->
       return r
 
-    let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
+    let poll ~stdenv:() ?(read = false) ?(write = false) ?timeout fd =
       let wait_read =
         if read then Async_unix.Fd.ready_to fd `Read else Deferred.never () in
       let wait_write =
@@ -226,6 +226,6 @@ include Connector.Make (System) (Pool) (Loader)
 
 open System
 
-let connect = connect ~sw:Switch.eternal ~connect_env:()
-let with_connection = with_connection ~connect_env:()
-let connect_pool = connect_pool~sw:Switch.eternal  ~connect_env:()
+let connect = connect ~sw:Switch.eternal ~stdenv:()
+let with_connection = with_connection ~stdenv:()
+let connect_pool = connect_pool~sw:Switch.eternal  ~stdenv:()

@@ -25,7 +25,7 @@ module type S = sig
   type +'a fiber
   type (+'a, +'err) stream
   type switch
-  type connect_env
+  type stdenv
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a fiber := 'a fiber
@@ -35,7 +35,7 @@ module type S = sig
 
   val connect :
     sw: switch ->
-    connect_env: connect_env ->
+    stdenv: stdenv ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     tweaks_version: int * int ->
     Uri.t ->
@@ -46,13 +46,13 @@ module type Loader = sig
   type +'a fiber
   type (+'a, +'e) stream
   type switch
-  type connect_env
+  type stdenv
 
   module type DRIVER = S
     with type 'a fiber := 'a fiber
      and type ('a, 'e) stream := ('a, 'e) stream
      and type switch := switch
-     and type connect_env := connect_env
+     and type stdenv := stdenv
 
   val load_driver :
     uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result

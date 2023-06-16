@@ -265,10 +265,10 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   let intercept_connect_failed ~uri =
     intercept (Caqti_error.connect_failed ~uri)
 
-  (* We need to pass connect_env into open_connection below.  This means that
+  (* We need to pass stdenv into open_connection below.  This means that
    * PGX will be instantiated for each connection. *)
   module Pass_connect_env
-    (Connect_env : sig val sw : Switch.t val connect_env : connect_env end) =
+    (Connect_env : sig val sw : Switch.t val stdenv : stdenv end) =
   struct
     open Connect_env
 
@@ -285,21 +285,21 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let open_connection sockaddr =
         (match sockaddr with
          | Unix path ->
-            connect ~sw ~connect_env (Sockaddr.unix path)
+            connect ~sw ~stdenv (Sockaddr.unix path)
          | Inet (host, port) ->
             (match Ipaddr.of_string host with
              | Ok ipaddr ->
-                connect ~sw ~connect_env (Sockaddr.tcp (ipaddr, port))
+                connect ~sw ~stdenv (Sockaddr.tcp (ipaddr, port))
              | Error _ ->
                 let host' = host
                   |> Domain_name.of_string_exn
                   |> Domain_name.host_exn
                 in
-                getaddrinfo ~connect_env host' port >>= (function
+                getaddrinfo ~stdenv host' port >>= (function
                  | Ok [] ->
                     failwith "The host name does not resolve."
                  | Ok (sockaddr :: _) ->
-                    connect ~sw ~connect_env sockaddr
+                    connect ~sw ~stdenv sockaddr
                  | Error (`Msg msg) ->
                     failwith msg)))
         >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
@@ -653,12 +653,12 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
      | Ok () -> Ok ()
      | Error err -> Error (`Post_connect err)
 
-  let connect ~sw ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       Fiber.return (parse_uri uri)
     in
     let open
-      Pass_connect_env (struct let sw = sw let connect_env = connect_env end)
+      Pass_connect_env (struct let sw = sw let stdenv = stdenv end)
     in
     let*? db =
       intercept_connect_failed ~uri

@@ -17,13 +17,13 @@
 
 module type S = sig
   type 'a fiber
-  type connect_env
+  type stdenv
 
   module Unix : sig
     type file_descr
     val wrap_fd : (file_descr -> 'a fiber) -> Unix.file_descr -> 'a fiber
     val poll :
-      connect_env: connect_env ->
+      stdenv: stdenv ->
       ?read: bool -> ?write: bool -> ?timeout: float ->
       file_descr -> (bool * bool * bool) fiber
   end

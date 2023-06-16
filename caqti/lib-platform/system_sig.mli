@@ -62,7 +62,7 @@ end
 module type CORE = sig
   module Fiber : FIBER
 
-  type connect_env
+  type stdenv
   (** Type of an extra argument to connect functions used to pass through the
       network stack in Mirage and stdenv in EIO.  This is eliminated at the
       service API where not needed. *)
@@ -104,7 +104,7 @@ end
 module type NET = sig
   type 'a fiber
   type switch
-  type connect_env
+  type stdenv
 
   module Sockaddr : sig
     type t
@@ -116,7 +116,7 @@ module type NET = sig
   type out_channel
 
   val getaddrinfo :
-    connect_env: connect_env -> [`host] Domain_name.t -> int ->
+    stdenv: stdenv -> [`host] Domain_name.t -> int ->
     (Sockaddr.t list, [> `Msg of string]) result fiber
   (** This should be a specialized version of getaddrinfo, which only returns
       entries which is expected to work with the corresponding connect on the
@@ -134,7 +134,7 @@ module type NET = sig
       queried. *)
 
   val connect :
-    sw: switch -> connect_env: connect_env -> Sockaddr.t ->
+    sw: switch -> stdenv: stdenv -> Sockaddr.t ->
     (in_channel * out_channel, [> `Msg of string]) result fiber
 
   (* TODO: STARTTLS *)
@@ -156,5 +156,5 @@ module type S = sig
   module Net : NET
     with type 'a fiber := 'a Fiber.t
      and type switch := Switch.t
-     and type connect_env := connect_env
+     and type stdenv := stdenv
 end

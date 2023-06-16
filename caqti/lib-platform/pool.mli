@@ -20,16 +20,16 @@
 (** Scheduling taks in the future. *)
 module type ALARM = sig
   type switch
-  type connect_env
+  type stdenv
 
   type t
   (** A handle for cancelling the alarm if supported. *)
 
   val schedule :
     sw: switch ->
-    connect_env: connect_env ->
+    stdenv: stdenv ->
     Mtime.t -> (unit -> unit) -> t
-  (** If supported, [schedule ~sw ~connect_env time f] schedules [f] to be run
+  (** If supported, [schedule ~sw ~stdenv time f] schedules [f] to be run
       at [time] and returns a handle which can be used to {!unschedule} it.  The
       caqti-blocking implementation does nothing.  The pool implementation using
       it makes additional opportunistic calls to the handler.  This function
@@ -43,7 +43,7 @@ end
 
 module type S = sig
   type switch
-  type connect_env
+  type stdenv
 
   include Caqti_pool_sig.S
 
@@ -56,7 +56,7 @@ module type S = sig
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
     sw: switch ->
-    connect_env: connect_env ->
+    stdenv: stdenv ->
     (unit -> ('a, 'e) result fiber) -> ('a -> unit fiber) ->
     ('a, 'e) t
   (** {b Internal:} [create alloc free] is a pool of resources allocated by
@@ -84,12 +84,12 @@ module Make
   (System : System_sig.CORE)
   (Alarm : ALARM
     with type switch := System.Switch.t
-     and type connect_env := System.connect_env) :
+     and type stdenv := System.stdenv) :
   S with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
 
 module Make_without_alarm (System : System_sig.CORE) :
   S with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv

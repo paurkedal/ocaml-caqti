@@ -24,7 +24,7 @@ module Unix = struct
 
   let wrap_fd f fd = f (Lwt_unix.of_unix_file_descr fd)
 
-  let poll ~connect_env:() ?(read = false) ?(write = false) ?timeout fd =
+  let poll ~stdenv:() ?(read = false) ?(write = false) ?timeout fd =
     let choices = []
       |> (fun acc -> if read then Lwt_unix.wait_read fd :: acc else acc)
       |> (fun acc -> if write then Lwt_unix.wait_write fd :: acc else acc)

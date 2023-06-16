@@ -55,7 +55,7 @@ let test_n n =
      | true -> Some (1 + Random.int 8))
   in
   let pool =
-    Pool.create ~max_idle_size ~max_size ~max_use_count ~sw ~connect_env:()
+    Pool.create ~max_idle_size ~max_size ~max_use_count ~sw ~stdenv:()
       Resource.create_or_fail Resource.free
   in
   let wakers = Array.make n None in
@@ -132,7 +132,7 @@ let test_age _ () =
   let max_idle_age = Mtime.Span.(100 * ms) in
   let pool =
     Pool.create
-      ~max_size ~max_idle_size ~max_idle_age ~sw ~connect_env:()
+      ~max_size ~max_idle_size ~max_idle_age ~sw ~stdenv:()
       Resource.create Resource.free
   in
   let user_count = 8 in

@@ -67,7 +67,7 @@ module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
     with type 'a fiber := 'a System.Fiber.t
-     and type connect_env := System.connect_env) =
+     and type stdenv := System.stdenv) =
 struct
   open System
   open System.Fiber.Infix
@@ -89,12 +89,12 @@ struct
       ~can_transact:true
       ()
 
-  (* We need to pass connect_env into the below wait, in order to implement
+  (* We need to pass stdenv into the below wait, in order to implement
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb
-   * instance becomes dependent on connect_env and will therefore be
+   * instance becomes dependent on stdenv and will therefore be
    * instantiated for each connection. *)
   module Pass_connect_env
-    (Connect_env : sig val connect_env : connect_env end) =
+    (Connect_env : sig val stdenv : stdenv end) =
   struct
     open Connect_env
 
@@ -111,7 +111,7 @@ struct
         let wait db status =
           Mariadb.Nonblocking.fd db |> System_unix.Unix.wrap_fd @@ fun fd ->
           System_unix.Unix.poll
-            ~connect_env
+            ~stdenv
             ~read:(Mariadb.Nonblocking.Status.read status)
             ~write:(Mariadb.Nonblocking.Status.write status) fd
             >|= (fun (read, write, timeout) ->
@@ -562,9 +562,9 @@ struct
       Ok {host; user; pass; port; db; flags = None; config_group}
   end
 
-  let connect ~sw:_ ~connect_env ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw:_ ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
     let module With_connect_env =
-      Pass_connect_env (struct let connect_env = connect_env end)
+      Pass_connect_env (struct let stdenv = stdenv end)
     in
     let open With_connect_env in
 

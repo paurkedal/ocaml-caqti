@@ -54,11 +54,11 @@ module Make
   (Pool : Pool.S
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env)
+     and type stdenv := System.stdenv)
   (Loader : Driver_sig.Loader
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct
   open System
@@ -78,7 +78,7 @@ struct
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
@@ -97,13 +97,13 @@ struct
              | Error _ as r -> r)))
 
   let connect
-        ?env ?(tweaks_version = default_tweaks_version) ~sw ~connect_env uri
+        ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri
       : ((module CONNECTION), _) result Fiber.t =
     Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        let+? conn = Driver.connect ~sw ~connect_env ?env ~tweaks_version uri in
+        let+? conn = Driver.connect ~sw ~stdenv ?env ~tweaks_version uri in
         let module Conn = (val conn : CONNECTION) in
         let module Conn' = struct
           include Conn
@@ -116,15 +116,15 @@ struct
         Fiber.return (Error err))
 
   let with_connection
-        ?env ?(tweaks_version = default_tweaks_version) ~connect_env uri f =
+        ?env ?(tweaks_version = default_tweaks_version) ~stdenv uri f =
     Switch.run begin fun sw ->
-      connect ~sw ~connect_env ?env ~tweaks_version uri >>=? f
+      connect ~sw ~stdenv ?env ~tweaks_version uri >>=? f
     end
 
   let connect_pool
         ?max_size ?max_idle_size ?max_idle_age ?(max_use_count = Some 100)
         ?post_connect
-        ?env ?(tweaks_version = default_tweaks_version) ~sw ~connect_env uri =
+        ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri =
     Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
@@ -143,11 +143,11 @@ struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
+                (Driver.connect ~sw ~stdenv ?env ~tweaks_version uri
                     :> (connection, _) result Fiber.t)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ~sw ~connect_env ?env ~tweaks_version uri
+                (Driver.connect ~sw ~stdenv ?env ~tweaks_version uri
                     :> (connection, _) result Fiber.t)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)
@@ -168,7 +168,7 @@ struct
         let pool =
           Pool.create
             ?max_size ?max_idle_size ?max_idle_age ~max_use_count
-            ~validate ~check ~sw ~connect_env
+            ~validate ~check ~sw ~stdenv
             connect disconnect
         in
         let hook = Switch.on_release_cancellable sw (fun () -> Pool.drain pool) in

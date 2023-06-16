@@ -29,17 +29,17 @@ module Make :
   functor (Pool : Pool.S
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env) ->
+     and type stdenv := System.stdenv) ->
   functor (Loader : Driver_sig.Loader
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
-     and type connect_env := System.connect_env
+     and type stdenv := System.stdenv
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
   Caqti_connect_sig.S
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a with_switch := sw: System.Switch.t -> 'a
-     and type 'a with_stdenv := connect_env: System.connect_env -> 'a
+     and type 'a with_stdenv := stdenv: System.stdenv -> 'a
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

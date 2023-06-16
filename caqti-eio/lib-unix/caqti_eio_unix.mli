@@ -27,4 +27,4 @@ include Caqti_connect_sig.S
    and module type CONNECTION := Caqti_eio.CONNECTION
    and type connection := Caqti_eio.connection
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
-   and type 'a with_stdenv := connect_env: Eio.Stdenv.t -> 'a
+   and type 'a with_stdenv := stdenv: Eio.Stdenv.t -> 'a

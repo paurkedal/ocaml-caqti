@@ -22,7 +22,7 @@ module Unix = struct
 
   let wrap_fd f fd = f fd
 
-  let poll ~connect_env:stdenv ?(read = false) ?(write = false) ?timeout fd =
+  let poll ~stdenv ?(read = false) ?(write = false) ?timeout fd =
     let f () =
       (match read, write with
        | false, false ->

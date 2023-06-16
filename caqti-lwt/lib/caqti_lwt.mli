@@ -37,7 +37,7 @@ module System_core : sig
     with type 'a Fiber.t = 'a Lwt.t
      and module Stream = Stream
      and type Switch.t = Switch.t
-     and type connect_env := unit
+     and type stdenv := unit
 end
 (**/**)
 

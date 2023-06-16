@@ -19,15 +19,15 @@
 
 include Caqti_platform.System_sig.S
   with type 'a Fiber.t = 'a Lwt.t
-   and type connect_env = unit
+   and type stdenv = unit
    and module Stream = Caqti_lwt.Stream
    and type Switch.t = Caqti_lwt.Switch.t
 
 module Alarm : Caqti_platform.Pool.ALARM
   with type switch := Switch.t
-   and type connect_env := unit
+   and type stdenv := unit
 
 module Pool : Caqti_platform.Pool.S
   with type 'a fiber := 'a Lwt.t
    and type switch := Switch.t
-   and type connect_env := unit
+   and type stdenv := unit

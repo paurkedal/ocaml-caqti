@@ -256,7 +256,7 @@ module Connect_functor
   (System : Caqti_platform.System_sig.S)
   (System_unix : Caqti_platform_unix.System_sig.S
     with type 'a fiber := 'a System.Fiber.t
-     and type connect_env := System.connect_env) =
+     and type stdenv := System.stdenv) =
 struct
   open System
   open System_unix
@@ -571,7 +571,7 @@ struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ~sw:_ ~connect_env:_ ?(env = no_env) ~tweaks_version uri =
+  let connect ~sw:_ ~stdenv:_ ?(env = no_env) ~tweaks_version uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");

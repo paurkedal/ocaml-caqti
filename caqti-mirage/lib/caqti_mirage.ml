@@ -33,7 +33,7 @@ struct
   module System_core = struct
     include Caqti_lwt.System_core
 
-    type connect_env = {
+    type stdenv = {
       stack: STACK.t;
       dns: DNS.t;
     }
@@ -42,7 +42,7 @@ struct
   module Alarm = struct
     type t = {cancel: unit -> unit}
 
-    let schedule ~sw ~connect_env:_ t f =
+    let schedule ~sw ~stdenv:_ t f =
       let t_now = Mtime_clock.now () in
       let dt_ns =
         if Mtime.is_later t ~than:t_now then 0L else
@@ -89,7 +89,7 @@ struct
         in
         DNS.getaddrinfo dns Dns.Rr_map.Aaaa host >|= Result.map extract
 
-      let getaddrinfo ~connect_env:{stack; dns} host port =
+      let getaddrinfo ~stdenv:{stack; dns} host port =
         let laddrs = STACK.IP.get_ip (STACK.ip stack) in
         (match
           List.exists Ipaddr.(function V4 _ -> true | V6 _ -> false) laddrs,
@@ -109,7 +109,7 @@ struct
          | false, false ->
             Lwt.return (Error (`Msg "No IP address assigned to host.")))
 
-      let connect ~sw:_ ~connect_env:{stack; _} sockaddr =
+      let connect ~sw:_ ~stdenv:{stack; _} sockaddr =
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
@@ -164,16 +164,16 @@ struct
 
   let connect
         ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
-    connect ?env ?tweaks_version ~sw ~connect_env:{stack; dns} uri
+    connect ?env ?tweaks_version ~sw ~stdenv:{stack; dns} uri
 
   let with_connection ?env ?tweaks_version stack dns uri f =
-    with_connection ?env ?tweaks_version ~connect_env:{stack; dns} uri f
+    with_connection ?env ?tweaks_version ~stdenv:{stack; dns} uri f
 
   let connect_pool
         ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
         ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
     connect_pool
       ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
-      ?env ?tweaks_version ~sw ~connect_env:{stack; dns} uri
+      ?env ?tweaks_version ~sw ~stdenv:{stack; dns} uri
 
 end

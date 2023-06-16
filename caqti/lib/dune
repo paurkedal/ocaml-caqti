@@ -7,7 +7,6 @@
     Caqti_connection_sig
     Caqti_driver_info
     Caqti_error
-    Caqti_driver_info
     Caqti_mult
     Caqti_pool_sig
     Caqti_query

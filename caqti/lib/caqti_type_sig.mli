@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -177,8 +177,8 @@ module type Std = sig
     string -> 'a t
   (** [enum ~encode ~decode name] creates an enum type which on the SQL side is
       named [name], with cases which are converted with [encode] and [decode]
-      functions. This is implemented in terms of the {!Caqti_type.Enum} field
-      type. *)
+      functions. This is implemented in terms of the {!Caqti_type.Field.Enum}
+      field type. *)
 
   (**/**)
   val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t

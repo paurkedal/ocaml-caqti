@@ -111,29 +111,29 @@ val of_string_exn : string -> t
 val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
 (** {!qprintf} allows building Caqti queries using a printf-style interface.
 
-    When using {!qprintf}, you can use the {!query}, {!literal}, {!quote},
-    {!env} and {!param} printers from this module to generate the corresponding
-    query fragments.
+    When using {!qprintf}, you can use the {!query}, {!quote}, {!env} and
+    {!param} printers from this module to generate the corresponding query
+    fragments.
 
     In addition, you can use the "Q" and "E" string tags to delimit portions of
     the formatting string that should be interpreted as quotes and environment
     variables, respectively. The "Q" and "E" tags can not be nested: within the
-    tags, {!qprintf} behaves no differently than {!asprintf} and will generate
-    a string, not a query (only when the tag is closed does the string get
-    converted into a query).
+    tags, {!qprintf} behaves no differently than {!Format.asprintf} and will
+    generate a string, not a query (only when the tag is closed does the string
+    get converted into a query).
 
     The two following calls to {!qprintf}:
-
-      [qprintf "FUNC(@{<Q>Quoted value with %d format(s)})" 1]
-
+    {[
+      qprintf "FUNC(@{<Q>Quoted value with %d format(s)})" 1
+    ]}
     and
-
-      [qprintf "FUNC(%a)" quote (Format.asprintf "Quoted value with %d format(s)" 1)]
-
+    {[
+      qprintf "FUNC(%a)" quote (Format.asprintf "Quoted value with %d format(s)" 1)
+    ]}
     are functionally equivalent. Both compute
-
-      [S [L "FUNC("; Q "Quoted value with 1 format(s)"; L ")"]]
-
+    {[
+      S [L "FUNC("; Q "Quoted value with 1 format(s)"; L ")"]
+    ]}
     but the first one is nicer to work with.
 
     @raise Failure if the "Q" and "E" tags are nested.

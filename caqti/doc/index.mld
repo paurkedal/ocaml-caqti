@@ -14,6 +14,7 @@ This library exposes the following toplevel modules:
     Caqti_request
     Caqti_response_sig
     Caqti_stream_sig
+    Caqti_switch_sig
     Caqti_type
     Caqti_type_sig
 }

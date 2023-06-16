@@ -15,7 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** A switch provides scoped release of resources.  The signature here is
+(** Switch implementation used where not available.
+
+    A switch provides scoped release of resources.  The signature here is
     provided on platforms where we don't use its native implementation, either
     because it does not exist or lacks functionality on which we rely. *)
 

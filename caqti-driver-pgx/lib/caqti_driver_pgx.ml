@@ -502,7 +502,6 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           type a. a Caqti_type.t -> Pgx.oid list ->
           (Pgx.oid list, _) result Fiber.t =
         (function
-         | Unit -> fun acc -> Fiber.return (Ok acc)
          | Field ft -> fun acc -> field_type_oid ft >|=? fun ft -> ft :: acc
          | Option t -> loop t
          | Product (_, prod) ->

@@ -91,7 +91,6 @@ let rec encode_null_param : type a. uri: _ -> _ -> a Caqti_type.t -> _ =
   fun ~uri f ->
   let open Caqti_type in
   (function
-   | Unit -> Fun.id
    | Field ft -> f.write_null ~uri ft
    | Option t -> encode_null_param ~uri f t
    | Product (_, ts) ->
@@ -111,7 +110,6 @@ let rec encode_param
   fun ~uri f ->
   let open Caqti_type in
   (function
-   | Unit -> fun () acc -> acc
    | Field ft -> f.write_value ~uri ft
    | Option t ->
       (function
@@ -144,8 +142,6 @@ let rec decode_row
   fun ~uri f ->
   let open Caqti_type in
   (function
-   | Unit ->
-      fun acc -> ((), acc)
    | Field ft ->
       f.read_value ~uri ft
    | Option t ->
@@ -156,6 +152,8 @@ let rec decode_row
          | None ->
             let x, acc = decode_t acc in
             (Some x, acc))
+   | Product (intro, Proj_end) ->
+      fun acc -> (intro, acc)
    | Product (intro, Proj (t1, _, Proj (t2, _, Proj_end)))
         as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in

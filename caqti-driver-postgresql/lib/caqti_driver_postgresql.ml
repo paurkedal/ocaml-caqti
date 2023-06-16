@@ -196,7 +196,6 @@ let init_param_types ~type_oid_cache =
   in
   let rec recurse : type a. _ -> _ -> a Caqti_type.t -> _ -> _
       = fun pt bp -> function
-   | Caqti_type.Unit -> fun i -> Ok i
    | Caqti_type.Field ft -> fun i ->
       oid_of_field_type ft |>? fun oid ->
       pt.(i) <- oid;
@@ -793,7 +792,6 @@ struct
       end
 
     let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
-     | Caqti_type.Unit -> Fiber.return (Ok ())
      | Caqti_type.Field (Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
         call' ~f:Response.find_opt Q.type_oid name >>=

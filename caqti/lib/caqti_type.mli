@@ -53,7 +53,6 @@ end
     private, including pattern-matching usage; use the below functions for
     compatibility with future versions. *)
 type _ t = private
-  | Unit : unit t
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t

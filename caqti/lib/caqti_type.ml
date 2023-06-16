@@ -69,7 +69,6 @@ module Field = struct
 end
 
 type _ t =
-  | Unit : unit t
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'i * ('a, 'i) product -> 'a t
@@ -81,7 +80,6 @@ and (_, _) product =
 type any = Any : 'a t -> any
 
 let rec length : type a. a t -> int = function
- | Unit -> 0
  | Field _ -> 1
  | Option t -> length t
  | Product (_, prod) ->
@@ -94,18 +92,20 @@ let rec length : type a. a t -> int = function
 
 let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     fun prec ppf -> function
- | Unit -> Format.pp_print_string ppf "unit"
  | Field ft -> Format.pp_print_string ppf (Field.to_string ft)
  | Option t -> pp_at 1 ppf t; Format.pp_print_string ppf " option"
- | Product (_, prod) ->
+ | Product (_, Proj_end) -> Format.pp_print_string ppf "unit"
+ | Product (_, Proj (t0, _, prod)) ->
     if prec > 0 then Format.pp_print_char ppf '(';
-    let rec loop : type a i. int -> (a, i) product -> _ = fun i -> function
+    let rec loop : type a i. (a, i) product -> _ = function
      | Proj_end -> ()
      | Proj (t, _, prod) ->
-        if i > 0 then Format.pp_print_string ppf " × ";
-        pp_at 1 ppf t; loop (i + 1) prod
+        Format.pp_print_string ppf " × ";
+        pp_at 1 ppf t;
+        loop prod
     in
-    loop 0 prod;
+    pp_at 1 ppf t0;
+    loop prod;
     if prec > 0 then Format.pp_print_char ppf ')'
  | Annot (`Redacted, t) ->
     Format.pp_print_string ppf "redacted ";
@@ -115,7 +115,6 @@ let pp ppf = pp_at 1 ppf
 let pp_any ppf (Any t) = pp_at 1 ppf t
 
 let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
- | Unit, () -> Format.pp_print_string ppf "()"
  | Field ft, fv -> Field.pp_value ppf (ft, fv)
  | Option _, None -> Format.pp_print_string ppf "None"
  | Option t, Some x ->
@@ -143,12 +142,13 @@ let show t =
 let field ft = Field ft
 
 module Std = struct
-  let unit = Unit
   let option t = Option t
 
   let product intro prod = Product (intro, prod)
   let proj t p prod = Proj (t, p, prod)
   let proj_end = Proj_end
+
+  let unit = product () proj_end
 
   let t2 t1 t2 =
     let intro x1 x2 = (x1, x2) in

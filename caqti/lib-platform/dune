@@ -1,7 +1,4 @@
 (library
  (name caqti_platform)
  (public_name caqti.platform)
- (modules_without_implementation
-    driver_sig
-    system_sig)
  (libraries caqti domain-name ipaddr lwt-dllist mtime.clock.os))

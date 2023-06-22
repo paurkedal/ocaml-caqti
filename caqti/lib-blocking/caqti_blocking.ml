@@ -151,13 +151,10 @@ let connect ?env ?tweaks_version uri =
 
 let with_connection = with_connection ~stdenv:()
 
-let connect_pool
-      ?max_size ?max_idle_size ?max_idle_age ?max_use_count
-      ?post_connect ?env ?tweaks_version uri =
+let connect_pool ?pool_config ?post_connect ?env ?tweaks_version uri =
   let sw = Switch.create () in
   connect_pool
-    ?max_size ?max_idle_size ?max_idle_age ?max_use_count
-    ?post_connect ?env ?tweaks_version ~sw ~stdenv:() uri
+    ?pool_config ?post_connect ?env ?tweaks_version ~sw ~stdenv:() uri
 
 let or_fail = function
  | Ok x -> x

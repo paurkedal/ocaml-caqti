@@ -170,10 +170,10 @@ struct
     with_connection ?env ?tweaks_version ~stdenv:{stack; dns} uri f
 
   let connect_pool
-        ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
+        ?pool_config ?post_connect
         ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
     connect_pool
-      ?max_size ?max_idle_size ?max_idle_age ?max_use_count ?post_connect
+      ?pool_config ?post_connect
       ?env ?tweaks_version ~sw ~stdenv:{stack; dns} uri
 
 end

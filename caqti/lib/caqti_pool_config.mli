@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,22 +15,25 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_platform
+type t
 
-module System = System
-module Pool = System.Pool
+val create :
+  ?max_size: int ->
+  ?max_idle_size: int ->
+  ?max_idle_age: Mtime.Span.t option ->
+  ?max_use_count: int option ->
+  unit -> t
 
-module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
+val update :
+  ?max_size: int option ->
+  ?max_idle_size: int option ->
+  ?max_idle_age: Mtime.Span.t option option ->
+  ?max_use_count: int option option ->
+  t -> t
 
-include Connector.Make (System) (Pool) (Loader)
+val default : t
 
-let connect ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) uri =
-  connect ?env ?tweaks_version ~sw ~stdenv:() uri
-
-let with_connection = with_connection ~stdenv:()
-
-let connect_pool
-      ?pool_config ?post_connect ?env ?tweaks_version
-      ?(sw = Caqti_lwt.Switch.eternal) uri =
-  connect_pool
-    ?pool_config ?post_connect ?env ?tweaks_version ~sw ~stdenv:() uri
+val max_size : t -> int option
+val max_idle_size : t -> int option
+val max_idle_age : t -> Mtime.Span.t option option
+val max_use_count : t -> int option option

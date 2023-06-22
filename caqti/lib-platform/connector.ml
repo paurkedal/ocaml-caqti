@@ -122,14 +122,14 @@ struct
     end
 
   let connect_pool
-        ?max_size ?max_idle_size ?max_idle_age ?(max_use_count = Some 100)
-        ?post_connect
+        ?(pool_config = Caqti_pool_config.default) ?post_connect
         ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri =
     Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
-    (match max_size, max_idle_size with
+    (match Caqti_pool_config.max_size pool_config,
+           Caqti_pool_config.max_idle_size pool_config with
      | None, None -> ()
      | Some max_size, None -> check_arg (max_size >= 0)
      | None, Some _ -> check_arg false
@@ -156,22 +156,32 @@ struct
         let validate (module Db : CONNECTION) = Db.validate () in
         let check (module Db : CONNECTION) = Db.check in
         let di = Driver.driver_info in
-        let max_size, max_idle_size =
-          (match Caqti_driver_info.can_concur di, Caqti_driver_info.can_pool di,
-                 max_idle_size with
-           | true, true, _ ->     max_size, max_idle_size
-           | true, false, _ ->    max_size, Some 0
-           | false, true, Some 0 -> Some 1, Some 0
-           | false, true, _ ->      Some 1, Some 1
-           | false, false, _ ->     Some 1, Some 0)
+        let pool_config =
+          (match Caqti_driver_info.can_concur di,
+                 Caqti_driver_info.can_pool di,
+                 Caqti_pool_config.max_idle_size pool_config with
+           | true, true, _ ->
+              pool_config
+           | true, false, _ ->
+              Caqti_pool_config.update pool_config
+                ~max_idle_size:(Some 0)
+           | false, true, Some 0 ->
+              Caqti_pool_config.update pool_config
+                ~max_size:(Some 1) ~max_idle_size:(Some 0)
+           | false, true, _ ->
+              Caqti_pool_config.update pool_config
+                ~max_size:(Some 1) ~max_idle_size:(Some 1)
+           | false, false, _ ->
+              Caqti_pool_config.update pool_config
+                ~max_size:(Some 1) ~max_idle_size:(Some 0))
         in
         let pool =
           Pool.create
-            ?max_size ?max_idle_size ?max_idle_age ~max_use_count
-            ~validate ~check ~sw ~stdenv
-            connect disconnect
+            ~config:pool_config ~validate ~check ~sw ~stdenv connect disconnect
         in
-        let hook = Switch.on_release_cancellable sw (fun () -> Pool.drain pool) in
+        let hook =
+          Switch.on_release_cancellable sw (fun () -> Pool.drain pool)
+        in
         Gc.finalise (fun _ -> Switch.remove_hook hook) pool;
         Ok pool
      | Error err ->

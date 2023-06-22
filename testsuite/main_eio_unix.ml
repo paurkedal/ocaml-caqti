@@ -54,9 +54,10 @@ let env =
   Test_sql.env & Test_error_cause.env
 
 let mk_tests (stdenv, sw) {uris; tweaks_version} =
+  let pool_config = Caqti_pool_config.create ~max_size:16 () in
   let connect_pool (stdenv, sw) uri =
     (match Caqti_eio_unix.connect_pool ~sw ~stdenv uri
-            ~max_size:16 ~post_connect ?tweaks_version ~env with
+            ~pool_config ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

@@ -48,10 +48,7 @@ module type S = sig
   include Caqti_pool_sig.S
 
   val create :
-    ?max_size: int ->
-    ?max_idle_size: int ->
-    ?max_idle_age: Mtime.Span.t ->
-    ?max_use_count: int option ->
+    ?config: Caqti_pool_config.t ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->

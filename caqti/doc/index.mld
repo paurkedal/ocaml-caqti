@@ -9,6 +9,7 @@ This library exposes the following toplevel modules:
     Caqti_driver_info
     Caqti_error
     Caqti_mult
+    Caqti_pool_config
     Caqti_pool_sig
     Caqti_query
     Caqti_request

@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module Config = Caqti_pool_config
+
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
 
@@ -45,10 +47,7 @@ module type S = sig
   include Caqti_pool_sig.S
 
   val create :
-    ?max_size: int ->
-    ?max_idle_size: int ->
-    ?max_idle_age: Mtime.Span.t ->
-    ?max_use_count: int option ->
+    ?config: Caqti_pool_config.t ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
@@ -92,27 +91,38 @@ struct
     check: 'a -> (bool -> unit) -> unit;
     validate: 'a -> bool Fiber.t;
     log_src: Logs.Src.t;
-    max_idle_size: int;
-    max_idle_age: Mtime.Span.t option;
-    max_size: int;
-    max_use_count: int option;
+    mutable max_idle_size: int;
+    mutable max_idle_age: Mtime.Span.t option;
+    mutable max_size: int;
+    mutable max_use_count: int option;
     mutable cur_size: int;
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
     mutable alarm: Alarm.t option;
   }
 
+  let defaultopt default = Option.value ~default
+
+(*
+  let configure config pool =
+    Option.iter (fun x -> pool.max_size <- x) (Config.max_size config);
+    Option.iter (fun x -> pool.max_idle_size <- x) (Config.max_idle_size config);
+    Option.iter (fun x -> pool.max_idle_age <- x) (Config.max_idle_age config);
+    Option.iter (fun x -> pool.max_use_count <- x) (Config.max_use_count config)
+*)
+
   let create
-        ?(max_size = default_max_size)
-        ?(max_idle_size = max_size)
-        ?max_idle_age
-        ?(max_use_count = None)
+        ?(config = Caqti_pool_config.default)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> Fiber.return true)
         ?(log_src = default_log_src)
         ~sw
         ~stdenv
         create free =
+    let max_size = Config.max_size config |> defaultopt default_max_size in
+    let max_idle_size = Config.max_idle_size config |> defaultopt max_size in
+    let max_idle_age = Config.max_idle_age config |> defaultopt None in
+    let max_use_count = Config.max_use_count config |> defaultopt (Some 100) in
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
     assert (Option'.for_all (fun n -> n > 0) max_use_count);

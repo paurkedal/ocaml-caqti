@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -53,8 +53,9 @@ let env =
 
 let mk_tests {uris; tweaks_version} =
   let connect_pool uri =
+    let pool_config = Caqti_pool_config.create ~max_size:1 () in
     (match Caqti_blocking.connect_pool uri
-            ~max_size:1 ~post_connect ?tweaks_version ~env with
+            ~pool_config ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

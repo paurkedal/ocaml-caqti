@@ -56,8 +56,9 @@ let env =
 
 let mk_tests {uris; tweaks_version} =
   let connect_pool uri =
+    let pool_config = Caqti_pool_config.create ~max_size:16 () in
     (match Caqti_lwt_unix.connect_pool uri
-            ~max_size:16 ~post_connect ?tweaks_version ~env with
+            ~pool_config ~post_connect ?tweaks_version ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in

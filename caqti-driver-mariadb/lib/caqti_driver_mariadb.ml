@@ -93,7 +93,7 @@ struct
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb
    * instance becomes dependent on stdenv and will therefore be
    * instantiated for each connection. *)
-  module Pass_connect_env
+  module Pass_stdenv
     (Connect_env : sig val stdenv : stdenv end) =
   struct
     open Connect_env
@@ -563,10 +563,8 @@ struct
   end
 
   let connect ~sw:_ ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
-    let module With_connect_env =
-      Pass_connect_env (struct let stdenv = stdenv end)
-    in
-    let open With_connect_env in
+    let module With_stdenv = Pass_stdenv (struct let stdenv = stdenv end) in
+    let open With_stdenv in
 
     Fiber.return (parse_uri uri)
       >>=? fun {host; user; pass; port; db; flags; config_group} ->

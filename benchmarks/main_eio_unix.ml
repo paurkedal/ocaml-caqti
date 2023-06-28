@@ -32,5 +32,5 @@ include Benchmark_fetch_many.Make (struct
     Eio_main.run (fun stdenv -> Switch.run (fun sw -> f (stdenv, sw)))
   include Caqti_eio
   include Caqti_eio_unix
-  let connect (stdenv, sw) uri = connect ~sw ~connect_env:stdenv uri
+  let connect (stdenv, sw) uri = connect ~sw ~stdenv uri
 end)

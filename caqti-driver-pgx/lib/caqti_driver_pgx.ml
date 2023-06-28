@@ -267,7 +267,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
   (* We need to pass stdenv into open_connection below.  This means that
    * PGX will be instantiated for each connection. *)
-  module Pass_connect_env
+  module Pass_stdenv
     (Connect_env : sig val sw : Switch.t val stdenv : stdenv end) =
   struct
     open Connect_env
@@ -657,9 +657,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       Fiber.return (parse_uri uri)
     in
-    let open
-      Pass_connect_env (struct let sw = sw let stdenv = stdenv end)
-    in
+    let open Pass_stdenv (struct let sw = sw let stdenv = stdenv end) in
     let*? db =
       intercept_connect_failed ~uri
         (Pgx_with_io.connect

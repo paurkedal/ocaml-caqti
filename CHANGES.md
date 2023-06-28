@@ -22,6 +22,12 @@ New features:
   - Printf-style function `Caqti_query.qprintf` for dynamic queries
     (GPR#103, Basile Clément).
 
+  - Added general-purpose product type to provide functionality covering
+    both product and custom types.
+
+  - Added new tuple types `t3`, ..., `t8` based on the new product type and
+    deprecated `tup2`, `tup3`, `tup4` which are now aliases for these.
+
 Breaking changes:
 
   - The minimal OCaml requirement is now 4.08.0.
@@ -38,13 +44,35 @@ Breaking changes:
   - Reworked the driver API to accommodate the addition of the PGX driver
     and MirageOS and Eio support, and to avoid exposting internal interfaces
     in the main library.  These modules are now found in the sublibraries
-    `caqti.platform`, `caqti.platform.net` and `caqti.platform.unix`,
-    depending on their external depnedencies.  They are not meant for use by
-    applications, though this might not have fully clear previously.
+    `caqti.platform` and `caqti.platform.unix`, depending on their external
+    depnedencies.  They are not meant for use by applications, though this
+    might not have fully clear previously.
+
+  - Removed constructors Custom, Unit, Tup2, Tup3, Tup4 from `Caqti_type.t`.
+    They were private but could in prinicle be matched against.
+
+  - The extensibility of `Caqti_type.Field.t` has been dropped along with
+    the associated functions for registering conversions.  This means that
+    there are no custom field types any more, only custom row types.  The
+    purpose of custom field types where to support non-standard types for
+    3rd party drivers; we should coordinate additions to the core type
+    instead if needed.
+
+  - According to the above point, the `caqti-type-calendar` is reimplemented
+    as a row type, which means the `Cdate` and `Ctime` constructors are
+    gone.
+
+  - There are adjustments for the pretty printer for types.  (The context is
+    assumed to start at the lowest precedence, meaning parentheses around
+    lowest-precedence expressions are dropped.  Also, `redacted` is shown
+    with suffix notation, allowing us to remove one precedence level.)
 
 Fixes:
 
   - Fixed a missing `Preemptive.detach` call for `to_stream` for Sqlite3.
+
+  - Incorrect error reporting related to type conversions were discovered by
+    exhaustiveness checks when making field types non-extensible.
 
 Other:
 
@@ -53,11 +81,11 @@ Other:
     relevant by the addition of the PGX driver where request and retrieval
     are fused.
 
-  - Customized the top-level index and some other documentation work.  Maybe
-    the biggest improvement to documentation, though, is the removal of
-    private modules from the main libary.
+  - Customized the top-level index and some other documentation work.
+    Removal of private modules from the main library should also help to
+    make the documentation more accessible.
 
-  - Added a benchmark.
+  - Added a benchmark to measure row decoding performance.
 
   - Improved decoding performance by partially applying the type descriptor.
 

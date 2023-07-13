@@ -15,9 +15,30 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module type DRIVER = sig
+  type +'a fiber
+  type (+'a, +'err) stream
+  type switch
+  type stdenv
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a fiber
+     and type ('a, 'err) stream := ('a, 'err) stream
+
+  val driver_info : Caqti_driver_info.t
+
+  val connect :
+    sw: switch ->
+    stdenv: stdenv ->
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    tweaks_version: int * int ->
+    Uri.t ->
+    ((module CONNECTION), [> Caqti_error.connect]) result fiber
+end
+
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Driver_sig.S
+  DRIVER
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
@@ -26,8 +47,28 @@ module type DRIVER_FUNCTOR =
 let drivers = Hashtbl.create 5
 let register scheme p = Hashtbl.add drivers scheme p
 
+module type S = sig
+  type +'a fiber
+  type (+'a, +'e) stream
+  type switch
+  type stdenv
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a fiber
+     and type ('a, 'e) stream := ('a, 'e) stream
+
+  module type DRIVER = DRIVER
+    with type 'a fiber := 'a fiber
+     and type ('a, 'e) stream := ('a, 'e) stream
+     and type switch := switch
+     and type stdenv := stdenv
+
+  val load_driver :
+    uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result
+end
+
 module Make (System : System_sig.S) = struct
-  module type DRIVER = Driver_sig.S
+  module type DRIVER = DRIVER
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type switch := System.Switch.t

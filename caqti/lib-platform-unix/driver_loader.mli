@@ -17,28 +17,33 @@
 
 (** Connection functor and registration for driver using the Unix module. *)
 
+(** {2 Registration} *)
+
 module type DRIVER_FUNCTOR =
   functor (System : Caqti_platform.System_sig.S) ->
   functor (System_unix : System_sig.S
     with type 'a fiber := 'a System.Fiber.t
      and type stdenv := System.stdenv) ->
-  Caqti_platform.Driver_sig.S
+  Caqti_platform.Driver_loader.DRIVER
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
+(** The functor implemented by drivers dependent on the unix library. *)
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
 (** [define_unix_driver scheme m] installs [m] as a handler for the URI scheme
     [scheme].  This call must be done by a backend installed with findlib name
     caqti-driver-{i scheme} as part of its initialization. *)
 
+(** {2 Usage} *)
+
 module Make
     (System : Caqti_platform.System_sig.S)
     (System_unix : System_sig.S
       with type 'a fiber := 'a System.Fiber.t
        and type stdenv := System.stdenv) :
-  Caqti_platform.Driver_sig.Loader
+  Caqti_platform.Driver_loader.S
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type switch := System.Switch.t

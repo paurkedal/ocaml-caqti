@@ -30,7 +30,7 @@ module Make :
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv) ->
-  functor (Loader : Driver_sig.Loader
+  functor (Loader : Driver_loader.S
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv

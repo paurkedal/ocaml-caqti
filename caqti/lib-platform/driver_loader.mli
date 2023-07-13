@@ -15,18 +15,78 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Registration and Loading of Drivers
+
+    This interface is unstable and may change between minor versions.  If you
+    are developing an external driver, please open an issue to sort out
+    requirements and to announce you need for a stable driver API. *)
+
+(** This is the signature implemented by drivers, given the system dependencies.
+    More precisely, drivers implement either {!DRIVER_FUNCTOR} or
+    {!Caqti_platform_unix.Driver_loader.DRIVER_FUNCTOR} depending on
+    requirements. *)
+module type DRIVER = sig
+  type +'a fiber
+  type (+'a, +'err) stream
+  type switch
+  type stdenv
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a fiber
+     and type ('a, 'err) stream := ('a, 'err) stream
+
+  val driver_info : Caqti_driver_info.t
+
+  val connect :
+    sw: switch ->
+    stdenv: stdenv ->
+    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    tweaks_version: int * int ->
+    Uri.t ->
+    ((module CONNECTION), [> Caqti_error.connect]) result fiber
+end
+
+(** {2 Registration} *)
+
 module type DRIVER_FUNCTOR =
   functor (System : System_sig.S) ->
-  Driver_sig.S
+  DRIVER
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
+(** The functor implemented by drivers independent from the unix library. *)
 
 val register : string -> (module DRIVER_FUNCTOR) -> unit
+(** [register scheme driver_functor] registers [driver_functor] as the driver
+    implementation for handling the URI scheme [scheme]. *)
 
-module Make (System : System_sig.S) : Driver_sig.Loader
+(** {2 Usage} *)
+
+(** The the interface used internally to load drivers. *)
+module type S = sig
+  type +'a fiber
+  type (+'a, +'e) stream
+  type switch
+  type stdenv
+
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a fiber
+     and type ('a, 'e) stream := ('a, 'e) stream
+
+  module type DRIVER = DRIVER
+    with type 'a fiber := 'a fiber
+     and type ('a, 'e) stream := ('a, 'e) stream
+     and type switch := switch
+     and type stdenv := stdenv
+
+  val load_driver :
+    uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result
+end
+
+module Make (System : System_sig.S) : S
   with type 'a fiber := 'a System.Fiber.t
    and type ('a, 'e) stream := ('a, 'e) System.Stream.t
    and type switch := System.Switch.t
    and type stdenv := System.stdenv
+(** Instantiation of the loader interface for give system dependencies. *)

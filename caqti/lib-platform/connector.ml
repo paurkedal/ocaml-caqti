@@ -55,7 +55,7 @@ module Make
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv)
-  (Loader : Driver_sig.Loader
+  (Loader : Driver_loader.S
     with type 'a fiber := 'a System.Fiber.t
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
@@ -74,7 +74,7 @@ struct
   let (>|=?) m f = m >|= function Ok x -> (Ok (f x)) | Error _ as r -> r
   let (let+?) = (>|=?)
 
-  module type DRIVER = Driver_sig.S
+  module type DRIVER = Driver_loader.DRIVER
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
      and type switch := System.Switch.t

@@ -38,6 +38,7 @@ struct
   module Core_loader = Caqti_platform.Driver_loader.Make (System)
 
   module type DRIVER = Core_loader.DRIVER
+  module type CONNECTION = Core_loader.CONNECTION
 
   let load_driver_unix ~uri scheme =
     (match Hashtbl.find_opt drivers scheme with

@@ -48,6 +48,10 @@ module type Loader = sig
   type switch
   type stdenv
 
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a fiber
+     and type ('a, 'e) stream := ('a, 'e) stream
+
   module type DRIVER = S
     with type 'a fiber := 'a fiber
      and type ('a, 'e) stream := ('a, 'e) stream

@@ -139,6 +139,12 @@ include Connector.Make (System) (Pool) (Loader)
 
 open System
 
+module type CONNECTION = Caqti_connection_sig.S
+  with type 'a fiber := 'a
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
+type connection = (module CONNECTION)
+
 let connect ?env ?tweaks_version uri =
   let sw = Switch.create () in
   connect ?env ?tweaks_version ~sw ~stdenv:() uri

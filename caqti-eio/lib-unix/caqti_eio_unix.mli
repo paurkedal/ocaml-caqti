@@ -24,7 +24,6 @@ include Caqti_connect_sig.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Caqti_eio.Stream.t
    and type ('a, 'e) pool := ('a, 'e) Caqti_eio.Pool.t
-   and module type CONNECTION := Caqti_eio.CONNECTION
    and type connection := Caqti_eio.connection
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
    and type 'a with_stdenv := stdenv: Eio.Stdenv.t -> 'a

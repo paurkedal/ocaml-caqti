@@ -28,12 +28,17 @@
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
 module Pool : Caqti_pool_sig.S with type 'a fiber := 'a
 
+module type CONNECTION = Caqti_connection_sig.S
+  with type 'a fiber := 'a
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
 include Caqti_connect_sig.S
   with type 'a fiber := 'a
    and type 'a with_switch := 'a
    and type 'a with_stdenv := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
+   and type connection = (module CONNECTION)
 
 val or_fail : ('a, [< Caqti_error.t]) result -> 'a
 (** Takes [Ok x] to [x] and raises {!Caqti_error.Exn}[ err] on [Error err]. *)

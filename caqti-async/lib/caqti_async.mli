@@ -22,9 +22,14 @@ open Async_kernel
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Deferred.t
 module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Deferred.t
 
+module type CONNECTION = Caqti_connection_sig.S
+  with type 'a fiber := 'a Deferred.t
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
 include Caqti_connect_sig.S
   with type 'a fiber := 'a Deferred.t
    and type 'a with_switch := 'a
    and type 'a with_stdenv := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
+   and type connection = (module CONNECTION)

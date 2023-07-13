@@ -226,6 +226,12 @@ include Connector.Make (System) (Pool) (Loader)
 
 open System
 
+module type CONNECTION = Caqti_connection_sig.S
+  with type 'a fiber := 'a Deferred.t
+   and type ('a, 'e) stream := ('a, 'e) Stream.t
+
+type connection = (module CONNECTION)
+
 let connect = connect ~sw:Switch.eternal ~stdenv:()
 let with_connection = with_connection ~stdenv:()
 let connect_pool = connect_pool~sw:Switch.eternal  ~stdenv:()

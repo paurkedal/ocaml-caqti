@@ -33,6 +33,10 @@ module Make (System : System_sig.S) = struct
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
 
+  module type CONNECTION = Caqti_connection_sig.S
+    with type 'a fiber := 'a System.Fiber.t
+     and type ('a, 'e) stream := ('a, 'e) System.Stream.t
+
   let load_driver ~uri scheme =
     (match Hashtbl.find_opt drivers scheme with
      | None ->

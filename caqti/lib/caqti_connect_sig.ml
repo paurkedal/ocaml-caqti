@@ -34,12 +34,7 @@ module type S = sig
   type ('a, +'e) pool
   (** A pool implementation for the current concurrency library. *)
 
-  module type CONNECTION = Caqti_connection_sig.S
-    with type 'a fiber := 'a fiber
-     and type ('a, 'e) stream := ('a, 'e) stream
-  (** The connection API specialized for the current concurrency library. *)
-
-  type connection = (module CONNECTION)
+  type connection
   (** Shortcut for the connection API passed as a value. *)
 
   val connect :

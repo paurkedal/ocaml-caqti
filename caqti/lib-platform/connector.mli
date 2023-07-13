@@ -41,5 +41,6 @@ module Make :
      and type ('a, 'e) pool := ('a, 'e) Pool.t
      and type 'a with_switch := sw: System.Switch.t -> 'a
      and type 'a with_stdenv := stdenv: System.stdenv -> 'a
+     and type connection := (module Loader.CONNECTION)
 (** Constructs the main module used to connect to a database for the given
     concurrency model. *)

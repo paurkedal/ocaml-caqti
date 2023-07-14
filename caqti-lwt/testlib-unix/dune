@@ -1,6 +1,5 @@
 (library
  (name testlib_lwt_unix)
- (modules testlib_lwt_unix)
  (libraries
     alcotest
     caqti

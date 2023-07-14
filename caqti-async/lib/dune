@@ -1,8 +1,7 @@
 (library
-  (name caqti_async)
-  (public_name caqti-async)
-  (modules Caqti_async)
-  (libraries
+ (name caqti_async)
+ (public_name caqti-async)
+ (libraries
     async_kernel async_unix
     caqti caqti.platform caqti.platform.unix
     conduit-async core_kernel core_unix

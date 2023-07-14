@@ -1,6 +1,5 @@
 (library
-  (name caqti_dynload)
-  (public_name caqti-dynload)
-  (modules Caqti_dynload)
-  (library_flags (-linkall))
-  (libraries caqti caqti.platform findlib.dynload))
+ (name caqti_dynload)
+ (public_name caqti-dynload)
+ (library_flags (-linkall))
+ (libraries caqti caqti.platform findlib.dynload))

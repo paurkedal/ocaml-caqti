@@ -1,20 +1,6 @@
 (library
-  (name caqti)
-  (public_name caqti)
-  (wrapped false)
-  (modules
-    Caqti_connect_sig
-    Caqti_connection_sig
-    Caqti_driver_info
-    Caqti_error
-    Caqti_mult
-    Caqti_pool_sig
-    Caqti_query
-    Caqti_request
-    Caqti_response_sig
-    Caqti_stream_sig
-    Caqti_switch_sig
-    Caqti_type
-    Caqti_type_sig)
-  (library_flags (:standard -linkall))
-  (libraries angstrom bigstringaf logs mtime ptime uri))
+ (name caqti)
+ (public_name caqti)
+ (wrapped false)
+ (library_flags (:standard -linkall))
+ (libraries angstrom bigstringaf logs mtime ptime uri))

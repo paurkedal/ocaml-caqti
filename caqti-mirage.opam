@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "caqti-lwt"
+name: "caqti-mirage"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
 authors: "Petter A. Urkedal <paurkedal@gmail.com>"
 license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"

@@ -122,14 +122,19 @@ struct
     end
 
   let connect_pool
-        ?(pool_config = Caqti_pool_config.default) ?post_connect
+        ?pool_config ?post_connect
         ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri =
+    let pool_config =
+      (match pool_config with
+       | None -> Caqti_pool_config.default_from_env ()
+       | Some pool_config -> pool_config)
+    in
     Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
-    (match Caqti_pool_config.max_size pool_config,
-           Caqti_pool_config.max_idle_size pool_config with
+    (match Caqti_pool_config.get_max_size pool_config,
+           Caqti_pool_config.get_max_idle_size pool_config with
      | None, None -> ()
      | Some max_size, None -> check_arg (max_size >= 0)
      | None, Some _ -> check_arg false
@@ -159,21 +164,23 @@ struct
         let pool_config =
           (match Caqti_driver_info.can_concur di,
                  Caqti_driver_info.can_pool di,
-                 Caqti_pool_config.max_idle_size pool_config with
+                 Caqti_pool_config.get_max_idle_size pool_config with
            | true, true, _ ->
               pool_config
            | true, false, _ ->
-              Caqti_pool_config.update pool_config
-                ~max_idle_size:(Some 0)
+              pool_config |> Caqti_pool_config.set_max_idle_size 0
            | false, true, Some 0 ->
-              Caqti_pool_config.update pool_config
-                ~max_size:(Some 1) ~max_idle_size:(Some 0)
+              pool_config
+                |> Caqti_pool_config.set_max_size 1
+                |> Caqti_pool_config.set_max_idle_size 0
            | false, true, _ ->
-              Caqti_pool_config.update pool_config
-                ~max_size:(Some 1) ~max_idle_size:(Some 1)
+              pool_config
+                |> Caqti_pool_config.set_max_size 1
+                |> Caqti_pool_config.set_max_idle_size 1
            | false, false, _ ->
-              Caqti_pool_config.update pool_config
-                ~max_size:(Some 1) ~max_idle_size:(Some 0))
+              pool_config
+                |> Caqti_pool_config.set_max_size 1
+                |> Caqti_pool_config.set_max_idle_size 0)
         in
         let pool =
           Pool.create

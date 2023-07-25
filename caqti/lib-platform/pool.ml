@@ -101,7 +101,7 @@ struct
     mutable alarm: Alarm.t option;
   }
 
-  let defaultopt default = Option.value ~default
+  let default default = Option.value ~default
 
 (*
   let configure config pool =
@@ -119,10 +119,10 @@ struct
         ~sw
         ~stdenv
         create free =
-    let max_size = Config.max_size config |> defaultopt default_max_size in
-    let max_idle_size = Config.max_idle_size config |> defaultopt max_size in
-    let max_idle_age = Config.max_idle_age config |> defaultopt None in
-    let max_use_count = Config.max_use_count config |> defaultopt (Some 100) in
+    let max_size = Config.get_max_size config |> default default_max_size in
+    let max_idle_size = Config.get_max_idle_size config |> default max_size in
+    let max_idle_age = Config.get_max_idle_age config |> default None in
+    let max_use_count = Config.get_max_use_count config |> default (Some 100) in
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
     assert (Option'.for_all (fun n -> n > 0) max_use_count);

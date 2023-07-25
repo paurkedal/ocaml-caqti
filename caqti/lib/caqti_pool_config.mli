@@ -15,7 +15,11 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Pool configuration. *)
+
 type t
+
+(** {2 Construction, Defaults, and Merge} *)
 
 val create :
   ?max_size: int ->
@@ -23,17 +27,52 @@ val create :
   ?max_idle_age: Mtime.Span.t option ->
   ?max_use_count: int option ->
   unit -> t
+(** Creates a configuration for the implementation of {!Caqti_pool_sig.S}.
 
-val update :
-  ?max_size: int option ->
-  ?max_idle_size: int option ->
-  ?max_idle_age: Mtime.Span.t option option ->
-  ?max_use_count: int option option ->
-  t -> t
+    @param max_size
+      The maximum number of resources controlled by the pool at any time,
+      including currently used ones.
+    @param max_idle_size
+      The maximum number of unused resources kept in the pool.
+    @param max_idle_age
+      The maximum time a resource is kept idle in the pool before it is removed
+      or [None] for no limit, which is the default.
+    @param max_use_count
+      The maximum number of times a resource is re-used before being discarded.
+ *)
+
+val create_from_env : string -> t
+(** [create_from_env prefix] creates a configuration from environment variables
+    starting with the given prefix.  See also {!default_from_env}. *)
 
 val default : t
+(** The configuration object with no setting, which gives the built-in defaults.
+    Alternatively, use {!default_from_env} for a configuration based on
+    environment variables. *)
 
-val max_size : t -> int option
-val max_idle_size : t -> int option
-val max_idle_age : t -> Mtime.Span.t option option
-val max_use_count : t -> int option option
+val default_from_env : unit -> t
+(** [default_from_env ()] is a configuration constructed from environment
+    variables of the form [CAQTI_POOL_<suffix>], with the upper-cased names of
+    arguments of {!create} substituted for [<suffix>].  It is equivalent to
+    {!create_from_env}["CAQTI_POOL"]. *)
+
+val merge_left : t -> t -> t
+(** [merge_left cL cR] is the configuration [cL] with missing settings populated
+    by the corresponding present settings from [cR]. *)
+
+(** {2 Individual Parameters} *)
+
+val get_max_size : t -> int option
+val get_max_idle_size : t -> int option
+val get_max_idle_age : t -> Mtime.Span.t option option
+val get_max_use_count : t -> int option option
+
+val set_max_size : int -> t -> t
+val set_max_idle_size : int -> t -> t
+val set_max_idle_age : Mtime.Span.t option -> t -> t
+val set_max_use_count : int option -> t -> t
+
+val unset_max_size : t -> t
+val unset_max_idle_size : t -> t
+val unset_max_idle_age : t -> t
+val unset_max_use_count : t -> t

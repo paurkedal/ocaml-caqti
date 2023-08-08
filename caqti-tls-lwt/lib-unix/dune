@@ -1,0 +1,12 @@
+(library
+ (name caqti_tls_lwt_unix)
+ (public_name caqti-tls-lwt.unix)
+ (libraries
+    caqti
+    caqti.platform
+    caqti.platform.unix
+    caqti-lwt
+    caqti-lwt.unix
+    caqti-tls
+    tls
+    tls-lwt))

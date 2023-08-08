@@ -1,0 +1,4 @@
+(library
+ (name caqti_tls)
+ (public_name caqti-tls)
+ (libraries caqti tls))

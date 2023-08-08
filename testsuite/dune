@@ -34,12 +34,13 @@
   (enabled_if (>= %{ocaml_version} "5.0"))
   (modules main_eio_unix)
   (libraries
-    caqti caqti-eio.unix caqti-dynload
-    alcotest eio eio_main testlib testlib_eio_unix testsuite))
+    caqti caqti-eio.unix caqti-dynload caqti-tls-eio
+    alcotest eio eio_main mirage-crypto-rng-eio
+    testlib testlib_eio_unix testsuite))
 
 (rule
   (alias runtest)
-  (package caqti-eio)
+  (package caqti-tls-eio)
   (enabled_if (>= %{ocaml_version} "5.0"))
   (deps (:test main_eio_unix.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
@@ -63,12 +64,13 @@
   (name main_lwt_unix)
   (modules main_lwt_unix)
   (libraries
-    caqti caqti.platform caqti-dynload caqti-lwt caqti-lwt.unix
+    caqti caqti.platform caqti-dynload
+    caqti-lwt caqti-lwt.unix caqti-tls-lwt.unix
     alcotest-lwt testlib testlib_lwt_unix testsuite))
 
 (rule
   (alias runtest)
-  (package caqti-lwt)
+  (package caqti-tls-lwt)
   (deps (:test main_lwt_unix.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))

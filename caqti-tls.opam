@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "caqti-mirage"
+name: "caqti-tls"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
 authors: "Petter A. Urkedal <paurkedal@gmail.com>"
 license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
@@ -8,24 +8,10 @@ doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "caqti" {>= "2.1.0" & < "2.2.0~"}
-  "caqti-lwt" {>= "2.1.0" & < "2.2.0~"}
-  "caqti-tls" {>= "2.1.0" & < "2.2.0~"}
-  "dns-client" {>= "7.0.0"}
-  "dns-client-mirage" {>= "7.0.0"}
-  "domain-name"
   "dune" {>= "3.9"}
-  "ipaddr"
-  "logs"
-  "lwt" {>= "5.3.0"}
-  "mirage-channel"
-  "mirage-clock"
-  "mirage-random"
-  "mirage-time"
   "ocaml"
   "odoc" {with-doc}
   "tls"
-  "tls-mirage"
-  "tcpip"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
@@ -33,4 +19,13 @@ build: [
   ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
-synopsis: "MirageOS support for Caqti including TLS"
+synopsis: "Caqti TLS support for PGX; config and caqti.unix implementation"
+description: """
+This package contains the shared configuration and caqti.unix-specific
+implementation of TLS for the Caqti network API.  This package only applies
+to PGX, since drivers based on bindings use their own TLS implementation
+(libpq, mariadb) or have no need for it (sqlite3).
+
+The implementation for caqti-eio and caqti-lwt can be found in caqti-tls-eio
+and caqti-tls-lwt, respectively.
+"""

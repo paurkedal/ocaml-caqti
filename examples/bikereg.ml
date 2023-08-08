@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -149,9 +149,10 @@ let report_error = function
  | Error err ->
     Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
 
-let main {Testlib.uris; tweaks_version} = Lwt_main.run begin
+let main {Testlib.uris; connect_config} = Lwt_main.run begin
   uris |> Lwt_list.iter_s begin fun uri ->
-    Caqti_lwt_unix.with_connection ?tweaks_version uri test >>= report_error
+    Caqti_lwt_unix.with_connection ~config:connect_config uri test
+      >>= report_error
   end
 end
 

@@ -33,13 +33,13 @@ type stdenv = <
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
 
 (**/**) (* for private use by caqti-eio.unix *)
-module System : sig
-  include Caqti_platform.System_sig.S
-    with type 'a Fiber.t = 'a
-     and type Switch.t = Eio.Switch.t
-     and type stdenv = stdenv
-     and module Stream = Stream
-end
+module System : Caqti_platform.System_sig.S
+  with type 'a Fiber.t = 'a
+   and type Switch.t = Eio.Switch.t
+   and type stdenv = stdenv
+   and module Stream = Stream
+   and type Net.tcp_flow = Eio.Flow.two_way_ty Eio.Resource.t
+   and type Net.tls_flow = Eio.Flow.two_way_ty Eio.Resource.t
 (**/**)
 
 module Pool : sig

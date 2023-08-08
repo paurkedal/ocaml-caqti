@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,6 +45,7 @@ let packages = [
   package "caqti-driver-pgx" ~pin ~pin_version;
   package "caqti-mirage" ~pin ~pin_version;
   package "caqti-lwt" ~pin ~pin_version;
+  package "caqti-tls" ~pin ~pin_version;
   package "dns-client-mirage";
   package "logs";
   package "mirage-crypto-rng-mirage";
@@ -65,9 +66,22 @@ let database_uri =
   in
   Key.(create "database-uri" Arg.(required string doc))
 
+let x509_authenticator =
+  let doc =
+    Key.Arg.info ~doc:"X509 authenticator." ["x509-authenticator"]
+  in
+  (* TODO: Would be good to invoke X509.Authenticator.of_string to check the
+   * argument here. How do we specify the x509 dependency? *)
+  Key.(create "x509_authenticator" Arg.(opt (some string) None doc))
+
+let keys = [
+  Key.v nameservers;
+  Key.v database_uri;
+  Key.v x509_authenticator;
+]
+
 let unikernel_functor =
-  foreign "Unikernel.Make"
-    ~keys:[Key.v nameservers; Key.v database_uri] ~packages
+  foreign "Unikernel.Make" ~keys ~packages
     (random @-> time @-> pclock @-> mclock @-> stackv4v6 @-> dns_client @-> job)
 
 let unikernel =

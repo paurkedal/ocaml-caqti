@@ -15,32 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(**/**)
+open Lwt.Syntax
+open Caqti_lwt_unix
 
-include Caqti_platform.System_sig.CORE
-  with type 'a Fiber.t = 'a Lwt.t
-   and type stdenv = unit
-   and module Stream = Caqti_lwt.Stream
-   and type Switch.t = Caqti_lwt.Switch.t
+module TLS_provider = struct
+  type tls_config = Tls.Config.client
+  let tls_config_key = Caqti_tls.Config.client
 
-module Net : sig
-
-  type socket =
-    Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
-
-  include Caqti_platform.System_sig.NET
-    with type 'a fiber := 'a Lwt.t
-     and type switch := Switch.t
-     and type stdenv := stdenv
-     and type tcp_flow = Lwt_unix.file_descr
-     and type tls_flow = socket
+  let start_tls ~config ?host fd =
+    let+ session = Tls_lwt.Unix.client_of_fd config ?host fd in
+    let ic, oc = Tls_lwt.of_t session in
+    Ok (fd, ic, oc)
 end
 
-module Alarm : Caqti_platform.Pool.ALARM
-  with type switch := Switch.t
-   and type stdenv := unit
-
-module Pool : Caqti_platform.Pool.S
-  with type 'a fiber := 'a Lwt.t
-   and type switch := Switch.t
-   and type stdenv := unit
+let () =
+  System.Net.tls_providers := (module TLS_provider) :: !System.Net.tls_providers

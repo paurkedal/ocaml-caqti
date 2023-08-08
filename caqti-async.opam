@@ -11,9 +11,9 @@ depends: [
   "alcotest-async" {with-test & >= "0.8.5"}
   "async_kernel" {>= "v0.11.0"}
   "async_unix" {>= "v0.11.0"}
-  "caqti" {>= "2.0.0" & < "2.1.0~"}
-  "caqti-dynload" {with-test & >= "2.0.0" & < "3.0.0~"}
-  "caqti-driver-sqlite3" {with-test & >= "2.0.0" & < "3.0.0~"}
+  "caqti" {>= "2.1.0" & < "2.2.0~"}
+  "caqti-dynload" {with-test}
+  "caqti-driver-sqlite3" {with-test}
   "cmdliner" {with-test & >= "1.1.0"}
   "conduit-async" {>= "1.5.0"}
   "core" {>= "v0.16.1"}

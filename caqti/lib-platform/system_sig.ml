@@ -101,6 +101,35 @@ module type CORE = sig
 
 end
 
+module type SOCKET_OPS = sig
+  type 'a fiber
+  type t
+
+  (* These are currently only used by PGX.  Despite the flush, it PGX is doing
+   * it's own buffering, so unbuffered should be okay.  output_char and
+   * input_char are only used for the packet header. *)
+  val output_char : t -> char -> unit fiber
+  val output_string : t -> string -> unit fiber
+  val flush : t -> unit fiber
+  val input_char : t -> char fiber
+  val really_input : t -> Bytes.t -> int -> int -> unit fiber
+  val close : t -> unit fiber
+end
+
+module type TLS_PROVIDER = sig
+  type 'a fiber
+  type tcp_flow
+  type tls_flow
+
+  type tls_config
+  val tls_config_key : tls_config option Caqti_connect_config.key
+
+  val start_tls :
+    config: tls_config ->
+    ?host: [`host] Domain_name.t ->
+    tcp_flow -> (tls_flow, [> `Msg of string]) result fiber
+end
+
 module type NET = sig
   type 'a fiber
   type switch
@@ -111,9 +140,6 @@ module type NET = sig
     val unix : string -> t
     val tcp : Ipaddr.t * int -> t
   end
-
-  type in_channel
-  type out_channel
 
   val getaddrinfo :
     stdenv: stdenv -> [`host] Domain_name.t -> int ->
@@ -133,21 +159,28 @@ module type NET = sig
       error return indicates that an appropriate DNS server could not be
       queried. *)
 
-  val connect :
+  (** A socket with input and output channels and dedicated IO functions.  This
+      bundling is done to support the various APIs involved for networking and
+      StartTLS. *)
+  module Socket : SOCKET_OPS with type 'a fiber := 'a fiber
+
+  type tcp_flow
+  type tls_flow
+
+  val connect_tcp :
     sw: switch -> stdenv: stdenv -> Sockaddr.t ->
-    (in_channel * out_channel, [> `Msg of string]) result fiber
+    (Socket.t, [> `Msg of string]) result fiber
 
-  (* TODO: STARTTLS *)
+  val tcp_flow_of_socket : Socket.t -> tcp_flow option
+  val socket_of_tls_flow : sw: switch -> tls_flow -> Socket.t
 
-  (* These are currently only used by PGX.  Despite the flush, it PGX is doing
-   * it's own buffering, so unbuffered should be okay.  output_char and
-   * input_char are only used for the packet header. *)
-  val output_char : out_channel -> char -> unit fiber
-  val output_string : out_channel -> string -> unit fiber
-  val flush : out_channel -> unit fiber
-  val input_char : in_channel -> char fiber
-  val really_input : in_channel -> Bytes.t -> int -> int -> unit fiber
-  val close_in : in_channel -> unit fiber
+  module type TLS_PROVIDER = TLS_PROVIDER
+    with type 'a fiber := 'a fiber
+     and type tcp_flow := tcp_flow
+     and type tls_flow := tls_flow
+
+  val tls_providers : (module TLS_PROVIDER) list ref
+
 end
 
 module type S = sig

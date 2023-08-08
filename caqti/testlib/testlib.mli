@@ -1,4 +1,4 @@
-(* Copyright (C) 2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@ module Sig = Sig
 
 type common_args = {
   uris: Uri.t list;
-  tweaks_version: (int * int) option;
+  connect_config: Caqti_connect_config.t;
 }
 
 val common_args : common_args Cmdliner.Term.t

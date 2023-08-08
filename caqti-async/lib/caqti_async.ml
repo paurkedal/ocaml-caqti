@@ -140,9 +140,6 @@ module System = struct
           (Core_unix.Inet_addr.of_string (Ipaddr.to_string addr), port)
     end
 
-    type in_channel = Reader.t
-    type out_channel = Writer.t
-
     let getaddrinfo ~stdenv:() host port =
       let module Ai = Async_unix.Unix.Addr_info in
       let extract ai = ai.Ai.ai_addr in
@@ -150,7 +147,29 @@ module System = struct
              Ai.[AI_SOCKTYPE SOCK_STREAM]
       >|= List.map ~f:extract >|= (fun addrs -> Ok addrs)
 
-    let connect ~sw:_ ~stdenv:() = function
+    module Socket = struct
+      type t = Reader.t * Writer.t
+
+      let output_char (_, oc) c = return (Writer.write_char oc c)
+      let output_string (_, oc) s = return (Writer.write oc s)
+
+      let flush (_, oc) = Writer.flushed oc
+
+      let input_char (ic, _) =
+        Reader.read_char ic
+        >|= function `Ok c -> c | `Eof -> raise End_of_file
+
+      let really_input (ic, _) s pos len =
+        Reader.really_read ic ~pos ~len s
+        >|= function `Ok -> () | `Eof _ -> raise End_of_file
+
+      let close (ic, _) = Reader.close ic (* CHECKME *)
+    end
+
+    type tcp_flow = Socket.t
+    type tls_flow = Socket.t
+
+    let connect_tcp ~sw:_ ~stdenv:() = function
      | Async_unix.Unix.ADDR_INET (addr, port) ->
         Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
@@ -158,20 +177,27 @@ module System = struct
         Conduit_async.V3.(connect (Unix (`Unix path)))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
 
-    let output_char oc c = return (Writer.write_char oc c)
-    let output_string oc s = return (Writer.write oc s)
+    let tcp_flow_of_socket socket = Some socket
+    let socket_of_tls_flow ~sw:_ socket = socket
 
-    let flush = Writer.flushed
+    module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
+      with type 'a fiber := 'a Deferred.t
+       and type tcp_flow := tcp_flow
+       and type tls_flow := tls_flow
 
-    let input_char ic =
-      Reader.read_char ic
-      >|= function `Ok c -> c | `Eof -> raise End_of_file
+    module Tls_provider = struct
+      type tls_config = Conduit_async.V1.Conduit_async.Ssl.config
+      let tls_config_key =
+        Caqti_connect_config.create_key "conduit_async_ssl" None
 
-    let really_input ic s pos len =
-      Reader.really_read ic ~pos ~len s
-      >|= function `Ok -> () | `Eof _ -> raise End_of_file
+      let start_tls ~config ?host:_ (ic, oc) =
+        (* TODO: Add host to config. *)
+        Conduit_async.V1.Conduit_async_ssl.ssl_connect config ic oc
+          >|= fun (ic, oc) -> Ok (ic, oc)
+    end
 
-    let close_in = Reader.close
+    let tls_providers : (module TLS_PROVIDER) list ref =
+      ref [(module Tls_provider : TLS_PROVIDER)]
   end
 end
 

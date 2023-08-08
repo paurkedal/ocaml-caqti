@@ -46,15 +46,19 @@ module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 
 module Net = struct
 
+  type socket =
+    Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
+
+  module type SOCKET_OPS = Caqti_platform.System_sig.SOCKET_OPS
+    with type 'a fiber := 'a Lwt.t
+     and type t = socket
+
   module Sockaddr = struct
     type t = Unix.sockaddr
     let unix s = Unix.ADDR_UNIX s
     let tcp (addr, port) =
       Unix.ADDR_INET (Unix.inet_addr_of_string (Ipaddr.to_string addr), port)
   end
-
-  type in_channel = Lwt_io.input_channel
-  type out_channel = Lwt_io.output_channel
 
   let getaddrinfo ~stdenv:() host port =
     Lwt.catch
@@ -70,19 +74,47 @@ module Net = struct
             (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
        | exn -> Lwt.fail exn)
 
-  let connect ~sw:_ ~stdenv:() sockaddr =
-    Lwt.catch
-      (fun () -> Lwt_io.open_connection sockaddr >|= Result.ok)
-      (function
-       | Unix.Unix_error (code, _, _) ->
-          Lwt.return_error
-            (`Msg ("Cannot connect: " ^ Unix.error_message code))
-       | exn -> Lwt.fail exn)
+  module Socket = struct
+    type t = Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
 
-  let output_char = Lwt_io.write_char
-  let output_string = Lwt_io.write
-  let flush = Lwt_io.flush
-  let input_char = Lwt_io.read_char
-  let really_input = Lwt_io.read_into_exactly
-  let close_in = Lwt_io.close
+    let output_char (_, _, oc) data = Lwt_io.write_char oc data
+    let output_string (_, _, oc) data = Lwt_io.write oc data
+    let flush (_, _, oc) = Lwt_io.flush oc
+    let input_char (_, ic, _) = Lwt_io.read_char ic
+    let really_input (_, ic, _) data offset length =
+      Lwt_io.read_into_exactly ic data offset length
+    let close (_, _, oc) = Lwt_io.close oc (* CHECKME *)
+  end
+
+  type tcp_flow = Lwt_unix.file_descr
+  type tls_flow = Socket.t
+
+  let connect_tcp ~sw:_ ~stdenv:() sockaddr =
+    let domain = Unix.domain_of_sockaddr sockaddr in
+    let fd = Lwt_unix.socket domain Unix.SOCK_STREAM 0 in
+    Lwt.catch
+      (fun () ->
+        (try Lwt_unix.set_close_on_exec fd with _ -> ());
+        Lwt_unix.connect fd sockaddr >|= fun () ->
+        let ic = Lwt_io.(of_fd ~mode:input) fd in
+        let oc = Lwt_io.(of_fd ~mode:output) fd in
+        Ok (fd, ic, oc))
+      (function
+       | Unix.Unix_error (err, fn, _) ->
+          Lwt_unix.close fd >|= fun () ->
+          Error (`Msg (fn ^ ": " ^ Unix.error_message err))
+       | exn ->
+          Lwt_unix.close fd >>= fun () ->
+          Lwt.fail exn)
+
+  let tcp_flow_of_socket (fd, _, _) = Some fd
+
+  let socket_of_tls_flow ~sw:_ = Fun.id
+
+  module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
+    with type 'a fiber := 'a Lwt.t
+     and type tcp_flow := tcp_flow
+     and type tls_flow := tls_flow
+
+  let tls_providers : (module TLS_PROVIDER) list ref = ref []
 end

@@ -35,6 +35,14 @@ let () =
 
 let no_env _ _ = raise Not_found
 
+let host_of_string str =
+  (match Domain_name.of_string str with
+   | Ok dom ->
+      (match Domain_name.host dom with
+       | Ok dom -> Some dom
+       | Error _ -> None)
+   | Error _ -> None)
+
 let driver_info =
   Caqti_driver_info.create
     ~uri_scheme:"pgx"
@@ -267,6 +275,13 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   let intercept_connect_failed ~uri =
     intercept (Caqti_error.connect_failed ~uri)
 
+  type ssl_config =
+    Ssl_config : {
+      impl: (module Net.TLS_PROVIDER with type tls_config = 'a);
+      config: 'a;
+      host: [`host] Domain_name.t option;
+    } -> ssl_config
+
   (* We need to pass stdenv into open_connection below.  This means that
    * PGX will be instantiated for each connection. *)
   module Pass_stdenv
@@ -282,43 +297,75 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
       include Net
 
+      type in_channel = Socket.t
+      type out_channel = Socket.t
+
       type sockaddr = Unix of string | Inet of string * int
 
       let open_connection sockaddr =
+        let connect sockaddr =
+          Net.connect_tcp ~sw ~stdenv sockaddr
+            >|= Result.map (fun socket -> (socket, socket))
+        in
         (match sockaddr with
          | Unix path ->
-            connect ~sw ~stdenv (Sockaddr.unix path)
-         | Inet (host, port) ->
-            (match Ipaddr.of_string host with
+            connect (Sockaddr.unix path)
+         | Inet (host_or_ipaddr, port) ->
+            (match Ipaddr.of_string host_or_ipaddr with
              | Ok ipaddr ->
-                connect ~sw ~stdenv (Sockaddr.tcp (ipaddr, port))
+                connect (Sockaddr.tcp (ipaddr, port))
              | Error _ ->
-                let host' = host
-                  |> Domain_name.of_string_exn
-                  |> Domain_name.host_exn
-                in
-                getaddrinfo ~stdenv host' port >>= (function
-                 | Ok [] ->
-                    failwith "The host name does not resolve."
-                 | Ok (sockaddr :: _) ->
-                    connect ~sw ~stdenv sockaddr
-                 | Error (`Msg msg) ->
-                    failwith msg)))
+                (match host_of_string host_or_ipaddr with
+                 | None ->
+                    failwith
+                      ("Cannot resolve invalid host name " ^ host_or_ipaddr)
+                 | Some host ->
+                    getaddrinfo ~stdenv host port >>= (function
+                     | Ok [] ->
+                        failwith "The host name does not resolve."
+                     | Ok (sockaddr :: _) ->
+                        connect sockaddr
+                     | Error (`Msg msg) ->
+                        failwith msg))))
         >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
 
-      (* TODO *)
-      type ssl_config
-      let upgrade_ssl = `Not_supported
+      let output_char = Socket.output_char
+      let output_string = Socket.output_string
+      let flush = Socket.flush
 
       let output_binary_int oc x =
         let buf = Bytes.create 4 in
         Bytes.set_int32_be buf 0 (Int32.of_int x);
-        output_string oc (Bytes.to_string buf)
+        Socket.output_string oc (Bytes.to_string buf)
+
+      let input_char = Socket.input_char
+      let really_input = Socket.really_input
+
+      (* This closes the output channel instead of the input channel; cf.
+       * Unix.open_connection. *)
+      let close_in = Socket.close
 
       let input_binary_int ic =
         let buf = Bytes.create 4 in
-        really_input ic buf 0 4 >|= fun () ->
+        Socket.really_input ic buf 0 4 >|= fun () ->
         Int32.to_int (Bytes.get_int32_be buf 0)
+
+      type nonrec ssl_config = ssl_config
+
+      let upgrade_ssl =
+        let upgrade ?ssl_config socket _ =
+          (match ssl_config, tcp_flow_of_socket socket with
+           | None, _ -> assert false (* we don't use `Auto *)
+           | _, None -> assert false (* we only upgrade once *)
+           | Some (Ssl_config {impl; config; host}), Some tcp_flow ->
+              let module Impl = (val impl) in
+              Impl.start_tls ~config ?host tcp_flow >|= function
+               | Ok tls_flow ->
+                  let socket = socket_of_tls_flow ~sw tls_flow in
+                  (socket, socket)
+               | Error (`Msg msg) -> failwith msg)
+        in
+        `Supported upgrade
 
       let getlogin () = failwith "The DB user must be provided."
 
@@ -334,7 +381,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   end
 
   module Make_connection_base
-    (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t)
+    (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t
+                          and type Io.ssl_config = ssl_config)
     (Connection_arg : sig
       val env : Caqti_driver_info.t -> string -> Caqti_query.t
       val uri : Uri.t
@@ -655,15 +703,30 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
      | Ok () -> Ok ()
      | Error err -> Error (`Post_connect err)
 
-  let connect ~sw ~stdenv ?(env = no_env) ~config:_ uri =
+  let find_tls_provider ~config ?host () =
+    let with_config (module Tls_provider : Net.TLS_PROVIDER) =
+      (match Caqti_connect_config.get Tls_provider.tls_config_key config with
+       | None -> None
+       | Some config ->
+          Some (Ssl_config {impl = (module Tls_provider); config; host}))
+    in
+    (match List.find_map with_config !Net.tls_providers with
+     | None -> `No
+     | Some ssl_config -> `Always ssl_config)
+
+  let connect ~sw ~stdenv ?(env = no_env) ~config uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       Fiber.return (parse_uri uri)
+    in
+    let ssl =
+      let host = Option.bind host host_of_string in
+      find_tls_provider ~config ?host ()
     in
     let open Pass_stdenv (struct let sw = sw let stdenv = stdenv end) in
     let*? db =
       intercept_connect_failed ~uri
         (Pgx_with_io.connect
-          ?host ?port ?user ?password ?database ?unix_domain_socket_dir)
+          ~ssl ?host ?port ?user ?password ?database ?unix_domain_socket_dir)
     in
     let*? select_type_oid =
       intercept_request_failed ~uri ~query:Q.select_type_oid

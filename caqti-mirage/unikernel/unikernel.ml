@@ -17,8 +17,10 @@
 
 open Lwt.Infix
 open Lwt.Syntax
+let ( let/? ) = Result.bind
 let ( let*? ) = Lwt_result.Syntax.( let* )
 let ( let+? ) = Lwt_result.Syntax.( let+ )
+let ( % ) f g x = f (g x)
 
 let minus_req =
   let open Caqti_request.Infix in
@@ -38,6 +40,8 @@ struct
   module Logs_reporter = Mirage_logs.Make (PCLOCK)
   module Log = (val Logs_lwt.src_log (Logs.Src.create "main"))
 
+  let pclock_now_opt () = Some (Ptime.v (PCLOCK.now_d_ps ()))
+
   let test (module C : Caqti_lwt.CONNECTION) =
     let+? res = C.find minus_req (22, 17) in
     assert (res = 5)
@@ -46,12 +50,29 @@ struct
     Logs.(set_level (Some Info));
     Logs.set_reporter (Logs_reporter.create ());
     begin
+      let*? config =
+        let set_authenticator arg cfg =
+          let/? authenticator = X509.Authenticator.of_string arg in
+          let authenticator = authenticator pclock_now_opt in
+          let tls_cfg = Tls.Config.client ~authenticator () in
+          let cfg =
+            Caqti_connect_config.set Caqti_tls.Config.client (Some tls_cfg) cfg
+          in
+          Ok cfg
+        in
+        Caqti_connect_config.default
+          |> Option.fold ~none:Result.ok ~some:set_authenticator
+              (Key_gen.x509_authenticator ())
+          |> Lwt.return
+      in
       let* () = Log.info (fun f -> f "Connecting to the database.") in
       let db_uri = Uri.of_string (Key_gen.database_uri ()) in
-      let*? db_conn = Caqti_mirage_connect.connect stack dns db_uri in
+      let*? db_conn = Caqti_mirage_connect.connect ~config stack dns db_uri in
       let* () = Log.info (fun f -> f "Running tests.") in
       test db_conn
     end >>= function
      | Ok () -> Log.info (fun f -> f "Done.")
-     | Error err -> Log.err (fun f -> f "%a" Caqti_error.pp err)
+     | Error (`Msg msg) -> Log.err (fun f -> f "%s" msg)
+     | Error (#Caqti_error.t as err) ->
+        Log.err (fun f -> f "%a" Caqti_error.pp err)
 end

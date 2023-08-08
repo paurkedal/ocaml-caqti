@@ -58,11 +58,11 @@ let env =
   let (&) f g di var = try f di var with Stdlib.Not_found -> g di var in
   Test_sql.env & Test_error_cause.env
 
-let mk_tests {uris; tweaks_version} =
+let mk_tests {uris; connect_config} =
   let connect_pool uri =
     let pool_config = Caqti_pool_config.create ~max_size:16 () in
     (match Caqti_async.connect_pool uri
-            ~pool_config ~post_connect ?tweaks_version ~env with
+            ~pool_config ~post_connect ~config:connect_config ~env with
      | Ok pool ->
         (test_name_of_uri uri, pool)
      | Error err ->

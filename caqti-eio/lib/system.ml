@@ -114,9 +114,6 @@ module Net = struct
     let unix path = `Unix path
   end
 
-  type in_channel = [Eio.Flow.source_ty | Eio.Resource.close_ty] Eio.Resource.t
-  type out_channel = Eio.Flow.sink_ty Eio.Resource.t
-
   let getaddrinfo ~stdenv host port =
     try
       Eio.Net.getaddrinfo_stream stdenv#net
@@ -125,27 +122,70 @@ module Net = struct
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-  let connect ~sw ~stdenv sockaddr =
+  module Socket = struct
+    type t = {
+      flow: Eio.Flow.two_way_ty Eio.Resource.t;
+      ic: Eio.Buf_read.t;
+      oc: Eio.Buf_write.t;
+    }
+
+    let output_char {oc; _} c = Eio.Buf_write.char oc c
+    let output_string {oc; _} s = Eio.Buf_write.string oc s
+    let flush {oc; _} = Eio.Buf_write.flush oc
+
+    let input_char {ic; _} =
+      Eio.Buf_read.ensure ic 1;
+      let ch = Cstruct.get_char (Eio.Buf_read.peek ic) 0 in
+      Eio.Buf_read.consume ic 1;
+      ch
+
+    let really_input {ic; _} buf i n =
+      Eio.Buf_read.ensure ic n;
+      Cstruct.blit_to_bytes (Eio.Buf_read.peek ic) 0 buf i n;
+      Eio.Buf_read.consume ic n
+
+    let close {flow; _} = Eio.Flow.shutdown flow `Send
+  end
+
+  type tcp_flow = Eio.Flow.two_way_ty Eio.Resource.t
+  type tls_flow = Eio.Flow.two_way_ty Eio.Resource.t
+
+  let tcp_flow_of_socket {Socket.flow; ic; oc} =
+    Log.debug (fun m -> m "Enabling TLS.");
+    assert (Eio.Buf_write.pending_bytes oc = 0);
+    assert (Eio.Buf_read.buffered_bytes ic = 0);
+    Some flow
+
+  let write_batches t flow =
     try
-      let socket_flow = Eio.Net.connect ~sw stdenv#net sockaddr in
-      Ok ((socket_flow :> in_channel), (socket_flow :> out_channel))
+      while true; do
+        let iovecs = Eio.Buf_write.await_batch t in
+        let n = Eio.Flow.single_write flow iovecs in
+        Eio.Buf_write.shift t n
+      done
+    with End_of_file -> ()
+
+  let socket_of_tls_flow ~sw flow =
+    let ic = Eio.Buf_read.of_flow ~max_size:4096 flow in
+    let oc = Eio.Buf_write.create 4096 in
+    Eio.Fiber.fork ~sw (fun () -> write_batches oc flow);
+    {Socket.flow; ic; oc}
+
+  let connect_tcp ~sw ~stdenv sockaddr =
+    try
+      let flow =
+        (Eio.Net.connect ~sw stdenv#net sockaddr
+          :> Eio.Flow.two_way_ty Eio.Resource.t)
+      in
+      Ok (socket_of_tls_flow ~sw flow)
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
-  let output_char sink c = Eio.Flow.copy_string (String.make 1 c) sink
-  let output_string sink s = Eio.Flow.copy_string s sink
-  let flush _sink = ()
+  module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
+    with type 'a fiber := 'a
+     and type tcp_flow := tcp_flow
+     and type tls_flow := tls_flow
 
-  let input_char source =
-    let buf = Cstruct.create 1 in
-    Eio.Flow.read_exact source buf;
-    Cstruct.get_char buf 0
+  let tls_providers : (module TLS_PROVIDER) list ref = ref []
 
-  let really_input source buf i n =
-    let cbuf = Cstruct.create n in
-    Eio.Flow.read_exact source cbuf;
-    Cstruct.blit_to_bytes cbuf 0 buf i n
-
-  (* TODO: Check shutdown semantics, or maybe leave it to the switch. *)
-  let close_in source = Eio.Flow.close source
 end

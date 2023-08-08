@@ -15,32 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(**/**)
+(** TLS provider for caqti-lwt based on the tls library.
 
-include Caqti_platform.System_sig.CORE
-  with type 'a Fiber.t = 'a Lwt.t
-   and type stdenv = unit
-   and module Stream = Caqti_lwt.Stream
-   and type Switch.t = Caqti_lwt.Switch.t
-
-module Net : sig
-
-  type socket =
-    Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
-
-  include Caqti_platform.System_sig.NET
-    with type 'a fiber := 'a Lwt.t
-     and type switch := Switch.t
-     and type stdenv := stdenv
-     and type tcp_flow = Lwt_unix.file_descr
-     and type tls_flow = socket
-end
-
-module Alarm : Caqti_platform.Pool.ALARM
-  with type switch := Switch.t
-   and type stdenv := unit
-
-module Pool : Caqti_platform.Pool.S
-  with type 'a fiber := 'a Lwt.t
-   and type switch := Switch.t
-   and type stdenv := unit
+    This sublibrary has no entry point, but registers TLS support for
+    [caqti-lwt.unix], enabled by passing {!Caqti_tls.Config.client}. *)

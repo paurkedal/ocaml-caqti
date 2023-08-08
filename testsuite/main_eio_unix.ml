@@ -53,11 +53,11 @@ let env =
   let (&) f g di var = try f di var with Not_found -> g di var in
   Test_sql.env & Test_error_cause.env
 
-let mk_tests (stdenv, sw) {uris; tweaks_version} =
+let mk_tests (stdenv, sw) {uris; connect_config} =
   let pool_config = Caqti_pool_config.create ~max_size:16 () in
   let connect_pool (stdenv, sw) uri =
     (match Caqti_eio_unix.connect_pool ~sw ~stdenv uri
-            ~pool_config ~post_connect ?tweaks_version ~env with
+            ~pool_config ~post_connect ~config:connect_config ~env with
      | Ok pool -> (test_name_of_uri uri, pool)
      | Error err -> raise (Caqti_error.Exn err))
   in
@@ -65,6 +65,10 @@ let mk_tests (stdenv, sw) {uris; tweaks_version} =
   List.map mk_test pools
 
 let () =
-  Eio_main.run @@ fun stdenv -> Switch.run @@ fun sw ->
-    Alcotest_cli.run_with_args_dependency "test_sql_eio"
-      Testlib.common_args (mk_tests ((stdenv :> Caqti_eio.stdenv), sw))
+  Eio_main.run @@ fun stdenv ->
+  Switch.run @@ fun sw ->
+  Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) stdenv
+    @@ fun () ->
+  Alcotest_cli.run_with_args_dependency "test_sql_eio"
+    Testlib.common_args
+    (mk_tests ((stdenv :> Caqti_eio.stdenv), sw))

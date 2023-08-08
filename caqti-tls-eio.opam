@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "caqti-mirage"
+name: "caqti-tls-lwt"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
 authors: "Petter A. Urkedal <paurkedal@gmail.com>"
 license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
@@ -8,24 +8,20 @@ doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "caqti" {>= "2.1.0" & < "2.2.0~"}
-  "caqti-lwt" {>= "2.1.0" & < "2.2.0~"}
-  "caqti-tls" {>= "2.1.0" & < "2.2.0~"}
-  "dns-client" {>= "7.0.0"}
-  "dns-client-mirage" {>= "7.0.0"}
-  "domain-name"
+  "caqti-eio" {>= "2.1.0" & < "2.2.0~"}
   "dune" {>= "3.9"}
-  "ipaddr"
-  "logs"
-  "lwt" {>= "5.3.0"}
-  "mirage-channel"
-  "mirage-clock"
-  "mirage-random"
-  "mirage-time"
+  "eio" {>= "5.3.0"}
   "ocaml"
-  "odoc" {with-doc}
   "tls"
-  "tls-mirage"
-  "tcpip"
+  "tls-eio"
+  "alcotest" {with-test & >= "1.5.0"}
+  "caqti-dynload" {with-test}
+  "caqti-driver-sqlite3" {with-test}
+  "cmdliner" {with-test & >= "1.1.0"}
+  "eio_main" {with-test}
+  "mirage-crypto-rng" {with-test}
+  "mirage-crypto-rng-eio" {with-test}
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
@@ -33,4 +29,4 @@ build: [
   ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
-synopsis: "MirageOS support for Caqti including TLS"
+synopsis: "TLS support for caqti-eio"

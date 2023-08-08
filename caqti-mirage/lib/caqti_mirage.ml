@@ -16,8 +16,10 @@
  *)
 
 open Lwt.Infix
-open Lwt.Syntax
 open Caqti_platform
+
+module type SOCKET_OPS =
+  Caqti_platform.System_sig.SOCKET_OPS with type 'a fiber := 'a Lwt.t
 
 module Make
   (RANDOM : Mirage_random.S)
@@ -27,8 +29,10 @@ module Make
   (STACK : Tcpip.Stack.V4V6)
   (DNS : Dns_client_mirage.S) =
 struct
-  module Channel = Mirage_channel.Make (STACK.TCP)
-  module TCP = Conduit_mirage.TCP (STACK)
+  module TCP = STACK.TCP
+  module TLS = Tls_mirage.Make (TCP)
+  module TCP_channel = Mirage_channel.Make (TCP)
+  module TLS_channel = Mirage_channel.Make (TLS)
 
   module System_core = struct
     include Caqti_lwt.System_core
@@ -72,9 +76,6 @@ struct
         let tcp (host, port) = `Tcp (host, port)
       end
 
-      type in_channel = Channel.t
-      type out_channel = Channel.t
-
       let getaddrinfo_ipv4 dns host port =
         let extract (_, ips) =
           Ipaddr.V4.Set.elements ips
@@ -109,52 +110,127 @@ struct
          | false, false ->
             Lwt.return (Error (`Msg "No IP address assigned to host.")))
 
-      let connect ~sw:_ ~stdenv:{stack; _} sockaddr =
+      module Make_stream_ops (Channel : Mirage_channel.S) = struct
+        type t = Channel.t
+
+        let output_char channel c =
+          Channel.write_char channel c;
+          Lwt.return_unit
+
+        let output_string channel s =
+          Channel.write_string channel s 0 (String.length s);
+          Lwt.return_unit
+
+        let flush channel =
+          Channel.flush channel >>= function
+           | Ok () -> Lwt.return_unit
+           | Error err ->
+              Lwt.fail_with (Format.asprintf "%a" Channel.pp_write_error err)
+
+        let input_char channel =
+          Channel.read_char channel >>= function
+           | Ok (`Data c) -> Lwt.return c
+           | Ok `Eof -> Lwt.fail End_of_file
+           | Error err ->
+              Lwt.fail_with (Format.asprintf "%a" Channel.pp_error err)
+
+        let really_input channel buf off len =
+          Channel.read_exactly ~len channel >>= function
+           | Ok (`Data bufs) ->
+              let content = Cstruct.copyv bufs in
+              Bytes.blit_string content 0 buf off len;
+              Lwt.return_unit
+           | Ok `Eof -> Lwt.fail End_of_file
+           | Error err ->
+              Lwt.fail_with (Format.asprintf "%a" Channel.pp_error err)
+
+        let close channel =
+          Channel.close channel >>= function
+           | Ok () -> Lwt.return_unit
+           | Error err ->
+              Lwt.fail_with (Format.asprintf "%a" Channel.pp_write_error err)
+      end
+
+      module TCP_stream_ops = Make_stream_ops (TCP_channel)
+      module TLS_stream_ops = Make_stream_ops (TLS_channel)
+
+      module Socket = struct
+        type t = V : {
+          tcp_flow: TCP_channel.flow option;
+          ops: (module SOCKET_OPS with type t = 'a);
+          channel: 'a;
+        } -> t
+
+        let output_char (V {ops = (module Ops); channel; _}) =
+          Ops.output_char channel
+        let output_string (V {ops = (module Ops); channel; _}) =
+          Ops.output_string channel
+        let flush (V {ops = (module Ops); channel; _}) =
+          Ops.flush channel
+        let input_char (V {ops = (module Ops); channel; _}) =
+          Ops.input_char channel
+        let really_input (V {ops = (module Ops); channel; _}) =
+          Ops.really_input channel
+        let close (V {ops = (module Ops); channel; _}) =
+          Ops.close channel
+      end
+
+      type tcp_flow = TCP_channel.flow
+      type tls_flow = Tls_flow : {
+        ops: (module SOCKET_OPS with type t = 'a);
+        channel: 'a;
+      } -> tls_flow
+
+      let connect_tcp ~sw:_ ~stdenv:{stack; _} sockaddr =
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
               (`Msg "Unix sockets are not available under MirageOS.")
          | `Tcp (ipaddr, port) ->
-            let+ flow = TCP.connect stack (`TCP (ipaddr, port)) in
-            let ch = Channel.create flow in
-            Ok (ch, ch))
+            TCP.create_connection (STACK.tcp stack) (ipaddr, port) >|=
+            (function
+             | Ok flow ->
+                let channel = TCP_channel.create flow in
+                Ok (Socket.V {
+                  tcp_flow = Some flow;
+                  ops = (module TCP_stream_ops);
+                  channel;
+                })
+             | Error err ->
+                let msg = Format.asprintf "%a" TCP.pp_error err in
+                Error (`Msg msg)))
 
-      let output_char oc c =
-        Channel.write_char oc c;
-        Lwt.return_unit
+      let tcp_flow_of_socket (Socket.V {tcp_flow; _}) = tcp_flow
 
-      let output_string oc s =
-        Channel.write_string oc s 0 (String.length s);
-        Lwt.return_unit
+      let socket_of_tls_flow ~sw:_ (Tls_flow {ops; channel}) =
+        Socket.V {tcp_flow = None; ops; channel}
 
-      let flush oc =
-        Channel.flush oc >>= function
-         | Ok () -> Lwt.return_unit
-         | Error err ->
-            Lwt.fail_with (Format.asprintf "%a" Channel.pp_write_error err)
+      module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
+        with type 'a fiber := 'a Lwt.t
+         and type tcp_flow := tcp_flow
+         and type tls_flow := tls_flow
 
-      let input_char ic =
-        Channel.read_char ic >>= function
-         | Ok (`Data c) -> Lwt.return c
-         | Ok `Eof -> Lwt.fail End_of_file
-         | Error err ->
-            Lwt.fail_with (Format.asprintf "%a" Channel.pp_error err)
+      module Tls_provider = struct
+        type tls_config = Tls.Config.client
 
-      let really_input ic buf off len =
-        Channel.read_exactly ~len ic >>= function
-         | Ok (`Data bufs) ->
-            let content = Cstruct.copyv bufs in
-            Bytes.blit_string content 0 buf off len;
-            Lwt.return_unit
-         | Ok `Eof -> Lwt.fail End_of_file
-         | Error err ->
-            Lwt.fail_with (Format.asprintf "%a" Channel.pp_error err)
+        let tls_config_key = Caqti_tls.Config.client
 
-      let close_in oc =
-        Channel.close oc >>= function
-         | Ok () -> Lwt.return_unit
-         | Error err ->
-            Lwt.fail_with (Format.asprintf "%a" Channel.pp_write_error err)
+        let start_tls ~config ?host flow =
+          TLS.client_of_flow config ?host flow >|=
+          (function
+           | Ok tls_flow ->
+              Ok (Tls_flow {
+                ops = (module TLS_stream_ops);
+                channel = TLS_channel.create tls_flow;
+              })
+           | Error err ->
+              let msg = Format.asprintf "%a" TLS.pp_write_error err in
+              Error (`Msg msg))
+      end
+
+      let tls_providers : (module TLS_PROVIDER) list ref =
+        ref [(module Tls_provider : TLS_PROVIDER)]
+
     end
   end
 

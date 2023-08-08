@@ -5,7 +5,7 @@
     caqti
     caqti.platform
     caqti-lwt
-    conduit-mirage
+    caqti-tls
     dns-client
     dns-client-mirage
     domain-name
@@ -17,4 +17,5 @@
     mirage-clock
     mirage-random
     mirage-time
-    tcpip))
+    tcpip
+    tls-mirage))

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@ let load_uris uris_file =
 
 type common_args = {
   uris: Uri.t list;
-  tweaks_version: (int * int) option;
+  connect_config: Caqti_connect_config.t;
 }
 
 let common_args =
@@ -81,16 +81,46 @@ let common_args =
     Arg.(value @@ opt (some tweaks_version_conv) (Some (1, 8)) @@
          info ~doc ~env ["tweaks-version"])
   in
-  let preprocess tweaks_version log_level uris uris_file =
+  let x509_authenticator_conv =
+    let parse spec =
+      X509.Authenticator.of_string spec
+        |> Result.map (fun f -> f (fun () -> Some (Ptime_clock.now ())))
+    in
+    let pp ppf _ = Format.pp_print_string ppf "<authenticator>" in
+    Cmdliner.Arg.conv (parse, pp)
+  in
+  let x509_authenticator =
+    let doc =
+      "X509 authenticator for validating TLS connections when using the tls \
+       library.  The input is parsed by X509.Authenticator.of_string"
+    in
+    let env = Cmd.Env.info "CAQTI_TEST_X509_AUTHENTICATOR" in
+    Arg.(value @@ opt (some x509_authenticator_conv) None @@
+         info ~doc ~env ["x509-authenticator"])
+  in
+  let preprocess tweaks_version x509_authenticator log_level uris uris_file =
     Logs.set_level log_level;
     let uris =
       (match uris with
        | [] -> load_uris uris_file
        | uris -> List.map Uri.of_string uris)
     in
-    {uris; tweaks_version}
+    let set_x509_authenticator authenticator =
+      let tls_client_config = Tls.Config.client ~authenticator () in
+      Caqti_connect_config.set Caqti_tls.Config.client (Some tls_client_config)
+    in
+    let connect_config = Caqti_connect_config.default
+      |> Option.fold ~none:Fun.id
+          ~some:Caqti_connect_config.(set tweaks_version) tweaks_version
+      |> Option.fold ~none:Fun.id
+          ~some:set_x509_authenticator x509_authenticator
+    in
+    {uris; connect_config}
   in
-  Term.(const preprocess $ tweaks_version $ log_level $ uris $ uris_file)
+  let open Term in
+  const preprocess
+    $ tweaks_version $ x509_authenticator
+    $ log_level $ uris $ uris_file
 
 let test_name_of_uri uri =
   (match Uri.scheme uri with

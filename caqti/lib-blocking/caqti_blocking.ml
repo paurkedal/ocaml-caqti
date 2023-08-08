@@ -85,9 +85,6 @@ module System = struct
         Unix.ADDR_INET (Unix.inet_addr_of_string (Ipaddr.to_string addr), port)
     end
 
-    type nonrec in_channel = in_channel
-    type nonrec out_channel = out_channel
-
     let getaddrinfo ~stdenv:() host port =
       try
         let opts = Unix.[AI_SOCKTYPE SOCK_STREAM] in
@@ -98,17 +95,37 @@ module System = struct
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
 
-    let connect ~sw:_ ~stdenv:() sockaddr =
-      try Ok (Unix.open_connection sockaddr) with
+    module Socket = struct
+      type t = Tcp of in_channel * out_channel
+
+      let output_char (Tcp (_, oc)) = output_char oc
+      let output_string (Tcp (_, oc)) = output_string oc
+      let flush (Tcp (_, oc)) = flush oc
+      let input_char (Tcp (ic, _)) = input_char ic
+      let really_input (Tcp (ic, _)) = really_input ic
+      let close (Tcp (_, oc)) = close_out oc
+    end
+
+    type tcp_flow = Socket.t
+    type tls_flow = Socket.t
+
+    let connect_tcp ~sw:_ ~stdenv:() sockaddr =
+      try
+        let ic, oc = Unix.open_connection sockaddr in
+        Ok (Socket.Tcp (ic, oc))
+      with
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
 
-    let output_char = output_char
-    let output_string = output_string
-    let flush = flush
-    let input_char = input_char
-    let really_input = really_input
-    let close_in = close_in
+    let tcp_flow_of_socket _ = None
+    let socket_of_tls_flow ~sw:_ = Fun.id
+
+    module type TLS_PROVIDER = System_sig.TLS_PROVIDER
+      with type 'a fiber := 'a
+       and type tcp_flow := Socket.t
+       and type tls_flow := Socket.t
+
+    let tls_providers : (module TLS_PROVIDER) list ref = ref []
   end
 
 end

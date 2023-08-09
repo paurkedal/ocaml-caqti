@@ -62,17 +62,13 @@ val merge_left : t -> t -> t
 
 (** {2 Individual Parameters} *)
 
-val get_max_size : t -> int option
-val get_max_idle_size : t -> int option
-val get_max_idle_age : t -> Mtime.Span.t option option
-val get_max_use_count : t -> int option option
+type _ key
 
-val set_max_size : int -> t -> t
-val set_max_idle_size : int -> t -> t
-val set_max_idle_age : Mtime.Span.t option -> t -> t
-val set_max_use_count : int option -> t -> t
+val get : 'a key -> t -> 'a option
+val set : 'a key -> 'a -> t -> t
+val unset : 'a key -> t -> t
 
-val unset_max_size : t -> t
-val unset_max_idle_size : t -> t
-val unset_max_idle_age : t -> t
-val unset_max_use_count : t -> t
+val max_size : int key
+val max_idle_size : int key
+val max_idle_age : Mtime.Span.t option key
+val max_use_count : int option key

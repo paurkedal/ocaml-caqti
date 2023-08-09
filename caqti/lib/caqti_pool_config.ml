@@ -24,6 +24,21 @@ type t = {
   max_use_count: int option option;
 }
 
+type _ key =
+  | Max_size : int key
+  | Max_idle_size : int key
+  | Max_idle_age : Mtime.Span.t option key
+  | Max_use_count : int option key
+
+type any_key = Any : _ key -> any_key
+
+let keys = [
+  Any Max_size;
+  Any Max_idle_size;
+  Any Max_idle_age;
+  Any Max_use_count;
+]
+
 let create
       ?max_size
       ?max_idle_size
@@ -65,25 +80,30 @@ let create_from_env pfx =
 
 let default_from_env () = create_from_env "CAQTI_POOL"
 
-let fold_option f value = Option.fold ~none:Fun.id ~some:f value
+let max_size = Max_size
+let max_idle_size = Max_idle_size
+let max_idle_age = Max_idle_age
+let max_use_count = Max_use_count
 
-let set_max_size x config = {config with max_size = Some x}
-let set_max_idle_size x config = {config with max_idle_size = Some x}
-let set_max_idle_age x config = {config with max_idle_age = Some x}
-let set_max_use_count x config = {config with max_use_count = Some x}
+let get (type a) (k : a key) config : a option =
+  (match k with
+   | Max_size -> config.max_size
+   | Max_idle_size -> config.max_idle_size
+   | Max_idle_age -> config.max_idle_age
+   | Max_use_count -> config.max_use_count)
 
-let unset_max_size config = {config with max_size = None}
-let unset_max_idle_size config = {config with max_idle_size = None}
-let unset_max_idle_age config = {config with max_idle_age = None}
-let unset_max_use_count config = {config with max_use_count = None}
+let modify (type a) (k : a key) (v : a option) config =
+  (match k with
+   | Max_size -> {config with max_size = v}
+   | Max_idle_size -> {config with max_idle_size = v}
+   | Max_idle_age -> {config with max_idle_age = v}
+   | Max_use_count -> {config with max_use_count = v})
 
-let merge_left cL cR = cR
-  |> fold_option set_max_size cL.max_size
-  |> fold_option set_max_idle_size cL.max_idle_size
-  |> fold_option set_max_idle_age cL.max_idle_age
-  |> fold_option set_max_use_count cL.max_use_count
+let set k v config = modify k (Some v) config
+let unset k config = modify k None config
 
-let get_max_size c = c.max_size
-let get_max_idle_size c = c.max_idle_size
-let get_max_idle_age c = c.max_idle_age
-let get_max_use_count c = c.max_use_count
+let merge_left cL cR =
+  let add acc (Any k) =
+    match get k cL with None -> acc | Some v -> (set k v acc)
+  in
+  List.fold_left add cR keys

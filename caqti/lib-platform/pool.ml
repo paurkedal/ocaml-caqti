@@ -104,11 +104,11 @@ struct
   let default default = Option.value ~default
 
 (*
-  let configure config pool =
-    Option.iter (fun x -> pool.max_size <- x) (Config.max_size config);
-    Option.iter (fun x -> pool.max_idle_size <- x) (Config.max_idle_size config);
-    Option.iter (fun x -> pool.max_idle_age <- x) (Config.max_idle_age config);
-    Option.iter (fun x -> pool.max_use_count <- x) (Config.max_use_count config)
+  let configure c pool =
+    Option.iter (fun x -> pool.max_size <- x) Config.(get max_size c);
+    Option.iter (fun x -> pool.max_idle_size <- x) Config.(get max_idle_size c);
+    Option.iter (fun x -> pool.max_idle_age <- x) Config.(get max_idle_age c);
+    Option.iter (fun x -> pool.max_use_count <- x) Config.(get max_use_count c)
 *)
 
   let create
@@ -119,10 +119,10 @@ struct
         ~sw
         ~stdenv
         create free =
-    let max_size = Config.get_max_size config |> default default_max_size in
-    let max_idle_size = Config.get_max_idle_size config |> default max_size in
-    let max_idle_age = Config.get_max_idle_age config |> default None in
-    let max_use_count = Config.get_max_use_count config |> default (Some 100) in
+    let max_size = Config.(get max_size) config |> default default_max_size in
+    let max_idle_size = Config.(get max_idle_size) config |> default max_size in
+    let max_idle_age = Config.(get max_idle_age) config |> default None in
+    let max_use_count = Config.(get max_use_count) config |> default (Some 100) in
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
     assert (Option'.for_all (fun n -> n > 0) max_use_count);

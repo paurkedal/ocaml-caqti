@@ -98,37 +98,13 @@ module type S = sig
       be used from the thread where it was created. Use thread local storage to
       create a separate pool per thread if necessary.
 
+      @param pool_config
+        Provides tuning parameters for the pool.  The default is the result of a
+        fresh call of {!Caqti_pool_config.default_from_env}.
+
       @param tweaks_version
         Passed to {!connect} when creating new connections.
 
       @param env
-        Passed to {!connect} when creating new connections.
-
-      @param max_size
-        The maximum number of open connections. Must be at least [1].
-        For drivers which does not support concurrent connections, this will be
-        ignored and the value [1] used instead.
-
-      @param max_idle_size
-        The maximum number of idle connections to put into the pool for reuse.
-        Defaults to [max_size]. Must be between 0 and [max_size]. If you set
-        this, you must also set [max_size].
-        For drivers which does not support pooling, this will be ignored and the
-        value [0] used instead. For drivers which does not support concurrent
-        connections, but supports pooling, the value will clipped to a maximum
-        of [1].
-
-      @param max_idle_age
-        When set, if a resource in the pool has not been used for
-        [max_idle_age], it will be removed from the pool at the earliest
-        opportunity.  Where possible, a timer will be used to trigger the
-        cleanup.  For the [caqti.blocking] library, the cleanup will only be
-        done opportunistically when the pool is used.
-
-      @param max_use_count
-        The maximum number of times to use a connection before dropping it from
-        the pool, or [None] for no limit.  The default is currently 100, but may
-        be changed in the future based on real-world experience.  The reason
-        this setting was introduced is that we have seen state being retained on
-        the server side. *)
+        Passed to {!connect} when creating new connections. *)
 end

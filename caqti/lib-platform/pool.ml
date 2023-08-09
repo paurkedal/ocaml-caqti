@@ -22,10 +22,6 @@ let default_max_size =
 
 let default_log_src = Logs.Src.create "Caqti_platform.Pool"
 
-module Option' = struct
-  let for_all f = function None -> true | Some x -> f x
-end
-
 module type ALARM = sig
   type switch
   type stdenv
@@ -101,8 +97,6 @@ struct
     mutable alarm: Alarm.t option;
   }
 
-  let default default = Option.value ~default
-
 (*
   let configure c pool =
     Option.iter (fun x -> pool.max_size <- x) Config.(get max_size c);
@@ -119,13 +113,17 @@ struct
         ~sw
         ~stdenv
         create free =
-    let max_size = Config.(get max_size) config |> default default_max_size in
-    let max_idle_size = Config.(get max_idle_size) config |> default max_size in
-    let max_idle_age = Config.(get max_idle_age) config |> default None in
-    let max_use_count = Config.(get max_use_count) config |> default (Some 100) in
+    let max_size =
+      Config.(get max_size) config |> Option.value ~default:default_max_size in
+    let max_idle_size =
+      Config.(get max_idle_size) config |> Option.value ~default:max_size in
+    let max_idle_age =
+      Config.(get max_idle_age) config |> Option.value ~default:None in
+    let max_use_count =
+      Config.(get max_use_count) config |> Option.value ~default:(Some 100) in
     assert (max_size > 0);
     assert (max_size >= max_idle_size);
-    assert (Option'.for_all (fun n -> n > 0) max_use_count);
+    assert (Option.fold ~none:true ~some:(fun n -> n > 0) max_use_count);
     {
       stdenv; switch = sw;
       create; free; check; validate; log_src;
@@ -183,8 +181,9 @@ struct
     end
 
   let can_reuse pool entry =
-       pool.cur_size <= pool.max_idle_size
-    && Option'.for_all (fun n -> entry.used_count < n) pool.max_use_count
+    pool.cur_size <= pool.max_idle_size
+     && Option.fold ~none:true ~some:(fun n -> entry.used_count < n)
+          pool.max_use_count
 
   let rec dispose_expiring pool =
     (match pool.max_idle_age, pool.alarm with

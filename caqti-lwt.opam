@@ -9,9 +9,9 @@ bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "alcotest" {with-test & >= "1.5.0"}
   "alcotest-lwt" {with-test & >= "1.5.0"}
-  "caqti" {>= "1.9.0" & < "1.10.0~"}
-  "caqti-dynload" {with-test & >= "1.0.0" & < "2.0.0~"}
-  "caqti-driver-sqlite3" {with-test & >= "1.0.0" & < "2.0.0~"}
+  "caqti" {>= "2.0.0" & < "2.1.0~"}
+  "caqti-dynload" {with-test & >= "2.0.0" & < "3.0.0~"}
+  "caqti-driver-sqlite3" {with-test & >= "2.0.0" & < "3.0.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "2.5"}
   "logs"

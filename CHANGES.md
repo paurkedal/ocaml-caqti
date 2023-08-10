@@ -1,4 +1,4 @@
-## unreleased, targeted for the next major release
+## v2.0.0 - 2023-08-10
 
 New features:
 

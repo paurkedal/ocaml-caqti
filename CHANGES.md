@@ -67,6 +67,8 @@ Breaking changes:
     lowest-precedence expressions are dropped.  Also, `redacted` is shown
     with suffix notation, allowing us to remove one precedence level.)
 
+  - Moved pool tuning parameters into a configuration object.
+
 Fixes:
 
   - Fixed a missing `Preemptive.detach` call for `to_stream` for Sqlite3.

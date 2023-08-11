@@ -14,7 +14,7 @@ depends: [
   "dns-client-mirage" {>= "7.0.0"}
   "dune" {>= "2.5"}
   "logs"
-  "lwt" {>= "3.2.0"}
+  "lwt" {>= "5.3.0"}
   "mirage-channel"
   "mirage-clock"
   "mirage-random"

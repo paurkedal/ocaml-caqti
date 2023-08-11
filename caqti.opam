@@ -15,9 +15,9 @@ depends: [
   "angstrom" {>= "0.14.0"}
   "bigstringaf"
   "cmdliner" {with-test & >= "1.1.0"}
-  "domain-name"
+  "domain-name" {>= "2.0.0"}
   "dune" {>= "2.5"}
-  "ipaddr"
+  "ipaddr" {>= "3.0.0"}
   "logs"
   "lwt-dllist"
   "mtime" {>= "2.0.0"}
@@ -25,7 +25,10 @@ depends: [
   "odoc" {with-doc}
   "ptime"
   "re" {with-test}
-  "uri" {>= "1.9.0"}
+  "uri" {>= "2.2.0"}
+]
+conflicts: [
+  "result" {< "1.5"}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

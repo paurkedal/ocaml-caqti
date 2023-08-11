@@ -39,7 +39,7 @@
 
 (rule
   (alias runtest)
-  (package caqti-dynload)
+  (package caqti-eio)
   (enabled_if (>= %{ocaml_version} "5.0"))
   (deps (:test main_eio_unix.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)

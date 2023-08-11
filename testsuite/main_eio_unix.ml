@@ -67,4 +67,4 @@ let mk_tests (stdenv, sw) {uris; tweaks_version} =
 let () =
   Eio_main.run @@ fun stdenv -> Switch.run @@ fun sw ->
     Alcotest_cli.run_with_args_dependency "test_sql_eio"
-      Testlib.common_args (mk_tests (stdenv, sw))
+      Testlib.common_args (mk_tests ((stdenv :> Caqti_eio.stdenv), sw))

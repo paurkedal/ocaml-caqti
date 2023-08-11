@@ -26,4 +26,4 @@ include Caqti_connect_sig.S
    and type ('a, 'e) pool := ('a, 'e) Caqti_eio.Pool.t
    and type connection := Caqti_eio.connection
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
-   and type 'a with_stdenv := stdenv: Eio.Stdenv.t -> 'a
+   and type 'a with_stdenv := stdenv: Caqti_eio.stdenv -> 'a

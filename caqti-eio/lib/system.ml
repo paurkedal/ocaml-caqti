@@ -53,13 +53,16 @@ module Log = struct
   let debug ?(src = Logging.default_log_src) = Logs.debug ~src
 end
 
-type stdenv = Eio.Stdenv.t
+type stdenv = <
+  net : Eio.Net.t;
+  clock : Eio.Time.clock;
+  mono_clock : Eio.Time.Mono.t;
+>
 
 module Switch = Eio.Switch
 
 (* TODO: Log error. *)
-let async ~sw f =
-  Eio.Fiber.fork_sub ~sw ~on_error:(fun _ -> ()) (fun _sw -> f ())
+let async = Eio.Fiber.fork
 
 module Sequencer = struct
   type 'a t = 'a * Eio.Mutex.t

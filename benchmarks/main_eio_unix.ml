@@ -19,6 +19,7 @@ open Eio.Std
 
 include Benchmark_fetch_many.Make (struct
   let name = "eio-unix"
+
   module Fiber = struct
     type 'a t = 'a
     module Infix = struct
@@ -26,11 +27,18 @@ include Benchmark_fetch_many.Make (struct
       let (>|=) x f = f x
     end
   end
-  type context = Eio.Stdenv.t * Switch.t
+
+  type context = Caqti_eio.stdenv * Switch.t
+
   let run_fiber f = f ()
+
   let run_main f =
-    Eio_main.run (fun stdenv -> Switch.run (fun sw -> f (stdenv, sw)))
+    Eio_main.run begin fun stdenv ->
+      Switch.run (fun sw -> f ((stdenv :> Caqti_eio.stdenv), sw))
+    end
+
   include Caqti_eio
   include Caqti_eio_unix
+
   let connect (stdenv, sw) uri = connect ~sw ~stdenv uri
 end)

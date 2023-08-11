@@ -15,7 +15,7 @@ depends: [
   "angstrom" {>= "0.14.0"}
   "bigstringaf"
   "cmdliner" {with-test & >= "1.1.0"}
-  "domain-name" {>= "2.0.0"}
+  "domain-name" {>= "0.2.0"}
   "dune" {>= "2.5"}
   "ipaddr" {>= "3.0.0"}
   "logs"

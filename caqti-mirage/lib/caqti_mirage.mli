@@ -21,7 +21,10 @@
     MirageOS platform libraries, providing support for PGX but not drivers based
     on bindings.
 
-    See also {!Caqti_lwt} for basic Lwt support. *)
+    See also {!Caqti_lwt} for basic Lwt support.
+
+    {b The caqti-mirage library is experimental at this point.}  Feedback from
+    MirageOS users on the current API is very welcome. *)
 
 module Make :
   functor (RANDOM : Mirage_random.S) ->

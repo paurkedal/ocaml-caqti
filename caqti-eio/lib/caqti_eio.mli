@@ -18,7 +18,11 @@
 (** Establishing Connections for Eio without Unix
 
     This module provides connections to the PGX database for Eio applications.
-    For other database systems, you will need {!Caqti_eio_unix}. *)
+    For other database systems, you will need {!Caqti_eio_unix}.
+
+    {b The caqti-eio library should be considered unstable} for now.  Eio is in
+    active development including its API, and the Caqti interface to it may
+    benefit from further revision before the first major Eio release lands. *)
 
 type stdenv = <
   net : Eio.Net.t;

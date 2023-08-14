@@ -11,7 +11,7 @@ depends: [
   "ocaml"
   "caqti" {>= "2.0.0" & < "2.1.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
-  "dune" {>= "2.5"}
+  "dune" {>= "3.0"}
   "mariadb" {>= "1.1.5"}
   "odoc" {with-doc}
 ]

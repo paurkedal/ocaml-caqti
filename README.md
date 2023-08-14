@@ -49,14 +49,33 @@ Tutorials and examples:
   - The [caqti-study][] repository contains a work-in-progress tutorial
     which I hope will supersede the above.
 
-A recent rendering of the [Caqti API Reference][API] is available online.
-As the main entry point, you would normally use either of
+API documentation from ocaml.org contains documentation for matching
+releases of individual packages:
 
-  - [caqti-blocking][] - no concurrency
-  - [caqti-lwt.unix][] - Lwt with Unix system library, supports all drivers
-  - [caqti-async][] - Async with Unix system library, supports all drivers
-  - [caqti-eio.unix][] - Experimental Eio support.
-  - [caqti-mirage][] - Experimental MirageOS support.
+  - [caqti](https://ocaml.org/p/caqti/latest)
+  - [caqti-lwt](https://ocaml.org/p/caqti-lwt/latest)
+  - [caqti-async](https://ocaml.org/p/caqti-async/latest)
+  - [caqti-eio](https://ocaml.org/p/caqti-eio/latest) (pending release)
+  - [caqti-mirage](https://ocaml.org/p/caqti-mirage/latest) (pending
+    release)
+  - [caqti-driver-mariadb](https://ocaml.org/p/caqti-driver-mariadb)
+  - [caqti-driver-postgresql](https://ocaml.org/p/caqti-driver-postgresql)
+  - [caqti-driver-sqlite3](https://ocaml.org/p/caqti-driver-sqlite3)
+  - [caqti-driver-pgx](https://ocaml.org/p/caqti-driver-sqlite3) (pending
+    release)
+
+If the above lacks links to modules, it may be due to build issues.  You may
+instead refer to my own latest rendering:
+
+  - [Caqti API Reference][API] contains the index with the most important
+    entry points being:
+  - [caqti-blocking][] for Unix system library with no concurrency, supports
+    all drivers
+  - [caqti-lwt.unix][] for Lwt with Unix system library, supports all
+    drivers
+  - [caqti-async][] for Async with Unix system library, supports all drivers
+  - [caqti-eio.unix][] for experimental Eio support.
+  - [caqti-mirage][] for experimental MirageOS support.
 
 The linked modules provide a connect functions which receives an URI, loads
 the appropriate driver, and returns a connection as a first-class module

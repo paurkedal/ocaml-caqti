@@ -18,7 +18,11 @@
 (** Establinging Connections for Eio with Unix
 
     This module provides database connections for applications using Eio.  It
-    supports all database drivers. *)
+    supports all database drivers.
+
+    {b The caqti-eio library should be considered unstable} for now.  Eio is in
+    active development including its API, and the Caqti interface to it may
+    benefit from further revision before the first major Eio release lands. *)
 
 include Caqti_connect_sig.S
   with type 'a fiber := 'a

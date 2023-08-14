@@ -1,3 +1,14 @@
+## v2.0.1 - 2023-08-14
+
+Fixes:
+
+  - Upgrade Eio to 0.11.
+  - Update README and make a note about caqti-eio and caqti-mirage being
+    experimental.
+  - Fix build and packaging issues.
+
+This release was sponsored by the OCaml Software Foundation.
+
 ## v2.0.0 - 2023-08-10
 
 New features:
@@ -90,6 +101,8 @@ Other:
   - Added a benchmark to measure row decoding performance.
 
   - Improved decoding performance by partially applying the type descriptor.
+
+This release was sponsored by the OCaml Software Foundation.
 
 ## v1.9.1 - 2022-09-21
 

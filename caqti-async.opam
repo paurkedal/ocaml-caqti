@@ -16,7 +16,7 @@ depends: [
   "caqti-driver-sqlite3" {with-test & >= "2.0.0" & < "3.0.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
   "conduit-async" {>= "1.5.0"}
-  "core"
+  "core" {>= "v0.15.1"}
   "core_unix"
   "dune" {>= "3.9"}
   "ocaml"

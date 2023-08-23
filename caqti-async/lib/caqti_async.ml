@@ -197,7 +197,7 @@ module System_unix = struct
         if write then Async_unix.Fd.ready_to fd `Write else Deferred.never () in
       let wait_timeout =
         (match timeout with
-         | Some t -> Clock.after (Time.Span.of_sec t)
+         | Some t -> Clock.after (Time_float.Span.of_sec t)
          | None -> Deferred.never ()) in
       let did_read, did_write, did_timeout = ref false, ref false, ref false in
       let is_ready = function

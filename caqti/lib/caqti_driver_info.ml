@@ -23,7 +23,6 @@ type parameter_style =
   | `Indexed of (int -> string) ]
 
 type t = {
-  index: int;
   uri_scheme: string;
   dialect_tag: dialect_tag;
   parameter_style: parameter_style;
@@ -31,8 +30,6 @@ type t = {
   can_pool: bool;
   can_concur: bool;
 }
-
-let next_backend_index = ref 0
 
 let create
     ~uri_scheme
@@ -43,7 +40,6 @@ let create
     ~can_transact
     () =
   {
-    index = (let i = !next_backend_index in incr next_backend_index; i);
     uri_scheme;
     dialect_tag;
     parameter_style;

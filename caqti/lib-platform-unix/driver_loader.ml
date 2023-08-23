@@ -17,7 +17,7 @@
 
 module type DRIVER_FUNCTOR =
   functor (System : Caqti_platform.System_sig.S) ->
-  functor (System_unix : System_sig.S
+  functor (_ : System_sig.S
     with type 'a fiber := 'a System.Fiber.t
      and type stdenv := System.stdenv) ->
   Caqti_platform.Driver_loader.DRIVER

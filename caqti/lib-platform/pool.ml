@@ -87,10 +87,10 @@ struct
     check: 'a -> (bool -> unit) -> unit;
     validate: 'a -> bool Fiber.t;
     log_src: Logs.Src.t;
-    mutable max_idle_size: int;
-    mutable max_idle_age: Mtime.Span.t option;
-    mutable max_size: int;
-    mutable max_use_count: int option;
+    max_idle_size: int;
+    max_idle_age: Mtime.Span.t option;
+    max_size: int;
+    max_use_count: int option;
     mutable cur_size: int;
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;

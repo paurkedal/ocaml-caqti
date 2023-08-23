@@ -18,7 +18,7 @@ depends: [
   "conduit-async" {>= "1.5.0"}
   "core"
   "core_unix"
-  "dune" {>= "2.5"}
+  "dune" {>= "3.9"}
   "ocaml"
   "odoc" {with-doc}
 ]

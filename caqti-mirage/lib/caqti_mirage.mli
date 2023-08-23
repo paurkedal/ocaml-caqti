@@ -27,10 +27,10 @@
     MirageOS users on the current API is very welcome. *)
 
 module Make :
-  functor (RANDOM : Mirage_random.S) ->
-  functor (TIME : Mirage_time.S) ->
-  functor (MCLOCK : Mirage_clock.MCLOCK) ->
-  functor (PCLOCK : Mirage_clock.PCLOCK) ->
+  functor (_ : Mirage_random.S) ->
+  functor (_ : Mirage_time.S) ->
+  functor (_ : Mirage_clock.MCLOCK) ->
+  functor (_ : Mirage_clock.PCLOCK) ->
   functor (STACK : Tcpip.Stack.V4V6) ->
   functor (DNS : Dns_client_mirage.S) ->
 sig

@@ -79,7 +79,7 @@ end
 
 module Make
   (System : System_sig.CORE)
-  (Alarm : ALARM
+  (_ : ALARM
     with type switch := System.Switch.t
      and type stdenv := System.stdenv) :
   S with type 'a fiber := 'a System.Fiber.t

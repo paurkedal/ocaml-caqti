@@ -13,7 +13,7 @@ depends: [
   "caqti-dynload" {with-test & >= "2.0.0" & < "3.0.0~"}
   "caqti-driver-sqlite3" {with-test & >= "2.0.0" & < "3.0.0~"}
   "cmdliner" {with-test & >= "1.1.0"}
-  "dune" {>= "2.5"}
+  "dune" {>= "3.9"}
   "logs"
   "mtime" {>= "2.0.0"}
   "lwt" {>= "5.3.0"}

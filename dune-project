@@ -1,3 +1,2 @@
-(lang dune 2.5)
+(lang dune 3.9)
 (name caqti)
-(allow_approximate_merlin)

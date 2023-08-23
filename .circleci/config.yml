@@ -6,7 +6,7 @@ jobs:
         - deploy-doc
         - gh-pages
     docker:
-      - image: ocaml/opam:debian-ocaml-4.13
+      - image: ocaml/opam:debian-ocaml-5.0
         environment:
           TERM: xterm
       - image: cimg/postgres:14.1
@@ -22,7 +22,8 @@ jobs:
           command: |
             version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
             for f in *.opam; do
-              if [ "$f" != caqti-eio.opam ]; then
+              # FIXME: Restore when packages becomes available.
+              if [ "$f" != caqti-driver-mariadb.opam ]; then
                 echo >>.ci-tmp-packages "${f%.opam}"
                 opam pin add -yn "${f%.opam}.${version}.dev" .
               fi

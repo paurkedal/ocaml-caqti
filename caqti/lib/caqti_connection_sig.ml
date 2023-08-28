@@ -185,8 +185,8 @@ module type Convenience = sig
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> (unit, 'e) result fiber) ->
     'a -> (unit, [> Caqti_error.call_or_retrieve] as 'e) result fiber
-  (** [iter_s f x] performs [req] with parameters [x] and sequences calls to [f
-      y] for each result row [y] in the order of retrieval.
+  (** [iter_s req f x] performs [req] with parameters [x] and sequences calls to
+      [f y] for each result row [y] in the order of retrieval.
 
       Please see the warning in {!fold_s} about resource usage in the callback.
 

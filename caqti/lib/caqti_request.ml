@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,16 +18,9 @@
 let (%) f g x = f (g x)
 module Log = (val Logs.src_log (Logs.Src.create "caqti"))
 
-type query = Caqti_query.t =
-  | L of string
-  | Q of string
-  | P of int
-  | E of string
-  | S of query list
-
 type ('a, 'b, +'m) t = {
   id: int option;
-  query: Caqti_driver_info.t -> query;
+  query: Caqti_driver_info.t -> Caqti_query.t;
   param_type: 'a Caqti_type.t;
   row_type: 'b Caqti_type.t;
   row_mult: 'm Caqti_mult.t;

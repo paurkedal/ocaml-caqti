@@ -108,12 +108,15 @@ val of_string_exn : string -> t
 
     @raise Failure if parsing failed. *)
 
+
+(** {2 Construction by Pretty-Printing} *)
+
 val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
 (** {!qprintf} allows building Caqti queries using a printf-style interface.
 
-    When using {!qprintf}, you can use the {!query}, {!quote}, {!env} and
-    {!param} printers from this module to generate the corresponding query
-    fragments.
+    When using {!qprintf}, you can use the {!pp_query}, {!pp_quote}, {!pp_env}
+    and {!pp_param} printers from this module to generate the corresponding
+    query fragments.
 
     In addition, you can use the "Q" and "E" string tags to delimit portions of
     the formatting string that should be interpreted as quotes and environment
@@ -128,7 +131,7 @@ val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
     ]}
     and
     {[
-      qprintf "FUNC(%a)" quote (Format.asprintf "Quoted value with %d format(s)" 1)
+      qprintf "FUNC(%a)" pp_quote (Format.asprintf "Quoted value with %d format(s)" 1)
     ]}
     are functionally equivalent. Both compute
     {[
@@ -145,31 +148,40 @@ val kqprintf : (t -> 'a) -> ('b, Format.formatter, unit, 'a) format4 -> 'b
 
     You usually want [qprintf] instead. *)
 
-val param : Format.formatter -> int -> unit
-(** {!param} is a formatter that includes the corresponding parameter in a
+val pp_param : Format.formatter -> int -> unit
+(** {!pp_param} is a formatter that includes the corresponding parameter in a
     query built by {!qprintf}.
 
-    Note that to include a parameter in a query, {!param} *must* be used: using
-    literal ["$"] or ["?"] will be sent as-is to the SQL driver and will not be
-    processed by Caqti.
-*)
+    Note that to include a parameter in a query, {!pp_param} *must* be used:
+    using literal ["$"] or ["?"] will be sent as-is to the SQL driver and will
+    not be processed by Caqti. *)
 
-val env : Format.formatter -> string -> unit
-(** {!env} is a formatter that includes the corresponding environment variable
-    in a query built by {!qprintf}.
+val pp_env : Format.formatter -> string -> unit
+(** {!pp_env} is a formatter that includes the corresponding environment
+    variable in a query built by {!qprintf}.
 
-    Note that to include an environment variable in a query, {!env} *must* be
-    used: using literal ["$(...)"] will be sent as-is to the SQL driver and
-    will not be processed by Caqti. *)
+    Note that to include an environment variable in a query, {!pp_env} *must* be
+    used: using literal ["$(...)"] will be sent as-is to the SQL driver and will
+    not be processed by Caqti. *)
 
-val quote : Format.formatter -> string -> unit
-(** {!quote} is a formatter that includes a TEXT literal in a query built by
+val pp_quote : Format.formatter -> string -> unit
+(** {!pp_quote} is a formatter that includes a TEXT literal in a query built by
     {!qprintf}. *)
 
-val query : Format.formatter -> t -> unit
-(** {!query} can be used with {!qprintf} to embed a query that was already
-    parsed in the format string. Direct use of {!query} should be rare, and
-    {!param}, {!env}, or {!quote} should be used instead when possible.
+val pp_query : Format.formatter -> t -> unit
+(** {!pp_query} can be used with {!qprintf} to embed a query that was already
+    parsed in the format string. Direct use of {!pp_query} should be rare, and
+    {!pp_param}, {!pp_env}, or {!pp_quote} should be used instead when possible.
 
-    Using {!query} with any other formatter will ignore the query and instead
+    Using {!pp_query} with any other formatter will ignore the query and instead
     print a dummy value (currently ["... SQL FRAGMENT ..."]) instead. *)
+
+(**/**)
+val param : Format.formatter -> int -> unit
+[@@deprecated "Renamed to pp_param."]
+val env : Format.formatter -> string -> unit
+[@@deprecated "Renamed to pp_env."]
+val quote : Format.formatter -> string -> unit
+[@@deprecated "Renamed to pp_quote."]
+val query : Format.formatter -> t -> unit
+[@@deprecated "Renamed to pp_query."]

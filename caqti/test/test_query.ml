@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -172,7 +172,8 @@ let test_qprintf () =
   in
   check_expect
     (S [L"SELECT "; P 0; L" WHERE "; Q"quote"; L" = "; E"env"])
-    (qprintf {|%a %a WHERE %a = %a|} query (L"SELECT") param 0 quote "quote" env "env");
+    (qprintf {|%a %a WHERE %a = %a|}
+      pp_query (L"SELECT") pp_param 0 pp_quote "quote" pp_env "env");
   check_expect
     (S [L"WHERE "; E"tbl4"; L".name = "; Q"John Wayne"])
     (qprintf {|WHERE @{<E>tbl%d@}.name = @{<Q>%s Wayne@}|} 4 "John")

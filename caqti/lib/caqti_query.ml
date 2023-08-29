@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -288,14 +288,14 @@ let of_string_exn s =
 
 type Format.stag += Stag_query of t
 
-let query ppf q =
+let pp_query ppf q =
   Format.pp_open_stag ppf (Stag_query q);
   Format.pp_print_string ppf "... SQL FRAGMENT ...";
   Format.pp_close_stag ppf ()
 
-let quote ppf q = query ppf (Q q)
-let env ppf e = query ppf (E e)
-let param ppf p = query ppf (P p)
+let pp_quote ppf q = pp_query ppf (Q q)
+let pp_env ppf e = pp_query ppf (E e)
+let pp_param ppf p = pp_query ppf (P p)
 
 type mode = Mode_literal | Mode_ignore | Mode_raw of (string -> t)
 
@@ -416,3 +416,9 @@ let kqprintf k fmt =
     ppf fmt
 
 let qprintf fmt = kqprintf Fun.id fmt
+
+(* deprecated *)
+let param = pp_param
+let env = pp_env
+let quote = pp_quote
+let query = pp_query

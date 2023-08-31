@@ -392,7 +392,7 @@ struct
         stmt: Mdb.Stmt.t;
         param_length: int;
         param_order: int list list;
-        quotes: (int * string) list;
+        quotes: Request_utils.linear_param list;
       }
 
       let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
@@ -409,7 +409,10 @@ struct
           let param_type = Caqti_request.param_type req in
           let row_type = Caqti_request.row_type req in
           let params = Array.make param_length `Null in
-          List.iter (fun (j, s) -> params.(j) <- `String s) quotes;
+          List.iter
+            (fun (Request_utils.Linear_param (j, t, v)) ->
+              params.(j) <- encode_field t v)
+            quotes;
           (match encode_param ~uri params param_type param param_order with
            | Error _ as r -> Fiber.return r
            | Ok [] ->

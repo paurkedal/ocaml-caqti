@@ -76,34 +76,10 @@ let wrap_rc ?db errcode =
   let errmsg = Option.map Sqlite3.errmsg db in
   Error_msg {errcode; errmsg}
 
-let query_quotes q =
-  let rec loop = function
-   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
-   | Caqti_query.Q quote -> List.cons quote
-   | Caqti_query.S qs -> List_ext.fold loop qs
-  in
-  List.rev (loop q [])
-
 let no_env _ _ = raise Not_found
 
-let query_string q =
-  let quotes = query_quotes q in
-  let buf = Buffer.create 64 in
-  let iQ = ref 1 in
-  let iP0 = List.length quotes + 1 in
-  let rec loop = function
-   | Caqti_query.L s -> Buffer.add_string buf s
-   | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
-   | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
-   | Caqti_query.E _ -> assert false
-   | Caqti_query.S qs -> List.iter loop qs
-  in
-  loop q;
-  (quotes, Buffer.contents buf)
-
-let data_of_value
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
-  fun ~uri field_type x ->
+let data_of_value : type a. a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
+  fun field_type x ->
   (match field_type with
    | Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
    | Int    -> Sqlite3.Data.INT (Int64.of_int x)
@@ -188,9 +164,34 @@ let value_of_data
       to_ptime_span (Int64.to_float x)
    | Ptime_span, _ -> cannot_convert_to "time span")
 
-let bind_quotes ~uri ~query stmt oq =
+let query_quotes q =
+  let rec loop = function
+   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
+   | Caqti_query.V (t, v) -> List.cons (data_of_value t v)
+   | Caqti_query.Q s -> List.cons (Sqlite3.Data.TEXT s)
+   | Caqti_query.S qs -> List_ext.fold loop qs
+  in
+  List.rev (loop q [])
+
+let query_string q =
+  let quotes = query_quotes q in
+  let buf = Buffer.create 64 in
+  let iQ = ref 1 in
+  let iP0 = List.length quotes + 1 in
+  let rec loop = function
+   | Caqti_query.L s -> Buffer.add_string buf s
+   | Caqti_query.V _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
+   | Caqti_query.E _ -> assert false
+   | Caqti_query.S qs -> List.iter loop qs
+  in
+  loop q;
+  (quotes, Buffer.contents buf)
+
+let bind_quotes ~uri stmt oq =
   let aux j x =
-    (match Sqlite3.bind stmt (j + 1) (Sqlite3.Data.TEXT x) with
+    (match Sqlite3.bind stmt (j + 1) x with
      | Sqlite3.Rc.OK -> Ok ()
      | rc ->
         let typ = Caqti_type.string in
@@ -206,7 +207,7 @@ let encode_null_field ~uri stmt field_type iP =
       Request_utils.raise_encode_failed ~uri ~typ (wrap_rc rc))
 
 let encode_field ~uri stmt field_type field_value iP =
-  let d = data_of_value ~uri field_type field_value in
+  let d = data_of_value field_type field_value in
   (match Sqlite3.bind stmt (iP + 1) d with
    | Sqlite3.Rc.OK -> ()
    | rc ->
@@ -473,7 +474,7 @@ struct
       >>=? fun (stmt, quotes, query) ->
 
       (* CHECKME: Does binding involve IO? *)
-      Fiber.return (bind_quotes ~uri ~query stmt quotes) >>=? fun () ->
+      Fiber.return (bind_quotes ~uri stmt quotes) >>=? fun () ->
       let nQ = List.length quotes in
       (match encode_param ~uri stmt param_type param nQ with
        | Ok nQP ->

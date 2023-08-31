@@ -114,6 +114,26 @@ let no_env _ _ = raise Not_found
 module Pg_ext = struct
   include Postgresql_conv
 
+  (* Turns a constant into [(must_quote, encode)].  Note the slight difference
+   * from encoded parameters like booleans and quoting. *)
+  let query_string_of_value
+    : type a. Pg.connection -> a Caqti_type.Field.t -> bool * (a -> string) =
+    fun db ->
+    let escape_string s = db#escape_string s in
+    (function
+     | Bool -> (false, string_of_bool)
+     | Int -> (false, string_of_int)
+     | Int16 -> (false, string_of_int)
+     | Int32 -> (false, Int32.to_string)
+     | Int64 -> (false, Int64.to_string)
+     | Float -> (false, Float.to_string)
+     | String -> (true, escape_string)
+     | Octets -> (true, escape_string)
+     | Pdate -> (true, Conv.iso8601_of_pdate)
+     | Ptime -> (true, pgstring_of_ptime)
+     | Ptime_span -> (true, pgstring_of_ptime_span)
+     | Enum _ -> (true, escape_string))
+
   let query_string ~env (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
     let rec loop = function
@@ -122,6 +142,11 @@ module Pg_ext = struct
         Buffer.add_char buf '\'';
         Buffer.add_string buf (db#escape_string s);
         Buffer.add_char buf '\''
+     | Caqti_query.V (ft, v) ->
+        let quote, conv = query_string_of_value db ft in
+        if quote then Buffer.add_char buf '\'';
+        Buffer.add_string buf (conv v);
+        if quote then Buffer.add_char buf '\''
      | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
      | Caqti_query.E _ -> assert false
      | Caqti_query.S frags -> List.iter loop frags

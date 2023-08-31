@@ -52,6 +52,8 @@ module Field : sig
   val to_string : 'a t -> string
 
   val pp : Format.formatter -> 'a t -> unit
+
+  val pp_value : Format.formatter -> 'a t * 'a -> unit
 end
 
 (** {2:row_types Row Types} *)

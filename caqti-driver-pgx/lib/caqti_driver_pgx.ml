@@ -59,28 +59,6 @@ let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Ptime_span -> "interval"
  | Enum name -> name
 
-let query_string ~env templ =
-  let templ = Caqti_query.expand ~final:true env templ in
-
-  let rec extract_quotes = function
-   | Caqti_query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
-   | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
-   | Caqti_query.E _ -> fun _ -> assert false
-   | Caqti_query.S qs -> List_ext.fold extract_quotes qs
-  in
-  let nQ, rev_quotes = extract_quotes templ (0, []) in
-
-  let buf = Buffer.create 64 in
-  let rec write_query_string = function
-   | Caqti_query.L s -> fun jQ -> Buffer.add_string buf s; jQ
-   | Caqti_query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
-   | Caqti_query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
-   | Caqti_query.E _ -> assert false
-   | Caqti_query.S qs -> List_ext.fold write_query_string qs
-  in
-  let _jQ = write_query_string templ 1 in
-  (Buffer.contents buf, rev_quotes)
-
 let encode_field
     : type a. a Caqti_type.Field.t -> a -> Pgx.Value.t
     = fun field_type x ->
@@ -97,6 +75,30 @@ let encode_field
    | Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
    | Ptime -> Pgx.Value.of_string (pgstring_of_ptime x)
    | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
+
+let query_string ~env templ =
+  let templ = Caqti_query.expand ~final:true env templ in
+
+  let rec extract_quotes = function
+   | Caqti_query.V (ft, v) -> fun (n, acc) -> (n + 1, encode_field ft v :: acc)
+   | Caqti_query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
+   | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
+   | Caqti_query.E _ -> fun _ -> assert false
+   | Caqti_query.S qs -> List_ext.fold extract_quotes qs
+  in
+  let nQ, rev_quotes = extract_quotes templ (0, []) in
+
+  let buf = Buffer.create 64 in
+  let rec write_query_string = function
+   | Caqti_query.L s -> fun jQ -> Buffer.add_string buf s; jQ
+   | Caqti_query.V _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | Caqti_query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | Caqti_query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
+   | Caqti_query.E _ -> assert false
+   | Caqti_query.S qs -> List_ext.fold write_query_string qs
+  in
+  let _jQ = write_query_string templ 1 in
+  (Buffer.contents buf, rev_quotes)
 
 let encode_param ~uri t param =
   let write_value ~uri:_ ft fv acc = encode_field ft fv :: acc in

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,6 +19,9 @@
 
 (** {2 Queries} *)
 
+type linear_param =
+  Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param
+
 val linear_param_length :
   ?env: (string -> Caqti_query.t) ->
   Caqti_query.t -> int
@@ -27,7 +30,7 @@ val linear_param_length :
 
 val linear_param_order :
   ?env: (string -> Caqti_query.t) ->
-  Caqti_query.t -> int list list * (int * string) list
+  Caqti_query.t -> int list list * linear_param list
 (** [linear_param_order templ] describes the parameter bindings expected for
     [templ] after linearizing parameters and lifting quoted strings out of the
     query:
@@ -35,9 +38,9 @@ val linear_param_order :
       - The first is a list where item number [i] is a list of linear parameter
         positions to which to bind the [i]th incoming parameter.
 
-      - The second is a list of pairs where the first component is the position
-        of the linear parameter taking the place of a quoted string, and the
-        second component is the quoted string to bind to this parameter.
+      - The second is a list of [Linear_param (i, t, v)] where [i] is the
+        position of the linear parameter taking the place of a embedded value,
+        [t] is its field type, and [v] is the value itself.
 
     All positions are zero-based. *)
 

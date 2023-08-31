@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,7 @@
 
 type t =
   | L of string
+  | V : 'a Caqti_type.Field.t * 'a -> t
   | Q of string
   | P of int
   | E of string
@@ -32,14 +33,14 @@ let normal =
   let rec collect acc = function
    | [] -> List.rev acc
    | ((L"" | S[]) :: qs) -> collect acc qs
-   | ((P _ | Q _ | E _ as q) :: qs) -> collect (q :: acc) qs
+   | ((P _ | V _ | Q _ | E _ as q) :: qs) -> collect (q :: acc) qs
    | (S (q' :: qs') :: qs) -> collect acc (q' :: S qs' :: qs)
    | (L s :: qs) -> collectL acc [s] qs
   and collectL acc accL = function
    | ((L"" | S[]) :: qs) -> collectL acc accL qs
    | (L s :: qs) -> collectL acc (s :: accL) qs
    | (S (q' :: qs') :: qs) -> collectL acc accL (q' :: S qs' :: qs)
-   | [] | ((P _ | Q _ | E _) :: _) as qs ->
+   | [] | ((P _ | V _ | Q _ | E _) :: _) as qs ->
       collect (L (String.concat "" (List.rev accL)) :: acc) qs
   in
   fun q ->
@@ -49,22 +50,28 @@ let normal =
      | qs -> S qs)
 
 let rec equal t1 t2 =
-  match t1, t2 with
-  | L s1, L s2 -> String.equal s1 s2
-  | Q s1, Q s2 -> String.equal s1 s2
-  | P i1, P i2 -> Int.equal i1 i2
-  | E n1, E n2 -> String.equal n1 n2
-  | S ts1, S ts2 -> equal_list equal ts1 ts2
-  | L _, _ -> false
-  | Q _, _ -> false
-  | P _, _ -> false
-  | E _, _ -> false
-  | S _, _ -> false
+  (match t1, t2 with
+   | L s1, L s2 -> String.equal s1 s2
+   | V (t1, v1), V (t2, v2) ->
+      (match Caqti_type.Field.unify t1 t2 with
+       | None -> false
+       | Some Caqti_type.Equal -> Caqti_type.Field.equal_value t1 v1 v2)
+   | Q s1, Q s2 -> String.equal s1 s2
+   | P i1, P i2 -> Int.equal i1 i2
+   | E n1, E n2 -> String.equal n1 n2
+   | S ts1, S ts2 -> equal_list equal ts1 ts2
+   | V _, _ -> false
+   | L _, _ -> false
+   | Q _, _ -> false
+   | P _, _ -> false
+   | E _, _ -> false
+   | S _, _ -> false)
 
 let hash = Hashtbl.hash
 
 let rec pp ppf = function
  | L s -> Format.pp_print_string ppf s
+ | V (t, v) -> Caqti_type.Field.pp_value ppf (t, v)
  | Q s ->
     (* Using non-SQL quoting, to avoid issues with newlines and other control
      * characters when printing to log files. *)
@@ -120,12 +127,12 @@ exception Expand_error of expand_error
 
 let expand ?(final = false) f query =
   let rec is_valid = function
-   | L _ | Q _ -> true
+   | L _ | V _ | Q _ -> true
    | P _ | E _ -> false
    | S qs -> List.for_all is_valid qs
   in
   let rec recurse = function
-   | L _ | Q _ | P _ as q -> q
+   | L _ | V _ | Q _ | P _ as q -> q
    | E var as q ->
       let not_found () =
         if not final then q else

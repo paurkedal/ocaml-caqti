@@ -19,10 +19,14 @@ let (%>) f g x = g (f x)
 
 let no_env _ = raise Not_found
 
+type linear_param =
+  Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param
+
 let linear_param_length ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
+   | Caqti_query.V (_, _) -> succ
    | Caqti_query.Q _ -> succ
    | Caqti_query.P _ -> succ
    | Caqti_query.E _ -> assert false
@@ -34,6 +38,7 @@ let nonlinear_param_length ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
+   | Caqti_query.V _ -> Fun.id
    | Caqti_query.Q _ -> Fun.id
    | Caqti_query.P n -> max (n + 1)
    | Caqti_query.E _ -> assert false
@@ -46,20 +51,26 @@ let linear_param_order ?(env = no_env) templ =
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
-   | Caqti_query.Q s -> fun (j, quotes) -> (j + 1, (j, s) :: quotes)
-   | Caqti_query.P i -> fun (j, quotes) -> a.(i) <- j :: a.(i); (j + 1, quotes)
+   | Caqti_query.V (t, v) ->
+      fun (j, params) ->
+        (j + 1, Linear_param (j, t, v) :: params)
+   | Caqti_query.Q s ->
+      fun (j, params) ->
+        (j + 1, Linear_param (j, Caqti_type.Field.String, s) :: params)
+   | Caqti_query.P i -> fun (j, params) -> a.(i) <- j :: a.(i); (j + 1, params)
    | Caqti_query.E _ -> assert false
    | Caqti_query.S frags -> List_ext.fold loop frags
   in
-  let _, quotes = loop templ (0, []) in
-  (Array.to_list a, List.rev quotes)
+  let _, params = loop templ (0, []) in
+  (Array.to_list a, List.rev params)
 
 let linear_query_string ?(env = no_env) templ =
   let templ = Caqti_query.expand env templ in
   let buf = Buffer.create 64 in
   let rec loop = function
    | Caqti_query.L s -> Buffer.add_string buf s
-   | Caqti_query.Q _ | Caqti_query.P _ -> Buffer.add_char buf '?'
+   | Caqti_query.Q _ | Caqti_query.V _ | Caqti_query.P _ ->
+      Buffer.add_char buf '?'
    | Caqti_query.E _ -> assert false
    | Caqti_query.S frags -> List.iter loop frags
   in

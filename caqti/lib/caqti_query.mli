@@ -19,6 +19,11 @@
 
 type t =
   | L of string (** Literal code. May contain incomplete fragments. *)
+  | V : 'a Caqti_type.Field.t * 'a -> t
+                (** [V (t, v)] embeds the constant value [v : 'a] given its
+                    field type [t : 'a Caqti_type.t].  This allows you to take
+                    advantage of the driver-dependent conversions and escaping
+                    mechanisms when embedding constants in a query. *)
   | Q of string (** [Q s] corresponds to a [TEXT] literal; passed as part of the
                     query string if a suitable quoting function is available in
                     the client library, otherwise passed as an additional

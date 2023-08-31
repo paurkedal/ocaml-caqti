@@ -326,7 +326,7 @@ struct
               Request_utils.raise_response_failed ~uri ~query (wrap_rc ~db rc))
 
       let exec ({row_type; query; _} as response) =
-        assert (row_type = Caqti_type.unit);
+        assert (Caqti_type.unify row_type Caqti_type.unit <> None);
         let retrieve () =
           (match run_step response with
            | Sqlite3.Rc.DONE -> Ok ()

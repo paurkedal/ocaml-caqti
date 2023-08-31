@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,8 @@
 
 exception Reject of string
 
+type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)
+
 module Field = struct
 
   type 'a t =
@@ -32,6 +34,48 @@ module Field = struct
     | Ptime : Ptime.t t
     | Ptime_span : Ptime.span t
     | Enum : string -> string t
+
+  let unify : type a b. a t -> b t -> (a, b) eq option =
+    fun ft1 ft2 ->
+    (match ft1, ft2 with
+     | Bool, Bool -> Some Equal
+     | Bool, _ | _, Bool -> None
+     | Int, Int -> Some Equal
+     | Int, _ | _, Int -> None
+     | Int16, Int16 -> Some Equal
+     | Int16, _ | _, Int16 -> None
+     | Int32, Int32 -> Some Equal
+     | Int32, _ | _, Int32 -> None
+     | Int64, Int64 -> Some Equal
+     | Int64, _ | _, Int64 -> None
+     | Float, Float -> Some Equal
+     | Float, _ | _, Float -> None
+     | String, String -> Some Equal
+     | String, _ | _, String -> None
+     | Octets, Octets -> Some Equal
+     | Octets, _ | _, Octets -> None
+     | Pdate, Pdate -> Some Equal
+     | Pdate, _ | _, Pdate -> None
+     | Ptime, Ptime -> Some Equal
+     | Ptime, _ | _, Ptime -> None
+     | Ptime_span, Ptime_span -> Some Equal
+     | Ptime_span, _ | _, Ptime_span -> None
+     | Enum name1, Enum name2 when name1 = name2 -> Some Equal
+     | Enum _, Enum _ -> None)
+
+  let equal_value : type a. a t -> a -> a -> bool = function
+   | Bool -> Bool.equal
+   | Int -> Int.equal
+   | Int16 -> Int.equal
+   | Int32 -> Int32.equal
+   | Int64 -> Int64.equal
+   | Float -> Float.equal
+   | String -> String.equal
+   | Octets -> String.equal
+   | Pdate -> Ptime.equal
+   | Ptime -> Ptime.equal
+   | Ptime_span -> Ptime.Span.equal
+   | Enum _ -> String.equal
 
   let to_string : type a. a t -> string = function
    | Bool -> "bool"
@@ -68,10 +112,29 @@ module Field = struct
    | Enum _, x -> Format.pp_print_string ppf x
 end
 
+type _ record_serial = ..
+
+type 'a product_id = {
+  serial: 'a record_serial;
+  is_serial: 'b. 'b record_serial -> ('a, 'b) eq option;
+}
+
+let make_id (type a) () : a product_id =
+  let module M = struct
+    type _ record_serial += Serial : a record_serial
+  end in
+  let is_serial : type b. b record_serial -> (a, b) eq option = function
+   | M.Serial -> Some Equal
+   | _ -> None
+  in
+  {serial = M.Serial; is_serial}
+
+let unify_id {is_serial; _} {serial; _} = is_serial serial
+
 type _ t =
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
-  | Product : 'i * ('a, 'i) product -> 'a t
+  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
 and (_, _) product =
   | Proj_end : ('a, 'a) product
@@ -79,10 +142,41 @@ and (_, _) product =
 
 type any = Any : 'a t -> any
 
+let rec unify : type a b. a t -> b t -> (a, b) eq option =
+  fun t1 t2 ->
+  (match t1, t2 with
+   | Field ft1, Field ft2 -> Field.unify ft1 ft2
+   | Field _, _ | _, Field _ -> None
+   | Option t1, Option t2 ->
+      (match unify t1 t2 with None -> None | Some Equal -> Some Equal)
+   | Option _, _ | _, Option _ -> None
+   | Product (id1, _, _), Product (id2, _, _) -> unify_id id1 id2
+   | Product _, _ | _, Product _ -> None
+   | Annot (`Redacted, t1), Annot (`Redacted, t2) -> unify t1 t2)
+
+let equal_option f x y =
+  (match x, y with
+   | None, None -> true
+   | Some x, Some y -> f x y
+   | None, Some _ | Some _, None -> false)
+let rec equal_value : type a. a t -> a -> a -> bool =
+  (function
+   | Field ft -> Field.equal_value ft
+   | Option t -> equal_option (equal_value t)
+   | Product (_, _, prod) -> equal_value_prod prod
+   | Annot (_, t) -> equal_value t)
+and equal_value_prod : type a i. (a, i) product -> a -> a -> bool =
+  (function
+   | Proj_end -> fun _ _ -> true
+   | Proj (t, p, prod) ->
+      let eq_first = equal_value t in
+      let eq_rest = equal_value_prod prod in
+      fun x y -> eq_first (p x) (p y) && eq_rest x y)
+
 let rec length : type a. a t -> int = function
  | Field _ -> 1
  | Option t -> length t
- | Product (_, prod) ->
+ | Product (_, _, prod) ->
     let rec loop : type a i. (a, i) product -> _ -> _ = function
      | Proj_end -> Fun.id
      | Proj (t, _, prod) -> fun n -> loop prod (n + length t)
@@ -94,8 +188,8 @@ let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
     fun prec ppf -> function
  | Field ft -> Format.pp_print_string ppf (Field.to_string ft)
  | Option t -> pp_at 1 ppf t; Format.pp_print_string ppf " option"
- | Product (_, Proj_end) -> Format.pp_print_string ppf "unit"
- | Product (_, Proj (t0, _, prod)) ->
+ | Product (_, _, Proj_end) -> Format.pp_print_string ppf "unit"
+ | Product (_, _, Proj (t0, _, prod)) ->
     if prec > 0 then Format.pp_print_char ppf '(';
     let rec loop : type a i. (a, i) product -> _ = function
      | Proj_end -> ()
@@ -120,7 +214,7 @@ let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
  | Option t, Some x ->
     Format.pp_print_string ppf "Some ";
     pp_value ppf (t, x)
- | Product (_, prod), x ->
+ | Product (_, _, prod), x ->
     let rec loop : type i. int -> (a, i) product -> _ = fun i -> function
      | Proj_end -> ()
      | Proj (t, p, prod) ->
@@ -144,7 +238,7 @@ let field ft = Field ft
 module Std = struct
   let option t = Option t
 
-  let product intro prod = Product (intro, prod)
+  let product intro prod = Product (make_id (), intro, prod)
   let proj t p prod = Proj (t, p, prod)
   let proj_end = Proj_end
 

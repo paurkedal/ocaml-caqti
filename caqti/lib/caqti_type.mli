@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,11 @@
 (** Type descriptors for fields and tuples. *)
 
 exception Reject of string
+
+type (_, _) eq = Equal : ('a, 'a) eq
+(** Type equality witness.  This will eventually be replaced by the equavalent
+    definition available in [Stdlib.Type] since OCaml 5.1, but for now, we must
+    keep backwards compatibility with older compilers. *)
 
 (** {2 Primitive Field Types}
 
@@ -40,12 +45,21 @@ module Field : sig
     | Ptime_span : Ptime.span t
     | Enum : string -> string t
 
+  val unify : 'a t -> 'b t -> ('a, 'b) eq option
+
+  val equal_value : 'a t -> 'a -> 'a -> bool
+
   val to_string : 'a t -> string
 
   val pp : Format.formatter -> 'a t -> unit
 end
 
 (** {2:row_types Row Types} *)
+
+type _ product_id
+(** A type-carrying identifier used in {!t} to allow expressing equality
+    predicates, including for associated values.  {e This is not part of the
+    public API, but exposed due to its occurrence in {!t}}. *)
 
 (** Type descriptor for row types.
 
@@ -55,7 +69,7 @@ end
 type _ t = private
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
-  | Product : 'i * ('a, 'i) product -> 'a t
+  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
 and (_, _) product = private
   | Proj_end : ('a, 'a) product
@@ -63,6 +77,14 @@ and (_, _) product = private
 
 (** {!t} with existentially wrapped static type. *)
 type any = Any : 'a t -> any
+
+val unify : 'a t -> 'b t -> ('a, 'b) eq option
+(** If [t1] and [t2] are the same row type representations, then [unify t1 t2]
+    is the witness of the unification of their static type parameters, otherwise
+    it is [None]. *)
+
+val equal_value : 'a t -> 'a -> 'a -> bool
+(** [equal_value t] is the equality predicate for values of row type [t]. *)
 
 val length : 'a t -> int
 (** [length t] is the number of fields used to represent [t]. *)

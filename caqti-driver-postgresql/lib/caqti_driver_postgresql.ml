@@ -203,7 +203,7 @@ let init_param_types ~type_oid_cache =
       Ok (i + 1)
    | Caqti_type.Option t ->
       recurse pt bp t
-   | Caqti_type.Product (_, prod) ->
+   | Caqti_type.Product (_, _, prod) ->
       let rec loop : type i. (a, i) Caqti_type.product -> _ = function
        | Proj_end -> Result.ok
        | Proj (t, _, prod) -> recurse pt bp t %>? loop prod
@@ -812,7 +812,7 @@ struct
             Fiber.return r)
      | Caqti_type.Field _ -> Fiber.return (Ok ())
      | Caqti_type.Option t -> fetch_type_oids t
-     | Caqti_type.Product (_, prod) ->
+     | Caqti_type.Product (_, _, prod) ->
         let rec loop : type i. (a, i) Caqti_type.product -> _ = function
          | Proj_end -> Fiber.return (Ok ())
          | Proj (t, _, prod) -> fetch_type_oids t >>=? fun () -> loop prod

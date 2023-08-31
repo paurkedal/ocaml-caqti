@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -93,7 +93,7 @@ let rec encode_null_param : type a. uri: _ -> _ -> a Caqti_type.t -> _ =
   (function
    | Field ft -> f.write_null ~uri ft
    | Option t -> encode_null_param ~uri f t
-   | Product (_, ts) ->
+   | Product (_, _, ts) ->
       let rec loop : type a i. (a, i) product -> _ = function
        | Proj_end -> Fun.id
        | Proj (t, _, ts) -> encode_null_param ~uri f t %> loop ts
@@ -115,7 +115,7 @@ let rec encode_param
       (function
        | None -> encode_null_param ~uri f t
        | Some x -> encode_param ~uri f t x)
-   | Product (_, ts) as typ ->
+   | Product (_, _, ts) as typ ->
       let rec loop : type i. (a, i) product -> _ = function
        | Proj_end -> fun _ acc -> acc
        | Proj (t, p, ts) ->
@@ -152,9 +152,9 @@ let rec decode_row
          | None ->
             let x, acc = decode_t acc in
             (Some x, acc))
-   | Product (intro, Proj_end) ->
+   | Product (_, intro, Proj_end) ->
       fun acc -> (intro, acc)
-   | Product (intro, Proj (t1, _, Proj (t2, _, Proj_end)))
+   | Product (_, intro, Proj (t1, _, Proj (t2, _, Proj_end)))
         as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
@@ -163,7 +163,7 @@ let rec decode_row
         let x2, acc = decode_t2 acc in
         (try (intro x1 x2, acc) with
          | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (intro, Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj_end))))
+   | Product (_, intro, Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj_end))))
         as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
@@ -174,7 +174,7 @@ let rec decode_row
         let x3, acc = decode_t3 acc in
         (try (intro x1 x2 x3, acc) with
          | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (intro,
+   | Product (_, intro,
         Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj (t4, _, Proj_end)))))
         as typ -> (* optimization *)
       let decode_t1 = decode_row ~uri f t1 in
@@ -188,7 +188,7 @@ let rec decode_row
         let x4, acc = decode_t4 acc in
         (try (intro x1 x2 x3 x4, acc) with
          | Caqti_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (intro, ts) as typ ->
+   | Product (_, intro, ts) as typ ->
       let rec loop : type a i. (a, i) product -> i -> _ -> a * _ =
         (function
          | Proj_end ->

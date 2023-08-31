@@ -239,7 +239,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
      | Enum _ -> encode_string x
      | Octets -> encode_octets x
      | Pdate -> Conv.iso8601_of_pdate x
-     | Ptime -> Pg_ext.pgstring_of_pdate x
+     | Ptime -> Pg_ext.pgstring_of_ptime x
      | Ptime_span -> Pg_ext.pgstring_of_ptime_span x)
 
   let encode ~uri params t x =

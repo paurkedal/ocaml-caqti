@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,7 @@ let pgstring_of_bool = function true -> "t" | false -> "f"
 
 let pdate_of_pgstring = Conv.pdate_of_iso8601
 
-let pgstring_of_pdate x =
+let pgstring_of_ptime x =
   Ptime.to_rfc3339 ~space:true ~tz_offset_s:0 ~frac_s:6 x
 
 let pgstring_of_ptime_span t =

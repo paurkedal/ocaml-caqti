@@ -95,7 +95,7 @@ let encode_field
    | Enum _ -> Pgx.Value.of_string x
    | Octets -> Pgx.Value.of_binary x
    | Pdate -> Pgx.Value.of_string (Conv.iso8601_of_pdate x)
-   | Ptime -> Pgx.Value.of_string (pgstring_of_pdate x)
+   | Ptime -> Pgx.Value.of_string (pgstring_of_ptime x)
    | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
 
 let encode_param ~uri t param =

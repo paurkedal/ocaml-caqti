@@ -220,35 +220,52 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let s2 = String.make i '\'' in
       let req = Caqti_request.create ~oneshot
         Caqti_type.(t2 int int)
-        Caqti_type.(t7 int int int string string string int)
+        Caqti_type.(t8 int int int64 int string string string int)
         Caqti_mult.one
         Caqti_query.(fun di ->
-          let quote = match Caqti_driver_info.dialect_tag di with
-           | `Mysql -> fun x -> S [L "CAST("; Q x; L" AS CHAR)"]
-           | _ -> fun x -> Q x
+          let cast_if_mariadb tn f =
+            (match Caqti_driver_info.dialect_tag di with
+             | `Mysql -> fun x -> S[L"CAST("; f x; L" AS "; L tn; L")"]
+             | _ -> f)
+          in
+          let quote_int = cast_if_mariadb "INTEGER"
+            (match i mod 4 with
+             | 0 -> fun x -> V (Caqti_type.Field.Int, x)
+             | 1 -> fun x -> V (Caqti_type.Field.Int16, x)
+             | 2 -> fun x -> V (Caqti_type.Field.Int32, Int32.of_int x)
+             | 3 -> fun x -> V (Caqti_type.Field.Int64, Int64.of_int x)
+             | _ -> assert false)
+          in
+          let quote_string = cast_if_mariadb "CHAR"
+            (match i mod 2 with
+             | 0 -> fun x -> Q x
+             | 1 -> fun x -> V (Caqti_type.Field.String, x)
+             | _ -> assert false)
           in
           S[
             L "SELECT ";
             P 1; L " + 10, ";     (* last parameter first *)
             P 1; L " + 20, ";     (* and duplicated *)
+            (quote_int (i + 30)); L ", "; (* first quote *)
             L (string_of_int i); L ", ";
-            quote s1; L ", ";     (* first quote *)
+            quote_string s1; L ", "; (* second quote *)
             L "'"; L (string_of_int i); L "'"; L ", ";
-            quote s2; L ", ";     (* second quote *)
+            quote_string s2; L ", "; (* third quote *)
             P 0; L " + 10";       (* first paramater last *)
           ])
       in
       Db.find req (i + 1, i + 2) >>= or_fail
-        >>= fun (i12, i22, i', s1', si', s2', i11) ->
+        >>= fun (i12, i22, i30, i', s1', si', s2', i11) ->
       (if oneshot then Fiber.return () else Db.deallocate req >>= or_fail)
         >|= fun () ->
-      assert (i12 = i + 12);
-      assert (i22 = i + 22);
-      assert (i11 = i + 11);
-      assert (i' = i);
-      assert (s1' = s1);
-      assert (s2' = s2);
-      assert (si' = string_of_int i)
+      Alcotest.(check int) "first $2 occurrence" (i + 12) i12;
+      Alcotest.(check int) "second $2 occurrence" (i + 22) i22;
+      Alcotest.(check int64) "first quote" (Int64.of_int (i + 30)) i30;
+      Alcotest.(check int) "int literal" (i + 11) i11;
+      Alcotest.(check int) "int literal" i i';
+      Alcotest.(check string) "second quote" s1 s1';
+      Alcotest.(check string) "third quote" s2 s2';
+      Alcotest.(check string) "only $1 occurrence" (string_of_int i) si'
     ) >>= fun () ->
 
     (* Prepared: null *)
@@ -389,11 +406,11 @@ module Make (Ground : Testlib.Sig.Ground) = struct
         Fiber.return ()
     end >>= fun () ->
     Db.start () >>= or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (2, "two", "two")
+    Db.exec Q.insert_into_tmp (2, "two", "two\x00")
     >>= or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (3, "three", "three")
+    Db.exec Q.insert_into_tmp (3, "three", "three'\"")
     >>= or_fail >>= fun () ->
-    Db.exec Q.insert_into_tmp (5, "five", "five")
+    Db.exec Q.insert_into_tmp (5, "five", "five\x05")
     >>= or_fail >>= fun () ->
     Db.commit () >>= or_fail >>= fun () ->
     Db.fold Q.select_from_tmp
@@ -404,7 +421,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     >>= or_fail >>= fun (i_acc, s_acc, o_acc) ->
     assert (i_acc = 10);
     assert (s_acc = "zero+two+three+five");
-    assert (o_acc = "zero+two+three+five");
+    assert (o_acc = "zero+two\x00+three'\"+five\x05");
     Db.exec Q.drop_tmp () >>= or_fail
 
   let test_affected_count (module Db : CONNECTION) =

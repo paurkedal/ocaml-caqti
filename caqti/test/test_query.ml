@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -166,9 +166,9 @@ let test_expand () =
   A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)
 
 let test_qprintf () =
-  let open Caqti_query in
+  let open Caqti_query_fmt in
   let check_expect q1 q2 =
-    A.(check query "same" (normal q1) (normal q2))
+    A.(check query "same" (Caqti_query.normal q1) (Caqti_query.normal q2))
   in
   check_expect
     (S [L"SELECT "; P 0; L" WHERE "; Q"quote"; L" = "; E"env"])

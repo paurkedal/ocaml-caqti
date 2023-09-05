@@ -35,7 +35,9 @@ type t =
     parameter references and providing nested concatenation to simplify
     generation.  For databases which only support linear parameters (typically
     denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
-    as needed.  *)
+    as needed.
+
+    Additional constructors may be added to this type across minor releases. *)
 
 val normal : t -> t
 (** [normal q] rewrites [q] to a normal form containing at most one top-level

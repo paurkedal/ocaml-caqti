@@ -25,9 +25,9 @@
     benefit from further revision before the first major Eio release lands. *)
 
 type stdenv = <
-  net : Eio.Net.t;
-  clock : Eio.Time.clock;
-  mono_clock : Eio.Time.Mono.t;
+  net : [`Generic] Eio.Net.ty Eio.Std.r;
+  clock : float Eio.Time.clock_ty Eio.Std.r;
+  mono_clock : Eio.Time.Mono.ty Eio.Std.r;
 >
 
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a

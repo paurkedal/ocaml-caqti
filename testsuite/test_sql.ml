@@ -491,6 +491,52 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     Db.commit () >>= or_fail >>= fun () ->
     Db.exec Q.drop_tmp () >>= or_fail
 
+  let test_tuples =
+    let module Q = struct
+      open Caqti_type.Std
+      open Caqti_request.Infix
+      let sel2 =
+        t2 int int -->! t2 int int @:-
+        "SELECT -$2, -$1"
+      let sel3 =
+        t3 int int int -->! t3 int int int @:-
+        "SELECT -$3, -$2, -$1"
+      let sel4 =
+        t4 int int int int -->! t4 int int int int @:-
+        "SELECT -$4, -$3, -$2, -$1"
+      let sel5 =
+        t5 int int int int int -->! t5 int int int int int @:-
+        "SELECT -$5, -$4, -$3, -$2, -$1"
+      let sel6 =
+        t6 int int int int int int -->! t6 int int int int int int @:-
+        "SELECT -$6, -$5, -$4, -$3, -$2, -$1"
+      let sel7 =
+        t7 int int int int int int int -->! t7 int int int int int int int @:-
+        "SELECT -$7, -$6, -$5, -$4, -$3, -$2, -$1"
+      let sel8 =
+        t8 int int int int int int int int -->!
+        t8 int int int int int int int int @:-
+        "SELECT -$8, -$7, -$6, -$5, -$4, -$3, -$2, -$1"
+    end in
+    fun (module Db : CONNECTION) ->
+      let i1, i2, i3, i4, i5, i6, i7, i8 = 2, 3, 5, 7, 11, 13, 17, 19 in
+      let check q x y =
+        Db.find q x >>= or_fail >|= fun y' -> assert (y = y')
+      in
+      check Q.sel2 (i1, i2) (-i2, -i1) >>= fun () ->
+      check Q.sel3 (i1, i2, i3) (-i3, -i2, -i1) >>= fun () ->
+      check Q.sel4 (i1, i2, i3, i4) (-i4, -i3, -i2, -i1) >>= fun () ->
+      check Q.sel5 (i1, i2, i3, i4, i5) (-i5, -i4, -i3, -i2, -i1) >>= fun () ->
+      check Q.sel6
+        (i1, i2, i3, i4, i5, i6)
+        (-i6, -i5, -i4, -i3, -i2, -i1) >>= fun () ->
+      check Q.sel7
+        (i1, i2, i3, i4, i5, i6, i7)
+        (-i7, -i6, -i5, -i4, -i3, -i2, -i1) >>= fun () ->
+      check Q.sel8
+        (i1, i2, i3, i4, i5, i6, i7, i8)
+        (-i8, -i7, -i6, -i5, -i4, -i3, -i2, -i1)
+
   let test_stream (module Db : CONNECTION) =
     let assert_stream_is expected =
       Db.call
@@ -605,6 +651,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "expr", `Quick, test_expr;
     "enum", `Quick, test_enum;
     "table", `Quick, test_table;
+    "tuples", `Quick, test_tuples;
     "affected_count", `Quick, test_affected_count;
     "stream", `Quick, test_stream;
     "stream_both_ways", `Quick, test_stream_both_ways;

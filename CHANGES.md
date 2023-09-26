@@ -1,3 +1,23 @@
+## unreleased
+
+  - The newly introduced `Caqti_query.qprintf` and associated formatters
+    have been moved to a separate module `Caqti_query_fmt` (#108), since
+    they will typically be used in local open, but usually not in
+    combination, and since the formatters were nominally underqualified.
+
+  - Constants other than strings can now be embedded in queries using the
+    new `Caqti_query.V` constructor.  This allows you to take advantage of
+    the driver-specific encoding, e.g. to correctly convert a `Ptime.Span.t`
+    to the representation expected by the database system.
+
+  - Equality returning type unification evidence is now available for
+    `Caqti_type.t` and `Caqti_type.Field.t`.  The equality type introduced
+    for the purpose is compatible with `Type.eq` from OCaml 5.1, but will
+    not be aliased yet.  This required a backwards incompatible adjustment
+    of the `Caqti_type.Product` constructor.
+
+  - Some updates to external dependencies, esp. we are now at EIO 0.12.
+
 ## v2.0.1 - 2023-08-14
 
 Fixes:

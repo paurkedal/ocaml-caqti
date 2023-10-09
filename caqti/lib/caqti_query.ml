@@ -32,6 +32,15 @@ let concat =
    | [] -> S[]
    | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
 
+let bool x = V (Caqti_type.Field.Bool, x)
+let int x = V (Caqti_type.Field.Int, x)
+let float x = V (Caqti_type.Field.Float, x)
+let string x = V (Caqti_type.Field.String, x)
+let octets x = V (Caqti_type.Field.Octets, x)
+let pdate x = V (Caqti_type.Field.Pdate, x)
+let ptime x = V (Caqti_type.Field.Ptime, x)
+let ptime_span x = V (Caqti_type.Field.Ptime_span, x)
+
 let rec equal_list f xs ys = (* stdlib 4.12.0 *)
   (match xs, ys with
    | [], [] -> true

@@ -15,11 +15,22 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_query
+type 'a t = Format.formatter -> 'a -> unit
+
 [@@@alert "-deprecated"]
-let qprintf = qprintf
-let kqprintf = kqprintf
-let param = param
-let env = env
-let quote = quote
-let query = query
+let qprintf = Caqti_query.qprintf
+let kqprintf = Caqti_query.kqprintf
+let param = Caqti_query.param
+let env = Caqti_query.env
+let quote = Caqti_query.quote
+let query = Caqti_query.query
+[@@@alert "+deprecated"]
+
+let bool ppf x = query ppf (V (Caqti_type.Field.Bool, x))
+let int ppf x = query ppf (V (Caqti_type.Field.Int, x))
+let float ppf x = query ppf (V (Caqti_type.Field.Float, x))
+let string ppf x = query ppf (V (Caqti_type.Field.String, x))
+let octets ppf x = query ppf (V (Caqti_type.Field.Octets, x))
+let pdate ppf x = query ppf (V (Caqti_type.Field.Pdate, x))
+let ptime ppf x = query ppf (V (Caqti_type.Field.Ptime, x))
+let ptime_span ppf x = query ppf (V (Caqti_type.Field.Ptime_span, x))

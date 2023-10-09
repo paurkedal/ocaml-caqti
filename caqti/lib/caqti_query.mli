@@ -80,6 +80,20 @@ val concat : string -> t list -> t
 (** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
     and the empty string of [frags] is empty. *)
 
+(** {3 Embedding Values}
+
+    The following are shortcuts for combining {!V} with some of the field types.
+    The values will be passed as hidden parameters. *)
+
+val bool : bool -> t
+val int : int -> t
+val float : float -> t
+val string : string -> t
+val octets : string -> t
+val pdate : Ptime.t -> t
+val ptime : Ptime.t -> t
+val ptime_span : Ptime.span -> t
+
 
 (** {2 Normalization and Equality} *)
 

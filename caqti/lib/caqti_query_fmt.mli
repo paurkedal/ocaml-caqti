@@ -17,9 +17,11 @@
 
 (** Format-based query construction. *)
 
-open Caqti_query
+type 'a t = Format.formatter -> 'a -> unit
+(** The type of a function which formats values of type ['a] or fragments based
+    on an input of type ['a]. *)
 
-val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
+val qprintf : ('a, Format.formatter, unit, Caqti_query.t) format4 -> 'a
 (** {!qprintf} allows building Caqti queries using a printf-style interface.
 
     When using {!qprintf}, you can use the {!query}, {!quote}, {!env} and
@@ -50,13 +52,14 @@ val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
     @raise Failure if the "Q" and "E" tags are nested.
 *)
 
-val kqprintf : (t -> 'a) -> ('b, Format.formatter, unit, 'a) format4 -> 'b
+val kqprintf :
+  (Caqti_query.t -> 'a) -> ('b, Format.formatter, unit, 'a) format4 -> 'b
 (** {!kqprintf} is the continuation-passing version of {!qprintf} (like
     {!Format.kasprintf} for {!Format.asprintf}).
 
     You usually want [qprintf] instead. *)
 
-val param : Format.formatter -> int -> unit
+val param : int t
 (** {!param} is a formatter that includes the corresponding parameter in a
     query built by {!qprintf}.
 
@@ -65,7 +68,7 @@ val param : Format.formatter -> int -> unit
     processed by Caqti.
 *)
 
-val env : Format.formatter -> string -> unit
+val env : string t
 (** {!env} is a formatter that includes the corresponding environment variable
     in a query built by {!qprintf}.
 
@@ -73,14 +76,29 @@ val env : Format.formatter -> string -> unit
     used: using literal ["$(...)"] will be sent as-is to the SQL driver and
     will not be processed by Caqti. *)
 
-val quote : Format.formatter -> string -> unit
+val quote : string t
 (** {!quote} is a formatter that includes a TEXT literal in a query built by
     {!qprintf}. *)
 
-val query : Format.formatter -> t -> unit
+val query : Caqti_query.t t
 (** {!query} can be used with {!qprintf} to embed a query that was already
     parsed in the format string. Direct use of {!query} should be rare, and
     {!param}, {!env}, or {!quote} should be used instead when possible.
 
     Using {!query} with any other formatter will ignore the query and instead
     print a dummy value (currently ["... SQL FRAGMENT ..."]) instead. *)
+
+(** {2 Value Formatters}
+
+    The following formatters emit values of basic field types by passing them as
+    parameters.  This is done by emitting a {!Caqti_query.V} node with a
+    appropriate field type. *)
+
+val bool : bool t
+val int : int t
+val float : float t
+val string : string t
+val octets : string t
+val pdate : Ptime.t t
+val ptime : Ptime.t t
+val ptime_span : Ptime.span t

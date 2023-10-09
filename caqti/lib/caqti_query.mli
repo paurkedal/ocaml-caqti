@@ -77,8 +77,8 @@ type t =
     minor releases. *)
 
 val concat : string -> t list -> t
-(** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
-    and the empty string of [frags] is empty. *)
+(** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty,
+    and the empty string if [frags] is empty. *)
 
 (** {3 Embedding Values}
 

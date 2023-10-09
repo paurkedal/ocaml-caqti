@@ -12,6 +12,7 @@ This library exposes the following toplevel modules:
     Caqti_pool_config
     Caqti_pool_sig
     Caqti_query
+    Caqti_query_fmt
     Caqti_request
     Caqti_response_sig
     Caqti_stream_sig

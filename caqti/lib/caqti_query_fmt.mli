@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Format-based query construction. *)
+
 open Caqti_query
 
 val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a

@@ -23,6 +23,15 @@ type t =
   | E of string
   | S of t list
 
+let concat =
+  let rec loop pfx acc = function
+   | [] -> acc
+   | q :: qs -> loop pfx (pfx :: q :: acc) qs
+  in
+  fun sep -> function
+   | [] -> S[]
+   | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
+
 let rec equal_list f xs ys = (* stdlib 4.12.0 *)
   (match xs, ys with
    | [], [] -> true
@@ -96,15 +105,6 @@ let show q =
   let ppf = Format.formatter_of_buffer buf in
   pp ppf q; Format.pp_print_flush ppf ();
   Buffer.contents buf
-
-let concat =
-  let rec loop pfx acc = function
-   | [] -> acc
-   | q :: qs -> loop pfx (pfx :: q :: acc) qs
-  in
-  fun sep -> function
-   | [] -> S[]
-   | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
 
 type expand_error = {
   query: t;

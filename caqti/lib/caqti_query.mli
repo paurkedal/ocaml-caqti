@@ -15,29 +15,73 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Query specification. *)
+(** Intermediate query string representation.
+
+    This module provides a common representation of database query strings.
+    This module can be used directly to construct queries dynamically, or
+    indirectly via the parser, as may be more convenient when the query string
+    is known at compile-time.  In the latter case, the input string is typically
+    very similar to the output string.  In either case the intermediate
+    representation serve to unify the syntax across database systems and to
+    provide additional functionality.
+
+    When using this module directly, it provides:
+
+      - flexible, pure, and efficient construction ({!S}, {!L}),
+      - uniform index-based parameter references ({!P}),
+      - expansion of fragments provided by an environment function ({!E}), and
+      - safe embedding of values in queries ({!V}, {!Q}). *)
+
+
+(** {2 Construction} *)
 
 type t =
-  | L of string (** Literal code. May contain incomplete fragments. *)
+  | L of string
+    (** [L frag] translates to the literally inserted substring [frag].  The
+        [frag] argument must be trusted or verified to be secure to avoid SQL
+        injection attacks.  Use {!V}, {!Q}, or {!P} to safely insert strings or
+        other values. *)
   | V : 'a Caqti_type.Field.t * 'a -> t
-                (** [V (t, v)] embeds the constant value [v : 'a] given its
-                    field type [t : 'a Caqti_type.t].  This allows you to take
-                    advantage of the driver-dependent conversions and escaping
-                    mechanisms when embedding constants in a query. *)
-  | Q of string (** [Q s] corresponds to a [TEXT] literal; passed as part of the
-                    query string if a suitable quoting function is available in
-                    the client library, otherwise passed as an additional
-                    parameter. *)
-  | P of int    (** [P i] refers to parameter number [i], counting from 0. *)
-  | E of string (** [E name] is expanded by the environemnt lookup function. *)
-  | S of t list (** [S frags] is the concatenation of [frags]. *)
-(** A representation of a query string to send to a database, abstracting over
-    parameter references and providing nested concatenation to simplify
-    generation.  For databases which only support linear parameters (typically
-    denoted "[?]"), the driver will reshuffle, elide, and duplicate parameters
-    as needed.
+    (** [V (t, v)] translates to a parameter of type [t] bound to the value [v].
+        That is, the query string will contain a parameter reference which does
+        not conflict with any {!P} nodes and bind [v] to the corresponding
+        parameter each time the query is executed.  This allows taking advantage
+        of driver-dependent serialization and escaping mechanisms to safely send
+        values to the database server. *)
+  | Q of string
+    (** [Q s] corresponds to a quoted string literal.  This is passed as part of
+        the query string if a suitable quoting function is available in the
+        client library, otherwise it is equivalent to
+        {!V}[(]{!Caqti_type.Field.String}[, s)]. *)
+  | P of int
+    (** [P i] refers to parameter number [i], counting from 0, so that e.g.
+        [P 0] translates to ["$1"] for PostgreSQL and ["?1"] for SQLite3. *)
+  | E of string
+    (** [E name] will be replaced by the fragment returned by an environment
+        lookup function, as passed directly to {!expand} or indirectly through
+        the [?env] argument found in higher-level functions.  An error will be
+        issued for any remaining [E]-nodes in the final translation to a query
+        string. *)
+  | S of t list
+    (** [S frags] is the concatenation of [frags].  Apart from combining
+        different kinds of nodes, this constructor can be nested according to
+        the flow of the generating code. *)
+(** [t] is an intermediate representation of a query string to be send to a
+    database, possibly combined with some hidden parameters used to safely embed
+    values.  Apart from embedding values, this representation provides indexed
+    parameter references, independent of the target database system.  For
+    databases which use linear parameter references (like [?] for MariaDB), the
+    driver will reshuffle, elide, and duplicate parameters as needed.
 
-    Additional constructors may be added to this type across minor releases. *)
+    Please note that additional constructors may be added to this type across
+    minor releases. *)
+
+val concat : string -> t list -> t
+(** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
+    and the empty string of [frags] is empty. *)
+
+
+(** {2 Normalization and Equality} *)
 
 val normal : t -> t
 (** [normal q] rewrites [q] to a normal form containing at most one top-level
@@ -52,6 +96,9 @@ val hash : t -> int
 (** A hash function compatible with {!equal}.  The hash function may change
     across minor versions and may depend on architecture. *)
 
+
+(** {2 Parsing, Expansion, and Printing} *)
+
 val pp : Format.formatter -> t -> unit
 (** [pp ppf q] prints a {e human}-readable representation of [q] on [ppf].
     The printed string is {e not suitable for sending to an SQL database}; doing
@@ -62,10 +109,6 @@ val show : t -> string
     {!pp}.
     The returned string is {e not suitable for sending to an SQL database};
     doing so may lead to an SQL injection vulnerability. *)
-
-val concat : string -> t list -> t
-(** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty
-    and the empty string of [frags] is empty. *)
 
 type expand_error
 (** A description of the error caused during {!expand} if the environment lookup
@@ -100,9 +143,9 @@ val angstrom_parser : t Angstrom.t
 
 val angstrom_parser_with_semicolon : t Angstrom.t
 (** A variant of [angstrom_parser] which accepts unquoted semicolons as part of
-    the a statement, which is allowed in some cases like for defining SQLite3
-    triggers.  This is the parser used by {!Caqti_request}, where it's assumed
-    that the input is a single SQL statement. *)
+    the single statement, as is valid in some cases like in SQLite3 trigger
+    definitions.  This is the parser used by {!Caqti_request}, where it's
+    assumed that the input is a single SQL statement. *)
 
 val of_string : string -> (t, [`Invalid of int * string]) result
 (** Parses a single expression using {!angstrom_parser_with_semicolon}.  The

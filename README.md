@@ -41,13 +41,14 @@ instead against the `caqti-driver-*` libraries which you expect to use.
 
 Tutorials and examples:
 
+  - The [caqti-study][] repository is a tutorial with examples, which we
+    will keep up to date with the latest release of Caqti.  It is work in
+    progress; suggestions and contributions are welcome.
   - [Interfacing OCaml and PostgreSQL with Caqti][BP-2018] by Bobby
     Priambodo gives a gentle introduction, though the Caqti API has changed
     to some extend since it was written.
   - [The documented example][bikereg] in this repository can give a first
     idea.
-  - The [caqti-study][] repository contains a work-in-progress tutorial
-    which I hope will supersede the above.
 
 API documentation from ocaml.org contains documentation for matching
 releases of individual packages:

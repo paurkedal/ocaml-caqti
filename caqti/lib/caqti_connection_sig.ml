@@ -169,7 +169,7 @@ module type Convenience = sig
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> ('c, 'e) result fiber) ->
     'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result fiber
-  (** [fold_s f x acc] performs [req] with parameters [x] and passes [acc]
+  (** [fold_s req f x acc] performs [req] with parameters [x] and passes [acc]
       through the monadic composition of [f y] across the returned rows [y] in
       the order of retrieval.
 

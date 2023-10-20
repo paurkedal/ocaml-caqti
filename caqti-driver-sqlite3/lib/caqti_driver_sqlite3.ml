@@ -564,7 +564,8 @@ struct
     let set_statement_timeout _ = Fiber.return (Ok ())
   end
 
-  let setup ~tweaks_version db =
+  let setup ~config db =
+    let tweaks_version = Caqti_connect_config.(get tweaks_version) config in
     if tweaks_version < (1, 8) then Fiber.return () else
     Preemptive.detach (Sqlite3.exec db) "PRAGMA foreign_keys = ON"
       >>= fun rc ->
@@ -572,7 +573,7 @@ struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ~sw:_ ~stdenv:_ ?(env = no_env) ~tweaks_version uri =
+  let connect ~sw:_ ~stdenv:_ ?(env = no_env) ~config uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");
@@ -592,7 +593,7 @@ struct
         (fun () ->
           Sqlite3.db_open ~mutex:`FULL ?mode (Uri.path uri |> Uri.pct_decode))
         () >>= fun db ->
-      setup ~tweaks_version db >|= fun () ->
+      setup ~config db >|= fun () ->
       (match busy_timeout with
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);

@@ -565,7 +565,7 @@ struct
       Ok {host; user; pass; port; db; flags = None; config_group}
   end
 
-  let connect ~sw:_ ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw:_ ~stdenv ?(env = no_env) ~config:_ uri =
     let module With_stdenv = Pass_stdenv (struct let stdenv = stdenv end) in
     let open With_stdenv in
 

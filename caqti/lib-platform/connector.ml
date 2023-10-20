@@ -17,8 +17,6 @@
 
 open Printf
 
-let default_tweaks_version = (1, 7)
-
 let dynload_library = ref @@ fun lib ->
   Error (sprintf "Neither %s nor the dynamic linker is linked into the \
                   application." lib)
@@ -48,6 +46,10 @@ let retry_with_library load_driver ~uri scheme =
        | Error msg ->
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)
+
+let set_tweaks_version = function
+ | None -> Fun.id
+ | Some x -> Caqti_connect_config.(set tweaks_version) x
 
 module Make
   (System : System_sig.S)
@@ -97,13 +99,15 @@ struct
              | Error _ as r -> r)))
 
   let connect
-        ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri
+        ?env ?(config = Caqti_connect_config.default)
+        ?tweaks_version ~sw ~stdenv uri
       : ((module CONNECTION), _) result Fiber.t =
+    let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        let+? conn = Driver.connect ~sw ~stdenv ?env ~tweaks_version uri in
+        let+? conn = Driver.connect ~sw ~stdenv ?env ~config uri in
         let module Conn = (val conn : CONNECTION) in
         let module Conn' = struct
           include Conn
@@ -116,19 +120,21 @@ struct
         Fiber.return (Error err))
 
   let with_connection
-        ?env ?(tweaks_version = default_tweaks_version) ~stdenv uri f =
+        ?env ?config ?tweaks_version ~stdenv uri f =
     Switch.run begin fun sw ->
-      connect ~sw ~stdenv ?env ~tweaks_version uri >>=? f
+      connect ~sw ~stdenv ?env ?config ?tweaks_version uri >>=? f
     end
 
   let connect_pool
-        ?pool_config ?post_connect
-        ?env ?(tweaks_version = default_tweaks_version) ~sw ~stdenv uri =
+        ?pool_config ?post_connect ?env
+        ?(config = Caqti_connect_config.default)
+        ?tweaks_version ~sw ~stdenv uri =
     let pool_config =
       (match pool_config with
        | None -> Caqti_pool_config.default_from_env ()
        | Some pool_config -> pool_config)
     in
+    let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
@@ -148,11 +154,11 @@ struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ~sw ~stdenv ?env ~tweaks_version uri
+                (Driver.connect ~sw ~stdenv ?env ~config uri
                     :> (connection, _) result Fiber.t)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ~sw ~stdenv ?env ~tweaks_version uri
+                (Driver.connect ~sw ~stdenv ?env ~config uri
                     :> (connection, _) result Fiber.t)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)

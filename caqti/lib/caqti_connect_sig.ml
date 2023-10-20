@@ -39,6 +39,7 @@ module type S = sig
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
     (Uri.t -> (connection, [> Caqti_error.load_or_connect]) result fiber)
     with_stdenv with_switch
@@ -64,6 +65,7 @@ module type S = sig
 
   val with_connection :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
     (Uri.t ->
      (connection ->
@@ -82,6 +84,7 @@ module type S = sig
     ?pool_config: Caqti_pool_config.t ->
     ?post_connect: (connection -> (unit, 'connect_error) result fiber) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
     (Uri.t ->
      ((connection, [> Caqti_error.connect] as 'connect_error) pool,

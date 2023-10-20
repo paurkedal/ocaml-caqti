@@ -31,7 +31,7 @@ module type DRIVER = sig
     sw: switch ->
     stdenv: stdenv ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
-    tweaks_version: int * int ->
+    config: Caqti_connect_config.t ->
     Uri.t ->
     ((module CONNECTION), [> Caqti_error.connect]) result fiber
 end

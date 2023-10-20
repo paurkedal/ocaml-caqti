@@ -655,7 +655,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
      | Ok () -> Ok ()
      | Error err -> Error (`Post_connect err)
 
-  let connect ~sw ~stdenv ?(env = no_env) ~tweaks_version:_ uri =
+  let connect ~sw ~stdenv ?(env = no_env) ~config:_ uri =
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       Fiber.return (parse_uri uri)
     in

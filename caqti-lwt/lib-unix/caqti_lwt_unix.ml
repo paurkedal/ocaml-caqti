@@ -24,13 +24,14 @@ module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 
-let connect ?env ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) uri =
-  connect ?env ?tweaks_version ~sw ~stdenv:() uri
+let connect ?env ?config ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) uri =
+  connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
 
 let with_connection = with_connection ~stdenv:()
 
 let connect_pool
-      ?pool_config ?post_connect ?env ?tweaks_version
+      ?pool_config ?post_connect ?env ?config ?tweaks_version
       ?(sw = Caqti_lwt.Switch.eternal) uri =
   connect_pool
-    ?pool_config ?post_connect ?env ?tweaks_version ~sw ~stdenv:() uri
+    ?pool_config ?post_connect ?env ?config ?tweaks_version
+    ~sw ~stdenv:() uri

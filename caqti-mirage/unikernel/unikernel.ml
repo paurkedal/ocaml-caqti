@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ let ( let+? ) = Lwt_result.Syntax.( let+ )
 let minus_req =
   let open Caqti_request.Infix in
   let open Caqti_type.Std in
-  tup2 int int -->! int @:- "SELECT ? - ?"
+  t2 int int -->! int @:- "SELECT ? - ?"
 
 module Make
   (RANDOM : Mirage_random.S)
@@ -44,7 +44,7 @@ struct
 
   let start _random _time _pclock _mclock stack dns =
     Logs.(set_level (Some Info));
-    Logs_reporter.(create () |> run) @@ fun () ->
+    Logs.set_reporter (Logs_reporter.create ());
     begin
       let* () = Log.info (fun f -> f "Connecting to the database.") in
       let db_uri = Uri.of_string (Key_gen.database_uri ()) in

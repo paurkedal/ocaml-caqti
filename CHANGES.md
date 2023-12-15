@@ -1,4 +1,4 @@
-## unreleased
+## v2.1.0 - unreleased
 
   - The newly introduced `Caqti_query.qprintf` and associated formatters
     have been moved to a separate module `Caqti_query_fmt` (#108), to limit

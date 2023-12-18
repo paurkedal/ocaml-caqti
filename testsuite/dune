@@ -50,12 +50,12 @@
   (name main_async)
   (modules main_async)
   (libraries
-    caqti caqti.platform caqti-dynload caqti-async
+    caqti caqti.platform caqti-dynload caqti-async caqti-tls-async
     alcotest-async testlib testlib_async testsuite))
 
 (rule
   (alias runtest)
-  (package caqti-async)
+  (package caqti-tls-async)
   (deps (:test main_async.exe) (alias drivers) uris.conf)
   (locks /db/testsuite)
   (action (setenv OCAMLPATH . (run %{test}))))

@@ -1,0 +1,11 @@
+(library
+ (public_name caqti-tls-async)
+ (name caqti_tls_async)
+ (preprocess (pps ppx_jane))
+ (libraries
+    async_kernel
+    caqti
+    caqti-async
+    caqti-tls
+    tls
+    tls-async))

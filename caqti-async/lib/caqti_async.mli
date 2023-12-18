@@ -33,3 +33,11 @@ include Caqti_connect_sig.S
    and type ('a, 'e) stream := ('a, 'e) Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and type connection = (module CONNECTION)
+
+(**/**)
+module System : Caqti_platform.System_sig.S
+  with type 'a Fiber.t = 'a Deferred.t
+   and module Stream = Stream
+   and type stdenv = unit
+   and type Net.tcp_flow = Async_unix.Reader.t * Async_unix.Writer.t
+   and type Net.tls_flow = Async_unix.Reader.t * Async_unix.Writer.t

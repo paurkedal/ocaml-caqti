@@ -171,10 +171,12 @@ module System = struct
 
     let connect_tcp ~sw:_ ~stdenv:() = function
      | Async_unix.Unix.ADDR_INET (addr, port) ->
-        Conduit_async.V3.(connect (Inet (`Inet (addr, port))))
+        Async_unix.Tcp.connect
+          (Tcp.Where_to_connect.of_inet_address (`Inet (addr, port)))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
      | Async_unix.Unix.ADDR_UNIX path ->
-        Conduit_async.V3.(connect (Unix (`Unix path)))
+        Async_unix.Tcp.connect
+          (Tcp.Where_to_connect.of_unix_address (`Unix path))
           >|= fun (_socket, ic, oc) -> Ok (ic, oc)
 
     let tcp_flow_of_socket socket = Some socket
@@ -185,19 +187,7 @@ module System = struct
        and type tcp_flow := tcp_flow
        and type tls_flow := tls_flow
 
-    module Tls_provider = struct
-      type tls_config = Conduit_async.V1.Conduit_async.Ssl.config
-      let tls_config_key =
-        Caqti_connect_config.create_key "conduit_async_ssl" None
-
-      let start_tls ~config ?host:_ (ic, oc) =
-        (* TODO: Add host to config. *)
-        Conduit_async.V1.Conduit_async_ssl.ssl_connect config ic oc
-          >|= fun (ic, oc) -> Ok (ic, oc)
-    end
-
-    let tls_providers : (module TLS_PROVIDER) list ref =
-      ref [(module Tls_provider : TLS_PROVIDER)]
+    let tls_providers : (module TLS_PROVIDER) list ref = ref []
   end
 end
 

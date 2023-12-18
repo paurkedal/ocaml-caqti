@@ -4,6 +4,6 @@
  (libraries
     async_kernel async_unix
     caqti caqti.platform caqti.platform.unix
-    conduit-async core core_unix
+    core core_unix
     domain-name ipaddr
     logs))

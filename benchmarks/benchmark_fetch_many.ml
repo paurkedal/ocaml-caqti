@@ -53,7 +53,7 @@ module type PLATFORM = sig
   type connection = (module CONNECTION)
 
   val connect :
-    context -> Uri.t ->
+    ?config: Caqti_connect_config.t -> context -> Uri.t ->
     (connection, [> Caqti_error.load_or_connect]) result Fiber.t
 end
 
@@ -68,9 +68,10 @@ module Make (P : PLATFORM) = struct
       assert (count = 100_000)
     end
 
-  let test stdenv uris =
+  let test stdenv connect_config uris =
     let allocate i =
-      run_fiber (fun () -> connect stdenv (List.nth uris i) >>= or_fail)
+      run_fiber (fun () ->
+        connect stdenv ~config:connect_config (List.nth uris i) >>= or_fail)
     in
     let free (module C : CONNECTION) =
       run_fiber (fun () -> C.disconnect ())
@@ -80,7 +81,7 @@ module Make (P : PLATFORM) = struct
 
   (* Benchmark Function *)
 
-  let benchmark context uris =
+  let benchmark context connect_config uris =
     let ols =
       Analyze.ols ~bootstrap:0 ~r_square:true ~predictors:Measure.[|run|]
     in
@@ -91,7 +92,9 @@ module Make (P : PLATFORM) = struct
       (* TODO: Why does this segfault with ~kde:(Some 1000)? *)
       Benchmark.cfg ~limit:2000 ~quota:(Time.second 1.0) ()
     in
-    let raw_results = Benchmark.all cfg instances (test context uris) in
+    let raw_results =
+      Benchmark.all cfg instances (test context connect_config uris)
+    in
     let results =
       List.map (fun instance -> Analyze.all ols instance raw_results) instances
     in
@@ -111,14 +114,14 @@ module Make (P : PLATFORM) = struct
 
   open Notty_unix
 
-  let main {Testlib.uris; _} =
+  let main {Testlib.uris; connect_config} =
     run_main @@ fun context ->
     let window =
       match winsize Unix.stdout with
       | Some (w, h) -> {Bechamel_notty.w; h}
       | None -> {Bechamel_notty.w = 80; h = 1}
     in
-    let results, _ = benchmark context uris in
+    let results, _ = benchmark context connect_config uris in
     img (window, results) |> eol |> output_image
 
   let main_cmd =

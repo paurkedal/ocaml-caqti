@@ -29,8 +29,10 @@
  (libraries
     benchmark_fetch_many
     caqti-eio.unix
+    caqti-tls-eio
     eio
-    eio_main))
+    eio_main
+    mirage-crypto-rng-eio))
 
 (executable
  (name main_lwt_unix)
@@ -39,6 +41,7 @@
     benchmark_fetch_many
     caqti-lwt
     caqti-lwt.unix
+    caqti-tls-lwt.unix
     lwt
     lwt.unix))
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,5 +28,5 @@ include Benchmark_fetch_many.Make (struct
   let run_fiber f = f ()
   let run_main f = f ()
   include Caqti_blocking
-  let connect () uri = connect uri
+  let connect ?config () uri = connect ?config uri
 end)

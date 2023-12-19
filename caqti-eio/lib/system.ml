@@ -144,7 +144,10 @@ module Net = struct
       Cstruct.blit_to_bytes (Eio.Buf_read.peek ic) 0 buf i n;
       Eio.Buf_read.consume ic n
 
-    let close {flow; _} = Eio.Flow.shutdown flow `Send
+    let close {flow; oc; _} =
+      Log.debug (fun m -> m "Closing socket.");
+      Eio.Buf_write.close oc;
+      Eio.Flow.shutdown flow `Send
   end
 
   type tcp_flow = Eio.Flow.two_way_ty Eio.Resource.t
@@ -154,22 +157,27 @@ module Net = struct
     Log.debug (fun m -> m "Enabling TLS.");
     assert (Eio.Buf_write.pending_bytes oc = 0);
     assert (Eio.Buf_read.buffered_bytes ic = 0);
+    Eio.Buf_write.close oc;
     Some flow
 
-  let write_batches t flow =
+  let start_writer ~which oc flow =
+    Log.debug (fun m -> m "%s writer started." which);
     try
       while true; do
-        let iovecs = Eio.Buf_write.await_batch t in
+        let iovecs = Eio.Buf_write.await_batch oc in
         let n = Eio.Flow.single_write flow iovecs in
-        Eio.Buf_write.shift t n
+        Eio.Buf_write.shift oc n
       done
-    with End_of_file -> ()
+    with End_of_file ->
+      Log.debug (fun m -> m "%s writer finished." which)
 
-  let socket_of_tls_flow ~sw flow =
+  let socket_of_flow ~which ~sw flow =
     let ic = Eio.Buf_read.of_flow ~max_size:4096 flow in
     let oc = Eio.Buf_write.create 4096 in
-    Eio.Fiber.fork ~sw (fun () -> write_batches oc flow);
+    Eio.Fiber.fork ~sw (fun () -> start_writer ~which oc flow);
     {Socket.flow; ic; oc}
+
+  let socket_of_tls_flow ~sw flow = socket_of_flow ~which:"TLS" ~sw flow
 
   let connect_tcp ~sw ~stdenv sockaddr =
     try
@@ -177,7 +185,7 @@ module Net = struct
         (Eio.Net.connect ~sw stdenv#net sockaddr
           :> Eio.Flow.two_way_ty Eio.Resource.t)
       in
-      Ok (socket_of_tls_flow ~sw flow)
+      Ok (socket_of_flow ~which:"TCP" ~sw flow)
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 

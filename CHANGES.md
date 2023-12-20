@@ -1,14 +1,24 @@
 ## v2.1.0 - unreleased
 
+  - The networking code (for PGX) has been revised to support TLS.  The TLS
+    implemantion is shipped in separate packages (`caqti-tls*`).  The
+    revision also adds buffering for EIO, which significatly improves
+    performarce.
+
+  - Connect functions now accept an optional configuration.  For the time
+    being, this is used for TLS parameters and for the `tweaks_version`
+    setting.
+
   - The newly introduced `Caqti_query.qprintf` and associated formatters
     have been moved to a separate module `Caqti_query_fmt` (#108), to limit
     clashes when used in local open, and since the formatters were nominally
     underqualified.
 
   - Constants of any field type can now be embedded in queries using the new
-    `Caqti_query.V` constructor.  This allows taking advantage of
-    driver-specific encoders, e.g. to correctly convert a `Ptime.Span.t` to
-    the representation expected by the target database system.
+    `Caqti_query.V` constructor and associated shortcuts.  This allows
+    taking advantage of driver-specific encoders, e.g. to correctly convert
+    a `Ptime.Span.t` to the representation expected by the target database
+    system.
 
   - Equality with type unification evidence is now available for
     `Caqti_type.t` and `Caqti_type.Field.t`.  The equality type introduced

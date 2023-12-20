@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** TLS provider for caqti-eio based on the tls library.
+(** TLS support for caqti-async based on the tls-async library.
 
-    This sublibrary has no entry point, but registeres TLS support for
-    [caqti-eio], enabled by passing {!Caqti_tls.Config.client}. *)
+    This library has no public entry points, but registers TLS support for
+    [caqti-async], which can be enabled by setting {!Caqti_tls.Config.client} in
+    the {{!Caqti_connect_config} configuration}. *)

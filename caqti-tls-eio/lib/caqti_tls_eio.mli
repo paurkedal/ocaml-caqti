@@ -15,8 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** TLS provider for caqti-lwt based on the tls-lwt library.
+(** TLS provider for caqti-eio based on the tls library.
 
-    This sublibrary has no entry point, but registers TLS support for
-    [caqti-lwt.unix], which can be enabled by setting {!Caqti_tls.Config.client}
-    in the {{!Caqti_connect_config} configuration}. *)
+    This sublibrary has no entry point, but registeres TLS support for
+    [caqti-eio], which can be enabled by setting {!Caqti_tls.Config.client} in
+    the {{!Caqti_connect_config} configuration}. *)

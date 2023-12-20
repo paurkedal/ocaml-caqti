@@ -17,24 +17,13 @@
 
 (**/**)
 
-include Caqti_platform.System_sig.CORE
+include Caqti_platform.System_sig.S
   with type 'a Fiber.t = 'a Lwt.t
    and type stdenv = unit
    and module Stream = Caqti_lwt.Stream
    and type Switch.t = Caqti_lwt.Switch.t
-
-module Net : sig
-
-  type socket =
-    Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
-
-  include Caqti_platform.System_sig.NET
-    with type 'a fiber := 'a Lwt.t
-     and type switch := Switch.t
-     and type stdenv := stdenv
-     and type tcp_flow = Lwt_unix.file_descr
-     and type tls_flow = socket
-end
+   and type Net.tcp_flow = Lwt_unix.file_descr
+   and type Net.tls_flow = Lwt_io.input_channel * Lwt_io.output_channel
 
 module Alarm : Caqti_platform.Pool.ALARM
   with type switch := Switch.t

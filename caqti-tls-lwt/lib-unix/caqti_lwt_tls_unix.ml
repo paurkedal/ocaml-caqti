@@ -24,8 +24,7 @@ module TLS_provider = struct
 
   let start_tls ~config ?host fd =
     let+ session = Tls_lwt.Unix.client_of_fd config ?host fd in
-    let ic, oc = Tls_lwt.of_t session in
-    Ok (fd, ic, oc)
+    Ok (Tls_lwt.of_t session)
 end
 
 let () =

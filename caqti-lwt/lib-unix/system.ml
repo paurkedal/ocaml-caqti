@@ -46,12 +46,9 @@ module Pool = Caqti_platform.Pool.Make (System_core) (Alarm)
 
 module Net = struct
 
-  type socket =
-    Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
-
   module type SOCKET_OPS = Caqti_platform.System_sig.SOCKET_OPS
     with type 'a fiber := 'a Lwt.t
-     and type t = socket
+     and type t = Lwt_io.input_channel * Lwt_io.output_channel
 
   module Sockaddr = struct
     type t = Unix.sockaddr
@@ -74,20 +71,25 @@ module Net = struct
             (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
        | exn -> Lwt.fail exn)
 
-  module Socket = struct
-    type t = Lwt_unix.file_descr * Lwt_io.input_channel * Lwt_io.output_channel
+  type socket = {
+    fd: Lwt_unix.file_descr option;
+    ic: Lwt_io.input_channel;
+    oc: Lwt_io.output_channel;
+  }
 
-    let output_char (_, _, oc) data = Lwt_io.write_char oc data
-    let output_string (_, _, oc) data = Lwt_io.write oc data
-    let flush (_, _, oc) = Lwt_io.flush oc
-    let input_char (_, ic, _) = Lwt_io.read_char ic
-    let really_input (_, ic, _) data offset length =
+  module Socket = struct
+    type t = socket
+    let output_char {oc; _} data = Lwt_io.write_char oc data
+    let output_string {oc; _} data = Lwt_io.write oc data
+    let flush {oc; _} = Lwt_io.flush oc
+    let input_char {ic; _} = Lwt_io.read_char ic
+    let really_input {ic; _} data offset length =
       Lwt_io.read_into_exactly ic data offset length
-    let close (_, _, oc) = Lwt_io.close oc (* CHECKME *)
+    let close {oc; _} = Lwt_io.close oc (* CHECKME *)
   end
 
   type tcp_flow = Lwt_unix.file_descr
-  type tls_flow = Socket.t
+  type tls_flow = Lwt_io.input_channel * Lwt_io.output_channel
 
   let connect_tcp ~sw:_ ~stdenv:() sockaddr =
     let domain = Unix.domain_of_sockaddr sockaddr in
@@ -98,7 +100,7 @@ module Net = struct
         Lwt_unix.connect fd sockaddr >|= fun () ->
         let ic = Lwt_io.(of_fd ~mode:input) fd in
         let oc = Lwt_io.(of_fd ~mode:output) fd in
-        Ok (fd, ic, oc))
+        Ok {fd = Some fd; ic; oc})
       (function
        | Unix.Unix_error (err, fn, _) ->
           Lwt_unix.close fd >|= fun () ->
@@ -107,9 +109,9 @@ module Net = struct
           Lwt_unix.close fd >>= fun () ->
           Lwt.fail exn)
 
-  let tcp_flow_of_socket (fd, _, _) = Some fd
+  let tcp_flow_of_socket {fd; _} = fd
 
-  let socket_of_tls_flow ~sw:_ = Fun.id
+  let socket_of_tls_flow ~sw:_ (ic, oc) = {fd = None; ic; oc}
 
   module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
     with type 'a fiber := 'a Lwt.t

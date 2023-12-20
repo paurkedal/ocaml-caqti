@@ -6,7 +6,7 @@ jobs:
         - deploy-doc
         - gh-pages
     docker:
-      - image: ocaml/opam:debian-ocaml-5.0
+      - image: ocaml/opam:debian-ocaml-5.1
         environment:
           TERM: xterm
       - image: cimg/postgres:14.1

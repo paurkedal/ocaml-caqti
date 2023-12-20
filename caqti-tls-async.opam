@@ -17,7 +17,7 @@ depends: [
   "tls-async"
   "ppx_jane"
   "alcotest" {with-test & >= "1.5.0"}
-  "alcotest-async" {with-test & >= "1.5.0"}
+  "alcotest-async" {with-test}
   "cmdliner" {with-test & >= "1.1.0"}
   "caqti-dynload" {with-test}
   "caqti-driver-sqlite3" {with-test}

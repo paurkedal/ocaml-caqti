@@ -35,7 +35,7 @@ module type S = sig
   (** A pool implementation for the current concurrency library. *)
 
   type connection
-  (** Shortcut for the connection API passed as a value. *)
+  (** Shortcut for the connection module when passed as a value. *)
 
   val connect :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -47,21 +47,27 @@ module type S = sig
       [uri] to the driver, which establish a connection and returns a
       first-class module implementing {!Caqti_connection_sig.S}.
 
-      If you use preemptive threading, note that the connection must only be
-      used from the thread where it was created.
+      [connect uri] connects to the database at [uri] and returns a first class
+      module implementing {!Caqti_connection_sig.S} for the given database
+      system.  In case of preemptive threading, the connection must only be used
+      from the thread where it was created.
 
-      See {{!tweaks} Database Tweaks} for details about the [tweaks_version]
-      parameter.
-
-      @param tweaks_version
-        Declares compatibility with database tweaks introduced up to the given
-        version of Caqti.  Defaults to a conservative value.  See the above
-        reference for more info (not linked here due to odoc issue).
+      The correct driver for the database system is inferred from the schema of
+      [uri]; see the respective drivers for the supported schemas and related
+      URI syntax.  A driver can either be linked in to the application or, if
+      supported, dynamically linked using the [caqti-dynload] package.
 
       @param env
         If provided, this function will do a final expansion of environment
         variables which occurs in the query templates of the requests executed
-        on the connection. *)
+        on the connection.
+
+      @param config
+        Configuration parameters related to the interaction with the database.
+
+      @param tweaks_version
+        @deprecated This should now be passed via the [config] parameter using
+        the {!Caqti_connect_config.tweaks_version} key. *)
 
   val with_connection :
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
@@ -77,8 +83,11 @@ module type S = sig
       [f] either evaluates to a [result], or raises an exception,
       [with_connection] closes the database connection.
 
-      @param tweaks_version Passed to {!connect}.
-      @param env Passed to {!connect}. *)
+      @param env Passed to {!connect}.
+      @param config Passed to {!connect}.
+      @param tweaks_version
+        @deprecated This should now be passed via the [config] parameter using
+        the {!Caqti_connect_config.tweaks_version} key. *)
 
   val connect_pool :
     ?pool_config: Caqti_pool_config.t ->
@@ -105,9 +114,18 @@ module type S = sig
         Provides tuning parameters for the pool.  The default is the result of a
         fresh call of {!Caqti_pool_config.default_from_env}.
 
-      @param tweaks_version
+      @param post_connect
+        A task to run after establishing a new connection and before the
+        connection becomes available to the application.  This function can be
+        used to customize to the database session.
+
+      @param config
         Passed to {!connect} when creating new connections.
 
       @param env
-        Passed to {!connect} when creating new connections. *)
+        Passed to {!connect} when creating new connections.
+
+      @param tweaks_version
+        @deprecated This should now be passed via the [config] parameter using
+        the {!Caqti_connect_config.tweaks_version} key. *)
 end

@@ -59,22 +59,46 @@ module type Std = sig
   val t5 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
-  (** Creates a 5-tuple type. This is implemented in terms of lower tuples. *)
+  (** Creates a 5-tuple type. *)
 
   val t6 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
-  (** Creates a 6-tuple type. This is implemented in terms of lower tuples. *)
+  (** Creates a 6-tuple type. *)
 
   val t7 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
-  (** Creates a 7-tuple type. This is implemented in terms of lower tuples. *)
+  (** Creates a 7-tuple type. *)
 
   val t8 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
-  (** Creates a 8-tuple type. This is implemented in terms of lower tuples. *)
+  (** Creates a 8-tuple type. *)
+
+  val t9 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t
+  (** Creates a 9-tuple type. *)
+
+  val t10 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t
+  (** Creates a 10-tuple type. *)
+
+  val t11 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t -> 'a11 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t
+  (** Creates a 11-tuple type. *)
+
+  val t12 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
+  (** Creates a 12-tuple type. *)
 
   val product : 'i -> ('a, 'i) product -> 'a t
   val proj : 'b t -> ('a -> 'b) -> ('a, 'i) product -> ('a, 'b -> 'i) product

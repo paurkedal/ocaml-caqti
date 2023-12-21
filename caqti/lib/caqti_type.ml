@@ -314,6 +314,76 @@ module Std = struct
       @@ proj t8 (fun (_, _, _, _, _, _, _, x) -> x)
       @@ proj_end
 
+  let t9 t1 t2 t3 t4 t5 t6 t7 t8 t9 =
+    let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 =
+      (x1, x2, x3, x4, x5, x6, x7, x8, x9)
+    in
+    product intro
+      @@ proj t1 (fun (x, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t2 (fun (_, x, _, _, _, _, _, _, _) -> x)
+      @@ proj t3 (fun (_, _, x, _, _, _, _, _, _) -> x)
+      @@ proj t4 (fun (_, _, _, x, _, _, _, _, _) -> x)
+      @@ proj t5 (fun (_, _, _, _, x, _, _, _, _) -> x)
+      @@ proj t6 (fun (_, _, _, _, _, x, _, _, _) -> x)
+      @@ proj t7 (fun (_, _, _, _, _, _, x, _, _) -> x)
+      @@ proj t8 (fun (_, _, _, _, _, _, _, x, _) -> x)
+      @@ proj t9 (fun (_, _, _, _, _, _, _, _, x) -> x)
+      @@ proj_end
+
+  let t10 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 =
+    let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 =
+      (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+    in
+    product intro
+      @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _) -> x)
+      @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _) -> x)
+      @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _) -> x)
+      @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _) -> x)
+      @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _) -> x)
+      @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _) -> x)
+      @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _) -> x)
+      @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x) -> x)
+      @@ proj_end
+
+  let t11 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 =
+    let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 =
+      (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11)
+    in
+    product intro
+      @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _, _) -> x)
+      @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _, _) -> x)
+      @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _, _) -> x)
+      @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _, _) -> x)
+      @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _, _) -> x)
+      @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _, _) -> x)
+      @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x, _) -> x)
+      @@ proj t11 (fun (_, _, _, _, _, _, _, _, _, _, x) -> x)
+      @@ proj_end
+
+  let t12 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 =
+    let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 =
+      (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12)
+    in
+    product intro
+      @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _, _, _) -> x)
+      @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _, _, _) -> x)
+      @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _, _, _) -> x)
+      @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _, _, _) -> x)
+      @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _, _, _) -> x)
+      @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _, _, _) -> x)
+      @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x, _, _) -> x)
+      @@ proj t11 (fun (_, _, _, _, _, _, _, _, _, _, x, _) -> x)
+      @@ proj t12 (fun (_, _, _, _, _, _, _, _, _, _, _, x) -> x)
+      @@ proj_end
+
   let custom ~encode ~decode rep =
     let encode' x =
       (match encode x with

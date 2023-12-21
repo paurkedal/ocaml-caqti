@@ -1,13 +1,13 @@
 ## v2.1.0 - unreleased
 
-  - The networking code (for PGX) has been revised to support TLS.  The TLS
-    implemantion is shipped in separate packages (`caqti-tls*`).  The
-    revision also adds buffering for EIO, which significatly improves
-    performarce.
+  - The networking code (for PGX) has been revised in order to support TLS,
+    and adds buffering for EIO, which significatly improves performarce.
+    TLS implemantions are shipped as separate packages (`caqti-tls*`).
 
   - Connect functions now accept an optional configuration.  For the time
-    being, this is used for TLS parameters and for the `tweaks_version`
-    setting.
+    being, this is used for TLS parameters and for the optional
+    `tweaks_version` argument, which is still available for backwards
+    compatibility.
 
   - The newly introduced `Caqti_query.qprintf` and associated formatters
     have been moved to a separate module `Caqti_query_fmt` (#108), to limit
@@ -26,7 +26,9 @@
     not be aliased yet.  This required a backwards incompatible adjustment
     of the `Caqti_type.Product` constructor.
 
-  - Some updates to external dependencies, esp. we are now at EIO 0.12.
+  - Added tuples type constructors with arity to 12.
+
+  - Some updates to external dependencies, esp. we are now at EIO 0.12+.
 
 ## v2.0.1 - 2023-08-14
 

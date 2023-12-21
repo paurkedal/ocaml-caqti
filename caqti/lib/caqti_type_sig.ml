@@ -21,102 +21,12 @@
 module type Std = sig
 
   type 'a t
-  type ('a, 'i) product
 
-  (** {3 Composite}
 
-      The following provides constructors for narrow tuple types; to describe
-      wider tuple types, use nested application. *)
+  (** {3 Field Types}
 
-  val option : 'a t -> 'a option t
-  (** [option t] turns a set of fields encoded as [t] into a correspending set
-      of nullable fields.  The encoder will encode [None] as into a tuple of
-      [NULL] values and the decoder will return [None] if all fields are [NULL].
-
-      If the type [t] itself is [option t'] for some [t'], or contains nested
-      tuples and options such that all field types are nested under an option
-      type, then it would have been possible to decode an all-[NULL] segment of
-      a row as [Some x] where [x] is a corresponding tuple-option-tree
-      terminating in [None] values.  The above paragraph resolves this ambiguity
-      since it implies that the outermost option possible will be decoded as
-      [None]. *)
-
-  val unit : unit t
-  (** A type holding no fields. This is used to pass no parameters and as the
-      result for queries which does not return any rows. It can also be nested
-      in tuples, in which case it will not contribute to the total number of
-      fields. *)
-
-  val t2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
-  (** Creates a pair type. *)
-
-  val t3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
-  (** Creates a 3-tuple type. *)
-
-  val t4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
-  (** Creates a 4-tuple type. *)
-
-  val t5 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
-  (** Creates a 5-tuple type. *)
-
-  val t6 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
-  (** Creates a 6-tuple type. *)
-
-  val t7 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
-  (** Creates a 7-tuple type. *)
-
-  val t8 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
-  (** Creates a 8-tuple type. *)
-
-  val t9 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
-    'a9 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t
-  (** Creates a 9-tuple type. *)
-
-  val t10 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
-    'a9 t -> 'a10 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t
-  (** Creates a 10-tuple type. *)
-
-  val t11 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
-    'a9 t -> 'a10 t -> 'a11 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t
-  (** Creates a 11-tuple type. *)
-
-  val t12 :
-    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
-    'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
-    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
-  (** Creates a 12-tuple type. *)
-
-  val product : 'i -> ('a, 'i) product -> 'a t
-  val proj : 'b t -> ('a -> 'b) -> ('a, 'i) product -> ('a, 'b -> 'i) product
-  val proj_end : ('a, 'a) product
-
-  val custom :
-    encode: ('a -> ('b, string) result) ->
-    decode: ('b -> ('a, string) result) ->
-    'b t -> 'a t
-  (** [custom ~encode ~decode rep] creates a custom type represented by [rep],
-      where [encode] is used to encode parameters into [rep] and [decode] is
-      used to decode result rows from [rep]. *)
-
-  val redacted : 'a t -> 'a t
-  (** [redacted t] is the same type as [t] but sealed as potentially containing
-      sensitive information to be redacted from pretty-printers and logs. *)
-
-  (** {3 Singular} *)
+      The following types correspond to what usually fits in a single field of a
+      result row or input parameter set. *)
 
   val bool : bool t
   (** A [bool] mapped to [boolean] on the SQL side if supported, otherwise
@@ -203,6 +113,134 @@ module type Std = sig
       named [name], with cases which are converted with [encode] and [decode]
       functions. This is implemented in terms of the {!Caqti_type.Field.Enum}
       field type. *)
+
+
+  (** {3 Composite Types} *)
+
+  type ('a, 'i) product
+  val product : 'i -> ('a, 'i) product -> 'a t
+  val proj : 'b t -> ('a -> 'b) -> ('a, 'i) product -> ('a, 'b -> 'i) product
+  val proj_end : ('a, 'a) product
+  (** Given a set of projection functions [p1 : t -> t1], ..., [pN : t -> tN]
+      and a function [intro : t1 -> ... -> tN -> t] to reconstruct values of [t]
+      from the projections,
+      {[
+        product intro
+          @@ proj t1 p1
+          @@ ...
+          @@ proj tN pN
+          @@ proj_end
+      ]}
+      defines a Caqti type for [t], which on the database side will be
+      represented by a consecutive list of fields corresponding to the types
+      [t1], ..., [tN], each of which may be represented by multiple fields.
+      That is, [intro [project1 x] ...  [projectN x]] is equivalent to [x]
+      according to an enforced or effective abstraction of [t] deemed adequate
+      for the application logic.
+
+      [intro] may raise {!Caqti_type.Reject} to indicate that a value cannot be
+      constructed from the given arguments.
+      Projection operators may also raise this exception to indicate that an
+      object cannot be represented in the database, e.g. due to an overflow.
+
+      The above only states that [intro] is a left (pseudo-)inverse of the
+      projections, which is what matters for a faithful representation of OCaml
+      values.
+      The opposite (projection functions being the left inverse of [intro]) may
+      be relevant if the application needs preserve the database representation
+      when updating objects. *)
+
+  val custom :
+    encode: ('a -> ('b, string) result) ->
+    decode: ('b -> ('a, string) result) ->
+    'b t -> 'a t
+  (** [custom ~encode ~decode rep] creates a custom type represented by [rep],
+      where [encode] is used to encode parameters into [rep] and [decode] is
+      used to decode result rows from [rep]. *)
+
+  val option : 'a t -> 'a option t
+  (** [option t] turns a set of fields encoded as [t] into a correspending set
+      of nullable fields.  The encoder will encode [None] as into a tuple of
+      [NULL] values and the decoder will return [None] if all fields are [NULL].
+
+      If the type [t] itself is [option t'] for some [t'], or contains nested
+      tuples and options such that all field types are nested under an option
+      type, then it would have been possible to decode an all-[NULL] segment of
+      a row as [Some x] where [x] is a corresponding tuple-option-tree
+      terminating in [None] values.  The above paragraph resolves this ambiguity
+      since it implies that the outermost option possible will be decoded as
+      [None]. *)
+
+  val redacted : 'a t -> 'a t
+  (** [redacted t] is the same type as [t] but sealed as potentially containing
+      sensitive information to be redacted from pretty-printers and logs. *)
+
+
+  (** {3 Tuple Types}
+
+      As a common case of composite types, constructors for tuples up to 12
+      components are predefined here.  Higher tuples can be created with
+      {!val-product}. *)
+
+  val unit : unit t
+  (** A type holding no fields. This is used to pass no parameters and as the
+      result for queries which does not return any rows. It can also be nested
+      in tuples, in which case it will not contribute to the total number of
+      fields. *)
+
+  val t2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
+  (** Creates a pair type. *)
+
+  val t3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
+  (** Creates a 3-tuple type. *)
+
+  val t4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
+  (** Creates a 4-tuple type. *)
+
+  val t5 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
+  (** Creates a 5-tuple type. *)
+
+  val t6 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
+  (** Creates a 6-tuple type. *)
+
+  val t7 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
+  (** Creates a 7-tuple type. *)
+
+  val t8 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
+  (** Creates a 8-tuple type. *)
+
+  val t9 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t
+  (** Creates a 9-tuple type. *)
+
+  val t10 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t
+  (** Creates a 10-tuple type. *)
+
+  val t11 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t -> 'a11 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t
+  (** Creates a 11-tuple type. *)
+
+  val t12 :
+    'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
+    'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
+  (** Creates a 12-tuple type. *)
+
 
   (**/**)
   val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t

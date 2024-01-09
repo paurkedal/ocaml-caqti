@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,7 @@
 
 open Bechamel
 open Bechamel.Toolkit
+open Common
 
 let connect_uri = Uri.of_string "postgresql://"
 
@@ -30,36 +31,9 @@ let fetch_many_request =
     FROM tmp a, tmp b, tmp c, tmp d, tmp e
   |}
 
-module type PLATFORM = sig
-  type context
-  module Fiber : sig
-    type +'a t
-    module Infix : sig
-      val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
-      val (>|=) : 'a t -> ('a -> 'b) -> 'b t
-    end
-  end
-  val name : string
-  val run_fiber : (unit -> 'a Fiber.t) -> 'a
-  val run_main : (context -> 'a) -> 'a
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a Fiber.t
-
-  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
-
-  module type CONNECTION = Caqti_connection_sig.S
-    with type 'a fiber := 'a Fiber.t
-     and type ('a, 'err) stream := ('a, 'err) Stream.t
-
-  type connection = (module CONNECTION)
-
-  val connect :
-    ?config: Caqti_connect_config.t -> context -> Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result Fiber.t
-end
-
-module Make (P : PLATFORM) = struct
-  open P
-  open P.Fiber.Infix
+module Make (Platform : PLATFORM) = struct
+  open Platform
+  open Platform.Fiber.Infix
 
   let test' _ = Staged.stage @@ fun (module C : CONNECTION) ->
     run_fiber begin fun () ->
@@ -127,7 +101,5 @@ module Make (P : PLATFORM) = struct
   let main_cmd =
     let open Cmdliner in
     let term = Term.(const main $ Testlib.common_args) in
-    Cmd.v (Cmd.info "benchmark_retrieve") term
-
-  let () = exit (Cmdliner.Cmd.eval main_cmd)
+    Cmd.v (Cmd.info "fetch-many") term
 end

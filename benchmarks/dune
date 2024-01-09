@@ -1,11 +1,18 @@
+; Singular benchmark
+
 (executable
  (name benchmark_stream)
  (modules benchmark_stream)
  (libraries benchmark caqti caqti.platform lwt lwt.unix))
 
+; Main benchmark suite with executables for concurrency flavours
+
 (library
- (name benchmark_fetch_many)
- (modules benchmark_fetch_many)
+ (name benchmark_all)
+ (modules
+    common
+    benchmark_fetch_many
+    benchmark_all)
  (libraries
     bechamel
     bechamel-notty
@@ -18,7 +25,7 @@
  (name main_blocking)
  (modules main_blocking)
  (libraries
-    benchmark_fetch_many
+    benchmark_all
     caqti.blocking
     unix))
 
@@ -27,7 +34,7 @@
  (modules main_eio_unix)
  (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries
-    benchmark_fetch_many
+    benchmark_all
     caqti-eio.unix
     caqti-tls-eio
     eio
@@ -38,7 +45,7 @@
  (name main_lwt_unix)
  (modules main_lwt_unix)
  (libraries
-    benchmark_fetch_many
+    benchmark_all
     caqti-lwt
     caqti-lwt.unix
     caqti-tls-lwt.unix

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,13 +15,14 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-include Benchmark_all.Make (struct
-  let name = "lwt-unix"
-  module Fiber = Lwt
-  type context = unit
-  let run_fiber f = Lwt_main.run (f ())
-  let run_main f = f ()
-  include Caqti_lwt
-  include Caqti_lwt_unix
-  let connect ?config () uri = connect ?config uri
-end)
+open Common
+
+module Make (Platform : PLATFORM) = struct
+  module Fetch_many = Benchmark_fetch_many.Make (Platform)
+
+  let cmds = [
+    Fetch_many.main_cmd;
+  ]
+
+  let () = exit Cmdliner.Cmd.(eval @@ group (info "main_blocking") cmds)
+end

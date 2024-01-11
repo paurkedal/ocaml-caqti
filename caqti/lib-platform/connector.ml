@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,14 +35,7 @@ let retry_with_library load_driver ~uri scheme =
       let driver_name = scheme_driver_name scheme in
       (match load_library driver_name with
        | Ok () ->
-          (match load_driver ~uri scheme with
-           | Error (`Load_failed _) ->
-              let msg = Printf.sprintf
-                "The %s did not register a handler for the URI scheme %s."
-                driver_name scheme
-              in
-              Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
-           | r -> r)
+          load_driver ~uri scheme
        | Error msg ->
           Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
    | r -> r)

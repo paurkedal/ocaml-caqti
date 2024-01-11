@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -59,7 +59,10 @@ type stdenv = <
   mono_clock : Eio.Time.Mono.ty Eio.Std.r;
 >
 
-module Switch = Eio.Switch
+module Switch = struct
+  include Eio.Switch
+  let run f = run f (* avoids compatibilty issues due to optional arguments *)
+end
 
 (* TODO: Log error. *)
 let async = Eio.Fiber.fork

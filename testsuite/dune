@@ -10,7 +10,13 @@
 (library
   (name testsuite)
   (wrapped false)
-  (modules test_error_cause test_failure test_parallel test_param test_sql)
+  (modules
+    test_connect
+    test_error_cause
+    test_failure
+    test_parallel
+    test_param
+    test_sql)
   (libraries caqti caqti.platform ptime.clock.os testlib))
 
 ; Instantiations of the testsuite.

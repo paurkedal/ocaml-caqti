@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,8 +38,10 @@ module System : Caqti_platform.System_sig.S
    and type Switch.t = Eio.Switch.t
    and type stdenv = stdenv
    and module Stream = Stream
-   and type Net.tcp_flow = Eio.Flow.two_way_ty Eio.Resource.t
-   and type Net.tls_flow = Eio.Flow.two_way_ty Eio.Resource.t
+   and type Net.tcp_flow =
+    [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
+   and type Net.tls_flow =
+    [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
 (**/**)
 
 module Pool : sig

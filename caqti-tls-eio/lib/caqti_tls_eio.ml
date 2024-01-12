@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,9 +21,23 @@ module TLS_provider = struct
   type tls_config = Tls.Config.client
   let tls_config_key = Caqti_tls.Config.client
 
-  let start_tls ~config ?host flow =
-    let tls_flow = Tls_eio.client_of_flow config ?host flow in
-    Ok (tls_flow :> System.Net.tls_flow)
+  let start_tls ~config ?host tcp_flow =
+    (* As of tls-eio.0.17.3, Eio_tls.t does not provide the Close provider
+     * interface, and Shutdown does not close the underlying TCP connection, so
+     * we inject it into the handler.  Also, the tcp_flow is smuggled into the
+     * implementation to avoid slowing down operations with a layer of wrapper
+     * functions to unpack a (tls_flow, tcp_flow)-pair. *)
+    let Eio.Resource.T (tls_flow, handler) = Tls_eio.client_of_flow config ?host tcp_flow in
+    let source = Eio.Resource.get handler Eio.Flow.Pi.Source in
+    let sink = Eio.Resource.get handler Eio.Flow.Pi.Sink in
+    let shutdown = Eio.Resource.get handler Eio.Flow.Pi.Shutdown in
+    let handler = Eio.Resource.handler [
+      H (Eio.Flow.Pi.Source, source);
+      H (Eio.Flow.Pi.Sink, sink);
+      H (Eio.Flow.Pi.Shutdown, shutdown);
+      H (Eio.Resource.Close, (fun _ -> Eio.Flow.close tcp_flow));
+    ] in
+    Ok (Eio.Resource.T (tls_flow, handler))
 end
 
 let () =

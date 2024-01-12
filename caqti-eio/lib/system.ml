@@ -127,7 +127,7 @@ module Net = struct
 
   module Socket = struct
     type t = {
-      flow: Eio.Flow.two_way_ty Eio.Resource.t;
+      flow: [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t;
       ic: Eio.Buf_read.t;
       oc: Eio.Buf_write.t;
     }
@@ -147,14 +147,14 @@ module Net = struct
       Cstruct.blit_to_bytes (Eio.Buf_read.peek ic) 0 buf i n;
       Eio.Buf_read.consume ic n
 
-    let close {flow; oc; _} =
+    let close {flow; _} =
       Log.debug (fun m -> m "Closing socket.");
-      Eio.Buf_write.close oc;
-      Eio.Flow.shutdown flow `Send
+      Eio.Flow.shutdown flow `Send;
+      Eio.Flow.close flow
   end
 
-  type tcp_flow = Eio.Flow.two_way_ty Eio.Resource.t
-  type tls_flow = Eio.Flow.two_way_ty Eio.Resource.t
+  type tcp_flow = [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
+  type tls_flow = [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
 
   let tcp_flow_of_socket {Socket.flow; ic; oc} =
     Log.debug (fun m -> m "Enabling TLS.");
@@ -186,7 +186,7 @@ module Net = struct
     try
       let flow =
         (Eio.Net.connect ~sw stdenv#net sockaddr
-          :> Eio.Flow.two_way_ty Eio.Resource.t)
+          :> [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t)
       in
       Ok (socket_of_flow ~which:"TCP" ~sw flow)
     with Eio.Exn.Io _ as exn ->

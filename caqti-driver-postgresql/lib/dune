@@ -1,7 +1,9 @@
-(rule (copy# ../../shared/postgresql_conv.ml postgresql_conv.ml))
+(rule
+ (copy# ../../shared/postgresql_conv.ml postgresql_conv.ml))
 
 (library
  (name caqti_driver_postgresql)
  (public_name caqti-driver-postgresql)
- (library_flags (:standard -linkall))
- (libraries caqti caqti.platform caqti.platform.unix postgresql))
+ (library_flags
+  (:standard -linkall))
+ (libraries angstrom caqti caqti.platform caqti.platform.unix postgresql))

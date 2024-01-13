@@ -53,7 +53,8 @@ let driver_info =
     ~can_transact:true
     ()
 
-let pg_type_name : type a. a Caqti_type.Field.t -> string = function
+let rec pg_type_name : type a. a Caqti_type.Field.t -> string = function
+ | Array t -> pg_type_name t ^ "[]"
  | Bool -> "bool"
  | Int -> "int8"
  | Int16 -> "int2"
@@ -67,10 +68,11 @@ let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Ptime_span -> "interval"
  | Enum name -> name
 
-let encode_field
+let rec encode_field
     : type a. a Caqti_type.Field.t -> a -> Pgx.Value.t
     = fun field_type x ->
   (match field_type with
+   | Array t -> Pgx.Value.of_list @@ List.map (encode_field t) x
    | Bool -> Pgx.Value.of_bool x
    | Int -> Pgx.Value.of_int x
    | Int16 -> Pgx.Value.of_int x
@@ -117,7 +119,7 @@ let encode_param ~uri t param =
   with Caqti_error.Exn (#Caqti_error.call as err) ->
     Error err
 
-let decode_field
+let rec decode_field
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> a
     = fun ~uri field_type v ->
   let wrap_conv_exn f s =
@@ -137,6 +139,9 @@ let decode_field
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
+   | Array t ->
+      wrap_conv_exn Pgx.Value.to_list_exn v
+      |> List.map (wrap_conv_exn (decode_field ~uri t))
    | Bool -> wrap_conv_exn Pgx.Value.to_bool_exn v
    | Int -> wrap_conv_exn Pgx.Value.to_int_exn v
    | Int16 -> wrap_conv_exn Pgx.Value.to_int_exn v

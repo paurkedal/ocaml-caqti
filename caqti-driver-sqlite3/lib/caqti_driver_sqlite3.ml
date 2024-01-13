@@ -81,6 +81,7 @@ let no_env _ _ = raise Not_found
 let data_of_value : type a. a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
   fun field_type x ->
   (match field_type with
+   | Array _ -> failwith "arrays not supported by sqlite"
    | Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
    | Int    -> Sqlite3.Data.INT (Int64.of_int x)
    | Int16  -> Sqlite3.Data.INT (Int64.of_int x)
@@ -122,6 +123,7 @@ let value_of_data
     Request_utils.raise_decode_rejected ~uri ~typ (Caqti_error.Msg msg)
   in
   (match field_type, data with
+   | Array _, _ -> cannot_convert_to "array"
    | Bool, Sqlite3.Data.INT y -> y <> 0L
    | Bool, _ -> cannot_convert_to "bool"
    | Int, Sqlite3.Data.INT y -> Int64.to_int y

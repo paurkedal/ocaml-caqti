@@ -32,6 +32,7 @@ type (_, _) eq = Equal : ('a, 'a) eq
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
   type 'a t =
+    | Array : 't t -> 't list t
     | Bool : bool t
     | Int : int t
     | Int16 : int t

@@ -116,11 +116,13 @@ module Pg_ext = struct
 
   (* Turns a constant into [(must_quote, encode)].  Note the slight difference
    * from encoded parameters like booleans and quoting. *)
-  let query_string_of_value
+  let rec query_string_of_value
     : type a. Pg.connection -> a Caqti_type.Field.t -> bool * (a -> string) =
     fun db ->
     let escape_string s = db#escape_string s in
     (function
+     | Array t ->
+        (true, fun x -> "{" ^ String.concat "," (List.map (snd (query_string_of_value db t)) x) ^ "}")
      | Bool -> (false, string_of_bool)
      | Int -> (false, string_of_int)
      | Int16 -> (false, string_of_int)
@@ -206,6 +208,7 @@ let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 
 let init_param_types ~type_oid_cache =
   let oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
+   | Array _ -> Ok unknown_oid
    | Bool -> Ok bool_oid
    | Int -> Ok int8_oid
    | Int16 -> Ok int2_oid
@@ -251,9 +254,11 @@ end
 module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
-  let encode_field : type a. a Caqti_type.Field.t -> a -> string =
+  let rec encode_field : type a. a Caqti_type.Field.t -> a -> string =
     fun field_type x ->
     (match field_type with
+     | Array t ->
+        "{" ^ String.concat "," (List.map (encode_field t) x) ^ "}"
      | Bool -> Pg_ext.pgstring_of_bool x
      | Int -> string_of_int x
      | Int16 -> string_of_int x
@@ -285,7 +290,17 @@ module Param_encoder = Make_encoder (struct
   let encode_octets s = s
 end)
 
-let decode_field
+let array_parser decode_field =
+  let open Angstrom in
+  let field =
+    choice [
+        char '"' *> take_while (fun c -> not (Char.equal c '"'))  <* char '"';
+        take_while (fun c -> not (Char.equal c ',' || Char.equal c '}'))
+      ] >>| decode_field
+  in
+  char '{' *> sep_by (char ',') field <* char '}'
+
+let rec decode_field
     : type a. uri: Uri.t -> a Caqti_type.Field.t -> string -> a =
   fun ~uri field_type s ->
   let wrap_conv_exn f s =
@@ -304,6 +319,9 @@ let decode_field
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
+   | Array t ->
+      wrap_conv_res
+        (Angstrom.parse_string ~consume:All (array_parser (decode_field ~uri t))) s
    | Bool -> wrap_conv_exn Pg_ext.bool_of_pgstring s
    | Int -> wrap_conv_exn int_of_string s
    | Int16 -> wrap_conv_exn int_of_string s

@@ -157,6 +157,22 @@ module Q = struct
   let select_from_tmp_binary = unit -->* octets @:-
     "SELECT data FROM test_sql"
 
+  let create_tmp_array = unit -->. unit @@:- function
+   | `Pgsql ->
+      "CREATE TEMPORARY TABLE test_sql_array \
+        (id SERIAL NOT NULL, names TEXT[] NOT NULL)"
+   | _ -> failwith "Unimplemented"
+  let drop_tmp_array = unit -->. unit @@:- function
+   | _ -> "DROP TABLE test_sql_array"
+  let insert_into_tmp_array =
+    t2 int (Caqti_type.field (Array String)) -->. unit @:-
+    "INSERT INTO test_sql_array (id, names) VALUES (?, ?)"
+  let select_from_tmp_array = unit -->* t2 int (Caqti_type.field (Array String)) @:-
+    "SELECT id, names FROM test_sql_array ORDER BY id ASC"
+  let select_from_tmp_array_where_id_in =
+    Caqti_type.field (Array Int) -->* t2 int (Caqti_type.field (Array String)) @:-
+      "SELECT id, names FROM test_sql_array WHERE id = ANY (?)"
+
   let select_current_time = unit -->! ptime @:-
     "SELECT current_timestamp"
   let select_given_time = ptime -->! ptime @@:- function
@@ -393,7 +409,6 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     end >>= or_fail
 
   let test_table (module Db : CONNECTION) =
-
     (* Create, insert, select *)
     Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
     begin
@@ -423,6 +438,32 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     assert (s_acc = "zero+two+three+five");
     assert (o_acc = "zero+two\x00+three'\"+five\x05");
     Db.exec Q.drop_tmp () >>= or_fail
+
+  let test_arrays (module Db : CONNECTION) = (
+    match Db.driver_info |> Caqti_driver_info.dialect_tag with
+    | `Pgsql -> ()
+    | _ -> Alcotest.skip ());
+    Db.exec Q.create_tmp_array () >>= or_fail >>= fun () ->
+    Db.start () >>= or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp_array (1, ["one";"un";"ein"])
+    >>= or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp_array (2, ["two";"deux";"zwei"])
+    >>= or_fail >>= fun () ->
+    Db.exec Q.insert_into_tmp_array (3, ["three";"trois";"drei"])
+    >>= or_fail >>= fun () ->
+    Db.commit () >>= or_fail >>= fun () ->
+    Db.collect_list Q.select_from_tmp_array ()
+    >>= or_fail >>= fun rows ->
+    Alcotest.(check (list (pair int (list string)))) "returned rows"
+      [(1,["one";"un";"ein"]);(2,["two";"deux";"zwei"]);(3,["three";"trois";"drei"])]
+      rows;
+    Db.collect_list Q.select_from_tmp_array_where_id_in
+      [0; 1; 2]
+    >>= or_fail >>= fun rows ->
+    Alcotest.(check (list (pair int (list string)))) "returned rows"
+      [(1,["one";"un";"ein"]);(2,["two";"deux";"zwei"])]
+      rows;
+    Db.exec Q.drop_tmp_array () >>= or_fail
 
   let test_affected_count (module Db : CONNECTION) =
     let select_all exp_i exp_s exp_o =
@@ -651,6 +692,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "expr", `Quick, test_expr;
     "enum", `Quick, test_enum;
     "table", `Quick, test_table;
+    "arrays", `Quick, test_arrays;
     "tuples", `Quick, test_tuples;
     "affected_count", `Quick, test_affected_count;
     "stream", `Quick, test_stream;

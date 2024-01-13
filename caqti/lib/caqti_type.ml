@@ -22,6 +22,7 @@ type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)
 module Field = struct
 
   type 'a t =
+    | Array : 'a t -> 'a list t
     | Bool : bool t
     | Int : int t
     | Int16 : int t
@@ -35,9 +36,14 @@ module Field = struct
     | Ptime_span : Ptime.span t
     | Enum : string -> string t
 
-  let unify : type a b. a t -> b t -> (a, b) eq option =
+  let rec unify : type a b. a t -> b t -> (a, b) eq option =
     fun ft1 ft2 ->
     (match ft1, ft2 with
+     | Array ft1, Array ft2 -> (
+       match unify ft1 ft2 with
+       | Some Equal -> Some Equal
+       | None -> None)
+     | Array _, _ | _, Array _ -> None
      | Bool, Bool -> Some Equal
      | Bool, _ | _, Bool -> None
      | Int, Int -> Some Equal
@@ -63,7 +69,8 @@ module Field = struct
      | Enum name1, Enum name2 when name1 = name2 -> Some Equal
      | Enum _, Enum _ -> None)
 
-  let equal_value : type a. a t -> a -> a -> bool = function
+  let rec equal_value : type a. a t -> a -> a -> bool = function
+   | Array t -> List.equal (equal_value t)
    | Bool -> Bool.equal
    | Int -> Int.equal
    | Int16 -> Int.equal
@@ -77,7 +84,8 @@ module Field = struct
    | Ptime_span -> Ptime.Span.equal
    | Enum _ -> String.equal
 
-  let to_string : type a. a t -> string = function
+  let rec to_string : type a. a t -> string = function
+   | Array t -> to_string t ^ "[]"
    | Bool -> "bool"
    | Int -> "int"
    | Int16 -> "int16"
@@ -95,7 +103,13 @@ module Field = struct
 
   let pp_ptime = Ptime.pp_rfc3339 ~tz_offset_s:0 ~space:false ()
 
-  let pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
+  let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
+   | Array t, x ->
+      Format.pp_print_char ppf '{';
+      List.iter
+        (fun x -> pp_value ppf (t, x); Format.pp_print_string ppf ", ")
+        x;
+      Format.pp_print_char ppf '}'
    | Bool, x -> Format.pp_print_bool ppf x
    | Int, x -> Format.pp_print_int ppf x
    | Int16, x -> Format.pp_print_int ppf x

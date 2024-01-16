@@ -1,8 +1,9 @@
 ## v2.1.0 - unreleased
 
-  - The networking code (for PGX) has been revised in order to support TLS,
-    and adds buffering for EIO, which significatly improves performarce.
-    TLS implemantions are shipped as separate packages (`caqti-tls*`).
+  - There is now TLS support also for PGX.  The networking code (for PGX)
+    was revised in the process, in particular the EIO variant is now
+    buffered, which improves performarce.  TLS implemantions are shipped as
+    separate packages (`caqti-tls*`).
 
   - Connect functions now accept an optional configuration.  For the time
     being, this is used for TLS parameters and for the optional
@@ -29,6 +30,8 @@
   - Added tuples type constructors with arity to 12.
 
   - Some updates to external dependencies, esp. we are now at EIO 0.12+.
+
+  - Better error messages on failure to load drivers.
 
 ## v2.0.1 - 2023-08-14
 

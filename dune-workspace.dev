@@ -1,6 +1,6 @@
 (lang dune 1.2)
 
-(context (opam (switch 5.0.0)))
+(context (opam (switch 5.1.1)))
 (context (opam (switch 4.14.1)))
 (context (opam (switch 4.11.2)))
 (context (opam (switch 4.08.1)))

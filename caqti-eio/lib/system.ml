@@ -147,8 +147,9 @@ module Net = struct
       Cstruct.blit_to_bytes (Eio.Buf_read.peek ic) 0 buf i n;
       Eio.Buf_read.consume ic n
 
-    let close {flow; _} =
+    let close {flow; oc; _} =
       Log.debug (fun m -> m "Closing socket.");
+      Eio.Buf_write.close oc;
       Eio.Flow.shutdown flow `Send;
       Eio.Flow.close flow
   end

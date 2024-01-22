@@ -24,5 +24,7 @@ module Make (Platform : PLATFORM) = struct
     Fetch_many.main_cmd;
   ]
 
-  let () = exit Cmdliner.Cmd.(eval @@ group (info "main_blocking") cmds)
+  let () =
+    let open Cmdliner in
+    exit Cmd.(eval @@ group (info (Filename.basename Sys.argv.(0))) cmds)
 end

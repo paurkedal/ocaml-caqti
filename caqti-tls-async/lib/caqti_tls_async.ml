@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -84,12 +84,20 @@ module Tls_provider = struct
   type tls_config = Tls.Config.client
   let tls_config_key = Caqti_tls.Config.client
 
-  let start_tls ~config ?host (ic, oc) =
-    (match%bind Tls_async.Session.client_of_fd config ?host (ic, oc) with
+  let start_tls ~config ?host ((_outer_reader, outer_writer) as outer_rw) =
+    (match%bind Tls_async.Session.client_of_fd config ?host outer_rw with
      | Error error -> return (Error (`Msg (Error.to_string_hum error)))
      | Ok session ->
-        let%map _, ic, oc, _ = upgrade_connection session (ic, oc) in
-        Ok (ic, oc))
+        let%map _, inner_reader, inner_writer,
+                `Tls_closed_and_flushed_downstream outer_cafd =
+          upgrade_connection session outer_rw
+        in
+        don't_wait_for begin
+          let%bind () = outer_cafd (* triggerd by closing inner_writer *) in
+          let%bind () = Writer.close outer_writer in
+          Reader.close inner_reader
+        end;
+        Ok (inner_reader, inner_writer))
 end
 
 let () =

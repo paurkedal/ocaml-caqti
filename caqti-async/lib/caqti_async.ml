@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -163,7 +163,7 @@ module System = struct
         Reader.really_read ic ~pos ~len s
         >|= function `Ok -> () | `Eof _ -> raise End_of_file
 
-      let close (ic, _) = Reader.close ic (* CHECKME *)
+      let close (_ic, oc) = Writer.close oc
     end
 
     type tcp_flow = Socket.t

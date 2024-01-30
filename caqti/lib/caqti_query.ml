@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,6 +40,20 @@ let octets x = V (Caqti_type.Field.Octets, x)
 let pdate x = V (Caqti_type.Field.Pdate, x)
 let ptime x = V (Caqti_type.Field.Ptime, x)
 let ptime_span x = V (Caqti_type.Field.Ptime_span, x)
+
+let nulls t = List.init (Caqti_type.length t) (fun _ -> L"NULL")
+
+let rec const_fields : type a. a Caqti_type.t -> a -> t list =
+  (function
+   | Field ft -> fun x -> [V (ft, x)]
+   | Option t -> (function None -> nulls t | Some x -> const_fields t x)
+   | Product (_, _, pt) -> const_fields_product pt
+   | Annot (_, t) -> const_fields t)
+and const_fields_product : type a i. (a, i) Caqti_type.product -> a -> t list =
+  (function
+   | Proj_end -> fun _ -> []
+   | Proj (t, p, pt') ->
+      fun x -> const_fields t (p x) @ const_fields_product pt' x)
 
 let rec equal_list f xs ys = (* stdlib 4.12.0 *)
   (match xs, ys with

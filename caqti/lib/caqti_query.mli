@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -93,6 +93,17 @@ val octets : string -> t
 val pdate : Ptime.t -> t
 val ptime : Ptime.t -> t
 val ptime_span : Ptime.span -> t
+
+val const_fields : 'a Caqti_type.t -> 'a -> t list
+(** [const_fields t x] returns a list of fragments corresponding to the
+    single-field projections of the value [x] as described by the type
+    descriptor [t].  Each element of the returned list will be either a
+    {!V}-fragment containing the projected value, or the [L["NULL"]] fragment if
+    the projection is [None].
+
+    The result can be turned into a comma-separated list with {!concat}, except
+    values of unitary types, i.e. types having no fields, may require special
+    care. *)
 
 
 (** {2 Normalization and Equality} *)

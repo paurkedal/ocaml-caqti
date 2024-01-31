@@ -27,11 +27,11 @@
     not be aliased yet.  This required a backwards incompatible adjustment
     of the `Caqti_type.Product` constructor.
 
-  - Added tuples type constructors with arity to 12.
+  - Added tuples type constructors with arity up to 12.
 
   - Some updates to external dependencies, esp. we are now at EIO 0.12+.
 
-  - Better error messages on failure to load drivers.
+  - Fixed lacking details in error messages related to driver load failures.
 
 ## v2.0.1 - 2023-08-14
 

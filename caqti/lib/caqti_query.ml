@@ -188,6 +188,7 @@ module Angstrom_parsers = struct
   let is_digit_nz = function '1'..'9' -> true | _ -> false
   let is_idrfst = function 'a'..'z'|'A'..'Z' | '_' -> true | _ -> false
   let is_idrcnt = function 'a'..'z'|'A'..'Z' | '_' | '0'..'9' -> true | _ -> false
+  let is_space = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
 
   let single_quoted = skip_many (ign (not_char '\'') <|> ign (string "''"))
   let double_quoted = skip_many (ign (not_char '"') <|> ign (string "\"\""))
@@ -288,10 +289,18 @@ module Angstrom_parsers = struct
     in
     fix (fun p -> (stop *> return []) <|> (List.cons <$> atom_or_semi <*> p))
       >>= reindex >>| (function [q] -> q | qs -> S qs)
+
+  let expression_list =
+    let white =
+      many (take_while1 is_space <|> (string "--" *> take_till ((=) '\n')))
+        <* commit
+    in
+    white *> many (expression <* char ';' <* white)
 end
 
 let angstrom_parser = Angstrom_parsers.expression
 let angstrom_parser_with_semicolon = Angstrom_parsers.expression_with_semi
+let angstrom_list_parser = Angstrom_parsers.expression_list
 
 let of_string s =
   let open Angstrom.Unbuffered in

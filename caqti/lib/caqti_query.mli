@@ -172,6 +172,12 @@ val angstrom_parser_with_semicolon : t Angstrom.t
     definitions.  This is the parser used by {!Caqti_request}, where it's
     assumed that the input is a single SQL statement. *)
 
+val angstrom_list_parser : t list Angstrom.t
+(** Matches a sequence of statements while ignoring surrounding white space and
+    end-of-line comments starting with ["--"].  This parser can be used to load
+    schema files with support for environment expansions, like substituting the
+    name of the database schema. *)
+
 val of_string : string -> (t, [`Invalid of int * string]) result
 (** Parses a single expression using {!angstrom_parser_with_semicolon}.  The
     error indicates the byte position of the input string where the parse

@@ -29,6 +29,9 @@
 
   - Added tuples type constructors with arity up to 12.
 
+  - Added multi-statement parser (`Caqti_query.angstrom_list_parser`)
+    intended for loading SQL schema files.
+
   - Some updates to external dependencies, esp. we are now at EIO 0.12+.
 
   - Fixed lacking details in error messages related to driver load failures.

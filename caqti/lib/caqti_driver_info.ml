@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,47 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type dialect_tag = [`Mysql | `Pgsql | `Sqlite | `Other]
-type sql_dialect_tag = [`Mysql | `Pgsql | `Sqlite]
-type parameter_style =
-  [ `None
-  | `Linear of string
-  | `Indexed of (int -> string) ]
+(** Information about a database, its driver, and its query language.
 
-type t = {
-  uri_scheme: string;
-  dialect_tag: dialect_tag;
-  parameter_style: parameter_style;
-  can_transact: bool;
-  can_pool: bool;
-  can_concur: bool;
-}
+    This module provides descriptions supplied by the driver to aid the
+    application in dealing with differences between database systems. *)
 
-let create
-    ~uri_scheme
-    ?(dialect_tag = `Other)
-    ?(parameter_style = `None)
-    ~can_pool
-    ~can_concur
-    ~can_transact
-    () =
-  {
-    uri_scheme;
-    dialect_tag;
-    parameter_style;
-    can_transact;
-    can_pool;
-    can_concur;
-  }
-
-let dummy = create
-  ~uri_scheme:"dummy"
-  ~can_pool:false ~can_concur:false ~can_transact:false
-  ()
-
-let uri_scheme di = di.uri_scheme
-let dialect_tag di = di.dialect_tag
-let parameter_style di = di.parameter_style
-let can_pool di = di.can_pool
-let can_concur di = di.can_concur
-let can_transact di = di.can_transact
+include Caqti_template.Driver_info

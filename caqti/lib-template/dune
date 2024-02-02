@@ -1,0 +1,4 @@
+(library
+ (name caqti_template)
+ (public_name caqti.template)
+ (libraries angstrom bigstringaf logs ptime uri))

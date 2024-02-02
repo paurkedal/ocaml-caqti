@@ -15,6 +15,21 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Row multiplicity. *)
+let (-->.) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero f
+let (-->!) t u ?oneshot f = Request.create ?oneshot t u Row_mult.one f
+let (-->?) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero_or_one f
+let (-->*) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero_or_more f
 
-include Caqti_template.Row_mult
+let (@:-) f s =
+  let q = Query.of_string_exn s in
+  f (fun _ -> q)
+
+let (@@:-) f g =
+  f (fun di -> Query.of_string_exn (g (Driver_info.dialect_tag di)))
+
+let (->.) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero @:- s
+let (->!) t u ?oneshot s = Request.create ?oneshot t u Row_mult.one @:- s
+let (->?) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero_or_one @:- s
+let (->*) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero_or_more @:- s
+
+include (Row_type : Row_type.STD)

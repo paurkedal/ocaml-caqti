@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,10 +19,7 @@
 
 exception Reject of string
 
-type (_, _) eq = Equal : ('a, 'a) eq
-(** Type equality witness.  This will eventually be replaced by the equavalent
-    definition available in [Stdlib.Type] since OCaml 5.1, but for now, we must
-    keep backwards compatibility with older compilers. *)
+type ('a, 'b) eq = ('a, 'b) Caqti_template.Shims.Type.eq = Equal : ('a, 'a) eq
 
 (** {2 Primitive Field Types}
 
@@ -31,7 +28,7 @@ type (_, _) eq = Equal : ('a, 'a) eq
 
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
-  type 'a t =
+  type 'a t = 'a Caqti_template.Field_type.t =
     | Bool : bool t
     | Int : int t
     | Int16 : int t
@@ -58,7 +55,7 @@ end
 
 (** {2:row_types Row Types} *)
 
-type _ product_id
+type 'a product_id = 'a Caqti_template.Row_type.product_id
 (** A type-carrying identifier used in {!t} to allow expressing equality
     predicates, including for associated values.  {e This is not part of the
     public API, but exposed due to its occurrence in {!t}}. *)
@@ -68,12 +65,12 @@ type _ product_id
     {b Note.} The concrete representation of this type should be considered
     private, including pattern-matching usage; use the below functions for
     compatibility with future versions. *)
-type _ t = private
+type 'a t = 'a Caqti_template.Row_type.t = private
   | Field : 'a Field.t -> 'a t
   | Option : 'a t -> 'a option t
   | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
   | Annot : [`Redacted] * 'a t -> 'a t
-and (_, _) product = private
+and ('a, 'b) product = ('a, 'b) Caqti_template.Row_type.product = private
   | Proj_end : ('a, 'a) product
   | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
 

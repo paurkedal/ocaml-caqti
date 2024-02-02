@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,7 +29,7 @@
 
 (** {2 Primitives} *)
 
-type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
+type ('a, 'b, +'m) t = ('a, 'b, 'm) Caqti_template.Request.t
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.
     - ['a] is the type of the expected parameter bundle.

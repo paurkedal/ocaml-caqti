@@ -15,6 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Row multiplicity. *)
-
-include Caqti_template.Row_mult
+module Type = struct
+  type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)
+end

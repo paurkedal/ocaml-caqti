@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,22 +15,4 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-type 'a t = Format.formatter -> 'a -> unit
-
-[@@@alert "-deprecated"]
-let qprintf = Caqti_query.qprintf
-let kqprintf = Caqti_query.kqprintf
-let param = Caqti_query.param
-let env = Caqti_query.env
-let quote = Caqti_query.quote
-let query = Caqti_query.query
-[@@@alert "+deprecated"]
-
-let bool ppf x = query ppf (V (Caqti_type.Field.Bool, x))
-let int ppf x = query ppf (V (Caqti_type.Field.Int, x))
-let float ppf x = query ppf (V (Caqti_type.Field.Float, x))
-let string ppf x = query ppf (V (Caqti_type.Field.String, x))
-let octets ppf x = query ppf (V (Caqti_type.Field.Octets, x))
-let pdate ppf x = query ppf (V (Caqti_type.Field.Pdate, x))
-let ptime ppf x = query ppf (V (Caqti_type.Field.Ptime, x))
-let ptime_span ppf x = query ppf (V (Caqti_type.Field.Ptime_span, x))
+include Caqti_template.Query_fmt

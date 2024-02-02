@@ -15,6 +15,30 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Row multiplicity. *)
+(** Database field types. *)
 
-include Caqti_template.Row_mult
+open Shims
+
+type 'a t =
+  | Bool : bool t
+  | Int : int t
+  | Int16 : int t
+  | Int32 : int32 t
+  | Int64 : int64 t
+  | Float : float t
+  | String : string t
+  | Octets : string t
+  | Pdate : Ptime.t t
+  | Ptime : Ptime.t t
+  | Ptime_span : Ptime.span t
+  | Enum : string -> string t
+
+val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
+
+val equal_value : 'a t -> 'a -> 'a -> bool
+
+val to_string : 'a t -> string
+
+val pp : Format.formatter -> 'a t -> unit
+
+val pp_value : Format.formatter -> 'a t * 'a -> unit

@@ -15,6 +15,11 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Row multiplicity. *)
+(** Compatibility shims. *)
 
-include Caqti_template.Row_mult
+module Type : sig
+  type (_, _) eq = Equal : ('a, 'a) eq
+  (** Type equality witness.  This will eventually be replaced by the equavalent
+      definition available in [Stdlib.Type] since OCaml 5.1, but for now, we
+      must keep backwards compatibility with older compilers. *)
+end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,6 @@
 
 type 'a tag = ..
 
-let int_of_tag tag = Obj.Extension_constructor.(id (of_val tag))
-
 module type KEY = sig
   type value
   type 'a tag += Tag : value tag
@@ -39,24 +37,26 @@ let create_key (type a) name (default : a) : a key =
   end in
   (module Key : KEY with type value = a)
 
-module Int_map = Map.Make (Int)
+module String_map = Map.Make (String)
 
 type binding = Binding : 'a tag * 'a -> binding
 
-type t = binding Int_map.t
+type t = binding String_map.t
 
-let default = Int_map.empty
+let default = String_map.empty
+
+let mem_name key_name = String_map.mem key_name
 
 let get : type a. a key -> t -> a = fun (module Key) m ->
-  (match Int_map.find_opt (int_of_tag Key.Tag) m with
+  (match String_map.find_opt Key.name m with
    | Some (Binding (Key.Tag, v)) -> v
    | _ -> Key.default)
 
 let set : type a. a key -> a -> t -> t = fun (module Key) v m ->
-  Int_map.add (int_of_tag Key.Tag) (Binding (Key.Tag, v)) m
+  String_map.add Key.name (Binding (Key.Tag, v)) m
 
 let reset : type a. a key -> t -> t = fun (module Key) m ->
-  Int_map.remove (int_of_tag Key.Tag) m
+  String_map.remove Key.name m
 
 (* Configuration Keys *)
 

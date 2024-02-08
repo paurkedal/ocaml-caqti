@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,5 +27,4 @@ module TLS_provider = struct
     Ok (Tls_lwt.of_t session)
 end
 
-let () =
-  System.Net.tls_providers := (module TLS_provider) :: !System.Net.tls_providers
+let () = System.Net.register_tls_provider (module TLS_provider)

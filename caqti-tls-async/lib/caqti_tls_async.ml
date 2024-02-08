@@ -100,6 +100,4 @@ module Tls_provider = struct
         Ok (inner_reader, inner_writer))
 end
 
-let () =
-  Caqti_async.System.Net.tls_providers :=
-    (module Tls_provider) :: !Caqti_async.System.Net.tls_providers
+let () = Caqti_async.System.Net.register_tls_provider (module Tls_provider)

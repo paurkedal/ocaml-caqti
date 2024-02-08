@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,3 +45,4 @@ val tweaks_version : (int * int) key
 
 (**/**) (* for internal use *)
 val create_key : string -> 'a -> 'a key
+val mem_name : string -> t -> bool

@@ -187,7 +187,18 @@ module System = struct
        and type tcp_flow := tcp_flow
        and type tls_flow := tls_flow
 
-    let tls_providers : (module TLS_PROVIDER) list ref = ref []
+    let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
+
+    let tls_providers config =
+      if Caqti_connect_config.mem_name "tls" config then
+        (match Caqti_platform.Connector.load_library "caqti-tls-async" with
+         | Ok () -> ()
+         | Error msg ->
+            Logs.warn ~src:Logging.default_log_src (fun p ->
+              p "TLS configured but caqti-tls-async not available: %s" msg));
+      !tls_providers_r
+
+    let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
   end
 end
 

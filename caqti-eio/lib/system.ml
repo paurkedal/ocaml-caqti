@@ -198,6 +198,17 @@ module Net = struct
      and type tcp_flow := tcp_flow
      and type tls_flow := tls_flow
 
-  let tls_providers : (module TLS_PROVIDER) list ref = ref []
+  let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
+
+  let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
+
+  let tls_providers config =
+    if Caqti_connect_config.mem_name "tls" config then
+      (match Caqti_platform.Connector.load_library "caqti-tls-eio" with
+       | Ok () -> ()
+       | Error msg ->
+          Log.warn (fun p ->
+            p "TLS configured, but missing caqti-tls-eio: %s" msg));
+    !tls_providers_r
 
 end

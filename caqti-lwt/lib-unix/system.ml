@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -118,5 +118,17 @@ module Net = struct
      and type tcp_flow := tcp_flow
      and type tls_flow := tls_flow
 
-  let tls_providers : (module TLS_PROVIDER) list ref = ref []
+  let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
+
+  let tls_providers config =
+    if Caqti_connect_config.mem_name "tls" config then
+      (match Caqti_platform.Connector.load_library "caqti-tls-lwt.unix" with
+       | Ok () -> ()
+       | Error msg ->
+          Logs.warn ~src:Caqti_platform.Logging.default_log_src (fun p ->
+            p "TLS configured, but missing caqti-tls-lwt.unix: %s" msg));
+    !tls_providers_r
+
+  let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
+
 end

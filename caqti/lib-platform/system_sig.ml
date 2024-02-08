@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -179,7 +179,9 @@ module type NET = sig
      and type tcp_flow := tcp_flow
      and type tls_flow := tls_flow
 
-  val tls_providers : (module TLS_PROVIDER) list ref
+  val register_tls_provider : (module TLS_PROVIDER) -> unit
+
+  val tls_providers : Caqti_connect_config.t -> (module TLS_PROVIDER) list
 
 end
 

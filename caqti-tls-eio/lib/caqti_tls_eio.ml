@@ -40,5 +40,4 @@ module TLS_provider = struct
     Ok (Eio.Resource.T (tls_flow, handler))
 end
 
-let () =
-  System.Net.tls_providers := (module TLS_provider) :: !System.Net.tls_providers
+let () = System.Net.register_tls_provider (module TLS_provider)

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -228,8 +228,12 @@ struct
               Error (`Msg msg))
       end
 
-      let tls_providers : (module TLS_PROVIDER) list ref =
+      let tls_providers_r : (module TLS_PROVIDER) list ref =
         ref [(module Tls_provider : TLS_PROVIDER)]
+
+      let tls_providers _ = !tls_providers_r
+
+      let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
 
     end
   end

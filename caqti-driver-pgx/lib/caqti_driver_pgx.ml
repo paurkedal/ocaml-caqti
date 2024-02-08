@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -710,7 +710,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Some config ->
           Some (Ssl_config {impl = (module Tls_provider); config; host}))
     in
-    (match List.find_map with_config !Net.tls_providers with
+    (match List.find_map with_config (Net.tls_providers config) with
      | None -> `No
      | Some ssl_config -> `Always ssl_config)
 

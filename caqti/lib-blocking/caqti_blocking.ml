@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -125,7 +125,13 @@ module System = struct
        and type tcp_flow := Socket.t
        and type tls_flow := Socket.t
 
-    let tls_providers : (module TLS_PROVIDER) list ref = ref []
+    let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
+
+    let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
+
+    let tls_providers _ =
+      (* Try to load caqti-tls.unix here if/when implemented. *)
+      !tls_providers_r
   end
 
 end

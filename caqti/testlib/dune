@@ -3,10 +3,6 @@
  (libraries
     alcotest
     caqti
-    caqti-tls
     dynlink
     logs
-    ptime.clock.os
-    tls
-    uri
-    x509))
+    uri))

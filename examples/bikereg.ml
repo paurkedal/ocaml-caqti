@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -161,7 +161,7 @@ let main_cmd =
   let doc = "Caqti bikereg example." in
   (* If you wish to play with this outside the Caqti distribution, replace
      "Testlib.common_args" with the "uris" definition from that function. *)
-  let term = Term.(const main $ Testlib.common_args) in
+  let term = Term.(const main $ Testlib.common_args ()) in
   let info = Cmd.info ~doc "bikereg" in
   Cmd.v info term
 

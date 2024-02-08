@@ -17,7 +17,7 @@
     test_parallel
     test_param
     test_sql)
-  (libraries caqti caqti.platform ptime.clock.os testlib))
+  (libraries caqti caqti.platform ptime.clock.os testlib testlib_tls))
 
 ; Instantiations of the testsuite.
 

@@ -100,6 +100,6 @@ module Make (Platform : PLATFORM) = struct
 
   let main_cmd =
     let open Cmdliner in
-    let term = Term.(const main $ Testlib.common_args) in
+    let term = Term.(const main $ Testlib.common_args ()) in
     Cmd.v (Cmd.info "fetch-many") term
 end

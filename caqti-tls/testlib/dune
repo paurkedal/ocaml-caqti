@@ -1,0 +1,15 @@
+; This library registers TLS-related command-line arguments if the tls library
+; is available, otherwise it is an empty library.  It would be more instructive
+; to list it as an optional library where used, if possible.
+(library
+ (name testlib_tls)
+ (libraries
+  (select testlib_tls.ml from
+   (caqti
+    caqti-tls
+    cmdliner
+    ptime.clock.os
+    testlib
+    x509
+    -> testlib_tls.enabled.ml)
+   (-> testlib_tls.disabled.ml))))

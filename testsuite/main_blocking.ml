@@ -68,4 +68,4 @@ let mk_tests {uris; connect_config} =
 
 let () =
   Alcotest_cli.run_with_args_dependency "test_sql_blocking"
-    Testlib.common_args mk_tests
+    (Testlib.common_args ()) mk_tests

@@ -78,5 +78,5 @@ let () =
   Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) stdenv
     @@ fun () ->
   Alcotest_cli.run_with_args_dependency "test_sql_eio"
-    Testlib.common_args
+    (Testlib.common_args ())
     (mk_tests ((stdenv :> Caqti_eio.stdenv), sw))

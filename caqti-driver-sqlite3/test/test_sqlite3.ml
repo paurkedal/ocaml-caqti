@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -89,4 +89,4 @@ let mk_tests {uris; connect_config = config} =
   List.map mk_test pools
 
 let () =
-  Alcotest_cli.run_with_args_dependency "test_sqlite3" common_args mk_tests
+  Alcotest_cli.run_with_args_dependency "test_sqlite3" (common_args ()) mk_tests

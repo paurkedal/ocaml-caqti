@@ -71,5 +71,5 @@ let mk_tests {uris; connect_config} =
 
 let () = Lwt_main.run begin
   Alcotest_cli.run_with_args_dependency "test_sql_lwt_unix"
-    Testlib.common_args mk_tests
+    (Testlib.common_args ()) mk_tests
 end

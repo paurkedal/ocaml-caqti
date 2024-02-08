@@ -1,6 +1,7 @@
 (library
  (name caqti_tls_lwt_unix)
  (public_name caqti-tls-lwt.unix)
+ (optional)
  (libraries
     caqti
     caqti.platform

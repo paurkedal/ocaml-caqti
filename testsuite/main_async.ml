@@ -78,7 +78,7 @@ let mk_tests {uris; connect_config} =
 let main () =
   Deferred.upon
     (Alcotest_cli.run_with_args_dependency "test_sql_async"
-      Testlib.common_args mk_tests)
+      (Testlib.common_args ()) mk_tests)
     (fun () -> Shutdown.shutdown 0)
 
 let () = never_returns (Scheduler.go_main ~main ())

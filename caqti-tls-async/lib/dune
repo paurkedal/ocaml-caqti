@@ -1,6 +1,7 @@
 (library
  (public_name caqti-tls-async)
  (name caqti_tls_async)
+ (optional)
  (preprocess (pps ppx_jane))
  (libraries
     async_kernel

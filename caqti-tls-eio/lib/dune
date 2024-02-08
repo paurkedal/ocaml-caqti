@@ -1,6 +1,7 @@
 (library
  (name caqti_tls_eio)
  (public_name caqti-tls-eio)
+ (optional)
  (libraries
     caqti
     caqti.platform

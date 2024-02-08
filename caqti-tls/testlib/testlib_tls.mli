@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,22 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Sig = Sig
+(** TLS component for the internal test library
 
-type common_args = {
-  uris: Uri.t list;
-  connect_config: Caqti_connect_config.t;
-}
-
-val register_common_arg : (common_args -> common_args) Cmdliner.Term.t -> unit
-
-val common_args : unit -> common_args Cmdliner.Term.t
-
-val test_name_of_uri : Uri.t -> string
-
-val init_list : int -> (int -> 'a) -> 'a list
-
-module Make_alcotest_cli :
-  functor (_ : Alcotest_engine.Platform.MAKER) ->
-  functor (Monad : Alcotest_engine.Monad.S) ->
-  Sig.Alcotest_cli with type return = unit Monad.t
+    This library registers the command-line arguments needed to enable and set
+    up TLS-based encryption and authentication for pure-OCaml drivers. *)

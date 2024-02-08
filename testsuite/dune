@@ -153,6 +153,7 @@
 (alias
   (name drivers)
   (package caqti-driver-pgx)
+  (enabled_if (>= %{ocaml_version} "4.10"))
   (deps
     META.caqti-driver-pgx
     %{cma:../caqti-driver-pgx/lib/caqti_driver_pgx}

@@ -3,6 +3,7 @@
 ; to list it as an optional library where used, if possible.
 (library
  (name testlib_tls)
+ (library_flags (:standard -linkall))
  (libraries
   (select testlib_tls.ml from
    (caqti

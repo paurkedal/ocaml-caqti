@@ -2,6 +2,7 @@
  (name caqti_tls_eio)
  (public_name caqti-tls-eio)
  (optional)
+ (library_flags (:standard -linkall))
  (libraries
     caqti
     caqti.platform

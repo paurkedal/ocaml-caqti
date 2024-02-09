@@ -3,6 +3,7 @@
  (name caqti_tls_async)
  (optional)
  (preprocess (pps ppx_jane))
+ (library_flags (:standard -linkall))
  (libraries
     async_kernel
     caqti

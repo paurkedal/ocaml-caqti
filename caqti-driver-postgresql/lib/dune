@@ -5,3 +5,9 @@
  (public_name caqti-driver-postgresql)
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix postgresql))
+
+(plugin
+ (package caqti-driver-postgresql)
+ (name caqti-driver-postgresql)
+ (libraries caqti-driver-postgresql)
+ (site (caqti plugins)))

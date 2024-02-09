@@ -6,8 +6,10 @@
 (rule
  (alias runtest)
  (package caqti-lwt)
- (deps (:test bikereg.exe) (alias ../testsuite/drivers) ../testsuite/uris.conf)
+ (deps
+    (:test bikereg.exe)
+    (:u %{env:CAQTI_TEST_URIS_FILE=../testsuite/uris.conf})
+    (include ../testsuite/dune.uri-deps-lwt)
+    (env_var CAQTI_TEST_X509_AUTHENTICATOR))
  (locks /db/bikereg)
- (action
-  (setenv OCAMLPATH ../testsuite
-   (run %{test} -U ../testsuite/uris.conf))))
+ (action (run %{test} -U %{u})))

@@ -12,3 +12,9 @@
     caqti-tls
     tls
     tls-lwt))
+
+(plugin
+ (package caqti-tls-lwt)
+ (name caqti-tls-lwt-unix)
+ (libraries caqti-tls-lwt.unix)
+ (site (caqti plugins)))

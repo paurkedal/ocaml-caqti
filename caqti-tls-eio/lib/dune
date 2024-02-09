@@ -10,3 +10,9 @@
     caqti-tls
     tls
     tls-eio))
+
+(plugin
+ (package caqti-tls-eio)
+ (name caqti-tls-eio)
+ (libraries caqti-tls-eio)
+ (site (caqti plugins)))

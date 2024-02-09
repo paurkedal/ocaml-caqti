@@ -1,0 +1,9 @@
+(library
+ (name caqti_plugin)
+ (public_name caqti.plugin)
+ (library_flags (:standard -linkall))
+ (libraries caqti.platform dune-site dune-site.plugins))
+
+(generate_sites_module
+ (module sites)
+ (plugins (caqti plugins)))

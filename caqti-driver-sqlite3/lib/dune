@@ -4,3 +4,9 @@
  (flags (:standard -thread))
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix sqlite3))
+
+(plugin
+ (package caqti-driver-sqlite3)
+ (name caqti-driver-sqlite3)
+ (libraries caqti-driver-sqlite3)
+ (site (caqti plugins)))

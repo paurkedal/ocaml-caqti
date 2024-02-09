@@ -11,3 +11,9 @@
     caqti-tls
     tls
     tls-async))
+
+(plugin
+ (package caqti-tls-async)
+ (name caqti-tls-async)
+ (libraries caqti-tls-async)
+ (site (caqti plugins)))

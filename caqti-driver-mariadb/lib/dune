@@ -4,3 +4,10 @@
  (optional)
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix mariadb))
+
+(plugin
+ (package caqti-driver-mariadb)
+ (name caqti-driver-mariadb)
+ (optional)
+ (libraries caqti-driver-mariadb)
+ (site (caqti plugins)))

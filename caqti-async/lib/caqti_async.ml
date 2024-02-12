@@ -169,15 +169,21 @@ module System = struct
     type tcp_flow = Socket.t
     type tls_flow = Socket.t
 
-    let connect_tcp ~sw:_ ~stdenv:() = function
-     | Async_unix.Unix.ADDR_INET (addr, port) ->
-        Async_unix.Tcp.connect
-          (Tcp.Where_to_connect.of_inet_address (`Inet (addr, port)))
-          >|= fun (_socket, ic, oc) -> Ok (ic, oc)
-     | Async_unix.Unix.ADDR_UNIX path ->
-        Async_unix.Tcp.connect
-          (Tcp.Where_to_connect.of_unix_address (`Unix path))
-          >|= fun (_socket, ic, oc) -> Ok (ic, oc)
+    let intercept_exceptions f =
+      Async_kernel.Monitor.try_with_or_error f
+      >|= Stdlib.Result.map_error (fun e -> `Msg (Error.to_string_mach e))
+
+    let connect_tcp ~sw:_ ~stdenv:() addr =
+      intercept_exceptions @@ fun () ->
+      (match addr with
+       | Async_unix.Unix.ADDR_INET (addr, port) ->
+          Async_unix.Tcp.connect
+            (Tcp.Where_to_connect.of_inet_address (`Inet (addr, port)))
+          >|= fun (_, ic, oc) -> (ic, oc)
+       | Async_unix.Unix.ADDR_UNIX path ->
+          Async_unix.Tcp.connect
+            (Tcp.Where_to_connect.of_unix_address (`Unix path))
+          >|= fun (_, ic, oc) -> (ic, oc))
 
     let tcp_flow_of_socket socket = Some socket
     let socket_of_tls_flow ~sw:_ socket = socket

@@ -81,6 +81,10 @@ module Net = struct
             (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
        | exn -> Lwt.fail exn)
 
+  let convert_io_exception = function
+   | Unix.Unix_error (err, fn, arg) -> Some (Msg_unix (err, fn, arg))
+   | _ -> None
+
   type socket = {
     fd: Lwt_unix.file_descr option;
     ic: Lwt_io.input_channel;

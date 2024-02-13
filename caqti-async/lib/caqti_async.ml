@@ -179,14 +179,19 @@ module System = struct
     type tcp_flow = Socket.t
     type tls_flow = Socket.t
 
+    let convert_io_exception exn =
+      (match Async_kernel.Monitor.extract_exn exn with
+       | Core_unix.Unix_error (err, func, arg) ->
+          Some (Msg_unix (err, func, arg))
+       | _ -> None)
+
     let intercept_exceptions f =
       Async_kernel.Monitor.try_with f >|= function
        | Ok _ as r -> r
        | Error exn ->
-          (match Async_kernel.Monitor.extract_exn exn with
-           | Core_unix.Unix_error (err, func, arg) ->
-              Error (Msg_unix (err, func, arg))
-           | _ -> raise exn)
+          (match convert_io_exception exn with
+           | Some msg -> Error msg
+           | None -> raise exn)
 
     let connect_tcp ~sw:_ ~stdenv:() addr =
       intercept_exceptions @@ fun () ->

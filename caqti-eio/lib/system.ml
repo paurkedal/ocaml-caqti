@@ -134,6 +134,10 @@ module Net = struct
     with Eio.Exn.Io _ as exn ->
       Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
 
+  let convert_io_exception = function
+   | Eio.Exn.Io (err, ctx) -> Some (Msg_io (err, ctx))
+   | _ -> None
+
   module Socket = struct
     type t = {
       flow: [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t;

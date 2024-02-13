@@ -159,6 +159,10 @@ module type NET = sig
       error return indicates that an appropriate DNS server could not be
       queried. *)
 
+  val convert_io_exception : exn -> Caqti_error.msg option
+  (** If the read and write operations in Socket raise exceptions other than
+      {!End_of_file} and {!Failure}, this function is used to intercept them. *)
+
   (** A socket with input and output channels and dedicated IO functions.  This
       bundling is done to support the various APIs involved for networking and
       StartTLS. *)

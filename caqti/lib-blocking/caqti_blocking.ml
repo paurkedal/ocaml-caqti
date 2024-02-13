@@ -88,6 +88,7 @@ module System = struct
   include System_core
 
   module Net = struct
+
     module Sockaddr = struct
       type t = Unix.sockaddr
       let unix s = Unix.ADDR_UNIX s
@@ -104,6 +105,10 @@ module System = struct
        | Not_found -> Ok []
        | Unix.Unix_error (code, _, _) ->
           Error (`Msg ("Cannot resolve host name: " ^ Unix.error_message code))
+
+    let convert_io_exception = function
+     | Unix.Unix_error (err, fn, arg) -> Some (Msg_unix (err, fn, arg))
+     | _ -> None
 
     module Socket = struct
       type t = Tcp of in_channel * out_channel

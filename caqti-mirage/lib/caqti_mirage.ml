@@ -110,6 +110,10 @@ struct
          | false, false ->
             Lwt.return (Error (`Msg "No IP address assigned to host.")))
 
+      let convert_io_exception = function
+       | Failure msg -> Some (Caqti_error.Msg msg) (* Channel.S.error *)
+       | _ -> None
+
       module Make_stream_ops (Channel : Mirage_channel.S) = struct
         type t = Channel.t
 

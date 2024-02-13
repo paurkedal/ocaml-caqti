@@ -272,7 +272,9 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Failure msg -> (* Raised by our Pgx.Io implementation. *)
           Fiber.return (Error (h (Caqti_error.Msg msg)))
        | exn ->
-          raise exn)
+          (match Net.convert_io_exception exn with
+           | Some msg -> Fiber.return (Error (h msg))
+           | None -> raise exn))
 
   let intercept_request_failed ~uri ~query =
     intercept (Caqti_error.request_failed ~uri ~query)

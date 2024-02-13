@@ -33,6 +33,8 @@ let () =
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
 
+exception Failed_with_msg of Caqti_error.msg
+
 let no_env _ _ = raise Not_found
 
 let host_of_string str =
@@ -261,6 +263,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     Fiber.catch
       (fun () -> f () >|= fun y -> Ok y)
       (function
+       | Failed_with_msg msg ->
+          Fiber.return (Error (h msg))
        | Pgx.PostgreSQL_Error (msg, err) ->
           Fiber.return (Error (h (Pgx_msg (msg, err))))
        | End_of_file ->
@@ -327,7 +331,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
                         connect sockaddr
                      | Error (`Msg msg) ->
                         failwith msg))))
-        >|= function Ok conn -> conn | Error (`Msg msg) -> failwith msg
+        >|= function Ok conn -> conn | Error msg -> raise (Failed_with_msg msg)
 
       let output_char = Socket.output_char
       let output_string = Socket.output_string
@@ -363,7 +367,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
                | Ok tls_flow ->
                   let socket = socket_of_tls_flow ~sw tls_flow in
                   (socket, socket)
-               | Error (`Msg msg) -> failwith msg)
+               | Error msg -> raise (Failed_with_msg msg))
         in
         `Supported upgrade
 

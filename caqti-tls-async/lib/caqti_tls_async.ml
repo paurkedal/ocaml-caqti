@@ -86,7 +86,8 @@ module Tls_provider = struct
 
   let start_tls ~config ?host ((_outer_reader, outer_writer) as outer_rw) =
     (match%bind Tls_async.Session.client_of_fd config ?host outer_rw with
-     | Error error -> return (Error (`Msg (Error.to_string_hum error)))
+     | Error error ->
+        return (Error (Caqti_error.Msg (Error.to_string_hum error)))
      | Ok session ->
         let%map _, inner_reader, inner_writer,
                 `Tls_closed_and_flushed_downstream outer_cafd =

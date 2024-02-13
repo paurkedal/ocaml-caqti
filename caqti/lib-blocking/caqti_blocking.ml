@@ -17,6 +17,16 @@
 
 open Caqti_platform
 
+type Caqti_error.msg += Msg_unix of Unix.error * string * string
+
+let () =
+  let pp ppf = function
+   | Msg_unix (err, func, arg) ->
+      Format.fprintf ppf "%s in %s(%S)" (Unix.error_message err) func arg
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+
 module Fiber = struct
   type 'a t = 'a
   module Infix = struct
@@ -114,8 +124,7 @@ module System = struct
         let ic, oc = Unix.open_connection sockaddr in
         Ok (Socket.Tcp (ic, oc))
       with
-       | Unix.Unix_error (code, _, _) ->
-          Error (`Msg ("Cannot connect: " ^ Unix.error_message code))
+       | Unix.Unix_error (err, func, arg) -> Error (Msg_unix (err, func, arg))
 
     let tcp_flow_of_socket _ = None
     let socket_of_tls_flow ~sw:_ = Fun.id

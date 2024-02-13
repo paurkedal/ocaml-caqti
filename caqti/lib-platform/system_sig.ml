@@ -127,7 +127,7 @@ module type TLS_PROVIDER = sig
   val start_tls :
     config: tls_config ->
     ?host: [`host] Domain_name.t ->
-    tcp_flow -> (tls_flow, [> `Msg of string]) result fiber
+    tcp_flow -> (tls_flow, Caqti_error.msg) result fiber
 end
 
 module type NET = sig
@@ -169,7 +169,7 @@ module type NET = sig
 
   val connect_tcp :
     sw: switch -> stdenv: stdenv -> Sockaddr.t ->
-    (Socket.t, [> `Msg of string]) result fiber
+    (Socket.t, Caqti_error.msg) result fiber
 
   val tcp_flow_of_socket : Socket.t -> tcp_flow option
   val socket_of_tls_flow : sw: switch -> tls_flow -> Socket.t

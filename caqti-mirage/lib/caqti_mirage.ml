@@ -185,7 +185,7 @@ struct
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
-              (`Msg "Unix sockets are not available under MirageOS.")
+              (Caqti_error.Msg "Unix sockets are not available under MirageOS.")
          | `Tcp (ipaddr, port) ->
             TCP.create_connection (STACK.tcp stack) (ipaddr, port) >|=
             (function
@@ -198,7 +198,7 @@ struct
                 })
              | Error err ->
                 let msg = Format.asprintf "%a" TCP.pp_error err in
-                Error (`Msg msg)))
+                Error (Caqti_error.Msg msg)))
 
       let tcp_flow_of_socket (Socket.V {tcp_flow; _}) = tcp_flow
 
@@ -225,7 +225,7 @@ struct
               })
            | Error err ->
               let msg = Format.asprintf "%a" TLS.pp_write_error err in
-              Error (`Msg msg))
+              Error (Caqti_error.Msg msg))
       end
 
       let tls_providers_r : (module TLS_PROVIDER) list ref =

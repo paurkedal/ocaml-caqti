@@ -17,6 +17,16 @@
 
 open Lwt.Infix
 
+type Caqti_error.msg += Msg_unix of Unix.error * string * string
+
+let () =
+  let pp ppf = function
+   | Msg_unix (err, func, arg) ->
+      Format.fprintf ppf "%s in %s(%S)" (Unix.error_message err) func arg
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+
 module System_core = struct
   include Caqti_lwt.System_core
   type stdenv = unit
@@ -102,9 +112,9 @@ module Net = struct
         let oc = Lwt_io.(of_fd ~mode:output) fd in
         Ok {fd = Some fd; ic; oc})
       (function
-       | Unix.Unix_error (err, fn, _) ->
+       | Unix.Unix_error (err, fn, arg) ->
           Lwt_unix.close fd >|= fun () ->
-          Error (`Msg (fn ^ ": " ^ Unix.error_message err))
+          Error (Msg_unix (err, fn, arg))
        | exn ->
           Lwt_unix.close fd >>= fun () ->
           Lwt.fail exn)

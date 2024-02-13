@@ -17,6 +17,15 @@
 
 open Caqti_platform
 
+type Caqti_error.msg += Msg_io of Eio.Exn.err * Eio.Exn.context
+
+let () =
+  let pp ppf = function
+   | Msg_io (err, ctx) -> Eio.Exn.pp ppf (Eio.Exn.Io (err, ctx))
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Msg_io]
+
 module Fiber = struct
   type 'a t = 'a
   module Infix = struct
@@ -190,8 +199,8 @@ module Net = struct
           :> [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t)
       in
       Ok (socket_of_flow ~which:"TCP" ~sw flow)
-    with Eio.Exn.Io _ as exn ->
-      Error (`Msg (Format.asprintf "%a" Eio.Exn.pp exn))
+    with Eio.Exn.Io (err, ctx) ->
+      Error (Msg_io (err, ctx))
 
   module type TLS_PROVIDER = Caqti_platform.System_sig.TLS_PROVIDER
     with type 'a fiber := 'a

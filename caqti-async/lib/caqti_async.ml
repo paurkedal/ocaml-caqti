@@ -22,6 +22,16 @@ open Async_unix
 open Caqti_platform
 open Core
 
+type Caqti_error.msg += Msg_unix of Core_unix.Error.t * string * string
+
+let () =
+  let pp ppf = function
+   | Msg_unix (err, func, arg) ->
+      Format.fprintf ppf "%s in %s(%S)" (Core_unix.Error.message err) func arg
+   | _ -> assert false
+  in
+  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+
 module Fiber = struct
   type 'a t = 'a Deferred.t
 
@@ -170,8 +180,13 @@ module System = struct
     type tls_flow = Socket.t
 
     let intercept_exceptions f =
-      Async_kernel.Monitor.try_with_or_error f
-      >|= Stdlib.Result.map_error (fun e -> `Msg (Error.to_string_mach e))
+      Async_kernel.Monitor.try_with f >|= function
+       | Ok _ as r -> r
+       | Error exn ->
+          (match Async_kernel.Monitor.extract_exn exn with
+           | Core_unix.Unix_error (err, func, arg) ->
+              Error (Msg_unix (err, func, arg))
+           | _ -> raise exn)
 
     let connect_tcp ~sw:_ ~stdenv:() addr =
       intercept_exceptions @@ fun () ->

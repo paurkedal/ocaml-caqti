@@ -33,10 +33,9 @@ let get_install_dir () =
   let cwd = Sys.getcwd () in
   loop (Filename.dirname cwd) (Filename.basename cwd) "."
 
-let plugin_deps public_name =
+let library_deps public_name =
   let libdir = get_install_dir () ^/ "lib" in
   let priv_name = String.map (function '-' | '.' -> '_' | c -> c) public_name in
-  let plugin_name = String.map (function '.' -> '-' | c -> c) public_name in
   let package, library_dir =
     (match String.split_on_char '.' public_name with
      | [] -> assert false
@@ -46,19 +45,24 @@ let plugin_deps public_name =
     libdir ^/ package ^/ "META";
     libdir ^/ library_dir ^/ priv_name ^ ".cma";
     libdir ^/ library_dir ^/ priv_name ^ ".cmxs";
-    libdir ^/ "caqti/plugins" ^/ plugin_name ^/ "META";
   ]
+
+let plugin_deps public_name =
+  let libdir = get_install_dir () ^/ "lib" in
+  let plugin_name = String.map (function '.' -> '-' | c -> c) public_name in
+  let plugin_meta = libdir ^/ "caqti/plugins" ^/ plugin_name ^/ "META" in
+  plugin_meta :: library_deps public_name
 
 let deps_of_uri uri =
   (match Uri.scheme uri with
    | Some "mariadb" ->
-      plugin_deps "caqti-driver-mariadb"
+      library_deps "caqti" @ plugin_deps "caqti-driver-mariadb"
    | Some ("postgres" | "postgresql") ->
-      plugin_deps "caqti-driver-postgresql"
+      library_deps "caqti" @ plugin_deps "caqti-driver-postgresql"
    | Some "pgx" ->
-      plugin_deps "caqti-driver-pgx"
+      library_deps "caqti" @ plugin_deps "caqti-driver-pgx"
    | Some "sqlite3" ->
-      plugin_deps "caqti-driver-sqlite3"
+      library_deps "caqti" @ plugin_deps "caqti-driver-sqlite3"
    | _ ->
       failwithf "Cannot determine driver dependency for %a." Uri.pp uri)
 

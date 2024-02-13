@@ -3,7 +3,6 @@
 (library
  (name caqti_driver_pgx)
  (public_name caqti-driver-pgx)
- (enabled_if (>= %{ocaml_version} "4.10"))
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform domain-name ipaddr pgx))
 

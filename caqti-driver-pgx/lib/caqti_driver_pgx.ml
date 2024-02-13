@@ -19,6 +19,10 @@ open Caqti_platform
 open Postgresql_conv
 open Printf
 
+let rec find_map_list f = function
+ | [] -> None
+ | x :: xs -> (match f x with | None -> find_map_list f xs | Some _ as y -> y)
+
 type Caqti_error.msg += Pgx_msg of string * Pgx.Error_response.t
 let () =
   let pp ppf = function
@@ -716,7 +720,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Some config ->
           Some (Ssl_config {impl = (module Tls_provider); config; host}))
     in
-    (match List.find_map with_config (Net.tls_providers config) with
+    (match find_map_list with_config (Net.tls_providers config) with
      | None -> `No
      | Some ssl_config -> `Always ssl_config)
 

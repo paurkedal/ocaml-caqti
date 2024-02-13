@@ -32,9 +32,15 @@
   - Added multi-statement parser (`Caqti_query.angstrom_list_parser`)
     intended for loading SQL schema files.
 
+  - The new `caqti.plugin` sublibrary is a drop-in replacement for the
+    `caqti-dynload` package.  It is based on the `dune-site.plugin` library.
+    Please try it and report back if there are issues.
+
   - Some updates to external dependencies, esp. we are now at EIO 0.12+.
 
   - Fixed lacking details in error messages related to driver load failures.
+
+  - Fixed uncaught exceptions for PGX (#113).
 
 ## v2.0.1 - 2023-08-14
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,6 +42,26 @@ struct
 
   let pclock_now_opt () = Some (Ptime.v (PCLOCK.now_d_ps ()))
 
+  let connect stack dns =
+    let*? config =
+      let set_authenticator arg cfg =
+        let/? authenticator = X509.Authenticator.of_string arg in
+        let authenticator = authenticator pclock_now_opt in
+        let tls_cfg = Tls.Config.client ~authenticator () in
+        let cfg =
+          Caqti_connect_config.set Caqti_tls.Config.client (Some tls_cfg) cfg
+        in
+        Ok cfg
+      in
+      Caqti_connect_config.default
+        |> Option.fold ~none:Result.ok ~some:set_authenticator
+            (Key_gen.x509_authenticator ())
+        |> Lwt.return
+    in
+    let* () = Log.info (fun f -> f "Connecting to the database.") in
+    let db_uri = Uri.of_string (Key_gen.database_uri ()) in
+    Caqti_mirage_connect.connect ~config stack dns db_uri
+
   let test (module C : Caqti_lwt.CONNECTION) =
     let+? res = C.find minus_req (22, 17) in
     assert (res = 5)
@@ -50,26 +70,11 @@ struct
     Logs.(set_level (Some Info));
     Logs.set_reporter (Logs_reporter.create ());
     begin
-      let*? config =
-        let set_authenticator arg cfg =
-          let/? authenticator = X509.Authenticator.of_string arg in
-          let authenticator = authenticator pclock_now_opt in
-          let tls_cfg = Tls.Config.client ~authenticator () in
-          let cfg =
-            Caqti_connect_config.set Caqti_tls.Config.client (Some tls_cfg) cfg
-          in
-          Ok cfg
-        in
-        Caqti_connect_config.default
-          |> Option.fold ~none:Result.ok ~some:set_authenticator
-              (Key_gen.x509_authenticator ())
-          |> Lwt.return
-      in
-      let* () = Log.info (fun f -> f "Connecting to the database.") in
-      let db_uri = Uri.of_string (Key_gen.database_uri ()) in
-      let*? db_conn = Caqti_mirage_connect.connect ~config stack dns db_uri in
       let* () = Log.info (fun f -> f "Running tests.") in
-      test db_conn
+      let*? (module C) = connect stack dns in
+      let*? () = test (module C) in
+      let+ () = C.disconnect () in
+      Ok ()
     end >>= function
      | Ok () -> Log.info (fun f -> f "Done.")
      | Error (`Msg msg) -> Log.err (fun f -> f "%s" msg)

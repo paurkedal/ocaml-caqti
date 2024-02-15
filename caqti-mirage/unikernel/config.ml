@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,6 +31,17 @@ let pin =
   locate_top p
 
 let pin_version =
+  let release_notes_header =
+    let ic = open_in "../../CHANGES.md" in
+    Fun.protect ~finally:(fun () -> close_in ic) (fun () -> input_line ic)
+  in
+  (match String.split_on_char ' ' release_notes_header with
+   | ["##"; version; "-"; _] when String.starts_with ~prefix:"v" version ->
+      String.sub version 1 (String.length version - 1)
+   | _ -> failwith "Cannot extract version from CHANGES.md.")
+
+(*
+let pin_version_from_git =
   let fh = Unix.open_process_in "git describe" in
   let v = input_line fh in
   (match Unix.close_process_in fh with
@@ -39,6 +50,7 @@ let pin_version =
       assert (n > 1 && v.[0] = 'v');
       String.sub v 1 (n - 1)
    | _ -> failwith "git describe failed")
+*)
 
 let packages = [
   package "caqti" ~pin ~pin_version;

@@ -85,9 +85,7 @@ module Sequencer = struct
     (* Using Eio.Mutex.use_rw without handling exceptions poisons the mutex,
      * preventing recovery from e.g. a statement timeout. *)
     Eio.Mutex.lock mutex;
-    (match f x with
-     | y -> Eio.Mutex.unlock mutex; y
-     | exception exn -> Eio.Mutex.unlock mutex; raise exn)
+    Fun.protect ~finally:(fun () -> Eio.Mutex.unlock mutex) (fun () -> f x)
 end
 
 module Alarm = struct

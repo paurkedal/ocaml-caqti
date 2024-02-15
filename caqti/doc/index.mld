@@ -29,11 +29,22 @@ Real concurrency support is provided by separate packages.
 The entry point of this library is the module:
 {!module-Caqti_blocking}.
 
+{1 Library caqti.plugin}
+
+This library registers a dynamic linker based on the dune-site.plugin
+library, which allows Caqti to automatically load driver libraries inferred
+from the URI when connecting to a new kind of database for the first time.
+It has entry point; linking aganist it provides all of its functionality.
+
+This library is an experimental drop-in replacement for the caqti-dynload
+package.
+
+
 {1 Platform Libraries for Internal Use}
 
 The platform libraries are only meant for use in implementing drivers and
 concurrency support.  {b These APIs are unstable}, i.e. they can change between
-minor version and without prior deprecation notices.
+minor versions and without prior deprecation notices.
 
 {2 Library caqti.platform}
 

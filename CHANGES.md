@@ -1,4 +1,10 @@
+## v2.1.1 - 2024-02-19
+
+This minor update fixes running of the test suite and packaging issues.
+
 ## v2.1.0 - 2024-02-19
+
+This release has been replaced by 2.1.1.
 
   - There is now TLS support for PGX.  The networking code (for PGX) was
     revised in the process, in particular the EIO variant is now buffered,

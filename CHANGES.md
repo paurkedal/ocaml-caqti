@@ -1,9 +1,12 @@
-## v2.1.0 - unreleased
+## v2.1.0 - 2024-02-19
 
-  - There is now TLS support also for PGX.  The networking code (for PGX)
-    was revised in the process, in particular the EIO variant is now
-    buffered, which improves performarce.  TLS implemantions are shipped as
-    separate packages (`caqti-tls*`).
+  - There is now TLS support for PGX.  The networking code (for PGX) was
+    revised in the process, in particular the EIO variant is now buffered,
+    which improves performarce.  TLS implemantions are shipped as separate
+    packages (`caqti-tls*`) but `caqti-tls-async`, `caqti-tls-eio`, and
+    `caqti-tls-lwt` should be considered experimental and will be omitted
+    from the OPAM release for now.  On the other hand, `caqti-mirage` now
+    ships with built-in TLS support for PGX.
 
   - Connect functions now accept an optional configuration.  For the time
     being, this is used for TLS parameters and for the optional

@@ -18,11 +18,17 @@
 open Testlib
 module String_set = Set.Make (String)
 
+(* This has been edited to emit (package ...) instead of precise internal
+ * dependencies, since the latter does not support runtest with -p. *)
+
+(*
 let (^/) p q = if p = "." then q else if q = "." then p else Filename.concat p q
+*)
 let (%) f g x = f (g x)
 let fold_list f = Fun.flip (List.fold_left (Fun.flip f))
 let failwithf = Format.kasprintf failwith
 
+(*
 let get_install_dir () =
   let rec loop dir sw acc =
     (match Filename.basename dir with
@@ -52,9 +58,15 @@ let plugin_deps public_name =
   let plugin_name = String.map (function '.' -> '-' | c -> c) public_name in
   let plugin_meta = libdir ^/ "caqti/plugins" ^/ plugin_name ^/ "META" in
   plugin_meta :: library_deps public_name
+*)
 
 let deps_of_uri uri =
   (match Uri.scheme uri with
+   | Some "mariadb" -> ["(package caqti-driver-mariadb)"]
+   | Some ("postgres" | "postgresql") -> ["(package caqti-driver-postgresql)"]
+   | Some "pgx" -> ["(package caqti-driver-pgx)"]
+   | Some "sqlite3" -> ["(package caqti-driver-sqlite3)"]
+(*
    | Some "mariadb" ->
       library_deps "caqti" @ plugin_deps "caqti-driver-mariadb"
    | Some ("postgres" | "postgresql") ->
@@ -63,6 +75,7 @@ let deps_of_uri uri =
       library_deps "caqti" @ plugin_deps "caqti-driver-pgx"
    | Some "sqlite3" ->
       library_deps "caqti" @ plugin_deps "caqti-driver-sqlite3"
+*)
    | _ ->
       failwithf "Cannot determine driver dependency for %a." Uri.pp uri)
 
@@ -73,7 +86,9 @@ let main common_args tls_library =
     in
     (match tls_configured, tls_library with
      | false, _ | _, None -> []
-     | true, Some tls_library -> plugin_deps tls_library)
+     | true, Some tls_library ->
+        ["(package " ^ List.hd (String.split_on_char '.' tls_library) ^ ")"]
+     (* | true, Some tls_library -> plugin_deps tls_library *))
   in
   String_set.of_list tls_deps
     |> fold_list (fold_list String_set.add % deps_of_uri) common_args.uris

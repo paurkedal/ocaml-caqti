@@ -17,7 +17,7 @@
     bechamel
     bechamel-notty
     caqti
-    caqti-dynload
+    caqti.plugin
     notty.unix
     testlib))
 

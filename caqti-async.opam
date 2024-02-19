@@ -17,6 +17,10 @@ depends: [
   "ipaddr"
   "logs"
   "ocaml"
+  "alcotest" {with-test & >= "1.5.0"}
+  "alcotest-async" {with-test}
+  "cmdliner" {with-test & >= "1.1.0"}
+  "caqti-driver-sqlite3" {with-test}
   "odoc" {with-doc}
 ]
 build: [

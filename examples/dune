@@ -1,7 +1,7 @@
 (executable
  (name bikereg)
  (modules bikereg)
- (libraries caqti caqti-dynload caqti-lwt caqti-lwt.unix testlib))
+ (libraries caqti caqti.plugin caqti-lwt caqti-lwt.unix testlib))
 
 (rule
  (alias runtest)

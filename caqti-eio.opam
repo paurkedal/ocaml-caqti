@@ -12,6 +12,12 @@ depends: [
   "eio" {>= "0.12"}
   "logs"
   "ocaml" {>= "5.0.0~"}
+  "alcotest" {with-test & >= "1.5.0"}
+  "caqti-driver-sqlite3" {with-test}
+  "cmdliner" {with-test & >= "1.1.0"}
+  "eio_main" {with-test}
+  "mirage-crypto-rng" {with-test}
+  "mirage-crypto-rng-eio" {with-test}
   "odoc" {with-doc}
 ]
 build: [

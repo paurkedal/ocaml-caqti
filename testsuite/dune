@@ -88,7 +88,7 @@
 
 (rule
   (alias runtest)
-  (package caqti-tls-eio)
+  (package caqti-eio)
   (enabled_if (>= %{ocaml_version} "5.0"))
   (deps
     (:test main_eio_unix.exe)
@@ -107,7 +107,7 @@
 
 (rule
   (alias runtest)
-  (package caqti-tls-async)
+  (package caqti-async)
   (deps
     (:test main_async.exe)
     (:U %{env:CAQTI_TEST_URIS_FILE=uris.conf})
@@ -126,7 +126,7 @@
 
 (rule
   (alias runtest)
-  (package caqti-tls-lwt)
+  (package caqti-lwt)
   (deps (:test main_lwt_unix.exe) (include dune.uri-deps-lwt) uris.conf)
   (locks /db/testsuite)
   (action (run %{test})))

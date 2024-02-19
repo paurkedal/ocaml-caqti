@@ -14,11 +14,6 @@ depends: [
   "ocaml"
   "tls"
   "tls-lwt"
-  "alcotest" {with-test & >= "1.5.0"}
-  "alcotest-lwt" {with-test & >= "1.5.0"}
-  "cmdliner" {with-test & >= "1.1.0"}
-  "caqti-dynload" {with-test}
-  "caqti-driver-sqlite3" {with-test}
   "odoc" {with-doc}
 ]
 build: [

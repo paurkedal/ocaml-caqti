@@ -15,10 +15,14 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module Log = (val Logs.src_log (Logs.Src.create "caqti.plugin"))
+
 let () =
   let load pkg =
     let pkg = String.map (function '.' -> '-' | c -> c) pkg in
-    if List.mem pkg (Sites.Plugins.Plugins.list ()) then
+    let plugins = Sites.Plugins.Plugins.list () in
+    Log.debug (fun p -> p "Available plugins: %s" (String.concat ", " plugins));
+    if List.mem pkg plugins then
       begin
         Sites.Plugins.Plugins.load pkg;
         Ok ()

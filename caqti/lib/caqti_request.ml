@@ -16,4 +16,4 @@
  *)
 
 include Caqti_template.Request
-module Infix = Caqti_template.Std
+module Infix = Caqti_template

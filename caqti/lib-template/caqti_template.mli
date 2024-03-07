@@ -15,7 +15,20 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Operators and reexported row types for constructing request templates. *)
+(** {2 Submodules for Advanced Usage}
+
+    These modules are part of the stable API, but the casual user may find it
+    sufficient to use the top-level definitions and reexports described in the
+    following sections. *)
+
+module Driver_info = Driver_info
+module Field_type = Field_type
+module Query = Query
+module Query_fmt = Query_fmt
+module Request = Request
+module Row_mult = Row_mult
+module Row_type = Row_type
+module Shims = Shims
 
 (** {2 Infix Operators for Constructing Request Templates}
 
@@ -177,6 +190,6 @@ val ( @@:- ) :
 (** Applies a dialect-dependent query string which is parsed with
     {!Query.of_string_exn}. *)
 
-(** {2 Row Types} *)
+(** {2 Reexported Row Types} *)
 
 include Row_type.STD

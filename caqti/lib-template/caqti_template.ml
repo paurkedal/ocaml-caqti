@@ -15,6 +15,15 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module Driver_info = Driver_info
+module Field_type = Field_type
+module Query = Query
+module Query_fmt = Query_fmt
+module Request = Request
+module Row_mult = Row_mult
+module Row_type = Row_type
+module Shims = Shims
+
 let (-->.) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero f
 let (-->!) t u ?oneshot f = Request.create ?oneshot t u Row_mult.one f
 let (-->?) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero_or_one f

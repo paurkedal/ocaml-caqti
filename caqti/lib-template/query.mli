@@ -52,7 +52,7 @@ type t =
     (** [Q s] corresponds to a quoted string literal.  This is passed as part of
         the query string if a suitable quoting function is available in the
         client library, otherwise it is equivalent to
-        {!V}[(]{!Field_type.String}[, s)]. *)
+        {!V}[(]{!Caqti_template.Field_type.String}[, s)]. *)
   | P of int
     (** [P i] refers to parameter number [i], counting from 0, so that e.g.
         [P 0] translates to ["$1"] for PostgreSQL and ["?1"] for SQLite3. *)
@@ -169,8 +169,8 @@ val angstrom_parser : t Angstrom.t
 val angstrom_parser_with_semicolon : t Angstrom.t
 (** A variant of [angstrom_parser] which accepts unquoted semicolons as part of
     the single statement, as is valid in some cases like in SQLite3 trigger
-    definitions.  This is the parser used by {!Request}, where it's assumed that
-    the input is a single SQL statement. *)
+    definitions.  This is the parser used by {!Caqti_template.Request}, where
+    it's assumed that the input is a single SQL statement. *)
 
 val angstrom_list_parser : t list Angstrom.t
 (** Matches a sequence of statements while ignoring surrounding white space and

@@ -40,6 +40,25 @@ let query request = request.query
 
 let no_env _ _ = raise Not_found
 
+module Infix = struct
+  let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
+  let (-->!) t u ?oneshot f = create ?oneshot t u Row_mult.one f
+  let (-->?) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_one f
+  let (-->*) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_more f
+
+  let (@:-) f s =
+    let q = Query.of_string_exn s in
+    f (fun _ -> q)
+
+  let (@@:-) f g =
+    f (fun di -> Query.of_string_exn (g (Driver_info.dialect_tag di)))
+
+  let (->.) t u ?oneshot s = create ?oneshot t u Row_mult.zero @:- s
+  let (->!) t u ?oneshot s = create ?oneshot t u Row_mult.one @:- s
+  let (->?) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_one @:- s
+  let (->*) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_more @:- s
+end
+
 let make_pp ?(env = no_env) ?(driver_info = Driver_info.dummy) ()
             ppf req =
   let query = Query.expand (env driver_info) (req.query driver_info) in

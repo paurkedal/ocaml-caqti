@@ -30,166 +30,71 @@ module Row_mult = Row_mult
 module Row_type = Row_type
 module Shims = Shims
 
-(** {2 Infix Operators for Constructing Request Templates}
+(** {2 Request Template Construction}
 
-    The following operators provides a more visually appealing way of expressing
-    requests.  They are implemented in terms of {!Request.create} and
-    {!Query.of_string_exn}, meaning that the query string arguments accepts
-    {{!query_template} The Syntax of Query Templates}.
-
-    The [?oneshot] argument defaults to [false], so when not constructing
-    one-shot queries, the full application [(pt -->! rt) f] can be written
-    [pt -->! rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts.
-
-    In the simplest case you can use this module directly:
+    The following imports collects everything you need to create
+    {{!Caqti_template.Request} request templates}, which describe the (prepared)
+    query to send to the database, the parameters type, the result row type, and
+    the expected multiplicity of the result.  So, you can simply use a local
+    open,
     {[
       let bounds_upto_req =
-        let open Caqti_template.Std in
-        tup2 int32 float -->! option (tup2 float float) @:-
+        Caqti_template.(t2 int32 float ->! option (t2 float float))
         "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
     ]}
-    For more complex applications it may be convenient to provide a custom
-    module, to avoid the double open and to customize the operators, e.g.
-    {[
-      module Caqtireq = struct
-        include Caqti_template.Std
-        include Caqti_type_calendar (* if needed, link caqti-type-calendar *)
+    Here, [?] is used to refer to parameters, but you can also use the
+    [PostgreSQL]-style [$1], [$2], etc. if you prefer, as long as you stick to
+    the same convention within a single query.  Caqti translates parameter
+    references and rearrages parameters if necessary so that it will work as
+    expected indepnedent of the database system.
 
-        (* Any additional types. *)
+    Apart from parameter references, there are differences between SQL dialects
+    which often makes it necessary to use different queries for different
+    database systems.  The driver-dependent constructors (long arrows) allows to
+    you define a single query template which works across database systems, e.g.
+    {[
+      let concat_req =
+        Caqti_template.(t2 string string -->! string) @@:- function
+         | `Mysql -> "SELECT concat(?, ?)"
+         | _ -> "SELECT ? || ?"
+    ]}
+    The long arrows expects a function which receives a
+    {!Caqti_template.Driver_info.t} and returns a {!Caqti_template.Query.t}.
+    Since we only need the {!Caqti_template.Driver_info.type-dialect_tag} for
+    dispatching and since we want to return the query i the form of a string, we
+    use the shortcut [@@:-] which transforms the function accordingly before
+    applying it to the request constructor.  That is, the above example expands
+    to
+    {[
+      let concat_req =
+        Caqti_template.(t2 string string -->! string) @@ fun driver_info ->
+          (match Caqti_template.Driver_info.dialect_tag driver_info with
+           | `Mysql -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
+           | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?")
+    ]}
+
+    For more complex applications it may be convenient to create a module with
+    custom definitions, maybe extending the current API to avoid double open:
+    {[
+      module Ct : sig
+        open Caqti_template
+        include Caqti_template.STD
+        val password : string Row_type.t
+        val uri : Uri.t Row_type.t
+      end = struct
+        open Caqti_template
+        include (Caqti_template : Caqti_template.STD)
         let password = redacted string
         let uri =
-          custom ~encode:(fun x -> Ok (Uri.to_string x))
-                 ~decode:(fun s -> Ok (Uri.of_string s)) string
-
-        (* Optionally define a custom environment providing two schema names.
-         * The references should only be assigned at startup. *)
-        let myapp_schema = ref "myapp"
-        let mylib_schema = ref "mylib"
-        let env = function
-         | "" -> Query.L !myapp_schema
-         | "mylib" -> Query.L !mylib_schema
-         | _ -> raise Not_found
-
-        (* Since we have a custom environment, override the definitions of the
-         * following operators to perform the substitution. *)
-        let (@:-) t qs =
-          let q = Query.expand env (Query.of_string_exn qs) in
-          t (fun _ -> q)
-        let (@@:-) t qsf =
-          t (fun driver_info ->
-            let qs = qsf (Driver_info.dialect_tag driver_info) in
-            Query.expand env (Query.of_string_exn qs))
+          let encode x = Ok (Uri.to_string x) in
+          let decode s = Ok (Uri.of_string s) in
+          Row_type.custom ~encode ~decode string
       end
     ]}
-    If you don't like using global references, or you need to work with
-    different environments for different connections, you should instead pass
-    the environment function when connecting to the database.  We can now
-    simplify and schema-qualify the previous request,
-    {[
-      let bounds_upto_req =
-        let open Caqtireq in
-        tup2 int32 float -->! option (tup2 float float) @:-
-        "SELECT min(y), max(y) FROM $.samples WHERE series_id = ? AND x < ?"
-    ]}
-    {!section:indep} also provides alternative arrow operators for this common
-    case, which allows using short-from local open,
-    {[
-      let bounds_upto_req =
-        Caqtireq.(tup2 int32 float ->! option (tup2 float float))
-        "SELECT min(y), max(y) FROM $.samples WHERE series_id = ? AND x < ?"
-    ]}
- *)
+  *)
 
-(** {3:indep Constructors for Driver-Independent Requests} *)
-
-val ( ->. ) :
-  'a Row_type.t -> unit Row_type.t ->
-  ?oneshot: bool -> string -> ('a, unit, [`Zero]) Request.t
-(** [(pt ->. Row_type.unit) ?oneshot s] is the request which sends the query
-    string [s], encodes parameters according to [pt], and expects no result
-    rows. See {!Request.create} for the meaning of [oneshot]. *)
-
-val ( ->! ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> string -> ('a, 'b, [`One]) Request.t
-(** [(pt ->! rt) ?oneshot s] is the request which sends the query string [s],
-    encodes parameters according to [pt], and decodes a single result row
-    according to [rt]. See {!Request.create} for the meaning of [oneshot]. *)
-
-val ( ->? ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One]) Request.t
-(** [(pt ->? rt) ?oneshot s] is the request which sends the query string [s],
-    encodes parameters according to [pt], and decodes zero or one result row
-    according to [rt]. See {!Request.create} for the meaning of [oneshot]. *)
-
-val ( ->* ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One | `Many]) Request.t
-(** [(pt ->* rt) ?oneshot s] is the request which sends the query string [s],
-    encodes parameters according to [pt], and decodes any number of result rows
-    according to [rt]. See {!Request.create} for the meaning of [oneshot]. *)
-
-(** {3 Constructors for Driver-Dependent Requests}
-
-    The below arrow operators takes a function instead of a string as their
-    third argument.  The function receives information about the current driver
-    and returns a {!Query.t}.  This is the most general way of providing the
-    query string.
-
-    As an alternative to using plain application (or [@@]) for the third
-    positional argument, additional application operators are provided for
-    convenience. *)
-
-val ( -->. ) :
-  'a Row_type.t -> unit Row_type.t ->
-  ?oneshot: bool -> (Driver_info.t -> Query.t) ->
-  ('a, unit, [`Zero]) Request.t
-(** [(pt -->. Row_type.unit) ?oneshot f] is the request which sends the
-    query string returned by [f], encodes parameters according to [pt], and
-    expects no result rows. See {!Request.create} for the meaning of
-    [oneshot]. *)
-
-val ( -->! ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> (Driver_info.t -> Query.t) ->
-  ('a, 'b, [`One]) Request.t
-(** [(pt -->! rt) ?oneshot f] is the request which sends the query string
-    returned by [f], encodes parameters according to [pt], and decodes a
-    single result row according to [rt]. See {!Request.create} for the meaning
-    of [oneshot]. *)
-
-val ( -->? ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> (Driver_info.t -> Query.t) ->
-  ('a, 'b, [`Zero | `One]) Request.t
-(** [(pt -->? rt) ?oneshot f] is the request which sends the query string
-    returned by [f], encodes parameters according to [pt], and decodes zero or
-    one result row according to [rt]. See {!Request.create} for the meaning of
-    [oneshot]. *)
-
-val ( -->* ) :
-  'a Row_type.t -> 'b Row_type.t ->
-  ?oneshot: bool -> (Driver_info.t -> Query.t) ->
-  ('a, 'b, [`Zero | `One | `Many]) Request.t
-(** [(pt -->* rt) ?oneshot f] is the request which sends the query string
-    returned by [f], encodes parameters according to [pt], and decodes any
-    number of result rows according to [rt]. See {!Request.create} for the
-    meaning of [oneshot]. *)
-
-val ( @:- ) :
-  ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) Request.t) ->
-  string -> ('a, 'b, 'm) Request.t
-(** Applies a dialect-independent query string which is parsed with
-    {!Query.of_string_exn}.  Composition with arrow operators from this
-    section, gives the corresponding operators from {!section:indep}. *)
-
-val ( @@:- ) :
-  ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) Request.t) ->
-  (Driver_info.dialect_tag -> string) -> ('a, 'b, 'm) Request.t
-(** Applies a dialect-dependent query string which is parsed with
-    {!Query.of_string_exn}. *)
-
-(** {2 Reexported Row Types} *)
-
-include Row_type.STD
+module type STD = sig
+  include module type of Request.Infix
+  include Row_type.STD
+end
+include STD

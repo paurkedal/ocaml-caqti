@@ -24,21 +24,9 @@ module Row_mult = Row_mult
 module Row_type = Row_type
 module Shims = Shims
 
-let (-->.) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero f
-let (-->!) t u ?oneshot f = Request.create ?oneshot t u Row_mult.one f
-let (-->?) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero_or_one f
-let (-->*) t u ?oneshot f = Request.create ?oneshot t u Row_mult.zero_or_more f
-
-let (@:-) f s =
-  let q = Query.of_string_exn s in
-  f (fun _ -> q)
-
-let (@@:-) f g =
-  f (fun di -> Query.of_string_exn (g (Driver_info.dialect_tag di)))
-
-let (->.) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero @:- s
-let (->!) t u ?oneshot s = Request.create ?oneshot t u Row_mult.one @:- s
-let (->?) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero_or_one @:- s
-let (->*) t u ?oneshot s = Request.create ?oneshot t u Row_mult.zero_or_more @:- s
-
+module type STD = sig
+  include module type of Request.Infix
+  include Row_type.STD
+end
+include Request.Infix
 include (Row_type : Row_type.STD)

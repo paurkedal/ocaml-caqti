@@ -16,4 +16,3 @@
  *)
 
 include Caqti_template.Request
-module Infix = Caqti_template

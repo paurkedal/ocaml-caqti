@@ -27,7 +27,7 @@
     can be defined directly in a module scope.  However, an optional [oneshot]
     parameter may be passed to indicate a dynamically generated query. *)
 
-(** {2 Primitives} *)
+(** {2 Primitive Constructor and Accessors} *)
 
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 (** A request specification embedding a query generator, parameter encoder, and
@@ -84,7 +84,111 @@ val query : ('a, 'b, 'm) t -> Driver_info.t -> Query.t
     possibly tailored for the given driver. *)
 
 
-(** {2 Printing} *)
+(** They are implemented in terms of {!Request.create} and
+    {!Query.of_string_exn}, meaning that the query string arguments accepts
+    {{!query_template} The Syntax of Query Templates}.
+
+    The [?oneshot] argument defaults to [false], so when not constructing
+    one-shot queries, the full application [(pt -->! rt) f] can be written
+    [pt -->! rt @@ f], which motivates the {!(@:-)} and {!(@@:-)} shortcuts. *)
+module Infix : sig
+  (** {3:indep Constructors for Driver-Independent Requests} *)
+
+  val ( ->. ) :
+    'a Row_type.t -> unit Row_type.t ->
+    ?oneshot: bool -> string -> ('a, unit, [`Zero]) t
+  (** [(pt ->. Row_type.unit) ?oneshot s] is the request which sends the query
+      string [s], encodes parameters according to [pt], and expects no result
+      rows. See {!Caqti_template.Request.create} for the meaning of [oneshot].
+      *)
+
+  val ( ->! ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`One]) t
+  (** [(pt ->! rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes a single result row
+      according to [rt]. See {!Caqti_template.Request.create} for the meaning of
+      [oneshot]. *)
+
+  val ( ->? ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One]) t
+  (** [(pt ->? rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes zero or one result row
+      according to [rt]. See {!Caqti_template.Request.create} for the meaning of
+      [oneshot]. *)
+
+  val ( ->* ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> string -> ('a, 'b, [`Zero | `One | `Many]) t
+  (** [(pt ->* rt) ?oneshot s] is the request which sends the query string [s],
+      encodes parameters according to [pt], and decodes any number of result
+      rows according to [rt]. See {!Caqti_template.Request.create} for the
+      meaning of [oneshot]. *)
+
+  (** {3 Constructors for Driver-Dependent Requests}
+
+      The below arrow operators takes a function instead of a string as their
+      third argument.  The function receives information about the current
+      driver and returns a {!Query.t}.  This is the most general way of
+      providing the query string.
+
+      As an alternative to using plain application (or [@@]) for the third
+      positional argument, additional application operators are provided for
+      convenience. *)
+
+  val ( -->. ) :
+    'a Row_type.t -> unit Row_type.t ->
+    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ('a, unit, [`Zero]) t
+  (** [(pt -->. Row_type.unit) ?oneshot f] is the request which sends the query
+      string returned by [f], encodes parameters according to [pt], and expects
+      no result rows. See {!Caqti_template.Request.create} for the meaning of
+      [oneshot]. *)
+
+  val ( -->! ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ('a, 'b, [`One]) t
+  (** [(pt -->! rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes a
+      single result row according to [rt]. See {!Caqti_template.Request.create}
+      for the meaning of [oneshot]. *)
+
+  val ( -->? ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ('a, 'b, [`Zero | `One]) t
+  (** [(pt -->? rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes zero or
+      one result row according to [rt]. See {!Caqti_template.Request.create} for
+      the meaning of [oneshot]. *)
+
+  val ( -->* ) :
+    'a Row_type.t -> 'b Row_type.t ->
+    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ('a, 'b, [`Zero | `One | `Many]) t
+  (** [(pt -->* rt) ?oneshot f] is the request which sends the query string
+      returned by [f], encodes parameters according to [pt], and decodes any
+      number of result rows according to [rt]. See
+      {!Caqti_template.Request.create} for the meaning of [oneshot]. *)
+
+  val ( @:- ) :
+    ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) t) ->
+    string -> ('a, 'b, 'm) t
+  (** Applies a dialect-independent query string which is parsed with
+      {!Caqti_template.Query.of_string_exn}.  Composition with arrow operators
+      from this section, gives the corresponding operators from
+      {!section:indep}. *)
+
+  val ( @@:- ) :
+    ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) t) ->
+    (Driver_info.dialect_tag -> string) -> ('a, 'b, 'm) t
+  (** Applies a dialect-dependent query string which is parsed with
+      {!Caqti_template.Query.of_string_exn}. *)
+end
+
+(** {2 Formatting} *)
 
 val make_pp :
   ?env: (Driver_info.t -> string -> Query.t) ->
@@ -120,37 +224,3 @@ val make_pp_with_param :
     [true].  If you enable it for applications which do not consistenly annotate
     sensitive parameters with {!Row_type.redacted}, make sure your debug logs
     are well-secured. *)
-
-(** {2 How to Dynamically Assemble Queries and Parameters}
-
-    This can now be done more simply using {!Query.V}.
-
-    In some cases, queries are constructed dynamically, e.g. when translating an
-    expression for searching a database into SQL.  In such cases the number of
-    parameters and their types will typically vary, as well.  A helper like the
-    following can be used to existentially pack the parameter types along with
-    the corresponding parameter values to allow collecing them incrementally:
-    {[
-      module Dynparam = struct
-        open Caqti_template
-        type t = Pack : 'a Row_type.t * 'a -> t
-        let empty = Pack (Row_type.unit, ())
-        let add t x (Pack (t', x')) = Pack (Row_type.t2 t' t, (x', x))
-      end
-    ]}
-    Now, given a [param : Dynparam.t] and a corresponding query string [qs], one
-    can construct a request and execute it:
-    {[
-      let Dynparam.Pack (pt, pv) = param in
-      let req = Caqti_template.Std.(pt -->. unit) ~oneshot:true pt qs in
-      C.exec req pv
-    ]}
-    Note that dynamically constructed requests should have [~oneshot:true]
-    unless they are memoized.  Also note that it is natural to use {!create} for
-    dynamically constructed queries, since it accepts the easily composible
-    {!Query.t} type instead of plain strings.
-
-    This scheme can be specialized for particular use cases, including
-    generation of fragments of the [query], which reduces the risk of wrongly
-    matching up parameters with their uses in the query string.
-    *)

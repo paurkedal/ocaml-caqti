@@ -90,8 +90,8 @@ val query : Query.t t
 (** {2 Value Formatters}
 
     The following formatters emit values of basic field types by passing them as
-    parameters.  This is done by emitting a {!Query.V} node with a appropriate
-    field type. *)
+    parameters.  This is done by emitting a {!Caqti_template.Query.V} node with
+    a appropriate field type. *)
 
 val bool : bool t
 val int : int t

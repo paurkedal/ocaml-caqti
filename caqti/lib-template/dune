@@ -2,3 +2,8 @@
  (name caqti_template)
  (public_name caqti.template)
  (libraries angstrom bigstringaf logs ptime uri))
+
+(mdx
+  (package caqti)
+  (files :standard *.mli)
+  (libraries caqti.template uri))

@@ -1,5 +1,7 @@
 (lang dune 3.9)
 (using dune_site 0.1)
+(using mdx 0.4)
+
 (name caqti)
 
 (package (name caqti) (sites (lib plugins)))

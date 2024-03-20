@@ -36,15 +36,15 @@ val qprintf : ('a, Format.formatter, unit, Query.t) format4 -> 'a
     get converted into a query).
 
     The two following calls to {!qprintf}:
-    {[
+    {@ocaml skip[
       qprintf "FUNC(@{<Q>Quoted value with %d format(s)})" 1
     ]}
     and
-    {[
+    {@ocaml skip[
       qprintf "FUNC(%a)" quote (Format.asprintf "Quoted value with %d format(s)" 1)
     ]}
     are functionally equivalent. Both compute
-    {[
+    {@ocaml skip[
       S [L "FUNC("; Q "Quoted value with 1 format(s)"; L ")"]
     ]}
     but the first one is nicer to work with.

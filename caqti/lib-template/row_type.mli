@@ -83,7 +83,7 @@ val proj_end : ('a, 'a) product
 (** Given a set of projection functions [p1 : t -> t1], ..., [pN : t -> tN] and
     a function [intro : t1 -> ... -> tN -> t] to reconstruct values of [t] from
     the projections,
-    {[
+    {@ocaml skip[
       product intro
         @@ proj t1 p1
         @@ ...

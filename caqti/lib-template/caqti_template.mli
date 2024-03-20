@@ -39,7 +39,8 @@ module Shims = Shims
     open,
     {[
       let bounds_upto_req =
-        Caqti_template.(t2 int32 float ->! option (t2 float float))
+        let open Caqti_template.Std in
+        T.(t2 int32 float ->! option (t2 float float))
         "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
     ]}
     Here, [?] is used to refer to parameters, but you can also use the
@@ -54,7 +55,8 @@ module Shims = Shims
     you define a single query template which works across database systems, e.g.
     {[
       let concat_req =
-        Caqti_template.(t2 string string -->! string) @@:- function
+        let open Caqti_template.Std in
+        T.(t2 string string -->! string) @@:- function
          | `Mysql -> "SELECT concat(?, ?)"
          | _ -> "SELECT ? || ?"
     ]}
@@ -67,7 +69,8 @@ module Shims = Shims
     to
     {[
       let concat_req =
-        Caqti_template.(t2 string string -->! string) @@ fun driver_info ->
+        let open Caqti_template.Std in
+        T.(t2 string string -->! string) @@ fun driver_info ->
           (match Caqti_template.Driver_info.dialect_tag driver_info with
            | `Mysql -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
            | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?")
@@ -78,23 +81,36 @@ module Shims = Shims
     {[
       module Ct : sig
         open Caqti_template
-        include Caqti_template.STD
-        val password : string Row_type.t
-        val uri : Uri.t Row_type.t
+
+        include module type of Caqti_template.Std
+
+        module T : sig
+          include Row_type.STD
+          val password : string Row_type.t
+          val uri : Uri.t Row_type.t
+        end
+
       end = struct
         open Caqti_template
-        include (Caqti_template : Caqti_template.STD)
-        let password = redacted string
-        let uri =
-          let encode x = Ok (Uri.to_string x) in
-          let decode s = Ok (Uri.of_string s) in
-          Row_type.custom ~encode ~decode string
+
+        include Caqti_template.Std
+
+        module T = struct
+          include (Row_type : Row_type.STD)
+          let password = redacted string
+          let uri =
+            let encode x = Ok (Uri.to_string x) in
+            let decode s = Ok (Uri.of_string s) in
+            Row_type.custom ~encode ~decode string
+        end
+
       end
     ]}
   *)
 
-module type STD = sig
+module Std : sig
   include module type of Request.Infix
-  include Row_type.STD
+  module T : Row_type.STD
+  module Q = Query
+  module Qf = Query_fmt
 end
-include STD

@@ -24,9 +24,9 @@ module Row_mult = Row_mult
 module Row_type = Row_type
 module Shims = Shims
 
-module type STD = sig
-  include module type of Request.Infix
-  include Row_type.STD
+module Std = struct
+  include Request.Infix
+  module T = (Row_type : Row_type.STD)
+  module Q = Query
+  module Qf = Query_fmt
 end
-include Request.Infix
-include (Row_type : Row_type.STD)

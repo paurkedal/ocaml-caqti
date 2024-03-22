@@ -50,6 +50,7 @@ val create :
   can_pool: bool ->
   can_concur: bool ->
   can_transact: bool ->
+  dummy_dialect: Caqti_template.Dialect.t ->
   unit -> t
 (** The function used by drivers to construct a description of themselves.  For
     an explanation of the parameters, see the corresponding projections. *)
@@ -84,3 +85,8 @@ val can_concur : t -> bool
 
 val can_transact : t -> bool
 (** Whether the database and driver supports transactions. *)
+
+(**/**)
+(* Needed to support the old interface. *)
+val dummy_dialect : t -> Caqti_template.Dialect.t
+val of_dialect : Caqti_template.Dialect.t -> t

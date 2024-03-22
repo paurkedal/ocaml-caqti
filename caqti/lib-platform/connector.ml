@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 let dynload_library = ref None
 
 let define_loader load = dynload_library := Some load
@@ -33,6 +35,22 @@ let library_name_of_scheme = function
 let set_tweaks_version = function
  | None -> Fun.id
  | Some x -> Caqti_connect_config.(set tweaks_version) x
+
+let compose_subst_with_env subst env dialect =
+  let compose_subst subst1 subst2 var =
+    (match subst1 var with
+     | Some _ as r -> r
+     | None -> subst2 var)
+  in
+  (match subst, env with
+   | None, None -> fun _ -> None
+   | Some subst, None -> subst dialect
+   | None, Some env ->
+      let env = env (Caqti_driver_info.of_dialect dialect) in
+      Caqti_query.subst_of_env env
+   | Some subst, Some env ->
+      let env = env (Caqti_driver_info.of_dialect dialect) in
+      compose_subst (subst dialect) (Caqti_query.subst_of_env env))
 
 module Make
   (System : System_sig.S)
@@ -116,15 +134,16 @@ struct
              | Error _ as r -> r)))
 
   let connect
-        ?env ?(config = Caqti_connect_config.default)
+        ?subst ?env ?(config = Caqti_connect_config.default)
         ?tweaks_version ~sw ~stdenv uri
       : ((module CONNECTION), _) result Fiber.t =
+    let subst = compose_subst_with_env subst env in
     let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
         let module Driver = (val driver) in
-        let+? conn = Driver.connect ~sw ~stdenv ?env ~config uri in
+        let+? conn = Driver.connect ~sw ~stdenv ~subst ~config uri in
         let module Conn = (val conn : CONNECTION) in
         let module Conn' = struct
           include Conn
@@ -137,15 +156,16 @@ struct
         Fiber.return (Error err))
 
   let with_connection
-        ?env ?config ?tweaks_version ~stdenv uri f =
+        ?subst ?env ?config ?tweaks_version ~stdenv uri f =
     Switch.run begin fun sw ->
-      connect ~sw ~stdenv ?env ?config ?tweaks_version uri >>=? f
+      connect ~sw ~stdenv ?subst ?env ?config ?tweaks_version uri >>=? f
     end
 
   let connect_pool
-        ?pool_config ?post_connect ?env
+        ?pool_config ?post_connect ?subst ?env
         ?(config = Caqti_connect_config.default)
         ?tweaks_version ~sw ~stdenv uri =
+    let subst = compose_subst_with_env subst env in
     let pool_config =
       (match pool_config with
        | None -> Caqti_pool_config.default_from_env ()
@@ -171,11 +191,11 @@ struct
           (match post_connect with
            | None ->
               fun () ->
-                (Driver.connect ~sw ~stdenv ?env ~config uri
+                (Driver.connect ~sw ~stdenv ~subst ~config uri
                     :> (connection, _) result Fiber.t)
            | Some post_connect ->
               fun () ->
-                (Driver.connect ~sw ~stdenv ?env ~config uri
+                (Driver.connect ~sw ~stdenv ~subst ~config uri
                     :> (connection, _) result Fiber.t)
                   >>=? fun conn -> post_connect conn
                   >|=? fun () -> conn)

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,13 +17,13 @@
 
 let (%>) f g x = g (f x)
 
-let no_env _ = raise Not_found
+let empty_subst _ = None
 
 type linear_param =
   Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param
 
-let linear_param_length ?(env = no_env) templ =
-  let templ = Caqti_query.expand env templ in
+let linear_param_length ?(subst = empty_subst) templ =
+  let templ = Caqti_template.Query.expand subst templ in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
    | Caqti_query.V (_, _) -> succ
@@ -34,8 +34,8 @@ let linear_param_length ?(env = no_env) templ =
   in
   loop templ 0
 
-let nonlinear_param_length ?(env = no_env) templ =
-  let templ = Caqti_query.expand env templ in
+let nonlinear_param_length ?(subst = empty_subst) templ =
+  let templ = Caqti_template.Query.expand subst templ in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
    | Caqti_query.V _ -> Fun.id
@@ -46,8 +46,8 @@ let nonlinear_param_length ?(env = no_env) templ =
   in
   loop templ 0
 
-let linear_param_order ?(env = no_env) templ =
-  let templ = Caqti_query.expand env templ in
+let linear_param_order ?(subst = empty_subst) templ =
+  let templ = Caqti_template.Query.expand subst templ in
   let a = Array.make (nonlinear_param_length templ) [] in
   let rec loop = function
    | Caqti_query.L _ -> Fun.id
@@ -64,8 +64,8 @@ let linear_param_order ?(env = no_env) templ =
   let _, params = loop templ (0, []) in
   (Array.to_list a, List.rev params)
 
-let linear_query_string ?(env = no_env) templ =
-  let templ = Caqti_query.expand env templ in
+let linear_query_string ?(subst = empty_subst) templ =
+  let templ = Caqti_template.Query.expand subst templ in
   let buf = Buffer.create 64 in
   let rec loop = function
    | Caqti_query.L s -> Buffer.add_string buf s

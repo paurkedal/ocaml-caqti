@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,6 +38,7 @@ module type S = sig
   (** Shortcut for the connection module when passed as a value. *)
 
   val connect :
+    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
@@ -57,6 +58,9 @@ module type S = sig
       URI syntax.  A driver can either be linked in to the application or, if
       supported, dynamically linked using the [caqti-dynload] package.
 
+      @param subst
+        Alternative to [env] when using the new experimental API.
+
       @param env
         If provided, this function will do a final expansion of environment
         variables which occurs in the query templates of the requests executed
@@ -70,6 +74,7 @@ module type S = sig
         the {!Caqti_connect_config.tweaks_version} key. *)
 
   val with_connection :
+    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
@@ -83,6 +88,7 @@ module type S = sig
       [f] either evaluates to a [result], or raises an exception,
       [with_connection] closes the database connection.
 
+      @param subst Passed to {!connect}.
       @param env Passed to {!connect}.
       @param config Passed to {!connect}.
       @param tweaks_version
@@ -92,6 +98,7 @@ module type S = sig
   val connect_pool :
     ?pool_config: Caqti_pool_config.t ->
     ?post_connect: (connection -> (unit, 'connect_error) result fiber) ->
+    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
@@ -120,6 +127,9 @@ module type S = sig
         used to customize to the database session.
 
       @param config
+        Passed to {!connect} when creating new connections.
+
+      @param subst
         Passed to {!connect} when creating new connections.
 
       @param env

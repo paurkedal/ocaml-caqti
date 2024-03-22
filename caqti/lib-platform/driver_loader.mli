@@ -40,7 +40,7 @@ module type DRIVER = sig
   val connect :
     sw: switch ->
     stdenv: stdenv ->
-    ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
+    subst: (Caqti_template.Dialect.t -> Caqti_template.Query.subst) ->
     config: Caqti_connect_config.t ->
     Uri.t ->
     ((module CONNECTION), [> Caqti_error.connect]) result fiber

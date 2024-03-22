@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,8 @@
  * and the LGPL-3.0 Linking Exception along with this library.  If not, see
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
+
+[@@@alert "-caqti_private"]
 
 open Caqti_platform
 open Printf
@@ -53,15 +55,12 @@ let () =
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Std
   let set_utc =
-    (unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
+    T.(unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
   let set_statement_timeout =
-    (float ->. unit) ~oneshot:true "SET max_statement_time = ?"
+    T.(float ->. unit) ~oneshot:true "SET max_statement_time = ?"
 end
-
-let no_env _ _ = raise Not_found
 
 module Connect_functor
   (System : Caqti_platform.System_sig.S)
@@ -79,15 +78,8 @@ struct
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-  let driver_info =
-    Caqti_driver_info.create
-      ~uri_scheme:"mariadb"
-      ~dialect_tag:`Mysql
-      ~parameter_style:(`Linear "?")
-      ~can_pool:true
-      ~can_concur:true
-      ~can_transact:true
-      ()
+  let dialect = Caqti_template.Dialect.Mysql {reserved = ()}
+  let driver_info = Caqti_driver_info.of_dialect dialect
 
   (* We need to pass stdenv into the below wait, in order to implement
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb
@@ -283,14 +275,12 @@ struct
 
     module Make_connection_base
       (Connection_arg : sig
-        val env : Caqti_driver_info.t -> string -> Caqti_query.t
+        val subst : Caqti_template.Query.subst
         val uri : Uri.t
         val db : Mdb.t
       end) =
     struct
       open Connection_arg
-
-      let env' = env driver_info
 
       let using_db_ref = ref false
       let using_db f =
@@ -398,16 +388,17 @@ struct
       let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
 
       let pp_request_with_param ppf =
-        Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+        Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
       let call ~f req param = using_db @@ fun () ->
+        let open Caqti_template in
         Log.debug ~src:Logging.request_log_src (fun f ->
           f "Sending %a" pp_request_with_param (req, param))
           >>= fun () ->
 
         let process {query; stmt; param_length; param_order; quotes} =
-          let param_type = Caqti_request.param_type req in
-          let row_type = Caqti_request.row_type req in
+          let param_type = Request.param_type req in
+          let row_type = Request.row_type req in
           let params = Array.make param_length `Null in
           List.iter
             (fun (Request_utils.Linear_param (j, t, v)) ->
@@ -422,10 +413,10 @@ struct
                | Ok res -> f Response.{query; res; row_type})
            | Ok (_ :: _) -> assert false) in
 
-        (match Caqti_request.query_id req with
+        (match Request.query_id req with
          | None ->
-            let templ = Caqti_request.query req driver_info in
-            let templ = Caqti_query.expand ~final:true env' templ in
+            let templ = Request.query req dialect in
+            let templ = Query.expand ~final:true subst templ in
             let query = Request_utils.linear_query_string templ in
             Mdb.prepare db query >>=
             (function
@@ -447,8 +438,8 @@ struct
          | Some id ->
             (try Fiber.return (Ok (Hashtbl.find pcache id)) with
              | Not_found ->
-                let templ = Caqti_request.query req driver_info in
-                let templ = Caqti_query.expand ~final:true env' templ in
+                let templ = Request.query req dialect in
+                let templ = Query.expand ~final:true subst templ in
                 let query = Request_utils.linear_query_string templ in
                 Mdb.prepare db query >|=
                 (function
@@ -474,7 +465,7 @@ struct
             process_result)
 
       let deallocate req =
-        (match Caqti_request.query_id req with
+        (match Caqti_template.Request.query_id req with
          | Some query_id ->
             (match Hashtbl.find pcache query_id with
              | exception Not_found -> Fiber.return (Ok ())
@@ -565,7 +556,7 @@ struct
       Ok {host; user; pass; port; db; flags = None; config_group}
   end
 
-  let connect ~sw:_ ~stdenv ?(env = no_env) ~config:_ uri =
+  let connect ~sw:_ ~stdenv ~subst ~config:_ uri =
     let module With_stdenv = Pass_stdenv (struct let stdenv = stdenv end) in
     let open With_stdenv in
 
@@ -580,7 +571,7 @@ struct
      | Ok db ->
         let module B = Make_connection_base
           (struct
-            let env = env
+            let subst = subst dialect
             let uri = uri
             let db = db
           end)

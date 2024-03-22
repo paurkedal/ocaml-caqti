@@ -21,7 +21,7 @@
     sufficient to use the top-level definitions and reexports described in the
     following sections. *)
 
-module Driver_info = Driver_info
+module Dialect = Dialect
 module Field_type = Field_type
 module Query = Query
 module Query_fmt = Query_fmt
@@ -51,29 +51,26 @@ module Shims = Shims
 
     Apart from parameter references, there are differences between SQL dialects
     which often makes it necessary to use different queries for different
-    database systems.  The driver-dependent constructors (long arrows) allows to
-    you define a single query template which works across database systems, e.g.
+    database systems.  The dialect-dependent constructors (long arrows) allows
+    to you define a single query template which works across database systems,
+    e.g.
     {[
       let concat_req =
         let open Caqti_template.Std in
         T.(t2 string string -->! string) @@:- function
-         | `Mysql -> "SELECT concat(?, ?)"
+         | D.Mysql _ -> "SELECT concat(?, ?)"
          | _ -> "SELECT ? || ?"
     ]}
     The long arrows expects a function which receives a
-    {!Caqti_template.Driver_info.t} and returns a {!Caqti_template.Query.t}.
-    Since we only need the {!Caqti_template.Driver_info.type-dialect_tag} for
-    dispatching and since we want to return the query i the form of a string, we
-    use the shortcut [@@:-] which transforms the function accordingly before
-    applying it to the request constructor.  That is, the above example expands
-    to
+    {!Caqti_template.Dialect.t} and returns a {!Caqti_template.Query.t}, so we
+    here use a shortcut [@@:-] which parses the result of the call-back.  That
+    is, the above example expands to
     {[
       let concat_req =
         let open Caqti_template.Std in
-        T.(t2 string string -->! string) @@ fun driver_info ->
-          (match Caqti_template.Driver_info.dialect_tag driver_info with
-           | `Mysql -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
-           | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?")
+        T.(t2 string string -->! string) @@ function
+         | D.Mysql _ -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
+         | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?"
     ]}
 
     For more complex applications it may be convenient to create a module with
@@ -110,6 +107,7 @@ module Shims = Shims
 
 module Std : sig
   include module type of Request.Infix
+  module D = Dialect
   module T : Row_type.STD
   module Q = Query
   module Qf = Query_fmt

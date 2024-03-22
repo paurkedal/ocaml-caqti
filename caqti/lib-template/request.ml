@@ -15,11 +15,13 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 module Log = (val Logs.src_log (Logs.Src.create "caqti"))
 
 type ('a, 'b, +'m) t = {
   id: int option;
-  query: Driver_info.t -> Query.t;
+  query: Dialect.t -> Query.t;
   param_type: 'a Row_type.t;
   row_type: 'b Row_type.t;
   row_mult: 'm Row_mult.t;
@@ -38,7 +40,7 @@ let row_mult request = request.row_mult
 let query_id request = request.id
 let query request = request.query
 
-let no_env _ _ = raise Not_found
+let empty_subst _ = None
 
 module Infix = struct
   let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
@@ -46,12 +48,8 @@ module Infix = struct
   let (-->?) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_one f
   let (-->*) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_more f
 
-  let (@:-) f s =
-    let q = Query.of_string_exn s in
-    f (fun _ -> q)
-
-  let (@@:-) f g =
-    f (fun di -> Query.of_string_exn (g (Driver_info.dialect_tag di)))
+  let (@:-) f s = let q = Query.of_string_exn s in f (fun _ -> q)
+  let (@@:-) f g = f (fun dialect -> Query.of_string_exn (g dialect))
 
   let (->.) t u ?oneshot s = create ?oneshot t u Row_mult.zero @:- s
   let (->!) t u ?oneshot s = create ?oneshot t u Row_mult.one @:- s
@@ -59,9 +57,10 @@ module Infix = struct
   let (->*) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_more @:- s
 end
 
-let make_pp ?(env = no_env) ?(driver_info = Driver_info.dummy) ()
-            ppf req =
-  let query = Query.expand (env driver_info) (req.query driver_info) in
+let default_dialect = Dialect.Unknown {reserved = ()}
+
+let make_pp ?(dialect = default_dialect) ?(subst = empty_subst) () ppf req =
+  let query = Query.expand subst (req.query dialect) in
   Format.fprintf ppf "(%a -->%s %a) {|%a|}"
     Row_type.pp req.param_type
     (match Row_mult.expose req.row_mult with
@@ -84,8 +83,8 @@ let pp_with_param_enabled =
       false
    | exception Not_found -> false)
 
-let make_pp_with_param ?env ?driver_info () ppf (req, param) =
-  let pp = make_pp ?env ?driver_info () in
+let make_pp_with_param ?dialect ?subst () ppf (req, param) =
+  let pp = make_pp ?subst ?dialect () in
   pp ppf req;
   if pp_with_param_enabled then
     Format.fprintf ppf " %a" Row_type.pp_value (req.param_type, param)

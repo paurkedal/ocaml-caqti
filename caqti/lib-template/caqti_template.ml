@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Driver_info = Driver_info
+module Dialect = Dialect
 module Field_type = Field_type
 module Query = Query
 module Query_fmt = Query_fmt
@@ -26,6 +26,7 @@ module Shims = Shims
 
 module Std = struct
   include Request.Infix
+  module D = Dialect
   module T = (Row_type : Row_type.STD)
   module Q = Query
   module Qf = Query_fmt

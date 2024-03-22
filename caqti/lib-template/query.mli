@@ -137,8 +137,8 @@ val show : t -> string
 
 type expand_error
 (** A description of the error caused during {!expand} if the environment lookup
-    function returns an invalid result or raises [Not_found] for a variable when
-    the expansion is final. *)
+    function returns an invalid result or [None] for a variable when the
+    expansion is final. *)
 
 val pp_expand_error : Format.formatter -> expand_error -> unit
 (** Prints an informative error. *)
@@ -147,19 +147,23 @@ exception Expand_error of expand_error
 (** The exception raised by {!expand} when there are issues expanding an
     environment variable using the provided callback. *)
 
-val expand : ?final: bool -> (string -> t) -> t -> t
-(** [expand f q] replaces each occurrence of [E v] some some [v] with [f v] or
-    leaves it unchanged where [f v] raises [Not_found]. The [Not_found]
-    exception will not escape this call.
+type subst = string -> t option
+(** A partial mapping from variable names to query fragments, as used by
+    {!expand}. *)
+
+val expand : ?final: bool -> subst -> t -> t
+(** [expand subst query] replaces each occurrence of [E var] with [subst var] or
+    leaves it unchanged where [subst var] is [None].
 
     @param final
       If [true], then an error is raised instead of leaving environment
-      references unexpended if [f] raises [Not_found].  This is used by drivers
+      references unexpended if [f] returns [None].  This is used by drivers
       for performing the final expansion.  Defaults to [false].
 
     @raise Expand_error
-      if [~final:true] is passed and [f] raise [Not_found] or if [f] returns a
-      query containing environment references. *)
+      if [subst var] contains an [E]-node (nested reference) or if [~final:true]
+      is passed and [subst var] is [None] for some occurrence of [E var] in
+      [query]. *)
 
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon

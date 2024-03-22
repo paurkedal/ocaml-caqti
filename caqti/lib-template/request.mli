@@ -39,11 +39,11 @@ type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 val create :
   ?oneshot: bool ->
   'a Row_type.t -> 'b Row_type.t -> 'm Row_mult.t ->
-  (Driver_info.t -> Query.t) -> ('a, 'b, 'm) t
+  (Dialect.t -> Query.t) -> ('a, 'b, 'm) t
 (** [create arg_type row_type row_mult f] is a request which takes parameters of
     type [arg_type], returns rows of type [row_type] with multiplicity
     [row_mult], and which sends query strings generated from the query [f di],
-    where [di] is the {!Driver_info.t} of the target driver.  The driver is
+    where [di] is the {!Dialect.t} of the target driver.  The driver is
     responsible for turning parameter references into a form accepted by the
     database, while other differences must be handled by [f].
 
@@ -79,7 +79,7 @@ val query_id : ('a, 'b, 'm) t -> int option
 (** If [req] is a prepared query, then [query_id req] is [Some id] for some [id]
     which uniquely identifies [req], otherwise it is [None]. *)
 
-val query : ('a, 'b, 'm) t -> Driver_info.t -> Query.t
+val query : ('a, 'b, 'm) t -> Dialect.t -> Query.t
 (** [query req] is the function which generates the query of this request
     possibly tailored for the given driver. *)
 
@@ -139,7 +139,7 @@ module Infix : sig
 
   val ( -->. ) :
     'a Row_type.t -> unit Row_type.t ->
-    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ?oneshot: bool -> (Dialect.t -> Query.t) ->
     ('a, unit, [`Zero]) t
   (** [(pt -->. Row_type.unit) ?oneshot f] is the request which sends the query
       string returned by [f], encodes parameters according to [pt], and expects
@@ -148,7 +148,7 @@ module Infix : sig
 
   val ( -->! ) :
     'a Row_type.t -> 'b Row_type.t ->
-    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ?oneshot: bool -> (Dialect.t -> Query.t) ->
     ('a, 'b, [`One]) t
   (** [(pt -->! rt) ?oneshot f] is the request which sends the query string
       returned by [f], encodes parameters according to [pt], and decodes a
@@ -157,7 +157,7 @@ module Infix : sig
 
   val ( -->? ) :
     'a Row_type.t -> 'b Row_type.t ->
-    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ?oneshot: bool -> (Dialect.t -> Query.t) ->
     ('a, 'b, [`Zero | `One]) t
   (** [(pt -->? rt) ?oneshot f] is the request which sends the query string
       returned by [f], encodes parameters according to [pt], and decodes zero or
@@ -166,24 +166,16 @@ module Infix : sig
 
   val ( -->* ) :
     'a Row_type.t -> 'b Row_type.t ->
-    ?oneshot: bool -> (Driver_info.t -> Query.t) ->
+    ?oneshot: bool -> (Dialect.t -> Query.t) ->
     ('a, 'b, [`Zero | `One | `Many]) t
   (** [(pt -->* rt) ?oneshot f] is the request which sends the query string
       returned by [f], encodes parameters according to [pt], and decodes any
       number of result rows according to [rt]. See
       {!Caqti_template.Request.create} for the meaning of [oneshot]. *)
 
-  val ( @:- ) :
-    ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) t) ->
-    string -> ('a, 'b, 'm) t
-  (** Applies a dialect-independent query string which is parsed with
-      {!Caqti_template.Query.of_string_exn}.  Composition with arrow operators
-      from this section, gives the corresponding operators from
-      {!section:indep}. *)
-
   val ( @@:- ) :
-    ((Driver_info.t -> Query.t) -> ('a, 'b, 'm) t) ->
-    (Driver_info.dialect_tag -> string) -> ('a, 'b, 'm) t
+    ((Dialect.t -> Query.t) -> ('a, 'b, 'm) t) ->
+    (Dialect.t -> string) -> ('a, 'b, 'm) t
   (** Applies a dialect-dependent query string which is parsed with
       {!Caqti_template.Query.of_string_exn}. *)
 end
@@ -191,29 +183,29 @@ end
 (** {2 Formatting} *)
 
 val make_pp :
-  ?env: (Driver_info.t -> string -> Query.t) ->
-  ?driver_info: Driver_info.t ->
+  ?dialect: Dialect.t ->
+  ?subst: Query.subst ->
   unit -> Format.formatter -> ('a, 'b, 'm) t -> unit
-(** [make_pp ?env ?driver_info ()] is a pretty-printer for a request, which
-    expands the query using [env] and [driver_info].
+(** [make_pp ?subst ?dialect ()] is a pretty-printer for a request, which
+    expands the query using [subst] and [dialect].
 
-    @param env
-      Used to partially expand the query string.  Defaults to the empty
-      environment.
+    @param subst
+      Used to partially expand the query string. Defaults to the empty
+      substitution.
 
-    @param driver_info
+    @param dialect
       The driver info to pass to the call-back which returns the query.
-      Defaults to {!Driver_info.dummy}. *)
+      Defaults to {!Dialect.Unknown}. *)
 
 val pp : Format.formatter -> ('a, 'b, 'm) t -> unit
 (** [pp ppf req] prints [req] on [ppf] in a form suitable for human
     inspection. *)
 
 val make_pp_with_param :
-  ?env: (Driver_info.t -> string -> Query.t) ->
-  ?driver_info: Driver_info.t ->
+  ?dialect: Dialect.t ->
+  ?subst: Query.subst ->
   unit -> Format.formatter -> ('a, 'b, 'm) t * 'a -> unit
-(** [make_pp_with_param ?env ?driver_info ()] is a pretty-printer for a
+(** [make_pp_with_param ?subst ?dialect ()] is a pretty-printer for a
     request and parameter pair.  See {!make_pp} for the optional arguments.
     This functions is meant for debugging; the output is neither guaranteed to
     be consistent across releases nor to contain a complete record of the data.

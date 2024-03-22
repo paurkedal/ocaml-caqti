@@ -23,10 +23,13 @@ module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 
-let connect ?env ?config ?tweaks_version ~sw uri =
-  connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
+let connect ?subst ?env ?config ?tweaks_version ~sw uri =
+  connect ?subst ?env ?config ?tweaks_version ~sw ~stdenv:() uri
 
 let with_connection = with_connection ~stdenv:()
 
-let connect_pool ?pool_config ?post_connect ?env ?config ?tweaks_version ~sw uri =
-  connect_pool ?pool_config ?post_connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
+let connect_pool
+      ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version ~sw uri =
+  connect_pool
+    ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
+    ~sw ~stdenv:() uri

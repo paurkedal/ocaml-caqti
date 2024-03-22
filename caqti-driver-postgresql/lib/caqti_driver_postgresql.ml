@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
 open Caqti_platform
 open Printf
 module Pg = Postgresql
@@ -34,21 +35,20 @@ end
 module Int_hashtbl = Hashtbl.Make (Int_hashable)
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Std
 
-  let start = unit -->. unit @:- "BEGIN"
-  let commit = unit -->. unit @:- "COMMIT"
-  let rollback = unit -->. unit @:- "ROLLBACK"
+  let start = T.(unit ->. unit) "BEGIN"
+  let commit = T.(unit ->. unit) "COMMIT"
+  let rollback = T.(unit ->. unit) "ROLLBACK"
 
-  let type_oid = string -->? int @:-
+  let type_oid = T.(string ->? int)
     "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
 
-  let set_timezone_to_utc = (unit ->. unit) ~oneshot:true
+  let set_timezone_to_utc = T.(unit ->. unit) ~oneshot:true
     "SET TimeZone TO 'UTC'"
 
   let set_statement_timeout t =
-    (unit -->. unit) ~oneshot:true @@ fun _ ->
+    T.(unit -->. unit) ~oneshot:true @@ fun _ ->
     (* Parameters are not supported for SET. *)
     S[L"SET statement_timeout TO "; L(string_of_int t)]
 end
@@ -100,16 +100,12 @@ let () =
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Result_error_msg]
 
 let driver_info =
-  Caqti_driver_info.create
-    ~uri_scheme:"postgresql"
-    ~dialect_tag:`Pgsql
-    ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
-    ~can_pool:true
-    ~can_concur:true
-    ~can_transact:true
-    ()
-
-let no_env _ _ = raise Not_found
+  let dummy_dialect = Caqti_template.Dialect.Pgsql {
+    server_version_opt = None;
+    ocaml_library = `postgresql;
+    reserved = ();
+  } in
+  Caqti_driver_info.of_dialect dummy_dialect
 
 module Pg_ext = struct
   include Postgresql_conv
@@ -134,24 +130,25 @@ module Pg_ext = struct
      | Ptime_span -> (true, pgstring_of_ptime_span)
      | Enum _ -> (true, escape_string))
 
-  let query_string ~env (db : Pg.connection) templ =
+  let query_string ~subst (db : Pg.connection) templ =
+    let open Caqti_template in
     let buf = Buffer.create 64 in
     let rec loop = function
-     | Caqti_query.L s -> Buffer.add_string buf s
-     | Caqti_query.Q s ->
+     | Query.L s -> Buffer.add_string buf s
+     | Query.Q s ->
         Buffer.add_char buf '\'';
         Buffer.add_string buf (db#escape_string s);
         Buffer.add_char buf '\''
-     | Caqti_query.V (ft, v) ->
+     | Query.V (ft, v) ->
         let quote, conv = query_string_of_value db ft in
         if quote then Buffer.add_char buf '\'';
         Buffer.add_string buf (conv v);
         if quote then Buffer.add_char buf '\''
-     | Caqti_query.P i -> bprintf buf "$%d" (i + 1)
-     | Caqti_query.E _ -> assert false
-     | Caqti_query.S frags -> List.iter loop frags
+     | Query.P i -> bprintf buf "$%d" (i + 1)
+     | Query.E _ -> assert false
+     | Query.S frags -> List.iter loop frags
     in
-    loop (Caqti_query.expand ~final:true env templ);
+    loop (Query.expand ~final:true subst templ);
     Buffer.contents buf
 
   let escaped_connvalue s =
@@ -475,15 +472,14 @@ struct
   module Make_connection_base
     (Connection_arg : sig
       val stdenv : stdenv
-      val env : Caqti_driver_info.t -> string -> Caqti_query.t
+      val dialect : Caqti_template.Dialect.t
+      val subst : Caqti_template.Query.subst
       val uri : Uri.t
       val db : Pg.connection
       val use_single_row_mode : bool
     end) =
   struct
     open Connection_arg
-
-    let env' = env driver_info
 
     module Copy_encoder = Make_encoder (struct
 
@@ -747,7 +743,7 @@ struct
     let type_oid_cache = Hashtbl.create 19
 
     let pp_request_with_param ppf =
-      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
     let call' ~f req param =
       Log.debug ~src:Logging.request_log_src (fun f ->
@@ -755,15 +751,15 @@ struct
 
       let single_row_mode =
         use_single_row_mode
-          && Caqti_mult.can_be_many (Caqti_request.row_mult req)
+          && Caqti_mult.can_be_many (Caqti_template.Request.row_mult req)
       in
 
       (* Prepare, if requested, and send the query. *)
-      let param_type = Caqti_request.param_type req in
-      (match Caqti_request.query_id req with
+      let param_type = Caqti_template.Request.param_type req in
+      (match Caqti_template.Request.query_id req with
        | None ->
-          let templ = Caqti_request.query req driver_info in
-          let query = Pg_ext.query_string ~env:env' db templ in
+          let templ = Caqti_template.Request.query req dialect in
+          let query = Pg_ext.query_string ~subst db templ in
           let param_length = Caqti_type.length param_type in
           let param_types = Array.make param_length 0 in
           let binary_params = Array.make param_length false in
@@ -781,8 +777,8 @@ struct
           begin
             try Ok (Int_hashtbl.find prepare_cache query_id) with
              | Not_found ->
-                let templ = Caqti_request.query req driver_info in
-                let query = Pg_ext.query_string ~env:env' db templ in
+                let templ = Caqti_template.Request.query req dialect in
+                let query = Pg_ext.query_string ~subst db templ in
                 let param_length = Caqti_type.length param_type in
                 let param_types = Array.make param_length 0 in
                 let binary_params = Array.make param_length false in
@@ -802,11 +798,11 @@ struct
         >>=? fun query ->
 
       (* Fetch and process the result. *)
-      let row_type = Caqti_request.row_type req in
+      let row_type = Caqti_template.Request.row_type req in
       if single_row_mode then
         f Response.{row_type; query; source = Single_row}
       else begin
-        let row_mult = Caqti_request.row_mult req in
+        let row_mult = Caqti_template.Request.row_mult req in
         fetch_final_result ~query () >>=? fun result ->
         (match
             Pg_io.check_query_result
@@ -854,11 +850,11 @@ struct
         (fun () -> reset () >|= fun _ -> in_use := false)
 
     let call ~f req param = using_db @@ fun () ->
-      fetch_type_oids (Caqti_request.param_type req) >>=? fun () ->
+      fetch_type_oids (Caqti_template.Request.param_type req) >>=? fun () ->
       call' ~f req param
 
     let deallocate req =
-      (match Caqti_request.query_id req with
+      (match Caqti_template.Request.query_id req with
        | Some query_id ->
           if Int_hashtbl.mem prepare_cache query_id then
             begin
@@ -978,7 +974,7 @@ struct
       end
   end
 
-  let connect ~sw:_ ~stdenv ?(env = no_env) ~config:_ uri =
+  let connect ~sw:_ ~stdenv ~subst ~config:_ uri =
     Fiber.return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
@@ -1001,9 +997,15 @@ struct
                 Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
+                let v0, v1, v2 = db#server_version in
                 let module B = Make_connection_base
                   (struct
-                    let env = env
+                    let dialect = Caqti_template.Dialect.Pgsql {
+                      server_version_opt = Some (v0, v1 / 100 + v2 mod 100);
+                      ocaml_library = `postgresql;
+                      reserved = ();
+                    }
+                    let subst = subst dialect
                     let stdenv = stdenv
                     let uri = uri
                     let db = db

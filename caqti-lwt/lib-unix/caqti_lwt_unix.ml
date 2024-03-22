@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,14 +24,15 @@ module Loader = Caqti_platform_unix.Driver_loader.Make (System) (System_unix)
 
 include Connector.Make (System) (Pool) (Loader)
 
-let connect ?env ?config ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) uri =
-  connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
+let connect
+      ?subst ?env ?config ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal) uri =
+  connect ?subst ?env ?config ?tweaks_version ~sw ~stdenv:() uri
 
 let with_connection = with_connection ~stdenv:()
 
 let connect_pool
-      ?pool_config ?post_connect ?env ?config ?tweaks_version
+      ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
       ?(sw = Caqti_lwt.Switch.eternal) uri =
   connect_pool
-    ?pool_config ?post_connect ?env ?config ?tweaks_version
+    ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
     ~sw ~stdenv:() uri

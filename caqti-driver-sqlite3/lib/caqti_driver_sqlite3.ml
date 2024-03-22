@@ -15,18 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 open Caqti_platform
 open Printf
 
-let driver_info =
-  Caqti_driver_info.create
-    ~uri_scheme:"sqlite3"
-    ~dialect_tag:`Sqlite
-    ~parameter_style:(`Linear "?")
-    ~can_pool:true
-    ~can_concur:false
-    ~can_transact:true
-    ()
+let dialect =
+  let v = Sqlite3.sqlite_version () in
+  Caqti_template.Dialect.Sqlite {
+    server_version = (v / 1000000, v / 1000 mod 1000, v mod 1000);
+    reserved = ();
+  }
+let driver_info = Caqti_driver_info.of_dialect dialect
 
 type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
 
@@ -85,8 +85,6 @@ let wrap_rc ?db errcode =
   let errmsg = Option.map Sqlite3.errmsg db in
   let extended_errcode = Option.map Sqlite3.extended_errcode_int db in
   Error_msg {errcode; errmsg; extended_errcode}
-
-let no_env _ _ = raise Not_found
 
 let data_of_value : type a. a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
   fun field_type x ->
@@ -175,26 +173,28 @@ let value_of_data
    | Ptime_span, _ -> cannot_convert_to "time span")
 
 let query_quotes q =
+  let open Caqti_template in
   let rec loop = function
-   | Caqti_query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
-   | Caqti_query.V (t, v) -> List.cons (data_of_value t v)
-   | Caqti_query.Q s -> List.cons (Sqlite3.Data.TEXT s)
-   | Caqti_query.S qs -> List_ext.fold loop qs
+   | Query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
+   | Query.V (t, v) -> List.cons (data_of_value t v)
+   | Query.Q s -> List.cons (Sqlite3.Data.TEXT s)
+   | Query.S qs -> List_ext.fold loop qs
   in
   List.rev (loop q [])
 
 let query_string q =
+  let open Caqti_template in
   let quotes = query_quotes q in
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
   let iP0 = List.length quotes + 1 in
   let rec loop = function
-   | Caqti_query.L s -> Buffer.add_string buf s
-   | Caqti_query.V _ -> bprintf buf "?%d" !iQ; incr iQ
-   | Caqti_query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
-   | Caqti_query.P i -> bprintf buf "?%d" (iP0 + i)
-   | Caqti_query.E _ -> assert false
-   | Caqti_query.S qs -> List.iter loop qs
+   | Query.L s -> Buffer.add_string buf s
+   | Query.V _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Query.P i -> bprintf buf "?%d" (iP0 + i)
+   | Query.E _ -> assert false
+   | Query.S qs -> List.iter loop qs
   in
   loop q;
   (quotes, Buffer.contents buf)
@@ -255,12 +255,11 @@ let decode_row ~uri ~query row_type =
     Request_utils.raise_response_rejected ~uri ~query msg
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Std
 
-  let start = unit -->. unit @:- "BEGIN"
-  let commit = unit -->. unit @:- "COMMIT"
-  let rollback = unit -->. unit @:- "ROLLBACK"
+  let start = T.(unit ->. unit) "BEGIN"
+  let commit = T.(unit ->. unit) "COMMIT"
+  let rollback = T.(unit ->. unit) "ROLLBACK"
 end
 
 module Connect_functor
@@ -285,14 +284,12 @@ struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val env : Caqti_driver_info.t -> string -> Caqti_query.t
+      val subst : Caqti_template.Query.subst
       val uri : Uri.t
       val db : Sqlite3.db
     end) =
   struct
     open Connection_arg
-
-    let env' = env driver_info
 
     let using_db_ref = ref false
     let using_db f =
@@ -457,23 +454,23 @@ struct
       in
 
       let templ = Caqti_request.query req driver_info in
-      let templ = Caqti_query.expand env' templ in
+      let templ = Caqti_template.Query.expand subst templ in
       let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       Ok (stmt, quotes, query)
 
     let pp_request_with_param ppf =
-      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
     let call ~f req param = using_db @@ fun () ->
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 
-      let param_type = Caqti_request.param_type req in
-      let row_type = Caqti_request.row_type req in
+      let param_type = Caqti_template.Request.param_type req in
+      let row_type = Caqti_template.Request.row_type req in
 
-      (match Caqti_request.query_id req with
+      (match Caqti_template.Request.query_id req with
        | None -> prepare req
        | Some id ->
           (try Fiber.return (Ok (Hashtbl.find pcache id)) with
@@ -506,7 +503,7 @@ struct
 
       (* CHECKME: Does finalize or reset involve IO? *)
       let cleanup () =
-        (match Caqti_request.query_id req with
+        (match Caqti_template.Request.query_id req with
          | None ->
             (match Sqlite3.finalize stmt with
              | Sqlite3.Rc.OK -> Fiber.return ()
@@ -525,7 +522,7 @@ struct
       Fiber.finally (fun () -> f resp) cleanup
 
     let deallocate req = using_db @@ fun () ->
-      (match Caqti_request.query_id req with
+      (match Caqti_template.Request.query_id req with
        | Some query_id ->
           (match Hashtbl.find pcache query_id with
            | exception Not_found -> Fiber.return (Ok ())
@@ -583,7 +580,7 @@ struct
     Log.warn (fun f ->
       f "Could not turn on foreign key support: %s" (Sqlite3.Rc.to_string rc))
 
-  let connect ~sw:_ ~stdenv:_ ?(env = no_env) ~config uri =
+  let connect ~sw:_ ~stdenv:_ ~subst ~config uri =
     try
       (* Check URI and extract parameters. *)
       assert (Uri.scheme uri = Some "sqlite3");
@@ -608,7 +605,7 @@ struct
        | None -> ()
        | Some timeout -> Sqlite3.busy_timeout db timeout);
       let module Arg = struct
-        let env = env
+        let subst = subst dialect
         let uri = uri
         let db = db
       end in

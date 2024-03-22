@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,13 +23,13 @@ type linear_param =
   Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param
 
 val linear_param_length :
-  ?env: (string -> Caqti_query.t) ->
+  ?subst: (string -> Caqti_query.t option) ->
   Caqti_query.t -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a
     query represented by [templ]. *)
 
 val linear_param_order :
-  ?env: (string -> Caqti_query.t) ->
+  ?subst: (string -> Caqti_query.t option) ->
   Caqti_query.t -> int list list * linear_param list
 (** [linear_param_order templ] describes the parameter bindings expected for
     [templ] after linearizing parameters and lifting quoted strings out of the
@@ -45,7 +45,7 @@ val linear_param_order :
     All positions are zero-based. *)
 
 val linear_query_string :
-  ?env: (string -> Caqti_query.t) ->
+  ?subst: (string -> Caqti_query.t option) ->
   Caqti_query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)

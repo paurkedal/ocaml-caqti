@@ -182,17 +182,18 @@ module type CONNECTION = Caqti_connection_sig.S
 
 type connection = (module CONNECTION)
 
-let connect ?env ?config ?tweaks_version uri =
+let connect ?subst ?env ?config ?tweaks_version uri =
   let sw = Switch.create () in
-  connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
+  connect ?subst ?env ?config ?tweaks_version ~sw ~stdenv:() uri
 
 let with_connection = with_connection ~stdenv:()
 
 let connect_pool
-      ?pool_config ?post_connect ?env ?config ?tweaks_version uri =
+      ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version uri =
   let sw = Switch.create () in
   connect_pool
-    ?pool_config ?post_connect ?env ?config ?tweaks_version ~sw ~stdenv:() uri
+    ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
+    ~sw ~stdenv:() uri
 
 let or_fail = function
  | Ok x -> x

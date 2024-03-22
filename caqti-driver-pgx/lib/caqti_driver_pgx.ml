@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 open Caqti_platform
 open Postgresql_conv
 open Printf
@@ -39,8 +41,6 @@ let () =
 
 exception Failed_with_msg of Caqti_error.msg
 
-let no_env _ _ = raise Not_found
-
 let host_of_string str =
   (match Domain_name.of_string str with
    | Ok dom ->
@@ -48,16 +48,6 @@ let host_of_string str =
        | Ok dom -> Some dom
        | Error _ -> None)
    | Error _ -> None)
-
-let driver_info =
-  Caqti_driver_info.create
-    ~uri_scheme:"pgx"
-    ~dialect_tag:`Pgsql
-    ~parameter_style:(`Indexed (fun i -> "$" ^ string_of_int (succ i)))
-    ~can_pool:true
-    ~can_concur:true
-    ~can_transact:true
-    ()
 
 let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Bool -> "bool"
@@ -90,26 +80,27 @@ let encode_field
    | Ptime -> Pgx.Value.of_string (pgstring_of_ptime x)
    | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
 
-let query_string ~env templ =
-  let templ = Caqti_query.expand ~final:true env templ in
+let query_string ~subst templ =
+  let open Caqti_template in
+  let templ = Query.expand ~final:true subst templ in
 
   let rec extract_quotes = function
-   | Caqti_query.V (ft, v) -> fun (n, acc) -> (n + 1, encode_field ft v :: acc)
-   | Caqti_query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
-   | Caqti_query.L _ | Caqti_query.P _ -> Fun.id
-   | Caqti_query.E _ -> fun _ -> assert false
-   | Caqti_query.S qs -> List_ext.fold extract_quotes qs
+   | Query.V (ft, v) -> fun (n, acc) -> (n + 1, encode_field ft v :: acc)
+   | Query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
+   | Query.L _ | Query.P _ -> Fun.id
+   | Query.E _ -> fun _ -> assert false
+   | Query.S qs -> List_ext.fold extract_quotes qs
   in
   let nQ, rev_quotes = extract_quotes templ (0, []) in
 
   let buf = Buffer.create 64 in
   let rec write_query_string = function
-   | Caqti_query.L s -> fun jQ -> Buffer.add_string buf s; jQ
-   | Caqti_query.V _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
-   | Caqti_query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
-   | Caqti_query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
-   | Caqti_query.E _ -> assert false
-   | Caqti_query.S qs -> List_ext.fold write_query_string qs
+   | Query.L s -> fun jQ -> Buffer.add_string buf s; jQ
+   | Query.V _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | Query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | Query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
+   | Query.E _ -> assert false
+   | Query.S qs -> List_ext.fold write_query_string qs
   in
   let _jQ = write_query_string templ 1 in
   (Buffer.contents buf, rev_quotes)
@@ -186,13 +177,7 @@ let decode_row ~uri row_type =
      | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
-
   let select_type_oid = "SELECT oid FROM pg_catalog.pg_type WHERE typname = $1"
-
-  let set_timezone_to_utc =
-    (unit ->. unit) ~oneshot:true "SET TimeZone TO 'UTC'"
 end
 
 type connect_arg = {
@@ -253,6 +238,12 @@ let parse_uri uri =
      | _ -> reject "Too many path components in URI.")
   in
   Ok {host; port; user; password; database; unix_domain_socket_dir}
+
+let dialect = Caqti_template.Dialect.Pgsql {
+  server_version_opt = None;
+  ocaml_library = `pgx;
+  reserved = ();
+}
 
 module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   open System
@@ -394,15 +385,14 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t
                           and type Io.ssl_config = ssl_config)
     (Connection_arg : sig
-      val env : Caqti_driver_info.t -> string -> Caqti_query.t
+      open Caqti_template
+      val subst : string -> Query.t option
       val uri : Uri.t
       val db_arg : Pgx_with_io.t
       val select_type_oid : Pgx_with_io.Prepared.s
     end) =
   struct
     open Connection_arg
-
-    let env' = env driver_info
 
     let db_txn = ref None
 
@@ -579,15 +569,15 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       loop (Caqti_type.option param_type) []
 
     let pp_request_with_param ppf =
-      Caqti_request.make_pp_with_param ~env ~driver_info () ppf
+      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
     let call ~f req param =
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
       using_db @@ fun db ->
       let pre_prepare () =
-        let templ = Caqti_request.query req driver_info in
-        let query, rev_quotes = query_string ~env:env' templ in
+        let templ = Caqti_template.Request.query req dialect in
+        let query, rev_quotes = query_string ~subst templ in
         let*? param_types = type_oids (Caqti_request.param_type req) in
         let+? string_oid = field_type_oid Caqti_type.Field.String in
         let quote_types = List.rev_map (fun _ -> string_oid) rev_quotes in
@@ -702,16 +692,11 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           Pgx_with_io.execute_unit db query
   end
 
-  let driver_info = driver_info
+  let driver_info = Caqti_driver_info.of_dialect dialect
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
-
-  let setup (module Connection : CONNECTION) =
-    Connection.exec Q.set_timezone_to_utc () >|= function
-     | Ok () -> Ok ()
-     | Error err -> Error (`Post_connect err)
 
   let find_tls_provider ~config ?host () =
     let with_config (module Tls_provider : Net.TLS_PROVIDER) =
@@ -724,7 +709,9 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
      | None -> `No
      | Some ssl_config -> `Always ssl_config)
 
-  let connect ~sw ~stdenv ?(env = no_env) ~config uri =
+  let connect ~sw ~stdenv ~subst ~config uri =
+
+    (* Create PGX connection and helper functions. *)
     let*? {host; port; user; password; database; unix_domain_socket_dir} =
       Fiber.return (parse_uri uri)
     in
@@ -738,13 +725,34 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         (Pgx_with_io.connect
           ~ssl ?host ?port ?user ?password ?database ?unix_domain_socket_dir)
     in
-    let*? select_type_oid =
-      intercept_request_failed ~uri ~query:Q.select_type_oid
-        (fun () -> Pgx_with_io.Prepared.prepare db ~query:Q.select_type_oid)
+    let prepare_post_connect query =
+      intercept_request_failed ~uri ~query
+        (fun () -> Pgx_with_io.Prepared.prepare db ~query)
       >|= Result.map_error (fun err -> `Post_connect err)
     in
+    let execute_post_connect ?params query =
+      intercept_request_failed ~uri ~query
+        (fun () -> Pgx_with_io.execute ?params db query)
+    in
+
+    (* Run setup. *)
+    let*? () =
+      let query = "SET TimeZone TO 'UTC'" in
+      let reject msg =
+        let msg = Caqti_error.Msg msg in
+        let err = Caqti_error.response_rejected ~uri ~query msg in
+        Error (`Post_connect err)
+      in
+      execute_post_connect query >|= function
+       | Ok [] -> Ok ()
+       | Ok _ -> reject "Invalid response from setup request."
+       | Error err -> Error (`Post_connect err)
+    in
+
+    (* Return Caqti connection module. *)
+    let+? select_type_oid = prepare_post_connect Q.select_type_oid in
     let module B = Make_connection_base (Pgx_with_io) (struct
-      let env = env
+      let subst = subst dialect
       let uri = uri
       let db_arg = db
       let select_type_oid = select_type_oid
@@ -756,7 +764,6 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       include Connection_utils.Make_convenience (System) (B)
       include Connection_utils.Make_populate (System) (B)
     end in
-    let+? () = setup (module Connection) in
     (module Connection : CONNECTION)
 end
 

@@ -26,7 +26,7 @@ type t = ..
 
 type t +=
   | Pgsql of {
-      server_version_opt: (int * int) option;
+      server_version: Version.t;
       ocaml_library: [`postgresql | `pgx];
       reserved: unit;
     }
@@ -38,7 +38,7 @@ type t +=
     (** Identifies the backend as a MariaDB or MySQL server. No information is
         currently provided about the variant and version. *)
   | Sqlite of {
-      server_version: int * int * int;
+      server_version: Version.t;
       reserved: unit;
     }
     (** Identifies the backend as an Sqlite3 library. *)

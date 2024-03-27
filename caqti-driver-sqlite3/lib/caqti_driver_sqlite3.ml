@@ -21,11 +21,12 @@ open Caqti_platform
 open Printf
 
 let dialect =
-  let v = Sqlite3.sqlite_version () in
-  Caqti_template.Dialect.Sqlite {
-    server_version = (v / 1000000, v / 1000 mod 1000, v mod 1000);
-    reserved = ();
-  }
+  let open Caqti_template in
+  let server_version =
+    Version.of_string_unsafe (Sqlite3.sqlite_version_info ())
+  in
+  Dialect.Sqlite {server_version; reserved = ()}
+
 let driver_info = Caqti_driver_info.of_dialect dialect
 
 type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db

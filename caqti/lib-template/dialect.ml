@@ -19,10 +19,10 @@ type t = ..
 
 type t +=
   | Pgsql of {
-      server_version_opt: (int * int) option;
+      server_version: Version.t;
       ocaml_library: [`postgresql | `pgx];
       reserved: unit;
     }
   | Mysql of {reserved: unit}
-  | Sqlite of {server_version: int * int * int; reserved: unit}
+  | Sqlite of {server_version: Version.t; reserved: unit}
   | Unknown of {reserved: unit}

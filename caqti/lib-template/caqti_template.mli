@@ -29,6 +29,7 @@ module Request = Request
 module Row_mult = Row_mult
 module Row_type = Row_type
 module Shims = Shims
+module Version = Version
 
 (** {2 Request Template Construction}
 
@@ -106,6 +107,7 @@ module Shims = Shims
   *)
 
 module Std : sig
+  include module type of Version.Infix
   include module type of Request.Infix
   module D = Dialect
   module T : Row_type.STD

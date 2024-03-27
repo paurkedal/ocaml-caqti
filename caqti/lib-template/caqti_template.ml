@@ -23,8 +23,10 @@ module Request = Request
 module Row_mult = Row_mult
 module Row_type = Row_type
 module Shims = Shims
+module Version = Version
 
 module Std = struct
+  include Version.Infix
   include Request.Infix
   module D = Dialect
   module T = (Row_type : Row_type.STD)

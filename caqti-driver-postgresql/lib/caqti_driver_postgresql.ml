@@ -101,7 +101,7 @@ let () =
 
 let driver_info =
   let dummy_dialect = Caqti_template.Dialect.Pgsql {
-    server_version_opt = None;
+    server_version = Caqti_template.Version.of_string_unsafe "";
     ocaml_library = `postgresql;
     reserved = ();
   } in
@@ -997,11 +997,18 @@ struct
                 Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
-                let v0, v1, v2 = db#server_version in
+                let server_version =
+                  let v0, v1, v2 = db#server_version in
+                  Caqti_template.Version.of_string_unsafe
+                    (if v0 < 10 then
+                      Printf.sprintf "%d.%d.%d" v0 v1 v2
+                     else
+                      Printf.sprintf "%d.%d" v0 (v1 * 100 + v2))
+                in
                 let module B = Make_connection_base
                   (struct
                     let dialect = Caqti_template.Dialect.Pgsql {
-                      server_version_opt = Some (v0, v1 / 100 + v2 mod 100);
+                      server_version;
                       ocaml_library = `postgresql;
                       reserved = ();
                     }

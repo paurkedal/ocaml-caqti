@@ -240,7 +240,7 @@ let parse_uri uri =
   Ok {host; port; user; password; database; unix_domain_socket_dir}
 
 let dialect = Caqti_template.Dialect.Pgsql {
-  server_version_opt = None;
+  server_version = Caqti_template.Version.of_string_unsafe "";
   ocaml_library = `pgx;
   reserved = ();
 }

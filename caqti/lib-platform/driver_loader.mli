@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,8 +80,9 @@ module type S = sig
      and type switch := switch
      and type stdenv := stdenv
 
-  val load_driver :
-    uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result
+  val provides_unix : bool
+
+  val find_and_apply : string -> (module DRIVER) option
 end
 
 module Make (System : System_sig.S) : S

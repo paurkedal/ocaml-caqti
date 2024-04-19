@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -63,8 +63,9 @@ module type S = sig
      and type switch := switch
      and type stdenv := stdenv
 
-  val load_driver :
-    uri: Uri.t -> string -> ((module DRIVER), [> Caqti_error.load]) result
+  val provides_unix : bool
+
+  val find_and_apply : string -> (module DRIVER) option
 end
 
 module Make (System : System_sig.S) = struct
@@ -78,13 +79,11 @@ module Make (System : System_sig.S) = struct
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
 
-  let load_driver ~uri scheme =
+  let provides_unix = false
+
+  let find_and_apply scheme =
     (match Hashtbl.find_opt drivers scheme with
-     | None ->
-        let msg = "Driver not found; UNIX drivers not considered." in
-        Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
-     | Some make_driver ->
-        let module Make_driver = (val make_driver : DRIVER_FUNCTOR) in
-        let module Driver = Make_driver (System) in
-        Ok (module Driver : DRIVER))
+     | None -> None
+     | Some (module F : DRIVER_FUNCTOR) ->
+        Some (module F (System) : DRIVER))
 end

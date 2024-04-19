@@ -15,30 +15,20 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Printf
+let dynload_library = ref None
 
-let dynload_library = ref @@ fun lib ->
-  Error (sprintf "Neither %s nor the dynamic linker is linked into the \
-                  application." lib)
+let define_loader load = dynload_library := Some load
 
-let define_loader f = dynload_library := f
+let load_library lib =
+  (match !dynload_library with
+   | Some load -> load lib
+   | None ->
+      Error (Printf.sprintf "\
+        Neither %s nor a dynamic loader is linked into the application." lib))
 
-let load_library name = !dynload_library name
-
-let scheme_driver_name = function
+let library_name_of_scheme = function
  | "postgres" | "postgresql" -> "caqti-driver-postgresql"
  | s -> "caqti-driver-" ^ s
-
-let retry_with_library load_driver ~uri scheme =
-  (match load_driver ~uri scheme with
-   | Error (`Load_failed _) ->
-      let driver_name = scheme_driver_name scheme in
-      (match load_library driver_name with
-       | Ok () ->
-          load_driver ~uri scheme
-       | Error msg ->
-          Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
-   | r -> r)
 
 let set_tweaks_version = function
  | None -> Fun.id
@@ -77,6 +67,39 @@ struct
 
   let drivers : (string, (module DRIVER)) Hashtbl.t = Hashtbl.create 11
 
+  let message_cont : (_, _, _, _) format4 =
+    if Loader.provides_unix then
+      "Your entry point provides both the networking and unix components."
+    else
+      "Your entry point provides the networking but not the unix component."
+
+  let message_static = Printf.sprintf
+    ("A suitable driver for the URI-scheme %s was not found. " ^^ message_cont)
+
+  let message_dynamic = Printf.sprintf
+    ("A suitable driver for the URI-scheme %s was not found \
+      after linking in %s. " ^^ message_cont)
+
+  let load_driver' ~uri scheme =
+    (match Loader.find_and_apply scheme with
+     | Some driver -> Ok driver
+     | None ->
+        (match !dynload_library with
+         | None ->
+            let msg = message_static scheme in
+            Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
+         | Some load ->
+            let driver_lib = library_name_of_scheme scheme in
+            (match load driver_lib with
+             | Ok () ->
+                (match Loader.find_and_apply scheme with
+                 | Some driver -> Ok driver
+                 | None ->
+                    let msg = message_dynamic scheme driver_lib in
+                    Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+             | Error msg ->
+                Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))))
+
   let load_driver uri =
     (match Uri.scheme uri with
      | None ->
@@ -85,7 +108,7 @@ struct
      | Some scheme ->
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
-            (match retry_with_library Loader.load_driver ~uri scheme with
+            (match load_driver' ~uri scheme with
              | Ok driver ->
                 Hashtbl.add drivers scheme driver;
                 Ok driver

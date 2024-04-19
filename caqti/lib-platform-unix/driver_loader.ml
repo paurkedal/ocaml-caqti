@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,26 +40,17 @@ struct
   module type DRIVER = Core_loader.DRIVER
   module type CONNECTION = Core_loader.CONNECTION
 
-  let load_driver_unix ~uri scheme =
+  let provides_unix = true
+
+  let find_and_apply' scheme =
     (match Hashtbl.find_opt drivers scheme with
-     | None ->
-        let msg = "Driver not found for unix platform." in
-        Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
-     | Some make_driver ->
-        let module Make_driver = (val make_driver : DRIVER_FUNCTOR) in
-        let module Driver = Make_driver (System) (System_unix) in
-        Ok (module Driver : DRIVER))
+     | None -> None
+     | Some (module F : DRIVER_FUNCTOR) ->
+        let module Driver = F (System) (System_unix) in
+        Some (module Driver : DRIVER))
 
-  let load_driver ~uri scheme =
-    (match Core_loader.load_driver ~uri scheme with
-     | Ok _ as r -> r
-     | Error (`Load_rejected _) as r -> r
-     | Error (`Load_failed _) ->
-        (match load_driver_unix ~uri scheme with
-         | Ok _ as r -> r
-         | Error (`Load_rejected _) as r -> r
-         | Error (`Load_failed _) ->
-            let msg = "Driver not found, including among UNIX drivers." in
-            Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))))
-
+  let find_and_apply scheme =
+    (match Core_loader.find_and_apply scheme with
+     | Some _ as r -> r
+     | None -> find_and_apply' scheme)
 end

@@ -17,3 +17,4 @@
 (package (name caqti-tls-lwt) (allow_empty))
 (package (name caqti-tls) (allow_empty))
 (package (name caqti-type-calendar) (allow_empty))
+(package (name caqti-miou) (allow_empty))

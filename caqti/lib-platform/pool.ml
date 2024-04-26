@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -149,14 +149,18 @@ struct
     end
 
   let realloc pool =
-    pool.create () >|=
-    (function
-     | Ok resource ->
-        Ok {resource; used_count = 0; used_latest = Mtime_clock.now ()}
-     | Error err ->
-        pool.cur_size <- pool.cur_size - 1;
-        schedule pool;
-        Error err)
+    let on_error () =
+      pool.cur_size <- pool.cur_size - 1;
+      schedule pool
+    in
+    Fiber.cleanup
+      (fun () ->
+        pool.create () >|=
+        (function
+         | Ok resource ->
+            Ok {resource; used_count = 0; used_latest = Mtime_clock.now ()}
+         | Error err -> on_error (); Error err))
+      (fun () -> on_error (); Fiber.return ())
 
   let rec acquire ~priority pool =
     if Queue.is_empty pool.queue then begin

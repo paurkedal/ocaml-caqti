@@ -2,6 +2,12 @@ open Caqti_platform
 
 type Caqti_error.msg += Msg_unix of Unix.error * string * string
 
+let () =
+  let pp ppf = function
+    | Msg_unix (err, f, v) -> Fmt.pf ppf "%s(%s): %s" f v (Unix.error_message err)
+    | _ -> assert false in
+  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+
 external reraise : exn -> 'a = "%reraise"
 
 module Fiber = struct

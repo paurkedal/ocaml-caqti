@@ -3,13 +3,6 @@ type switch
 
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
 
-module System : Caqti_platform.System_sig.S
-    with type 'a Fiber.t = 'a
-     and type Switch.t = switch
-     and type stdenv = unit
-     and module Stream = Stream
-     and type Net.tcp_flow = Miou_unix.file_descr
-
 module Pool : sig
   include Caqti_pool_sig.S with type 'a fiber := 'a
 
@@ -39,3 +32,11 @@ include
      and type connection = (module CONNECTION)
 
 val or_fail : ('a, [< Caqti_error.t ]) result -> 'a
+
+(**/**) (* for private use by caqti-eio.unix *)
+module System : Caqti_platform.System_sig.S
+    with type 'a Fiber.t = 'a
+     and type Switch.t = switch
+     and type stdenv = unit
+     and module Stream = Stream
+     and type Net.tcp_flow = Miou_unix.file_descr

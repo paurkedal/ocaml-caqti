@@ -1,12 +1,20 @@
 open Caqti_platform
 
-type Caqti_error.msg += Msg_unix of Unix.error * string * string
+type Caqti_error.msg +=
+  | Msg_unix of Unix.error * string * string
+  | Invalid_arg of string
 
 let () =
   let pp ppf = function
     | Msg_unix (err, f, v) -> Fmt.pf ppf "%s(%s): %s" f v (Unix.error_message err)
     | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+
+let () =
+  let pp ppf = function
+    | Invalid_arg msg -> Fmt.string ppf msg
+    | _ -> assert false in
+  Caqti_error.define_msg ~pp [%extension_constructor Invalid_arg]
 
 external reraise : exn -> 'a = "%reraise"
 
@@ -212,14 +220,15 @@ module Net = struct
     let close fd = Miou_unix.close fd
   end
 
+  let socket = function
+    | Unix.ADDR_UNIX _ -> Error (Invalid_arg "Caqti_miou.Net.connect_tcp")
+    | Unix.ADDR_INET (inet_addr, _) when Unix.is_inet6_addr inet_addr ->
+        Ok (Miou_unix.tcpv6 ())
+    | _ -> Ok (Miou_unix.tcpv4 ())
+
   let connect_tcp ~sw:_ ~stdenv:_ sockaddr =
-    let socket =
-      match sockaddr with
-      | Unix.ADDR_UNIX _ -> invalid_arg "Caqti_miou.Net.connect_tcp"
-      | Unix.ADDR_INET (inet_addr, _) when Unix.is_inet6_addr inet_addr ->
-          Miou_unix.tcpv6 ()
-      | _ -> Miou_unix.tcpv4 ()
-    in
+    let ( >>= ) = Result.bind in
+    socket sockaddr >>= fun socket ->
     match Miou_unix.connect socket sockaddr with
     | () -> Ok socket
     | exception Unix.Unix_error (err, f, v) ->

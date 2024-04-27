@@ -28,18 +28,18 @@ module Stream = Caqti_platform.Stream.Make (Fiber)
 
 module Semaphore = struct
   type t = {
-      mutable value: int
-    ; mutable wakeups: int
-    ; mutex: Miou.Mutex.t
-    ; condition: Miou.Condition.t
+    mutable value: int;
+    mutable wakeups: int;
+    mutex: Miou.Mutex.t;
+    condition: Miou.Condition.t;
   }
 
   let create () =
     {
-      value= 1
-    ; wakeups= 0
-    ; mutex= Miou.Mutex.create ()
-    ; condition= Miou.Condition.create ()
+      value= 1;
+      wakeups= 0;
+      mutex= Miou.Mutex.create ();
+      condition= Miou.Condition.create ();
     }
 
   let acquire t =

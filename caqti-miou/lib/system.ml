@@ -2,19 +2,12 @@ open Caqti_platform
 
 type Caqti_error.msg +=
   | Msg_unix of Unix.error * string * string
-  | Invalid_arg of string
 
 let () =
   let pp ppf = function
     | Msg_unix (err, f, v) -> Fmt.pf ppf "%s(%s): %s" f v (Unix.error_message err)
     | _ -> assert false in
   Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
-
-let () =
-  let pp ppf = function
-    | Invalid_arg msg -> Fmt.string ppf msg
-    | _ -> assert false in
-  Caqti_error.define_msg ~pp [%extension_constructor Invalid_arg]
 
 external reraise : exn -> 'a = "%reraise"
 
@@ -86,14 +79,6 @@ type _ Effect.t += Spawn : (unit -> unit) -> unit Effect.t
 module Switch = struct
   type hook = (unit -> unit) Miou.Sequence.node
   type t = { orphans: unit Miou.orphans; hooks: (unit -> unit) Miou.Sequence.t }
-
-  let peek : type a. a Miou.Sequence.t -> a Miou.Sequence.node =
-   fun hooks ->
-    let exception Node of a Miou.Sequence.node in
-    try
-      Miou.Sequence.iter_node ~f:(fun node -> raise (Node node)) hooks;
-      invalid_arg "peek"
-    with Node node -> node
 
   let release hooks =
     List.iter (fun fn -> fn ()) (Miou.Sequence.to_list hooks);
@@ -221,7 +206,9 @@ module Net = struct
   end
 
   let socket = function
-    | Unix.ADDR_UNIX _ -> Error (Invalid_arg "Caqti_miou.Net.connect_tcp")
+    | Unix.ADDR_UNIX _ ->
+        let fd = Unix.socket ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+        Ok (Miou_unix.of_file_descr ~non_blocking:true fd)
     | Unix.ADDR_INET (inet_addr, _) when Unix.is_inet6_addr inet_addr ->
         Ok (Miou_unix.tcpv6 ())
     | _ -> Ok (Miou_unix.tcpv4 ())

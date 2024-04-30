@@ -17,7 +17,8 @@
     (env_var CAQTI_TEST_X509_AUTHENTICATOR))
   (action
     ; FIXME: Do we need to work around missing TLS?
-    (with-stdout-to %{target} (run %{dep:deps_of_uris.exe} -U %{U}))))
+    (with-stdout-to %{target}
+      (run %{dep:deps_of_uris.exe} --profile %{profile} -U %{U}))))
 (rule
   (target dune.uri-deps-eio)
   (deps
@@ -25,7 +26,8 @@
     (env_var CAQTI_TEST_X509_AUTHENTICATOR))
   (action
     (with-stdout-to %{target}
-      (run %{dep:deps_of_uris.exe} --tls-library caqti-tls-eio -U %{U}))))
+      (run %{dep:deps_of_uris.exe} --profile %{profile} -U %{U}
+           --tls-library caqti-tls-eio))))
 (rule
   (target dune.uri-deps-lwt)
   (deps
@@ -33,7 +35,8 @@
     (env_var CAQTI_TEST_X509_AUTHENTICATOR))
   (action
     (with-stdout-to %{target}
-      (run %{dep:deps_of_uris.exe} --tls-library caqti-tls-lwt.unix -U %{U}))))
+      (run %{dep:deps_of_uris.exe} --profile %{profile} -U %{U}
+           --tls-library caqti-tls-lwt.unix))))
 (rule
   (target dune.uri-deps-async)
   (deps
@@ -41,7 +44,8 @@
     (env_var CAQTI_TEST_X509_AUTHENTICATOR))
   (action
     (with-stdout-to %{target}
-      (run %{dep:deps_of_uris.exe} --tls-library caqti-tls-async -U %{U}))))
+      (run %{dep:deps_of_uris.exe} --profile %{profile} -U %{U}
+           --tls-library caqti-tls-async))))
 
 ; The generic testsuite as a library.
 

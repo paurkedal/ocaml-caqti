@@ -17,8 +17,12 @@
 
 (** Establishing Connections for Eio without Unix
 
-    This module provides connections to the PGX database for Eio applications.
-    For other database systems, you will need {!Caqti_eio_unix}.
+    {b Note that} the {!connect}, {!with_connection}, and {!connect_pool}
+    functions from this module only provides support for caqti-driver-pgx (i.e.
+    the [pgx] URI scheme).  The other database drivers are based on C bindings
+    which require UNIX facilities provided by {!Caqti_eio_unix.connect},
+    {!Caqti_eio_unix.with_connection}, and {!Caqti_eio_unix.connect_pool},
+    respectively.
 
     {b The caqti-eio library should be considered unstable} for now.  Eio is in
     active development including its API, and the Caqti interface to it may

@@ -41,7 +41,7 @@ module System : Caqti_platform.System_sig.S
    and type Net.tcp_flow =
     [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
    and type Net.tls_flow =
-    [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
+    [Eio.Flow.two_way_ty | Eio.Resource.close_ty | `Tls] Eio.Resource.t
 (**/**)
 
 module Pool : sig

@@ -165,8 +165,10 @@ module Net = struct
       Eio.Flow.close flow
   end
 
-  type tcp_flow = [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
-  type tls_flow = [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
+  type tcp_flow =
+    [Eio.Flow.two_way_ty | Eio.Resource.close_ty] Eio.Resource.t
+  type tls_flow =
+    [Eio.Flow.two_way_ty | Eio.Resource.close_ty | `Tls] Eio.Resource.t
 
   let tcp_flow_of_socket {Socket.flow; ic; oc} =
     Log.debug (fun m -> m "Enabling TLS.");
@@ -192,7 +194,8 @@ module Net = struct
     Eio.Fiber.fork ~sw (fun () -> start_writer ~which oc flow);
     {Socket.flow; ic; oc}
 
-  let socket_of_tls_flow ~sw flow = socket_of_flow ~which:"TLS" ~sw flow
+  let socket_of_tls_flow ~sw flow =
+    socket_of_flow ~which:"TLS" ~sw (flow : tls_flow :> tcp_flow)
 
   let connect_tcp ~sw ~stdenv sockaddr =
     try

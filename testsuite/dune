@@ -68,7 +68,9 @@
 
 (rule
   (alias runtest)
-  (package caqti)
+  ; This breaks the scheme of placing tests under the platform packages in order
+  ; to avoid a cyclic with-test dependency.
+  (package caqti-driver-sqlite3)
   (deps
     (:test main_blocking.exe)
     (:U %{env:CAQTI_TEST_URIS_FILE=uris.conf})

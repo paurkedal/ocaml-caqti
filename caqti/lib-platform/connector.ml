@@ -71,8 +71,8 @@ struct
     if Loader.provides_unix then
       "Your entry point provides both the networking and unix components."
     else
-      "Your entry point provides the networking but not the unix component \
-       while is required by drivers based on C bindings."
+      "Your entry point provides the networking but not the unix component, \
+       which is required by drivers based on C bindings."
 
   let message_static = Printf.sprintf
     ("A suitable driver for the URI-scheme %s was not found. " ^^ message_cont)

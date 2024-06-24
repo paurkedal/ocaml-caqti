@@ -25,7 +25,7 @@ depends: [
   "odoc" {with-doc}
   "tls"
   "tls-mirage"
-  "tcpip"
+  "tcpip" {>= "8.1.0"}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

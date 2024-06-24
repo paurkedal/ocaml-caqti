@@ -74,7 +74,7 @@ module System_core = struct
   module Semaphore = struct
     type t = unit Ivar.t
     let create = Ivar.create
-    let release v = Ivar.fill v ()
+    let release v = Ivar.fill_exn v ()
     let acquire v = Ivar.read v
   end
 
@@ -99,7 +99,7 @@ module System_core = struct
           count_it ();
           let ivar = Ivar.create () in
           let k () = Ivar.read ivar in
-          let over () = Ivar.fill ivar () in
+          let over () = Ivar.fill_exn ivar () in
           Logs.report src level ~over k msgf)
 
     let err ?(src = Logging.default_log_src) msgf = kmsg ~src Logs.Error msgf

@@ -91,7 +91,7 @@ struct
         DNS.getaddrinfo dns Dns.Rr_map.Aaaa host >|= Result.map extract
 
       let getaddrinfo ~stdenv:{stack; dns} host port =
-        let laddrs = STACK.IP.get_ip (STACK.ip stack) in
+        let laddrs = STACK.IP.configured_ips (STACK.ip stack) in
         (match
           List.exists Ipaddr.(function V4 _ -> true | V6 _ -> false) laddrs,
           List.exists Ipaddr.(function V4 _ -> false | V6 _ -> true) laddrs

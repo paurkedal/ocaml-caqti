@@ -7,7 +7,7 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "async_kernel" {>= "v0.11.0"}
+  "async_kernel" {>= "v0.17.0"}
   "async_unix" {>= "v0.11.0"}
   "caqti" {>= "2.1.0" & < "2.2.0~"}
   "core" {>= "v0.16.1"}

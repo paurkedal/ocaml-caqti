@@ -13,33 +13,26 @@ Caqti then loads a driver which can handle the URI, and provides a
 first-class module which implements the driver API and additional
 convenience functionality.
 
-Caqti does not make assumptions about the structure of the query language,
-and only provides the type information needed at the edges of communication
-between the OCaml code and the database; i.e. for encoding parameters and
-decoding returned tuples.  It is hoped that this agnostic choice makes it a
-suitable target for higher level interfaces and code generators.
+Caqti does not generate or analyze SQL but provides templating and uniform
+query parameter handling, including encoding and decoding data according to
+declared types.  It is hoped that this agnostic choice makes it a suitable
+target for higher level interfaces and code generators.
 
-## Drivers
-
-The following drivers are available.
+The following drivers are available:
 
 RDBMS      | URI scheme      | library        | Unix | MirageOS
 ---------- | --------------- | -------------- | ---- | --------
 MariaDB    | `mariadb://`    | [mariadb][]    | yes  | no
 PostgreSQL | `postgresql://` | [postgresql][] | yes  | no
-PostgreSQL | `pgx://`        | [pgx][] (p)    | yes  | yes
+PostgreSQL | `pgx://`        | [pgx][]        | yes  | yes
 SQLite3    | `sqlite3://`    | [sqlite3][]    | yes  | no
 
-**The PGX based driver is not production-ready yet** due to the lack of TLS,
-esp. given that the only supported authentication mechanism is plaintext.
-
-If you link against `caqti-dynload`, then drivers are loaded dynamically
-based on the URI.  If dynamic loading is unavailable on your platform, link
-instead against the `caqti-driver-*` libraries which you expect to use.
+The PGX based driver is experimental and only recommended for MirageOS.
+More about the drivers below.
 
 ## Documentation
 
-Tutorials and examples:
+### Tutorials and Examples
 
   - The [caqti-study][] repository is a tutorial with examples, which we
     will keep up to date with the latest release of Caqti.  It is work in
@@ -50,40 +43,53 @@ Tutorials and examples:
   - [The documented example][bikereg] in this repository can give a first
     idea.
 
-API documentation from ocaml.org contains documentation for matching
-releases of individual packages:
+### API Documentation for Stable Releases
 
-  - [caqti](https://ocaml.org/p/caqti/latest)
-  - [caqti-lwt](https://ocaml.org/p/caqti-lwt/latest)
-  - [caqti-async](https://ocaml.org/p/caqti-async/latest)
-  - [caqti-eio](https://ocaml.org/p/caqti-eio/latest) (pending release)
-  - [caqti-mirage](https://ocaml.org/p/caqti-mirage/latest) (pending
-    release)
-  - [caqti-driver-mariadb](https://ocaml.org/p/caqti-driver-mariadb)
-  - [caqti-driver-postgresql](https://ocaml.org/p/caqti-driver-postgresql)
-  - [caqti-driver-sqlite3](https://ocaml.org/p/caqti-driver-sqlite3)
-  - [caqti-driver-pgx](https://ocaml.org/p/caqti-driver-sqlite3) (pending
-    release)
+The stable API documentation is hosted on [https://ocaml.org](), where you
+can search package by name.
 
-If the above lacks links to modules, it may be due to build issues.  You may
-instead refer to my own latest rendering:
+A full Caqti release contains the following packages:
 
-  - [Caqti API Reference][API] contains the index with the most important
-    entry points being:
-  - [caqti-blocking][] for Unix system library with no concurrency, supports
-    all drivers
-  - [caqti-lwt.unix][] for Lwt with Unix system library, supports all
-    drivers
-  - [caqti-async][] for Async with Unix system library, supports all drivers
-  - [caqti-eio.unix][] for experimental Eio support.
-  - [caqti-mirage][] for experimental MirageOS support.
+  - [caqti](https://ocaml.org/p/caqti/latest):
+    Core libraries and blocking unix connector.
+  - [caqti-lwt](https://ocaml.org/p/caqti-lwt/latest):
+    Lwt support library and connector.
+  - [caqti-async](https://ocaml.org/p/caqti-async/latest):
+    Async connector.
+  - [caqti-eio](https://ocaml.org/p/caqti-eio/latest):
+    Experimental EIO connector.
+  - [caqti-mirage](https://ocaml.org/p/caqti-mirage/latest):
+    Experimental MirageOS connector.
+  - [caqti-driver-mariadb](https://ocaml.org/p/caqti-driver-mariadb):
+    Driver for MariaDB and MySQL using C bindings from [mariadb][].
+  - [caqti-driver-postgresql](https://ocaml.org/p/caqti-driver-postgresql):
+    Driver for PostgreSQL using C bindings from [postgresql][].
+  - [caqti-driver-sqlite3](https://ocaml.org/p/caqti-driver-sqlite3):
+    Driver for local SQlite3 databases using C bindings from [sqlite3][].
+  - [caqti-driver-pgx](https://ocaml.org/p/caqti-driver-pgx):
+    Experimental driver for PostgreSQL using the [pgx][] library.
+  - [caqti-tls](https://ocaml.org/p/caqti-tls):
+    TLS configuration currently only used by caqti-mirage, and only relevant
+    for pgx, since drivers based on C bindings have external TLS support.
 
-The linked modules provide a connect functions which receives an URI, loads
-the appropriate driver, and returns a connection as a first-class module
-containing query functionality for the database.
+The connector modules provide a connect functions which receives an URI,
+dispatches to an appropriate driver, and returns a connection object as a
+first-class module, which contains query functionality for the database.
+The application can either link against the drivers it needs or the link
+against the `caqti.plugin` library in order to load the appropriate driver
+at runtime.
 
-You can also build the API reference matching your installed version using
-[odig][] or run `dune build @doc` in a Git checkout.
+(A few package not mentioned include unreleased TLS packages and the
+semi-deprecated packages
+[caqti-type-calendar](https://ocaml.org/p/caqti-type-calendar/latest) and
+[caqti-dynload](https://ocaml.org/p/caqti-dynload/latest).)
+
+### API Documentation for Development Snapshots
+
+Apart from the above links, the [GitHub pages][caqti-ghpages] are updated
+occasionally with a rendering from the master branch.  You can also build
+the API reference matching your installed version using [odig][] or run
+`dune build @doc` in a Git checkout.
 
 ## Running under utop
 
@@ -123,17 +129,11 @@ Thanks to the <a href="https://ocaml-sf.org">OCaml Software Foundation</a>
 for economic support to the development of Caqti.
 
 
-[API]: http://paurkedal.github.io/ocaml-caqti/index.html
+[caqti-ghpages]: http://paurkedal.github.io/ocaml-caqti/index.html
 [BP-2018]: https://medium.com/@bobbypriambodo/interfacing-ocaml-and-postgresql-with-caqti-a92515bdaa11
 [bikereg]: examples/bikereg.ml
-[caqti-async]: https://paurkedal.github.io/ocaml-caqti/caqti-async/Caqti_async/index.html
-[caqti-blocking]: https://paurkedal.github.io/ocaml-caqti/caqti/Caqti_blocking/index.html
-[caqti-eio.unix]: https://paurkedal.github.io/ocaml-caqti/caqti-eio/Caqti_eio_unix/index.html
-[caqti-lwt.unix]: https://paurkedal.github.io/ocaml-caqti/caqti-lwt/Caqti_lwt_unix/index.html
-[caqti-mirage]: https://paurkedal.github.io/ocaml-caqti/caqti-mirage/Caqti_mirage/index.html
 [caqti-study]: https://github.com/paurkedal/caqti-study/
 [odig]: http://erratique.ch/software/odig
-[topkg-care]: http://erratique.ch/software/topkg
 [mariadb]: https://github.com/andrenth/ocaml-mariadb
 [pgx]: https://github.com/arenadotio/pgx
 [postgresql]: https://mmottl.github.io/postgresql-ocaml

@@ -19,12 +19,12 @@ depends: [
   "lwt" {>= "5.3.0"}
   "mirage-channel"
   "mirage-clock"
-  "mirage-random"
+  "mirage-crypto-rng-mirage" {>= "1.0.0"}
   "mirage-time"
   "ocaml"
   "odoc" {with-doc}
   "tls"
-  "tls-mirage"
+  "tls-mirage" {>= "1.0.0"}
   "tcpip" {>= "8.1.0"}
 ]
 build: [

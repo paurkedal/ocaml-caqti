@@ -882,8 +882,7 @@ struct
             Caqti_error.pp_uri uri (Pg.string_of_error err))
 
     let validate () = using_db @@ fun () ->
-      db#consume_input;
-      if (try db#status = Pg.Ok with Pg.Error _ -> false) then
+      if (try db#consume_input; db#status = Pg.Ok with Pg.Error _ -> false) then
         Fiber.return true
       else
         reset ()

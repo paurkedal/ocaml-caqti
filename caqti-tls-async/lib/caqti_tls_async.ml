@@ -34,14 +34,14 @@ let try_to_close t =
 ;;
 
 let pipe t =
-  let b_reader = Cstruct.create 0x8000 in
+  let b_reader = Bytes.create 0x8000 in
   let rec f_reader writer =
     match%bind Session.read t b_reader with
     | Ok 0 ->
       Pipe.close writer;
       return ()
     | Ok len ->
-      let%bind () = Pipe.write writer (Cstruct.to_string (Cstruct.sub b_reader 0 len)) in
+      let%bind () = Pipe.write writer (Stdlib.Bytes.sub_string b_reader 0 len) in
       f_reader writer
     | Error read_error ->
       let%map () =
@@ -54,7 +54,7 @@ let pipe t =
     let%bind pipe_read = Pipe.read reader in
     match pipe_read with
     | `Ok s ->
-      (match%bind Session.writev t [ Cstruct.of_string s ] with
+      (match%bind Session.writev t [ s ] with
        | Ok () -> f_writer reader
        | Error (_ : Error.t) -> try_to_close t)
     | `Eof -> try_to_close t

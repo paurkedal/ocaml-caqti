@@ -15,7 +15,7 @@
     lwt
     mirage-channel
     mirage-clock
-    mirage-random
+    mirage-crypto-rng-mirage
     mirage-time
     tcpip
     tls-mirage))

@@ -40,7 +40,9 @@ let () =
     (match x509_authenticator with
      | None -> common_args
      | Some authenticator ->
-        let tls_client_config = Tls.Config.client ~authenticator () in
+        let tls_client_config =
+          Result.get_ok (Tls.Config.client ~authenticator ())
+        in
         let connect_config =
           common_args.connect_config
             |> Caqti_connect_config.set Caqti_tls.Config.client

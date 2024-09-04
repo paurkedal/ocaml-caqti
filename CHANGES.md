@@ -1,3 +1,22 @@
+## v2.1.2 - 2024-09-04
+
+Fixes:
+
+  - Improve error reporting when failing to load a driver (#115).
+  - Fix validation of dead connection in postgresql driver (#119 by Sam
+    Tombury).
+  - Tolerate exceptions from pool resource allocators (#116 reported by Ryan
+    Moore).
+  - Fix install script for the caqti.opam package to work with caqti.plugin.
+  - Fix the announced license exception in the caqti-driver-pgx package.
+
+Dependency updates:
+
+  - Update to `tls` >= 1.0.0 for caqti-mirage (#120 by Hannes Mehnert).
+  - Update tls-eio to >= 0.17.4 for caqti-tls-eio (to eliminate a hack).
+  - Update `async_kernel` to >= v0.17.0 and `tcpip` to >= 8.1.0 (due to
+    resolving deprecations for future compatibility).
+
 ## v2.1.1 - 2024-02-19
 
 This minor update fixes running of the test suite and packaging issues.

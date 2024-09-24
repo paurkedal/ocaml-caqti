@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,14 +19,6 @@ module Req = struct
   include Caqti_type.Std
   include Caqti_request.Infix
 end
-
-let is_indecernible_case expected actual =
-  (match expected, actual with
-   | #Caqti_error.integrity_constraint_violation,
-     `Integrity_constraint_violation__don't_match -> true
-   | #Caqti_error.insufficient_resources,
-     `Insufficient_resources__don't_match -> true
-   | _ -> false)
 
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
@@ -90,17 +82,13 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let make_test_case (expected_cause, req) =
     let test (module Db : CONNECTION) =
-      let dialect = Caqti_driver_info.dialect_tag Db.driver_info in
       Db.exec req () >|= function
        | Ok () -> Alcotest.fail "Error not reported."
        | Error (`Request_failed _ | `Response_failed _ as err) ->
           let actual_cause = Caqti_error.cause err in
-          if dialect <> `Sqlite
-              || not (is_indecernible_case expected_cause actual_cause)
-          then
-            Alcotest.(check string) "cause"
-              (Caqti_error.show_cause expected_cause)
-              (Caqti_error.show_cause actual_cause)
+          Alcotest.(check string) "cause"
+            (Caqti_error.show_cause expected_cause)
+            (Caqti_error.show_cause actual_cause)
        | Error err ->
           Alcotest.failf "Unexpected error: %a" Caqti_error.pp err
     in

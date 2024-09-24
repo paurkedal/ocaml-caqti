@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,33 +48,43 @@ let get_uri_int uri name =
 
 type Caqti_error.msg += Error_msg of {
   errcode: Sqlite3.Rc.t;
+  extended_errcode: int option;
   errmsg: string option;
 }
 
-let cause_of_rc : Sqlite3.Rc.t -> _ = function
- | CONSTRAINT   -> `Integrity_constraint_violation__don't_match
- | NOMEM        -> `Out_of_memory
- | FULL         -> `Disk_full
- | _            -> `Unspecified__don't_match
+let cause_of_rc : Sqlite3.Rc.t * int option -> _ = function
+ | CONSTRAINT, Some 1299 -> `Not_null_violation
+ | CONSTRAINT, Some  787 -> `Foreign_key_violation
+ | CONSTRAINT, Some 2067 -> `Unique_violation
+ | CONSTRAINT, Some  275 -> `Check_violation
+ | CONSTRAINT,         _ -> `Integrity_constraint_violation__don't_match
+ | NOMEM,              _ -> `Out_of_memory
+ | FULL,               _ -> `Disk_full
+ | _,                  _ -> `Unspecified__don't_match
 
 let () =
   let pp ppf = function
-   | Error_msg {errmsg; errcode} ->
-      Format.fprintf ppf "%s."
+   | Error_msg {errcode; errmsg; extended_errcode; _} ->
+      Format.pp_print_string ppf
         (match errmsg with
          | None -> Sqlite3.Rc.to_string errcode
-         | Some errmsg -> errmsg)
+         | Some errmsg -> errmsg);
+      (match extended_errcode with
+       | None -> Format.pp_print_char ppf '.'
+       | Some erc -> Format.fprintf ppf " (ERC#%d)." erc)
    | _ -> assert false
   in
   let cause = function
-   | Error_msg {errcode; _} -> cause_of_rc errcode
+   | Error_msg {errcode; extended_errcode; _} ->
+      cause_of_rc (errcode, extended_errcode)
    | _ -> assert false
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 let wrap_rc ?db errcode =
   let errmsg = Option.map Sqlite3.errmsg db in
-  Error_msg {errcode; errmsg}
+  let extended_errcode = Option.map Sqlite3.extended_errcode_int db in
+  Error_msg {errcode; errmsg; extended_errcode}
 
 let no_env _ _ = raise Not_found
 
@@ -189,34 +199,34 @@ let query_string q =
   loop q;
   (quotes, Buffer.contents buf)
 
-let bind_quotes ~uri stmt oq =
+let bind_quotes ~uri ~db stmt oq =
   let aux j x =
     (match Sqlite3.bind stmt (j + 1) x with
      | Sqlite3.Rc.OK -> Ok ()
      | rc ->
         let typ = Caqti_type.string in
-        Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc rc)))
+        Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc ~db rc)))
   in
   List_ext.iteri_r aux oq
 
-let encode_null_field ~uri stmt field_type iP =
+let encode_null_field ~uri ~db stmt field_type iP =
   (match Sqlite3.bind stmt (iP + 1) Sqlite3.Data.NULL with
    | Sqlite3.Rc.OK -> ()
    | rc ->
       let typ = Caqti_type.field field_type in
-      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc rc))
+      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc ~db rc))
 
-let encode_field ~uri stmt field_type field_value iP =
+let encode_field ~uri ~db stmt field_type field_value iP =
   let d = data_of_value field_type field_value in
   (match Sqlite3.bind stmt (iP + 1) d with
    | Sqlite3.Rc.OK -> ()
    | rc ->
       let typ = Caqti_type.field field_type in
-      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc rc))
+      Request_utils.raise_encode_failed ~uri ~typ (wrap_rc ~db rc))
 
-let encode_param ~uri stmt t =
-  let write_value ~uri ft fv iP = encode_field ~uri stmt ft fv iP; iP + 1 in
-  let write_null ~uri ft iP = encode_null_field ~uri stmt ft iP; iP + 1 in
+let encode_param ~uri ~db stmt t =
+  let write_value ~uri ft fv iP = encode_field ~uri ~db stmt ft fv iP; iP + 1 in
+  let write_null ~uri ft iP = encode_null_field ~uri ~db stmt ft iP; iP + 1 in
   let encode = Request_utils.encode_param ~uri {write_value; write_null} t in
   fun x iP ->
     try Ok (encode x iP) with
@@ -474,9 +484,9 @@ struct
       >>=? fun (stmt, quotes, query) ->
 
       (* CHECKME: Does binding involve IO? *)
-      Fiber.return (bind_quotes ~uri stmt quotes) >>=? fun () ->
+      Fiber.return (bind_quotes ~uri ~db stmt quotes) >>=? fun () ->
       let nQ = List.length quotes in
-      (match encode_param ~uri stmt param_type param nQ with
+      (match encode_param ~uri ~db stmt param_type param nQ with
        | Ok nQP ->
           let nP = Caqti_type.length param_type in
           if nQP > nQ + nP then

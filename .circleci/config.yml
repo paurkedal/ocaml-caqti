@@ -29,6 +29,11 @@ jobs:
               fi
             done
       - run:
+          name: Synchronize with opam-repository
+          command: |
+            opam repo add upstream git+https://github.com/ocaml/opam-repository.git
+            opam update
+      - run:
           name: Install system dependencies
           command: |
             opam depext -y $(cat .ci-tmp-packages)

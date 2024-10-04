@@ -52,4 +52,17 @@
     lwt
     lwt.unix))
 
+(executable
+ (name main_miou_unix)
+ (modules main_miou_unix)
+ (libraries
+    benchmark_all
+    caqti-miou
+    caqti_miou_unix
+    caqti-tls-miou
+    miou
+    miou.unix
+    mirage-crypto-rng-miou-unix
+    threads))
+
 ; TODO: Can we run async under a benchamel test?

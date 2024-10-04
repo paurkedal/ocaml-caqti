@@ -1,0 +1,5 @@
+(library
+ (name caqti_miou)
+ (public_name caqti-miou)
+ (modules caqti_miou)
+ (libraries logs fmt caqti caqti.platform miou))

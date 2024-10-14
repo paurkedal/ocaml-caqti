@@ -22,6 +22,8 @@ module Switch : Caqti_switch_sig.S
   with type 'a fiber := 'a
    and type t = switch
 
+(**/**)
+(* For private use by Caqti. *)
 module System_core : sig
   include Caqti_platform.System_sig.CORE
     with type 'a Fiber.t = 'a
@@ -29,6 +31,7 @@ module System_core : sig
      and type Switch.t = Switch.t
      and type stdenv := unit
 end
+(**/**)
 
 module type CONNECTION = Caqti_connection_sig.S
   with type 'a fiber := 'a

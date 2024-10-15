@@ -126,7 +126,9 @@ let test_n n =
     Miou.Mutex.unlock wait_count_mutex;
     if n > 0 then wait_for_all ()
   in
-  with_timeout 2.0 wait_for_all;
+  (* NOTE(dinosaure): see the note below, we need to give a better chance to
+     wait all tasks. *)
+  with_timeout 5.0 wait_for_all;
   assert (Pool.size pool <= max_idle_size);
   assert (!wait_count = 0);
   Pool.drain pool;
@@ -142,9 +144,9 @@ let test () =
      ends up in the role of a small scheduler which will execute tasks with
      [async], whereas Miou is a scheduler. The aim is for the [Switch] to
      execute tasks in another domain. In this case, the test execution time is
-     reasonable, but for a simple core, this repetition of task management
-     slows down the process. We therefore limit the number of tasks to be
-     performed for a single core.
+     reasonable, but for a simple core, this repetition of task management slows
+     down the process. We therefore limit the number of tasks to be performed
+     for a single core.
 
      We could offer another [Switch] implementation depending on the number of
      domains available. However, this choice can only be made dynamically. It is
@@ -152,7 +154,7 @@ let test () =
      available. *)
   let max =
     if Miou.Domain.available () > 0
-    then 12 else 8 in
+    then 12 else 6 in
   let rec loop n_it =
     if n_it > 0 then begin
       test_n (Random.int (1 lsl max));

@@ -17,7 +17,7 @@
 
 let () = Logs_threaded.enable ()
 
-let () = Miou_unix.run @@ fun () ->
+let () =
   Alcotest.run "caqti-miou" [
     "pool-miou", Test_pool_miou.test_cases;
   ]

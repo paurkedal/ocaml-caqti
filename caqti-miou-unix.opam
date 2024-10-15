@@ -13,6 +13,7 @@ depends: [
   "logs"
   "ocaml" {>= "5.0.0~"}
   "alcotest" {with-test & >= "1.5.0"}
+  "caqti-miou" {>= "2.1.0" & < "2.2.0~"}
   "caqti-driver-sqlite3" {with-test}
   "cmdliner" {with-test & >= "1.1.0"}
   "mirage-crypto-rng-miou-unix" {with-test}

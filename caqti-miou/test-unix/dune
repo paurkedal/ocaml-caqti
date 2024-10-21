@@ -1,4 +1,4 @@
 (test
  (name main)
  (package caqti-miou)
- (libraries logs.threaded alcotest caqti caqti-miou caqti-miou-unix testlib))
+ (libraries logs.threaded alcotest caqti caqti-miou caqti-miou.unix testlib))

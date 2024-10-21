@@ -8,7 +8,7 @@ doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
   "caqti" {>= "2.1.0" & < "2.2.0~"}
-  "caqti-miou-unix" {>= "2.1.0" & < "2.2.0~"}
+  "caqti-miou" {>= "2.1.0" & < "2.2.0~"}
   "dune" {>= "3.9"}
   "ocaml"
   "tls"

@@ -1,5 +1,5 @@
 (library
  (name caqti_miou_unix)
- (public_name caqti-miou-unix)
+ (public_name caqti-miou.unix)
  (modules caqti_miou_unix system system_unix)
  (libraries caqti-miou caqti.platform.unix miou.unix ipaddr.unix))

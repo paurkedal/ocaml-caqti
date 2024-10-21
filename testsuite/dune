@@ -128,7 +128,7 @@
  (modules main_miou_unix)
  (libraries
   caqti
-  caqti-miou-unix
+  caqti-miou.unix
   caqti.plugin
   alcotest
   threads

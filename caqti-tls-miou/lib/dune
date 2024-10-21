@@ -3,7 +3,7 @@
  (public_name caqti-tls-miou)
  (library_flags
   (:standard -linkall))
- (libraries caqti caqti.platform caqti-miou-unix caqti-tls tls ke tls-miou-unix))
+ (libraries caqti caqti.platform caqti-miou.unix caqti-tls tls ke tls-miou-unix))
 
 (plugin
  (package caqti-tls-miou)

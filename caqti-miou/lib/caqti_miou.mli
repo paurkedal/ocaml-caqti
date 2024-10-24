@@ -15,6 +15,13 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Prerequisites for establishing connections under miou.
+
+    The connection functions can be found in caqti-miou.unix.
+
+    {b This library considered unstable for now,} and may be revised or replaced
+    as the effect-based libraries evolve. *)
+
 type switch
 
 module Stream : Caqti_stream_sig.S with type 'a fiber := 'a

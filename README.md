@@ -58,6 +58,8 @@ A full Caqti release contains the following packages:
     Async connector.
   - [caqti-eio](https://ocaml.org/p/caqti-eio/latest):
     Experimental EIO connector.
+  - [caqti-miou](https://ocaml.org/p/caqti-miou/latest):
+    Experimental Miou connector.
   - [caqti-mirage](https://ocaml.org/p/caqti-mirage/latest):
     Experimental MirageOS connector.
   - [caqti-driver-mariadb](https://ocaml.org/p/caqti-driver-mariadb):

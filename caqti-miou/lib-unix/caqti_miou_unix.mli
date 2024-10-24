@@ -15,6 +15,11 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Establishing connections using miou.unix.
+
+    {b This library considered unstable for now,} and may be revised or replaced
+    as the effect-based libraries evolve. *)
+
 module System = System
 
 module Pool : Caqti_pool_sig.S with type 'a fiber := 'a

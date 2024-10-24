@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let error_msgf fmt = Fmt.kstr (fun msg -> Error (`Msg msg)) fmt
+let error_msgf fmt = Format.kasprintf (fun msg -> Error (`Msg msg)) fmt
 
 module type FLOW = Caqti_platform.System_sig.SOCKET_OPS with type 'a fiber = 'a
 
@@ -32,8 +32,10 @@ type Caqti_error.msg +=
 
 let () =
   let pp ppf = function
-    | Msg_unix (err, f, v) -> Fmt.pf ppf "%s(%s): %s" f v (Unix.error_message err)
-    | _ -> assert false in
+    | Msg_unix (err, f, v) ->
+        Format.fprintf ppf "%s(%s): %s" f v (Unix.error_message err)
+    | _ -> assert false
+  in
   Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
 
 external reraise : exn -> 'a = "%reraise"

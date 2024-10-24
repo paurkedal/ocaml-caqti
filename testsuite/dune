@@ -47,6 +47,23 @@
       (run %{dep:deps_of_uris.exe} --profile %{profile} -U %{U}
            --tls-library caqti-tls-async))))
 
+(rule
+ (target dune.uri-deps-miou-unix)
+ (deps
+  (:U %{env:CAQTI_TEST_URIS_FILE=uris.conf})
+  (env_var CAQTI_TEST_X509_AUTHENTICATOR))
+ (action
+  (with-stdout-to
+   %{target}
+   (run
+    %{dep:deps_of_uris.exe}
+    --profile
+    %{profile}
+    -U
+    %{U}
+    --tls-library
+    caqti-tls-miou))))
+
 ; The generic testsuite as a library.
 
 (library
@@ -103,6 +120,36 @@
     (env_var CAQTI_TEST_X509_AUTHENTICATOR))
   (locks /db/testsuite)
   (action (run %{test} -U %{U})))
+
+(executable
+ (name main_miou_unix)
+ (enabled_if
+  (>= %{ocaml_version} "5.0"))
+ (modules main_miou_unix)
+ (libraries
+  caqti
+  caqti-miou.unix
+  caqti.plugin
+  alcotest
+  threads
+  mirage-crypto-rng-miou-unix
+  testlib
+  testlib_miou_unix
+  testsuite))
+
+(rule
+ (alias runtest)
+ (package caqti-miou)
+ (enabled_if
+  (>= %{ocaml_version} "5.0"))
+ (deps
+  (:test main_miou_unix.exe)
+  (:U %{env:CAQTI_TEST_URIS_FILE=uris.conf})
+  (include dune.uri-deps-miou-unix)
+  (env_var CAQTI_TEST_X509_AUTHENTICATOR))
+ (locks /db/testsuite)
+ (action
+  (run %{test} -U %{U})))
 
 (executable
   (name main_async)

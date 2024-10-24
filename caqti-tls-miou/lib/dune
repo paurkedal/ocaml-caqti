@@ -1,0 +1,13 @@
+(library
+ (name caqti_tls_miou)
+ (public_name caqti-tls-miou)
+ (library_flags
+  (:standard -linkall))
+ (libraries caqti caqti.platform caqti-miou.unix caqti-tls tls ke tls-miou-unix))
+
+(plugin
+ (package caqti-tls-miou)
+ (name caqti-tls-miou)
+ (libraries caqti-tls-miou)
+ (site
+  (caqti plugins)))

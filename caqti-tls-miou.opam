@@ -1,0 +1,25 @@
+opam-version: "2.0"
+name: "caqti-tls-lwt"
+maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: "Romain Calascibetta <romain.calascibetta@gmail.com>"
+license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
+homepage: "https://github.com/paurkedal/ocaml-caqti/"
+doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
+bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
+depends: [
+  "caqti" {>= "2.1.0" & < "2.2.0~"}
+  "caqti-miou" {>= "2.1.0" & < "2.2.0~"}
+  "dune" {>= "3.9"}
+  "ocaml"
+  "tls"
+  "ke"
+  "tls-miou-unix" {>= "1.0.3"}
+  "odoc" {with-doc}
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
+]
+dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
+synopsis: "TLS support for caqti-eio"

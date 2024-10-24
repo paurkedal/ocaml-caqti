@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ module A = struct
   let query = testable Query.pp (fun x y -> Query.(equal (normal x) (normal y)))
 
   let approx_query_string =
-    let pp ppf x = Fmt.pf ppf "%S" x in
+    let pp ppf x = Format.fprintf ppf "%S" x in
     let normalize =
       let re = Re.Pcre.regexp {|\$([0-9]|[A-Za-z0-9_]*\.)|} in
       let f g =

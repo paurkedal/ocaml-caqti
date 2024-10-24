@@ -1,3 +1,12 @@
+## unreleased
+
+Improvements:
+
+  - The sqlite3 driver now supports the refined error causes
+    (`Caqti_error.cause`) for integrity constraint violations.
+  - There is now experimental support for Miou (#117 by Calascibetta
+    Romain).
+
 ## v2.1.2 - 2024-09-04
 
 Fixes:

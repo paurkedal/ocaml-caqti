@@ -613,6 +613,7 @@ struct
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct
         let driver_info = driver_info
+        let dialect = dialect
         let driver_connection = Some (Driver_connection db)
         include Connection_base
         include Connection_utils.Make_convenience (System) (Connection_base)

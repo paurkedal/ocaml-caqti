@@ -482,6 +482,8 @@ struct
   struct
     open Connection_arg
 
+    let dialect = dialect
+
     module Copy_encoder = Make_encoder (struct
 
       let encode_string s =

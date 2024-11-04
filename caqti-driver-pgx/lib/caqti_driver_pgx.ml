@@ -758,6 +758,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     end) in
     let module Connection = struct
       let driver_info = driver_info
+      let dialect = dialect
       let driver_connection = None
       include B
       include Connection_utils.Make_convenience (System) (B)

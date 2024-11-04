@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -238,6 +238,9 @@ module type S = sig
 
   val driver_info : Caqti_driver_info.t
   (** Information about the driver providing this connection module. *)
+
+  val dialect : Caqti_template.Dialect.t
+  (** Information about the SQL dialect and other properties of the server. *)
 
   val driver_connection : driver_connection option
   (** The underlying connection object of the driver if available.  The open

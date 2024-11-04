@@ -285,6 +285,8 @@ struct
     struct
       open Connection_arg
 
+      let dialect = dialect
+
       let using_db_ref = ref false
       let using_db f =
         H.assert_single_use ~what:"MariaDB connection" using_db_ref f

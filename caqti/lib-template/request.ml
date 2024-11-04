@@ -57,7 +57,7 @@ module Infix = struct
   let (->*) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_more @:- s
 end
 
-let default_dialect = Dialect.Unknown {reserved = ()}
+let default_dialect = Dialect.create_unknown ~purpose:`Printing ()
 
 let make_pp ?(dialect = default_dialect) ?(subst = empty_subst) () ppf req =
   let query = Query.expand subst (req.query dialect) in

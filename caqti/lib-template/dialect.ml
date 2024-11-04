@@ -20,9 +20,14 @@ type t = ..
 type t +=
   | Pgsql of {
       server_version: Version.t;
-      ocaml_library: [`postgresql | `pgx];
-      reserved: unit;
+      client_library: [`postgresql | `pgx];
     }
-  | Mysql of {reserved: unit}
-  | Sqlite of {server_version: Version.t; reserved: unit}
-  | Unknown of {reserved: unit}
+  | Mysql of {server_version: Version.t}
+  | Sqlite of {server_version: Version.t}
+  | Unknown of {purpose: [`Dummy | `Printing]}
+
+let create_pgsql ~server_version ~client_library () =
+  Pgsql {server_version; client_library}
+let create_mysql ~server_version () = Mysql {server_version}
+let create_sqlite ~server_version () = Sqlite {server_version}
+let create_unknown ~purpose () = Unknown {purpose}

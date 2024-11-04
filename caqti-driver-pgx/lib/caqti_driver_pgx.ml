@@ -239,11 +239,10 @@ let parse_uri uri =
   in
   Ok {host; port; user; password; database; unix_domain_socket_dir}
 
-let dialect = Caqti_template.Dialect.Pgsql {
-  server_version = Caqti_template.Version.of_string_unsafe "";
-  ocaml_library = `pgx;
-  reserved = ();
-}
+let dialect = Caqti_template.Dialect.create_pgsql
+  ~server_version:(Caqti_template.Version.of_string_unsafe "")
+  ~client_library:`pgx
+  ()
 
 module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   open System

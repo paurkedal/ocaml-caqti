@@ -24,28 +24,46 @@ type t = ..
     constructor identifying the software which interprets the SQL code and its
     version number, if available, followed by any backend-specific details. *)
 
-type t +=
+type t += private
   | Pgsql of {
       server_version: Version.t;
-      ocaml_library: [`postgresql | `pgx];
-      reserved: unit;
+      (** The version number of the server, currently only available when using
+          caqti-driver-postgresql. *)
+      client_library: [`postgresql | `pgx];
+      (** Which client library is being used to communicate with the server. *)
     }
-    (** Identifies the backend as a PostgreSQL server. The server version is
-        currently only available when using caqti-driver-postgresql. *)
+    (** Identifies the backend as a PostgreSQL server. *)
   | Mysql of {
-      reserved: unit;
+      server_version: Version.t;
+      (** The version number of the server, but curretly unavailable, awaiting
+          ocaml-mariadb support. *)
     }
     (** Identifies the backend as a MariaDB or MySQL server. No information is
         currently provided about the variant and version. *)
   | Sqlite of {
       server_version: Version.t;
-      reserved: unit;
+      (** The version number of the Sqlite3 library. *)
     }
     (** Identifies the backend as an Sqlite3 library. *)
   | Unknown of {
-      reserved: unit;
+      purpose: [`Dummy | `Printing];
     }
     (** The query is to be used for logging or other display purposes, and no
         information is been provided about a potential SQL backend. *)
-(** These constructors are semi-private; public usage is limited to pattern
-    matching without extracting the [reserved] field. *)
+
+(**/**)
+
+val create_pgsql :
+  server_version: Version.t ->
+  client_library: [`postgresql | `pgx] ->
+  unit -> t
+[@@alert caqti_private "Private function for used by Caqti drivers."]
+
+val create_mysql : server_version: Version.t -> unit -> t
+[@@alert caqti_private "Private function for used by Caqti drivers."]
+
+val create_sqlite : server_version: Version.t -> unit -> t
+[@@alert caqti_private "Private function for used by Caqti drivers."]
+
+val create_unknown : purpose: [`Dummy | `Printing] -> unit -> t
+[@@alert caqti_private "Private function for used by Caqti drivers."]

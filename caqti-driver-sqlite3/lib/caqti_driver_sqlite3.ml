@@ -25,7 +25,7 @@ let dialect =
   let server_version =
     Version.of_string_unsafe (Sqlite3.sqlite_version_info ())
   in
-  Dialect.Sqlite {server_version; reserved = ()}
+  Dialect.create_sqlite ~server_version ()
 
 let driver_info = Caqti_driver_info.of_dialect dialect
 

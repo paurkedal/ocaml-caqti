@@ -100,11 +100,12 @@ let () =
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Result_error_msg]
 
 let driver_info =
-  let dummy_dialect = Caqti_template.Dialect.Pgsql {
-    server_version = Caqti_template.Version.of_string_unsafe "";
-    ocaml_library = `postgresql;
-    reserved = ();
-  } in
+  let dummy_dialect =
+    Caqti_template.Dialect.create_pgsql
+      ~server_version:(Caqti_template.Version.of_string_unsafe "")
+      ~client_library:`postgresql
+      ()
+  in
   Caqti_driver_info.of_dialect dummy_dialect
 
 module Pg_ext = struct
@@ -1007,11 +1008,9 @@ struct
                 in
                 let module B = Make_connection_base
                   (struct
-                    let dialect = Caqti_template.Dialect.Pgsql {
-                      server_version;
-                      ocaml_library = `postgresql;
-                      reserved = ();
-                    }
+                    let dialect =
+                      Caqti_template.Dialect.create_pgsql
+                        ~server_version ~client_library:`postgresql ()
                     let subst = subst dialect
                     let stdenv = stdenv
                     let uri = uri

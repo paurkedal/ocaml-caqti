@@ -78,8 +78,11 @@ struct
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
-  let dialect = Caqti_template.Dialect.Mysql {reserved = ()}
-  let driver_info = Caqti_driver_info.of_dialect dialect
+  let dialect =
+    Caqti_template.Dialect.create_mysql
+      ~server_version:(Caqti_template.Version.of_string_unsafe "") ()
+  let driver_info =
+    Caqti_driver_info.of_dialect dialect
 
   (* We need to pass stdenv into the below wait, in order to implement
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb

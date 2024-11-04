@@ -58,7 +58,7 @@ let create
 let dummy = create
   ~uri_scheme:"dummy"
   ~can_pool:false ~can_concur:false ~can_transact:false
-  ~dummy_dialect:(Dialect.Unknown {reserved = ()})
+  ~dummy_dialect:(Dialect.create_unknown ~purpose:`Dummy ())
   ()
 
 let uri_scheme di = di.uri_scheme
@@ -71,7 +71,7 @@ let can_transact di = di.can_transact
 let dummy_dialect di = di.dummy_dialect
 
 let of_dialect = function
- | Dialect.Pgsql {ocaml_library = `postgresql; _} as dialect ->
+ | Dialect.Pgsql {client_library = `postgresql; _} as dialect ->
     create
       ~uri_scheme:"postgresql"
       ~dialect_tag:`Pgsql
@@ -81,7 +81,7 @@ let of_dialect = function
       ~can_transact:true
       ~dummy_dialect:dialect
       ()
- | Dialect.Pgsql {ocaml_library = `pgx; _} as dialect ->
+ | Dialect.Pgsql {client_library = `pgx; _} as dialect ->
     create
       ~uri_scheme:"pgx"
       ~dialect_tag:`Pgsql

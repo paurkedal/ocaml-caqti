@@ -126,6 +126,15 @@ module Infix : sig
       rows according to [rt]. See {!Caqti_template.Request.create} for the
       meaning of [oneshot]. *)
 
+  val ( @:- ) :
+    ((Dialect.t -> Query.t) -> ('a, 'b, 'm) t) ->
+    string -> ('a, 'b, 'm) t
+  (** As an alternative to the above short arrows, this combinator can be used
+      with the below long arrows, and this is how the short arrows are defined.
+      That is, [(t ->* u) q] is [t -->* u @:- q] and likewise for the other
+      arrows. *)
+
+
   (** {3 Constructors for Driver-Dependent Requests}
 
       The below arrow operators takes a function instead of a string as their

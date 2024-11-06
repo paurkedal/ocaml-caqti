@@ -25,11 +25,20 @@ module Row_type = Row_type
 module Shims = Shims
 module Version = Version
 
-module Std = struct
+module type CREATE = sig
+  include module type of Version.Infix
+  include module type of Request.Infix
+  include Row_type.STD
+  module D = Dialect
+  module Q = Query
+  module Qf = Query_fmt
+end
+
+module Create = struct
   include Version.Infix
   include Request.Infix
+  include (Row_type : Row_type.STD)
   module D = Dialect
-  module T = (Row_type : Row_type.STD)
   module Q = Query
   module Qf = Query_fmt
 end

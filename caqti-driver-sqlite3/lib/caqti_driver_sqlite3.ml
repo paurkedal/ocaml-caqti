@@ -256,11 +256,11 @@ let decode_row ~uri ~query row_type =
     Request_utils.raise_response_rejected ~uri ~query msg
 
 module Q = struct
-  open Caqti_template.Std
+  open Caqti_template.Create
 
-  let start = T.(unit ->. unit) "BEGIN"
-  let commit = T.(unit ->. unit) "COMMIT"
-  let rollback = T.(unit ->. unit) "ROLLBACK"
+  let start = (unit ->. unit) "BEGIN"
+  let commit = (unit ->. unit) "COMMIT"
+  let rollback = (unit ->. unit) "ROLLBACK"
 end
 
 module Connect_functor

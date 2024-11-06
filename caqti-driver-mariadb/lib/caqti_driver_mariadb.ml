@@ -55,11 +55,11 @@ let () =
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 module Q = struct
-  open Caqti_template.Std
+  open Caqti_template.Create
   let set_utc =
-    T.(unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
+    (unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
   let set_statement_timeout =
-    T.(float ->. unit) ~oneshot:true "SET max_statement_time = ?"
+    (float ->. unit) ~oneshot:true "SET max_statement_time = ?"
 end
 
 module Connect_functor

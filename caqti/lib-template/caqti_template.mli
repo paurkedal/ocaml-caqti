@@ -40,8 +40,8 @@ module Version = Version
     open,
     {[
       let bounds_upto_req =
-        let open Caqti_template.Std in
-        T.(t2 int32 float ->! option (t2 float float))
+        let open Caqti_template.Create in
+        (t2 int32 float ->! option (t2 float float))
         "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
     ]}
     Here, [?] is used to refer to parameters, but you can also use the
@@ -57,8 +57,8 @@ module Version = Version
     e.g.
     {[
       let concat_req =
-        let open Caqti_template.Std in
-        T.(t2 string string -->! string) @@:- function
+        let open Caqti_template.Create in
+        t2 string string -->! string @@:- function
          | D.Mysql _ -> "SELECT concat(?, ?)"
          | _ -> "SELECT ? || ?"
     ]}
@@ -68,8 +68,8 @@ module Version = Version
     is, the above example expands to
     {[
       let concat_req =
-        let open Caqti_template.Std in
-        T.(t2 string string -->! string) @@ function
+        let open Caqti_template.Create in
+        t2 string string -->! string @@ function
          | D.Mysql _ -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
          | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?"
     ]}
@@ -80,37 +80,34 @@ module Version = Version
       module Ct : sig
         open Caqti_template
 
-        include module type of Caqti_template.Std
+        include Caqti_template.CREATE
 
-        module T : sig
-          include Row_type.STD
-          val password : string Row_type.t
-          val uri : Uri.t Row_type.t
-        end
+        val password : string Row_type.t
+        val uri : Uri.t Row_type.t
 
       end = struct
         open Caqti_template
 
-        include Caqti_template.Std
+        include Caqti_template.Create
 
-        module T = struct
-          include (Row_type : Row_type.STD)
-          let password = redacted string
-          let uri =
-            let encode x = Ok (Uri.to_string x) in
-            let decode s = Ok (Uri.of_string s) in
-            Row_type.custom ~encode ~decode string
-        end
+        let password = redacted string
+        let uri =
+          let encode x = Ok (Uri.to_string x) in
+          let decode s = Ok (Uri.of_string s) in
+          Row_type.custom ~encode ~decode string
 
       end
     ]}
   *)
 
-module Std : sig
+module type CREATE = sig
   include module type of Version.Infix
   include module type of Request.Infix
+  include Row_type.STD
   module D = Dialect
-  module T : Row_type.STD
   module Q = Query
   module Qf = Query_fmt
 end
+
+module Create : CREATE
+(** This module includes everything needed to construct request templates. *)

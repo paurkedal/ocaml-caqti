@@ -35,20 +35,20 @@ end
 module Int_hashtbl = Hashtbl.Make (Int_hashable)
 
 module Q = struct
-  open Caqti_template.Std
+  open Caqti_template.Create
 
-  let start = T.(unit ->. unit) "BEGIN"
-  let commit = T.(unit ->. unit) "COMMIT"
-  let rollback = T.(unit ->. unit) "ROLLBACK"
+  let start = (unit ->. unit) "BEGIN"
+  let commit = (unit ->. unit) "COMMIT"
+  let rollback = (unit ->. unit) "ROLLBACK"
 
-  let type_oid = T.(string ->? int)
+  let type_oid = (string ->? int)
     "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
 
-  let set_timezone_to_utc = T.(unit ->. unit) ~oneshot:true
+  let set_timezone_to_utc = (unit ->. unit) ~oneshot:true
     "SET TimeZone TO 'UTC'"
 
   let set_statement_timeout t =
-    T.(unit -->. unit) ~oneshot:true @@ fun _ ->
+    (unit -->. unit) ~oneshot:true @@ fun _ ->
     (* Parameters are not supported for SET. *)
     S[L"SET statement_timeout TO "; L(string_of_int t)]
 end

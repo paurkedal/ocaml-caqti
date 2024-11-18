@@ -36,6 +36,9 @@ let concat =
 
 let bool x = V (Field_type.Bool, x)
 let int x = V (Field_type.Int, x)
+let int16 x = V (Field_type.Int16, x)
+let int32 x = V (Field_type.Int32, x)
+let int64 x = V (Field_type.Int64, x)
 let float x = V (Field_type.Float, x)
 let string x = V (Field_type.String, x)
 let octets x = V (Field_type.Octets, x)

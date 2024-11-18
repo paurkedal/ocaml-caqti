@@ -1,4 +1,4 @@
-(* Copyright (C) 2020--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2020--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,13 +17,12 @@
 
 open Printf
 
-module Q = Caqti_query
+module Q = Caqti_template.Query
 
-let expect_parse ~env qs q' =
+let expect_parse ~subst qs q' =
   let rq =
-    let open Caqti_request.Infix in
-    let open Caqti_type.Std in
-    let q = qs |> Caqti_query.of_string_exn |> Caqti_query.expand env in
+    let open Caqti_template.Create in
+    let q = qs |> Q.of_string_exn |> Q.expand subst in
     (unit -->. unit) ~oneshot:true @@ fun _ -> q
   in
   let q = Caqti_query.normal (Caqti_request.query rq Caqti_driver_info.dummy) in
@@ -34,7 +33,7 @@ let expect_parse ~env qs q' =
   end
 
 let test_request_parse () =
-  let env = function
+  let subst = function
    | "alpha" -> Q.L "α"
    | "beta" -> Q.L "β"
    | "beta." -> Q.L "β[dot]"
@@ -42,7 +41,7 @@ let test_request_parse () =
    | "delta" -> Q.L "δ"
    | _ -> raise Not_found
   in
-  expect_parse ~env "$(alpha) $$ $beta. $(gamma) $delta. $$ $Q$ $beta. $Q$"
+  expect_parse ~subst "$(alpha) $$ $beta. $(gamma) $delta. $$ $Q$ $beta. $Q$"
     Q.(L"α $$ β[dot] γ δ. $$ $Q$ $beta. $Q$")
 
 let test_cases = [

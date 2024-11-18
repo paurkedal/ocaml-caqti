@@ -15,11 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Req = struct
-  include Caqti_type.Std
-  include Caqti_request.Infix
-end
-
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
   open Ground.Fiber.Infix
@@ -32,7 +27,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
    | _ -> raise Not_found
 
   let create_reqs =
-    List.map Req.(unit ->. unit) [
+    List.map Caqti_template.Create.(unit ->. unit) [
       "DROP TABLE IF EXISTS caqti_test_publication";
       "DROP TABLE IF EXISTS caqti_test_genre";
       "CREATE TABLE caqti_test_genre \
@@ -50,20 +45,20 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     ]
 
   let not_null_violation_req =
-    Req.(unit ->. unit)
+    Caqti_template.Create.(unit ->. unit)
     "INSERT INTO caqti_test_genre VALUES (NULL, NULL)"
 
   let unique_violation_req =
-    Req.(unit ->. unit)
+    Caqti_template.Create.(unit ->. unit)
     "INSERT INTO caqti_test_genre VALUES (3, 'fiction')"
 
   let foreign_key_violation_req =
-    Req.(unit ->. unit)
+    Caqti_template.Create.(unit ->. unit)
     "INSERT INTO caqti_test_publication \
      VALUES ('Unclassified', 'N.N.', 0)"
 
   let check_violation_req =
-    Req.(unit ->. unit)
+    Caqti_template.Create.(unit ->. unit)
     "INSERT INTO caqti_test_genre VALUES (3, '')"
 
   (* Missing:
@@ -71,7 +66,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
    *     likely unused (deleting a restricted FK casuse FK violation.
    *   - Exclusion violation is also only mapped for PostgreSQL. *)
   let check_restrict_violation_req =
-    Req.(unit ->. unit)
+    Caqti_template.Create.(unit ->. unit)
     "DELETE FROM caqti_test_genre WHERE id = 2"
 
   (* TODO: exclusion *)

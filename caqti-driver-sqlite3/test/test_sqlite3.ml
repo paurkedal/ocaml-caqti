@@ -18,10 +18,7 @@
 open Testlib
 open Testlib_blocking
 
-module Req = struct
-  include Caqti_type.Std
-  include Caqti_request.Infix
-end
+module Req = Caqti_template.Create
 
 let drop_req =
   Req.(unit ->. unit) "DROP TABLE IF EXISTS test_sqlite3"

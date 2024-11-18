@@ -23,8 +23,7 @@ open Common
 let connect_uri = Uri.of_string "postgresql://"
 
 let fetch_many_request =
-  let open Caqti_request.Infix in
-  let open Caqti_type.Std in
+  let open Caqti_template.Create in
   unit -->* t3 int int (t3 float bool bool) @:- {|
     WITH tmp (i) AS (VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9))
     SELECT a.i, b.i, CAST(c.i AS float), e.i < c.i, e.i < d.i

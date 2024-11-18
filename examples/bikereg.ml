@@ -40,12 +40,12 @@ end
  * connection. *)
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Create
 
   let bike =
     let open Bike in
     let intro frameno owner stolen = {frameno; owner; stolen} in
+    let open Caqti_template.Row_type in
     product intro
       @@ proj string (fun bike -> bike.frameno)
       @@ proj string (fun bike -> bike.owner)

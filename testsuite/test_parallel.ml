@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,8 +16,7 @@
  *)
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Create
 
   let create = unit -->. unit @:-
     "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"

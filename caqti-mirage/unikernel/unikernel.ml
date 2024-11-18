@@ -23,9 +23,7 @@ let ( let+? ) = Lwt_result.Syntax.( let+ )
 let ( % ) f g x = f (g x)
 
 let minus_req =
-  let open Caqti_request.Infix in
-  let open Caqti_type.Std in
-  t2 int int -->! int @:- "SELECT ? - ?"
+  Caqti_template.Create.(t2 int int ->! int) "SELECT ? - ?"
 
 module Make
   (RANDOM : Mirage_random.S)

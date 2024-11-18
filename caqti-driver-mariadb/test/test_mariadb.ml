@@ -18,13 +18,8 @@
 open Testlib
 open Testlib_blocking
 
-module Req = struct
-  include Caqti_type.Std
-  include Caqti_request.Infix
-end
-
 let bad_select_req =
-  Req.(unit -->! unit @:- "SELECT not_defined")
+  Caqti_template.Create.(unit -->! unit @:- "SELECT not_defined")
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   (match C.find bad_select_req () with

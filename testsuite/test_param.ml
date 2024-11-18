@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,8 +16,7 @@
  *)
 
 module Q = struct
-  open Caqti_request.Infix
-  open Caqti_type.Std
+  open Caqti_template.Create
 
   let nonlin1 =
     t3 int int int -->! int @@ fun _ ->

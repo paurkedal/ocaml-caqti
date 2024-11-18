@@ -153,7 +153,7 @@ let pp_expand_error ppf {query; var; reason} =
 
 exception Expand_error of expand_error
 
-type subst = string -> t option
+type subst = string -> t
 
 let expand ?(final = false) f query =
   let rec is_valid = function
@@ -169,18 +169,18 @@ let expand ?(final = false) f query =
         raise (Expand_error {query; var; reason = `Undefined})
       in
       (match f var with
-       | Some q' ->
+       | q' ->
           if is_valid q' then q' else
           raise (Expand_error {query; var; reason = `Invalid q'})
-       | None ->
+       | exception Not_found ->
           let l = String.length var in
           if l > 0 && var.[l - 1] = '.' then
             (match f (String.sub var 0 (l - 1)) with
-             | Some frag ->
+             | frag ->
                 (match normal frag with
                  | S[] as q' -> q'
                  | q' -> S[q'; L"."])
-             | None -> not_found ())
+             | exception Not_found -> not_found ())
           else
             not_found ())
    | S qs -> S (List.map recurse qs)

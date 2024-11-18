@@ -384,8 +384,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t
                           and type Io.ssl_config = ssl_config)
     (Connection_arg : sig
-      open Caqti_template
-      val subst : string -> Query.t option
+      val subst : Caqti_template.Query.subst
       val uri : Uri.t
       val db_arg : Pgx_with_io.t
       val select_type_oid : Pgx_with_io.Prepared.s

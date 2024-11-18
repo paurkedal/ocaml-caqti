@@ -32,25 +32,6 @@
       - expansion of fragments provided by an environment function ({!E}), and
       - safe embedding of values in queries ({!V}, {!Q}). *)
 
-open Caqti_template
-
-(** Intermediate query string representation.
-
-    This module provides a common representation of database query strings.
-    This module can be used directly to construct queries dynamically, or
-    indirectly via the parser, as may be more convenient when the query string
-    is known at compile-time.  In the latter case, the input string is typically
-    very similar to the output string.  In either case the intermediate
-    representation serve to unify the syntax across database systems and to
-    provide additional functionality.
-
-    When using this module directly, it provides:
-
-      - flexible, pure, and efficient construction ({!S}, {!L}),
-      - uniform index-based parameter references ({!P}),
-      - expansion of fragments provided by an environment function ({!E}), and
-      - safe embedding of values in queries ({!V}, {!Q}). *)
-
 
 (** {2 Construction} *)
 
@@ -221,5 +202,3 @@ val quote : Format.formatter -> string -> unit
 [@@alert deprecated "Moved to Caqti_query_fmt."]
 val query : Format.formatter -> t -> unit
 [@@alert deprecated "Moved to Caqti_query_fmt."]
-val subst_of_env : (string -> Query.t) -> Query.subst
-[@@alert caqti_private "For internal use by Caqti."]

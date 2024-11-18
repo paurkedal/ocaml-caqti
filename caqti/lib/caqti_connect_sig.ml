@@ -38,7 +38,7 @@ module type S = sig
   (** Shortcut for the connection module when passed as a value. *)
 
   val connect :
-    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
+    ?subst: (Caqti_template.Dialect.t -> Caqti_template.Query.subst) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
@@ -74,7 +74,7 @@ module type S = sig
         the {!Caqti_connect_config.tweaks_version} key. *)
 
   val with_connection :
-    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
+    ?subst: (Caqti_template.Dialect.t -> Caqti_template.Query.subst) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->
@@ -98,7 +98,7 @@ module type S = sig
   val connect_pool :
     ?pool_config: Caqti_pool_config.t ->
     ?post_connect: (connection -> (unit, 'connect_error) result fiber) ->
-    ?subst: (Caqti_template.Dialect.t -> string -> Caqti_query.t option) ->
+    ?subst: (Caqti_template.Dialect.t -> Caqti_template.Query.subst) ->
     ?env: (Caqti_driver_info.t -> string -> Caqti_query.t) ->
     ?config: Caqti_connect_config.t ->
     ?tweaks_version: int * int ->

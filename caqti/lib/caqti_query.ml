@@ -17,9 +17,6 @@
 
 include Caqti_template.Query
 
-let subst_of_env env var = try Some (env var) with Not_found -> None
-let expand ?final env query = expand ?final (subst_of_env env) query
-
 let qprintf = Caqti_template.Query_fmt.qprintf
 let kqprintf = Caqti_template.Query_fmt.kqprintf
 let param = Caqti_template.Query_fmt.param

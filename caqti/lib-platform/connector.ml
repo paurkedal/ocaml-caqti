@@ -38,19 +38,16 @@ let set_tweaks_version = function
 
 let compose_subst_with_env subst env dialect =
   let compose_subst subst1 subst2 var =
-    (match subst1 var with
-     | Some _ as r -> r
-     | None -> subst2 var)
+    (try subst1 var with Not_found -> subst2 var)
   in
   (match subst, env with
-   | None, None -> fun _ -> None
+   | None, None -> fun _ -> raise Not_found
    | Some subst, None -> subst dialect
    | None, Some env ->
-      let env = env (Caqti_driver_info.of_dialect dialect) in
-      Caqti_query.subst_of_env env
+      env (Caqti_driver_info.of_dialect dialect)
    | Some subst, Some env ->
-      let env = env (Caqti_driver_info.of_dialect dialect) in
-      compose_subst (subst dialect) (Caqti_query.subst_of_env env))
+      let driver_info = Caqti_driver_info.of_dialect dialect in
+      compose_subst (subst dialect) (env driver_info))
 
 module Make
   (System : System_sig.S)

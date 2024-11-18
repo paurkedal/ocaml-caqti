@@ -40,7 +40,7 @@ let row_mult request = request.row_mult
 let query_id request = request.id
 let query request = request.query
 
-let empty_subst _ = None
+let empty_subst _ = raise Not_found
 
 module Infix = struct
   let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f

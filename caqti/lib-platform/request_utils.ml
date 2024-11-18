@@ -17,7 +17,7 @@
 
 let (%>) f g x = g (f x)
 
-let empty_subst _ = None
+let empty_subst _ = raise Not_found
 
 type linear_param =
   Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param

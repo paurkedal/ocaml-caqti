@@ -150,9 +150,12 @@ exception Expand_error of expand_error
 (** The exception raised by {!expand} when there are issues expanding an
     environment variable using the provided callback. *)
 
-type subst = string -> t option
-(** A partial mapping from variable names to query fragments, as used by
-    {!expand}. *)
+type subst = string -> t
+(** A partial mapping from variable names to query fragments, which raises
+    [Not_found] for undefined variables.  This is used by {!expand} to resolve
+    variable references, with the special handling of a final period in the
+    variable names described in {{!query_template} The Syntax of Query
+    Templates}. *)
 
 val expand : ?final: bool -> subst -> t -> t
 (** [expand subst query] replaces each occurrence of [E var] with [subst var] or

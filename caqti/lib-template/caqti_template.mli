@@ -15,92 +15,124 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** {2 Submodules for Advanced Usage}
+(** {2 Primitives}
 
     These modules are part of the stable API, but the casual user may find it
     sufficient to use the top-level definitions and reexports described in the
     following sections. *)
 
+(** {3 Prerequisities} *)
+
+module Shims = Shims
+module Version = Version
 module Dialect = Dialect
+
+(** {3 Data Types} *)
+
 module Field_type = Field_type
+module Row_type = Row_type
+module Row_mult = Row_mult
+
+(** {3 Request Templates} *)
+
 module Query = Query
 module Query_fmt = Query_fmt
 module Request = Request
-module Row_mult = Row_mult
-module Row_type = Row_type
-module Shims = Shims
-module Version = Version
 
-(** {2 Request Template Construction}
-
-    The following imports collects everything you need to create
-    {{!Caqti_template.Request} request templates}, which describe the (prepared)
-    query to send to the database, the parameters type, the result row type, and
-    the expected multiplicity of the result.  So, you can simply use a local
-    open,
-    {[
-      let bounds_upto_req =
-        let open Caqti_template.Create in
-        (t2 int32 float ->! option (t2 float float))
-        "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
-    ]}
-    Here, [?] is used to refer to parameters, but you can also use the
-    [PostgreSQL]-style [$1], [$2], etc. if you prefer, as long as you stick to
-    the same convention within a single query.  Caqti translates parameter
-    references and rearrages parameters if necessary so that it will work as
-    expected indepnedent of the database system.
-
-    Apart from parameter references, there are differences between SQL dialects
-    which often makes it necessary to use different queries for different
-    database systems.  The dialect-dependent constructors (long arrows) allows
-    to you define a single query template which works across database systems,
-    e.g.
-    {[
-      let concat_req =
-        let open Caqti_template.Create in
-        t2 string string -->! string @@:- function
-         | D.Mysql _ -> "SELECT concat(?, ?)"
-         | _ -> "SELECT ? || ?"
-    ]}
-    The long arrows expects a function which receives a
-    {!Caqti_template.Dialect.t} and returns a {!Caqti_template.Query.t}, so we
-    here use a shortcut [@@:-] which parses the result of the call-back.  That
-    is, the above example expands to
-    {[
-      let concat_req =
-        let open Caqti_template.Create in
-        t2 string string -->! string @@ function
-         | D.Mysql _ -> Caqti_template.Query.of_string_exn "SELECT concat(?, ?)"
-         | _ -> Caqti_template.Query.of_string_exn "SELECT ? || ?"
-    ]}
-
-    For more complex applications it may be convenient to create a module with
-    custom definitions, maybe extending the current API to avoid double open:
-    {[
-      module Ct : sig
-        open Caqti_template
-
-        include Caqti_template.CREATE
-
-        val password : string Row_type.t
-        val uri : Uri.t Row_type.t
-
-      end = struct
-        open Caqti_template
-
-        include Caqti_template.Create
-
-        let password = redacted string
-        let uri =
-          let encode x = Ok (Uri.to_string x) in
-          let decode s = Ok (Uri.of_string s) in
-          Row_type.custom ~encode ~decode string
-
-      end
-    ]}
-  *)
+(** {2 Convenience} *)
 
 module type CREATE = sig
+  (** This is a convenience API which collects everything needed to create
+      {{!Caqti_template.Request} request templates}.  A request template
+      describes a database query and how to encode parameters and decode the
+      result.
+
+      Consider the example:
+      {[
+        let bounds_upto_req =
+          let open Caqti_template.Create in
+          (t2 int32 float ->! option (t2 float float))
+          "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
+      ]}
+      The first open provides shortcuts to everything we need.  This is followed
+      by a description of the parameter type and result row type combined with
+      an arrow which describes the multiplicity of the result rows.  The
+      exclamation mark in the arrow indicates that precisely one result row is
+      expected.  This line describing the shape of the data involved evaluates
+      to a function which takes a query template as the only argument, and
+      returns the request template.
+
+      In the query template, [?] refer to parameters, but you can also use the
+      [PostgreSQL]-style [$1], [$2], etc. if you prefer, as long as you stick to
+      the same convention for a given query template.  Caqti drivers translate
+      parameter references and rearranges parameters if necessary so that it
+      will work as expected independent of the database system.
+
+      Caqti provides a way to handle dialectical differences between database
+      systems apart from the parameter syntax.  The example above uses uses a
+      shortcut, since it does not need this functionality.  In the full form it
+      looks like:
+      {[
+        let bounds_upto_req =
+          let open Caqti_template.Create in
+          t2 int32 float -->! option (t2 float float) @@ fun _ ->
+          Q.of_string_exn
+            "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
+      ]}
+      Note the use of the longer arrow [-->!], which takes a function instead of
+      a string as the last argument.  The function receives a {!Dialect.t} as
+      the first argument and returns a {!Query.t}.  Here we parse the original
+      query string, but the {!Query} and {!Query_fmt} modules provides
+      alternative ways of constructing query template which is more suitable for
+      dynamically generated queries.
+
+      The following example makes use of the dialect argument to handle
+      dialectical differences regarding string concatenation:
+      {[
+        let concat_req =
+          let open Caqti_template.Create in
+          t2 string string -->! string @@:- function
+           | D.Mysql _ -> "SELECT concat(?, ?)"
+           | _ -> "SELECT ? || ?"
+      ]}
+      Note that we here use the [@@:-] combinator instead of [@@] to avoid
+      calling {!Q.of_string_exn} on the result.  In summary
+
+        - Short arrows are shortcuts for the most common usage.
+        - Long arrows provides the full functionality.
+        - The arrow decoration ([.], [!], [?], [*]) selects the expected
+          multiplicity (zero, one, zero or one, zero or more) of result rows.
+        - Additional combinators can be used with the long arrows as shortcuts
+          for the final application to simplify the specification of the query
+          template.
+
+      Applications which use custom row type descriptors may want to combine
+      them with the current module.  The following example shows how to
+      formulate an interface and implementation with two additional row types:
+      {[
+        module Ct : sig
+          open Caqti_template
+
+          include Caqti_template.CREATE
+
+          val password : string Row_type.t
+          val uri : Uri.t Row_type.t
+
+        end = struct
+          open Caqti_template
+
+          include Caqti_template.Create
+
+          let password = redacted string
+          let uri =
+            let encode x = Ok (Uri.to_string x) in
+            let decode s = Ok (Uri.of_string s) in
+            Row_type.custom ~encode ~decode string
+
+        end
+      ]}
+  *)
+
   include module type of Version.Infix
   include module type of Request.Infix
   include Row_type.STD
@@ -110,4 +142,3 @@ module type CREATE = sig
 end
 
 module Create : CREATE
-(** This module includes everything needed to construct request templates. *)

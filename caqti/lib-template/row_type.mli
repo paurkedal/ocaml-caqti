@@ -182,14 +182,14 @@ module type STD = sig
 
         - PostgreSQL supports this type and it's a good option to avoid any time
           zone issues if used conistently both on the client side, in SQL
-          expressions, and in the database schema.  Note that [timestamp with
-          time zone] is stored as UTC without time zone, taking up no more space
-          then [timestamp].  The PostgreSQL [timestamp] type is problematic
-          since how conversions work and the manual indicate that it is meant to
-          be a local time, and since database columns of this type stores the
-          value without conversion to UTC, it becomes prone to time zone
-          changes.  To mitigate the issue, Caqti sets the time zone of sessions
-          to UTC.
+          expressions, and in the database schema.
+          Note that [timestamp with time zone] is stored as UTC without time
+          zone, taking up no more space then [timestamp].
+          The PostgreSQL [timestamp] type is problematic since how conversions
+          work and the manual indicate that it is meant to be a local time, and
+          since database columns of this type stores the value without
+          conversion to UTC, it becomes prone to time zone changes.
+          To mitigate the issue, Caqti sets the time zone of sessions to UTC.
 
         - Sqlite3 does not have a dedicated type for absolute time.  The date
           and time is sent as strings expressed at the UTC time zone using same

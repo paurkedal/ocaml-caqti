@@ -15,17 +15,18 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Request specification.
+(** Request template.
 
-    A Caqti request is a function to generate a query string from information
-    about the driver, along with type descriptors to encode parameters and
-    decode rows returned from the same query.  Requests are passed to
-    {!Caqti_connection_sig.S.call} or one of its shortcut methods provided by a
-    database connection handle.
+    A request template combines a function to generate an SQL query template
+    with type descriptors use to encode parameters and decode result rows.
+    The function will receive information about the SQL dialect when called by
+    the chosen database driver library.
 
-    The request often represent a prepared query, in which case it is static and
-    can be defined directly in a module scope.  However, an optional [oneshot]
-    parameter may be passed to indicate a dynamically generated query. *)
+    Requests are passed to {!Caqti_connection_sig.S.call} or one of its shortcut
+    methods provided by a database connection handle, and will be turned into a
+    prepared query, cached by the connection handle, if prepared queries are
+    supported by the driver and unless explicitly disabled, see {!create} for
+    details on the latter. *)
 
 (** {2 Primitive Constructor and Accessors} *)
 

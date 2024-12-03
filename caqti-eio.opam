@@ -26,4 +26,4 @@ build: [
   ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
-synopsis: "Lwt support for Caqti"
+synopsis: "Eio support for Caqti"

@@ -17,6 +17,7 @@
 
 include Caqti_template.Query
 
+let concat sep = concat ~sep
 let qprintf = Caqti_template.Query_fmt.qprintf
 let kqprintf = Caqti_template.Query_fmt.kqprintf
 let param = Caqti_template.Query_fmt.param

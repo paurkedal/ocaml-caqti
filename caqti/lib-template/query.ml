@@ -30,9 +30,11 @@ let concat =
    | [] -> acc
    | q :: qs -> loop pfx (pfx :: q :: acc) qs
   in
-  fun sep -> function
-   | [] -> S[]
-   | q :: qs -> S (q :: loop (L sep) [] (List.rev qs))
+  fun ?sep qs ->
+    (match sep, qs with
+     | _, [] -> S []
+     | None, _ -> S qs
+     | Some sep, q :: qs -> S (q :: loop (L sep) [] (List.rev qs)))
 
 let bool x = V (Field_type.Bool, x)
 let int x = V (Field_type.Int, x)

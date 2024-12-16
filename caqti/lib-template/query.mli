@@ -76,9 +76,9 @@ type t =
     Please note that additional constructors may be added to this type across
     minor releases. *)
 
-val concat : string -> t list -> t
-(** [concat sep frags] is [frags] interfixed with [sep] if [frags] is non-empty,
-    and the empty string if [frags] is empty. *)
+val concat : ?sep: string -> t list -> t
+(** [concat ?sep frags] concatenates [frags], optionally separated by [sep].
+    Returns the empty fragment on the empty list of fragments. *)
 
 (** {3 Embedding Values}
 

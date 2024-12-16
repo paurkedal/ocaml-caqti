@@ -9,6 +9,7 @@
 
 (library
  (name benchmark_all)
+ (flags (:standard -alert -caqti_unstable))
  (modules
     common
     benchmark_fetch_many

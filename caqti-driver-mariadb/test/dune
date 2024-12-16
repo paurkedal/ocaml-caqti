@@ -2,6 +2,7 @@
  (name test_mariadb)
  (package caqti-driver-mariadb)
  (build_if %{lib-available:caqti-driver-mariadb})
+ (flags (:standard -alert -caqti_unstable))
  (libraries
     alcotest
     caqti

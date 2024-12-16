@@ -1,4 +1,5 @@
 (library
  (name caqti_platform)
  (public_name caqti.platform)
+ (flags (:standard -alert -caqti_unstable))
  (libraries caqti domain-name ipaddr lwt-dllist mtime.clock.os))

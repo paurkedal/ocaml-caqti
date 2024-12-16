@@ -1,6 +1,7 @@
 (test
  (name test_sqlite3)
  (package caqti-driver-sqlite3)
+ (flags (:standard -alert -caqti_unstable))
  (libraries
     alcotest
     caqti

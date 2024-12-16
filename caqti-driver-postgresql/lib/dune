@@ -3,6 +3,7 @@
 (library
  (name caqti_driver_postgresql)
  (public_name caqti-driver-postgresql)
+ (flags (:standard -alert -caqti_unstable))
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix postgresql))
 

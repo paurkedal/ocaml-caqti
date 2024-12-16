@@ -1,6 +1,7 @@
 (test
  (name test_postgresql)
  (package caqti-driver-postgresql)
+ (flags (:standard -alert -caqti_unstable))
  (libraries
     alcotest
     caqti

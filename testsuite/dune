@@ -69,6 +69,7 @@
 (library
   (name testsuite)
   (wrapped false)
+  (flags (:standard -alert -caqti_unstable))
   (modules
     test_connect
     test_error_cause

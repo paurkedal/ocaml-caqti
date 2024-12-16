@@ -1,6 +1,7 @@
 (executable
  (name bikereg)
  (modules bikereg)
+ (flags (:standard -alert -caqti_unstable))
  (libraries caqti caqti.plugin caqti-lwt caqti-lwt.unix testlib))
 
 (rule

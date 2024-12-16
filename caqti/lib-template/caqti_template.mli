@@ -15,6 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert caqti_unstable
+  "This library is a preview; expect incompatible changes without prior notice."]
+
 (** {2 Primitives}
 
     These modules are part of the stable API, but the casual user may find it

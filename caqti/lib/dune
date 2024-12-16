@@ -2,5 +2,6 @@
  (name caqti)
  (public_name caqti)
  (wrapped false)
+ (flags (:standard -alert -caqti_unstable))
  (library_flags (:standard -linkall))
  (libraries angstrom bigstringaf caqti.template logs mtime ptime uri))

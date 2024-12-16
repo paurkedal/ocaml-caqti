@@ -1,7 +1,7 @@
 (library
  (name caqti_driver_sqlite3)
  (public_name caqti-driver-sqlite3)
- (flags (:standard -thread))
+ (flags (:standard -thread -alert -caqti_unstable))
  (library_flags (:standard -linkall))
  (libraries caqti caqti.platform caqti.platform.unix sqlite3))
 

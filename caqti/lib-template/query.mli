@@ -76,14 +76,45 @@ type t =
     Please note that additional constructors may be added to this type across
     minor releases. *)
 
+val empty : t
+(** [empty] is the empty query fragment; i.e. it expands to nothing. *)
+
+val lit : string -> t
+(** [lit frag] expands to [frag], literally; i.e. the argument is passed
+    unchanged to the database system as a substring of the query. *)
+
+val quote : string -> t
+(** [quote str] expands to the literally quoted string [str] if an reliable
+    escape function is available from the driver library, otherwise [quote] is
+    equivalent to {!string}. *)
+
+val param : int -> t
+(** [param i] expands to a reference to parameter number [i], counting from
+    zero.  That is, [param 0] expands to ["$1"] for PostgreSQL and to ["?1"] for
+    SQLite3.  For MariaDB, [param i] expands to ["?"] for any [i]; the driver
+    will instead shuffle, elide, and duplicate the actual arguments to match
+    their order of reference in the query string. *)
+
+val var : string -> t
+(** [var v] expands to [subst v] where [subst] is the substitution function
+    passed to {!expand} or one of the connector functions. *)
+
 val concat : ?sep: string -> t list -> t
 (** [concat ?sep frags] concatenates [frags], optionally separated by [sep].
     Returns the empty fragment on the empty list of fragments. *)
 
+val cat : t -> t -> t
+(** [cat q1 q2] expands to the juxtaposition of the expansions of [q1] followed
+    by [q2].  This is an associative alternative to {!concat} when no separator
+    is needed. *)
+
+
 (** {3 Embedding Values}
 
-    The following are shortcuts for combining {!V} with some of the field types.
-    The values will be passed as hidden parameters. *)
+    The following functions can be used to embed values into a query, including
+    the generic {!const}, corresponding specialized variants.  Additionally
+    {!const_fields} can be used to extract fragments for multiple fields given a
+    row type and a value. *)
 
 val bool : bool -> t
 val int : int -> t
@@ -96,6 +127,12 @@ val octets : string -> t
 val pdate : Ptime.t -> t
 val ptime : Ptime.t -> t
 val ptime_span : Ptime.span -> t
+
+val const : 'a Field_type.t -> 'a -> t
+(** [const t x] is a fragment representing the value [x] of field type [t].
+    This typically expands to a parameter reference which will receive the value
+    [x] when executed, though the value may also be embedded in the query if it
+    is deemed safe. *)
 
 val const_fields : 'a Row_type.t -> 'a -> t list
 (** [const_fields t x] returns a list of fragments corresponding to the

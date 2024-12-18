@@ -25,6 +25,20 @@ type t =
   | E of string
   | S of t list
 
+let empty = S []
+let lit frag = L frag
+let quote str = Q str
+let param i = P i
+let var v = E v
+
+let cat q1 q2 =
+  (match q1, q2 with
+   | S [], qs | qs, S [] -> qs
+   | S qs1, S qs2 -> S (List.append qs1 qs2)
+   | S qs1, q2 -> S (List.append qs1 [q2])
+   | q1, S qs2 -> S (q1 :: qs2)
+   | q1, q2 -> S [q1; q2])
+
 let concat =
   let rec loop pfx acc = function
    | [] -> acc
@@ -47,6 +61,7 @@ let octets x = V (Field_type.Octets, x)
 let pdate x = V (Field_type.Pdate, x)
 let ptime x = V (Field_type.Ptime, x)
 let ptime_span x = V (Field_type.Ptime_span, x)
+let const t v = V (t, v)
 
 let nulls t = List.init (Row_type.length t) (fun _ -> L"NULL")
 

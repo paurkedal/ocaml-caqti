@@ -348,3 +348,9 @@ let of_string_exn s =
    | Ok q -> q
    | Error (`Invalid (pos, msg)) ->
       Printf.ksprintf failwith "Parse error at byte %d: %s" pos msg)
+
+module Infix = struct
+  let (@|) = cat
+  let (@>) pfx q = cat (of_string_exn pfx) q
+  let (<@) q sfx = cat q (of_string_exn sfx)
+end

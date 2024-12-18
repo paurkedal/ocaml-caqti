@@ -137,6 +137,7 @@ module type CREATE = sig
   *)
 
   include module type of Version.Infix
+  include module type of Query.Infix
   include module type of Request.Infix
   include Row_type.STD
   module D = Dialect

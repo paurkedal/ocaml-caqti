@@ -5,5 +5,6 @@
 
 (mdx
   (package caqti)
+  (preludes mdx.prelude)
   (files :standard *.mli)
   (libraries caqti.template uri))

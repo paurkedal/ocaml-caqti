@@ -108,6 +108,40 @@ val cat : t -> t -> t
     by [q2].  This is an associative alternative to {!concat} when no separator
     is needed. *)
 
+module Infix : sig
+  (** This module provides a terser way to compose queries.  As an example,
+      consider the dynamic construction of a simple SELECT-request which
+      extracts a list of named columns given a corresponding row type, and where
+      conditions are given as query templates with any values embedded:
+      {[
+        open Caqti_template.Create
+
+        type cond =
+          | Column_eq : string * 'a Caqti_template.Field_type.t * 'a -> cond
+
+        let query_of_cond = function
+         | Column_eq (col, t, v) ->
+            col @> " = " @> Caqti_template.Query.const t v
+
+        let make_simple_select conditions columns row_type =
+          (unit -->* row_type) ~oneshot:true @@ fun _ ->
+          "SELECT " @> Q.concat ~sep:", " (List.map Q.lit columns) @|
+          " FROM $.foo" @>
+          " WHERE " @> Q.concat ~sep:" AND " (List.map query_of_cond conditions)
+      ]}
+      *)
+
+  val (@|) : t -> t -> t
+  (** An alias for {!cat}. *)
+
+  val (@>) : string -> t -> t
+  (** [pfx @> q] is [q] prefixed with [pfx] parsed as a query, i.e.
+      [cat (of_string_exn pfx) q]. *)
+
+  val (<@) : t -> string -> t
+  (** [q <@ sfx] is [q] suffixed with [sfx] parsed as a query, i.e.
+      [cat q (of_string_exn sfx)]. *)
+end
 
 (** {3 Embedding Values}
 

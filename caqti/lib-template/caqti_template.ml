@@ -27,6 +27,7 @@ module Version = Version
 
 module type CREATE = sig
   include module type of Version.Infix
+  include module type of Query.Infix
   include module type of Request.Infix
   include Row_type.STD
   module D = Dialect
@@ -36,6 +37,7 @@ end
 
 module Create = struct
   include Version.Infix
+  include Query.Infix
   include Request.Infix
   include (Row_type : Row_type.STD)
   module D = Dialect

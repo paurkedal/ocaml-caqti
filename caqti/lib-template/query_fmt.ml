@@ -15,8 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Query
-
 type 'a t = Format.formatter -> 'a -> unit
 
 type Format.stag += Stag_query of Query.t
@@ -26,9 +24,9 @@ let query ppf q =
   Format.pp_print_string ppf "... SQL FRAGMENT ...";
   Format.pp_close_stag ppf ()
 
-let quote ppf q = query ppf (Q q)
-let env ppf e = query ppf (E e)
-let param ppf p = query ppf (P p)
+let quote ppf q = query ppf (Query.quote q)
+let env ppf e = query ppf (Query.var e)
+let param ppf p = query ppf (Query.param p)
 
 type mode = Mode_literal | Mode_ignore | Mode_raw of (string -> Query.t)
 
@@ -98,9 +96,9 @@ let kqprintf k fmt =
     | Mode_literal ->
       if n > 0 then
         if p = 0 && n = String.length s then
-          push (L s)
+          push (Query.lit s)
         else
-          push (L (String.sub s p n))
+          push (Query.lit (String.sub s p n))
     | Mode_raw _ -> Buffer.add_substring buf s p n
     | Mode_ignore -> ()
   in
@@ -118,11 +116,11 @@ let kqprintf k fmt =
   let mark_open_stag = function
     | Format.String_tag "Q" ->
         flush_literal ();
-        mode := Mode_raw (fun s -> Q s);
+        mode := Mode_raw (fun s -> Query.quote s);
         ""
     | Format.String_tag "E" ->
         flush_literal ();
-        mode := Mode_raw (fun s -> E s);
+        mode := Mode_raw (fun s -> Query.var s);
         ""
     | Stag_query q ->
         flush_literal ();
@@ -145,16 +143,16 @@ let kqprintf k fmt =
   Format.kfprintf
     (fun ppf ->
       Format.pp_print_flush ppf ();
-      k (S (List.rev !elems)))
+      k (Query.concat (List.rev !elems)))
     ppf fmt
 
 let qprintf fmt = kqprintf Fun.id fmt
 
-let bool ppf x = query ppf (V (Field_type.Bool, x))
-let int ppf x = query ppf (V (Field_type.Int, x))
-let float ppf x = query ppf (V (Field_type.Float, x))
-let string ppf x = query ppf (V (Field_type.String, x))
-let octets ppf x = query ppf (V (Field_type.Octets, x))
-let pdate ppf x = query ppf (V (Field_type.Pdate, x))
-let ptime ppf x = query ppf (V (Field_type.Ptime, x))
-let ptime_span ppf x = query ppf (V (Field_type.Ptime_span, x))
+let bool ppf x = query ppf (Query.bool x)
+let int ppf x = query ppf (Query.int x)
+let float ppf x = query ppf (Query.float x)
+let string ppf x = query ppf (Query.string x)
+let octets ppf x = query ppf (Query.octets x)
+let pdate ppf x = query ppf (Query.pdate x)
+let ptime ppf x = query ppf (Query.ptime x)
+let ptime_span ppf x = query ppf (Query.ptime_span x)

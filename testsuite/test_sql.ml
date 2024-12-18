@@ -186,10 +186,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       f i >>= fun () -> loop (i + 1) in
     loop 0
 
-  let env _ = let open Caqti_query in function
-   | "x1" -> L"734"
-   | "x2" -> Q"I'm quoted."
-   | _ -> raise Not_found
+  let env _ =
+    let open Caqti_template.Create in
+    (function
+     | "x1" -> Q.lit "734"
+     | "x2" -> Q.quote "I'm quoted."
+     | _ -> raise Not_found)
 
   let test_expand (module Db : CONNECTION) =
     Db.find Q.select_expanded () >>= or_fail >|= fun (x1, x2) ->
@@ -222,10 +224,11 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let req =
         let open Caqti_template.Create in
         (t2 int int -->! t8 int int int64 int string string string int) ~oneshot
-        Q.(fun dialect ->
+        (fun dialect ->
           let cast_if_mariadb tn f =
             (match dialect with
-             | D.Mysql _ -> fun x -> S[L"CAST("; f x; L" AS "; L tn; L")"]
+             | D.Mysql _ -> fun x ->
+                Q.concat [Q.lit "CAST("; f x; Q.lit " AS "; Q.lit tn; Q.lit ")"]
              | _ -> f)
           in
           let quote_int = cast_if_mariadb "INTEGER"
@@ -238,20 +241,20 @@ module Make (Ground : Testlib.Sig.Ground) = struct
           in
           let quote_string = cast_if_mariadb "CHAR"
             (match i mod 2 with
-             | 0 -> fun x -> Q x
+             | 0 -> fun x -> Q.quote x
              | 1 -> fun x -> Q.string x
              | _ -> assert false)
           in
-          S[
-            L "SELECT ";
-            P 1; L " + 10, ";     (* last parameter first *)
-            P 1; L " + 20, ";     (* and duplicated *)
-            (quote_int (i + 30)); L ", "; (* first quote *)
-            L (string_of_int i); L ", ";
-            quote_string s1; L ", "; (* second quote *)
-            L "'"; L (string_of_int i); L "'"; L ", ";
-            quote_string s2; L ", "; (* third quote *)
-            P 0; L " + 10";       (* first paramater last *)
+          Q.concat [
+            Q.lit "SELECT ";
+            Q.param 1; Q.lit " + 10, ";        (* last parameter first *)
+            Q.param 1; Q.lit " + 20, ";        (* and duplicated *)
+            quote_int (i + 30); Q.lit ", ";    (* first quote *)
+            Q.lit (string_of_int i); Q.lit ", ";
+            quote_string s1; Q.lit ", ";       (* second quote *)
+            Q.lit "'"; Q.lit (string_of_int i); Q.lit "', ";
+            quote_string s2; Q.lit ", ";       (* third quote *)
+            Q.param 0; Q.lit " + 10";          (* first paramater last *)
           ])
       in
       Db.find req (i + 1, i + 2) >>= or_fail

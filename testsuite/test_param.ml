@@ -20,16 +20,19 @@ module Q = struct
 
   let nonlin1 =
     t3 int int int -->! int @@ fun _ ->
-    S[L"SELECT 2 * "; P 2; L" + "; P 2; L" - 3 * "; P 0; L" + 5 * "; P 1]
+    Q.concat [
+      Q.lit "SELECT 2 * "; Q.param 2; Q.lit " + "; Q.param 2;
+      Q.lit " - 3 * "; Q.param 0; Q.lit " + 5 * "; Q.param 1;
+    ]
 
   let nonlin2 =
     t3 int int int -->! int @:-
     "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
   let env1 =
-    let env = function
-     | "." -> Caqti_query.L"100"
-     | "fourty" -> Caqti_query.L"40"
+    let env = let open Caqti_template.Create in function
+     | "." -> Q.lit "100"
+     | "fourty" -> Q.lit "40"
      | _ -> raise Not_found
     in
     let q = "SELECT $. - $(fourty)"

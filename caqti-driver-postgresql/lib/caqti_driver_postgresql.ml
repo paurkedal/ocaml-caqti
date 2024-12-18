@@ -134,20 +134,20 @@ module Pg_ext = struct
   let query_string ~subst (db : Pg.connection) templ =
     let open Caqti_template in
     let buf = Buffer.create 64 in
-    let rec loop = function
-     | Query.L s -> Buffer.add_string buf s
-     | Query.Q s ->
+    let rec loop : Query.t -> _ = function
+     | L s -> Buffer.add_string buf s
+     | Q s ->
         Buffer.add_char buf '\'';
         Buffer.add_string buf (db#escape_string s);
         Buffer.add_char buf '\''
-     | Query.V (ft, v) ->
+     | V (ft, v) ->
         let quote, conv = query_string_of_value db ft in
         if quote then Buffer.add_char buf '\'';
         Buffer.add_string buf (conv v);
         if quote then Buffer.add_char buf '\''
-     | Query.P i -> bprintf buf "$%d" (i + 1)
-     | Query.E _ -> assert false
-     | Query.S frags -> List.iter loop frags
+     | P i -> bprintf buf "$%d" (i + 1)
+     | E _ -> assert false
+     | S frags -> List.iter loop frags
     in
     loop (Query.expand ~final:true subst templ);
     Buffer.contents buf

@@ -35,7 +35,7 @@
 
 (** {2 Construction} *)
 
-type t = Caqti_template.Query.t =
+type t = Caqti_template.Query.Private.t [@alert "-caqti_private"] =
   | L of string
     (** [L frag] translates to the literally inserted substring [frag].  The
         [frag] argument must be trusted or verified to be secure to avoid SQL

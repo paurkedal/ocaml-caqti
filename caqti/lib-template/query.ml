@@ -17,13 +17,18 @@
 
 open Shims
 
-type t =
-  | L of string
-  | V : 'a Field_type.t * 'a -> t
-  | Q of string
-  | P of int
-  | E of string
-  | S of t list
+module Private = struct
+  type t =
+    | L of string
+    | V : 'a Field_type.t * 'a -> t
+    | Q of string
+    | P of int
+    | E of string
+    | S of t list
+end
+open Private
+
+type t = Private.t
 
 let empty = S []
 let lit frag = L frag

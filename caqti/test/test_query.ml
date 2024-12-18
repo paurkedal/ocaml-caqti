@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Query = Caqti_query
+module Query = Caqti_template.Query
+module Query_fmt = Caqti_template.Query_fmt
 
 module A = struct
   include Alcotest.V1
@@ -40,10 +41,10 @@ let random_letter () = Char.chr (Char.code 'a' + Random.int 26)
 let rec random_query n =
   if n <= 1 then
     if Random.bool ()
-      then Query.P (Random.int 8)
-      else Query.L (String.init (Random.int 3) (fun _ -> random_letter ()))
+      then Query.param (Random.int 8)
+      else Query.lit (String.init (Random.int 3) (fun _ -> random_letter ()))
   else
-    Query.S (random_queries n)
+    Query.concat (random_queries n)
 and random_queries n =
   if n = 0 then [] else
   if Random.bool () then [random_query n] else
@@ -107,10 +108,18 @@ let test_parse_special_cases () =
     (* Allowed by angstrom_parser_with_semicolon but not by angstrom_parser: *)
     {|a;b|};
   ];
-  check_expect (S[L"SELECT "; P 0; L"::smallint"]) {|SELECT ?::smallint|};
-  check_expect (S[L"$$ "; E"x"; L" $$"]) "$$ $(x) $$";
-  check_expect (S[L"$Q$ $(x) $Q$"]) "$Q$ $(x) $Q$";
-  check_expect (S[P 0; L" $$ ? $$ "; P 1; L" "; P 2]) "? $$ ? $$ ? ?"
+  check_expect
+    Query.(concat [lit "SELECT "; param 0; lit "::smallint"])
+    {|SELECT ?::smallint|};
+  check_expect
+    Query.(concat [lit "$$ "; var "x"; lit " $$"])
+    "$$ $(x) $$";
+  check_expect
+    Query.(concat [lit "$Q$ $(x) $Q$"])
+    "$Q$ $(x) $Q$";
+  check_expect
+    Query.(concat [param 0; lit " $$ ? $$ "; param 1; lit " "; param 2])
+    "? $$ ? $$ ? ?"
 
 let test_parse_random_strings () =
   let check_normal_or_exn s =
@@ -137,28 +146,28 @@ let test_parse_random_strings () =
 
 let test_expand () =
   let env1 = function
-   | "" -> Caqti_query.L"default"
-   | "alt" -> Caqti_query.L"other"
+   | "" -> Query.lit "default"
+   | "alt" -> Query.lit "other"
    | _ -> raise Not_found
   in
   let env2 = function
-   | "." -> Caqti_query.L"default."
-   | "alt." -> Caqti_query.L"other."
+   | "." -> Query.lit "default."
+   | "alt." -> Query.lit "other."
    | _ -> raise Not_found
   in
   let env3 = function
-   | "." -> Caqti_query.L"dot"
-   | "cat" -> Caqti_query.L"mouse"
-   | "cat." -> Caqti_query.L"dog"
+   | "." -> Query.lit "dot"
+   | "cat" -> Query.lit "mouse"
+   | "cat." -> Query.lit "dog"
    | _ -> raise Not_found
   in
-  let q1 = Caqti_query.of_string_exn
+  let q1 = Query.of_string_exn
     " $. $(.) $alt. $(alt.) $cat. $(cat) "
   in
-  let q1' = Caqti_query.of_string_exn
+  let q1' = Query.of_string_exn
     " default. default. other. other. $cat. $(cat) "
   in
-  let q1'3 = Caqti_query.of_string_exn
+  let q1'3 = Query.of_string_exn
     " dot dot $alt. $(alt.) dog mouse "
   in
   A.(check query) "same" q1' (Caqti_query.expand env1 q1);
@@ -166,16 +175,19 @@ let test_expand () =
   A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)
 
 let test_qprintf () =
-  let open Caqti_query_fmt in
   let check_expect q1 q2 =
-    A.(check query "same" (Caqti_query.normal q1) (Caqti_query.normal q2))
+    A.(check query "same" (Query.normal q1) (Query.normal q2))
   in
   check_expect
-    (S [L"SELECT "; P 0; L" WHERE "; Q"quote"; L" = "; E"env"])
-    (qprintf {|%a %a WHERE %a = %a|} query (L"SELECT") param 0 quote "quote" env "env");
+    Query.(concat [
+      lit "SELECT "; param 0; lit " WHERE "; quote "quote"; lit " = "; var "env"
+    ])
+    Query_fmt.(
+      qprintf {|%a %a WHERE %a = %a|}
+        query (Query.lit "SELECT") param 0 quote "quote" env "env");
   check_expect
-    (S [L"WHERE "; E"tbl4"; L".name = "; Q"John Wayne"])
-    (qprintf {|WHERE @{<E>tbl%d@}.name = @{<Q>%s Wayne@}|} 4 "John")
+    Query.(concat [lit "WHERE "; var "tbl4"; lit ".name = "; quote "John Wayne"])
+    Query_fmt.(qprintf {|WHERE @{<E>tbl%d@}.name = @{<Q>%s Wayne@}|} 4 "John")
 
 
 let test_cases = [

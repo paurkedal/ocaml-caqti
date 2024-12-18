@@ -16,6 +16,7 @@
  *)
 
 include Caqti_template.Query
+include Caqti_template.Query.Private [@@alert "-caqti_private"]
 
 let concat sep = concat ~sep
 let qprintf = Caqti_template.Query_fmt.qprintf

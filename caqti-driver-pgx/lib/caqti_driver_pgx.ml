@@ -84,23 +84,23 @@ let query_string ~subst templ =
   let open Caqti_template in
   let templ = Query.expand ~final:true subst templ in
 
-  let rec extract_quotes = function
-   | Query.V (ft, v) -> fun (n, acc) -> (n + 1, encode_field ft v :: acc)
-   | Query.Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
-   | Query.L _ | Query.P _ -> Fun.id
-   | Query.E _ -> fun _ -> assert false
-   | Query.S qs -> List_ext.fold extract_quotes qs
+  let rec extract_quotes : Query.t -> _ = function
+   | V (ft, v) -> fun (n, acc) -> (n + 1, encode_field ft v :: acc)
+   | Q s -> fun (n, acc) -> (n + 1, Pgx.Value.of_string s :: acc)
+   | L _ | P _ -> Fun.id
+   | E _ -> fun _ -> assert false
+   | S qs -> List_ext.fold extract_quotes qs
   in
   let nQ, rev_quotes = extract_quotes templ (0, []) in
 
   let buf = Buffer.create 64 in
-  let rec write_query_string = function
-   | Query.L s -> fun jQ -> Buffer.add_string buf s; jQ
-   | Query.V _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
-   | Query.Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
-   | Query.P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
-   | Query.E _ -> assert false
-   | Query.S qs -> List_ext.fold write_query_string qs
+  let rec write_query_string : Query.t -> _ = function
+   | L s -> fun jQ -> Buffer.add_string buf s; jQ
+   | V _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | Q _ -> fun jQ -> bprintf buf "$%d" jQ; jQ + 1
+   | P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
+   | E _ -> assert false
+   | S qs -> List_ext.fold write_query_string qs
   in
   let _jQ = write_query_string templ 1 in
   (Buffer.contents buf, rev_quotes)

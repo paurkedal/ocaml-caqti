@@ -34,15 +34,15 @@ let expect_parse ~subst qs q' =
 
 let test_request_parse () =
   let subst = function
-   | "alpha" -> Q.L "α"
-   | "beta" -> Q.L "β"
-   | "beta." -> Q.L "β[dot]"
-   | "gamma" -> Q.L "γ"
-   | "delta" -> Q.L "δ"
+   | "alpha" -> Q.lit "α"
+   | "beta" -> Q.lit "β"
+   | "beta." -> Q.lit "β[dot]"
+   | "gamma" -> Q.lit "γ"
+   | "delta" -> Q.lit "δ"
    | _ -> raise Not_found
   in
   expect_parse ~subst "$(alpha) $$ $beta. $(gamma) $delta. $$ $Q$ $beta. $Q$"
-    Q.(L"α $$ β[dot] γ δ. $$ $Q$ $beta. $Q$")
+    (Q.lit "α $$ β[dot] γ δ. $$ $Q$ $beta. $Q$")
 
 let test_cases = [
   "parse", `Quick, test_request_parse;

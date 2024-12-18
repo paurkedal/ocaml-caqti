@@ -175,11 +175,11 @@ let value_of_data
 
 let query_quotes q =
   let open Caqti_template in
-  let rec loop = function
-   | Query.L _ | Caqti_query.P _ | Caqti_query.E _ -> Fun.id
-   | Query.V (t, v) -> List.cons (data_of_value t v)
-   | Query.Q s -> List.cons (Sqlite3.Data.TEXT s)
-   | Query.S qs -> List_ext.fold loop qs
+  let rec loop : Query.t -> _ = function
+   | L _ | P _ | E _ -> Fun.id
+   | V (t, v) -> List.cons (data_of_value t v)
+   | Q s -> List.cons (Sqlite3.Data.TEXT s)
+   | S qs -> List_ext.fold loop qs
   in
   List.rev (loop q [])
 
@@ -189,13 +189,13 @@ let query_string q =
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
   let iP0 = List.length quotes + 1 in
-  let rec loop = function
-   | Query.L s -> Buffer.add_string buf s
-   | Query.V _ -> bprintf buf "?%d" !iQ; incr iQ
-   | Query.Q _ -> bprintf buf "?%d" !iQ; incr iQ
-   | Query.P i -> bprintf buf "?%d" (iP0 + i)
-   | Query.E _ -> assert false
-   | Query.S qs -> List.iter loop qs
+  let rec loop : Query.t -> _ = function
+   | L s -> Buffer.add_string buf s
+   | V _ -> bprintf buf "?%d" !iQ; incr iQ
+   | Q _ -> bprintf buf "?%d" !iQ; incr iQ
+   | P i -> bprintf buf "?%d" (iP0 + i)
+   | E _ -> assert false
+   | S qs -> List.iter loop qs
   in
   loop q;
   (quotes, Buffer.contents buf)

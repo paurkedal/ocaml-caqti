@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -228,7 +228,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
           let cast_if_mariadb tn f =
             (match dialect with
              | D.Mysql _ -> fun x ->
-                Q.concat [Q.lit "CAST("; f x; Q.lit " AS "; Q.lit tn; Q.lit ")"]
+                "CAST(" ^++ f x @++ " AS " ^++ Q.lit tn ++^ ")"
              | _ -> f)
           in
           let quote_int = cast_if_mariadb "INTEGER"

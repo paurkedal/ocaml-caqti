@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -121,26 +121,26 @@ module Infix : sig
 
         let query_of_cond = function
          | Column_eq (col, t, v) ->
-            col @> " = " @> Caqti_template.Query.const t v
+            Q.lit col @++ " = " ^++ Q.const t v
 
         let make_simple_select conditions columns row_type =
           (unit -->* row_type) ~oneshot:true @@ fun _ ->
-          "SELECT " @> Q.concat ~sep:", " (List.map Q.lit columns) @|
-          " FROM $.foo" @>
-          " WHERE " @> Q.concat ~sep:" AND " (List.map query_of_cond conditions)
+          "SELECT " ^++ Q.concat ~sep:", " (List.map Q.lit columns) @++
+          " FROM $.foo" ^++
+          " WHERE " ^++ Q.concat ~sep:" AND " (List.map query_of_cond conditions)
       ]}
       *)
 
-  val (@|) : t -> t -> t
+  val (@++) : t -> t -> t
   (** An alias for {!cat}. *)
 
-  val (@>) : string -> t -> t
-  (** [pfx @> q] is [q] prefixed with [pfx] parsed as a query, i.e.
-      [cat (of_string_exn pfx) q]. *)
+  val (^++) : string -> t -> t
+  (** [pfx ^++ q] is [q] prefixed with the literal fragment [pfx], i.e.
+      [cat (lit pfx) q]. *)
 
-  val (<@) : t -> string -> t
-  (** [q <@ sfx] is [q] suffixed with [sfx] parsed as a query, i.e.
-      [cat q (of_string_exn sfx)]. *)
+  val (++^) : t -> string -> t
+  (** [q ++^ sfx] is [q] suffixed with the literal fragment [sfx], i.e.
+      [cat q (lit sfx)]. *)
 end
 
 (** {3 Embedding Values}

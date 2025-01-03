@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -355,7 +355,7 @@ let of_string_exn s =
       Printf.ksprintf failwith "Parse error at byte %d: %s" pos msg)
 
 module Infix = struct
-  let (@|) = cat
-  let (@>) pfx q = cat (of_string_exn pfx) q
-  let (<@) q sfx = cat q (of_string_exn sfx)
+  let (@++) = cat
+  let (^++) pfx q = cat (lit pfx) q
+  let (++^) q sfx = cat q (lit sfx)
 end

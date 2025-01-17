@@ -36,6 +36,13 @@ module Field_type = Field_type
 module Row_type = Row_type
 module Row_mult = Row_mult
 
+module Type : sig
+  include Row_type.STD
+  include module type of Request_type.Infix
+end
+(** This module imports everything needed to describe a request type,
+    including the parameter type, row type, and row multiplicity. *)
+
 (** {3 Request Templates} *)
 
 module Query = Query
@@ -54,7 +61,7 @@ module type CREATE = sig
       {[
         let bounds_upto_req =
           let open Caqti_template.Create in
-          (t2 int32 float ->! option (t2 float float))
+          static T.(t2 int32 float -->! option (t2 float float))
           "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
       The first open provides shortcuts to everything we need.  This is followed
@@ -78,9 +85,10 @@ module type CREATE = sig
       {[
         let bounds_upto_req =
           let open Caqti_template.Create in
-          t2 int32 float -->! option (t2 float float) @@ fun _ ->
-          Q.parse
-            "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
+          static_gen
+            T.(t2 int32 float -->! option (t2 float float)) @@ fun _ ->
+            Q.parse
+              "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
       Note the use of the longer arrow [-->!], which takes a function instead of
       a string as the last argument.  The function receives a {!Dialect.t} as
@@ -94,9 +102,9 @@ module type CREATE = sig
       {[
         let concat_req =
           let open Caqti_template.Create in
-          t2 string string -->! string @@:- function
-           | D.Mysql _ -> "SELECT concat(?, ?)"
-           | _ -> "SELECT ? || ?"
+          static_gen T.(t2 string string -->! string) @@ function
+           | D.Mysql _ -> Q.parse "SELECT concat(?, ?)"
+           | _ -> Q.parse "SELECT ? || ?"
       ]}
       Note that we here use the [@@:-] combinator instead of [@@] to avoid
       calling {!Q.parse} on the result.  In summary
@@ -118,31 +126,75 @@ module type CREATE = sig
 
           include Caqti_template.CREATE
 
-          val password : string Row_type.t
-          val uri : Uri.t Row_type.t
+          module T : sig
+            include module type of T
+            val password : string Row_type.t
+            val uri : Uri.t Row_type.t
+          end
 
         end = struct
           open Caqti_template
 
           include Caqti_template.Create
 
-          let password = redacted string
-          let uri =
-            let encode x = Ok (Uri.to_string x) in
-            let decode s = Ok (Uri.of_string s) in
-            Row_type.custom ~encode ~decode string
+          module T = struct
+            include T
+            let password = redacted string
+            let uri =
+              let encode x = Ok (Uri.to_string x) in
+              let decode s = Ok (Uri.of_string s) in
+              Row_type.custom ~encode ~decode string
+          end
 
         end
       ]}
   *)
 
-  include module type of Version.Infix
-  include module type of Query.Infix
-  include module type of Request.Infix
-  include Row_type.STD
+  (** {1 Type Descriptors} *)
+
+  module T = Type
+
+  (** {1 Dialect Descriptors} *)
+
   module D = Dialect
+  include module type of Version.Infix
+
+  (** {1 Query Templates} *)
+
   module Q = Query
   module Qf = Query_fmt
+  include module type of Query.Infix
+
+  (** {1 Request Templates} *)
+
+  val static :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template of static lifetime for prepared requests where the
+      query template is provided as a string to be parsed by {!Query.parse}. *)
+
+  val static_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template of static lifetime for prepared requests where the
+      query template is dialect-dependent and explicitly constructed by the
+      caller. *)
+
+  val direct :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template for non-prepared requests where the query template is
+      provided as a string to be parsed by {!Query.parse}.
+      If non-prepared requests are not unsupported by the driver, a temporarily
+      prepared request is used instead. *)
+
+  val direct_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template for non-prepared requests where the query template is
+      dialect-dependent and explicitly constructed by the caller.
+      If non-prepared requests are not unsupported by the driver, a temporarily
+      prepared request is used instead. *)
 end
 
 module Create : CREATE

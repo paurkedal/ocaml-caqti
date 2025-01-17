@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,22 +25,60 @@ module Row_type = Row_type
 module Shims = Shims
 module Version = Version
 
+module Type = struct
+  include (Row_type : Row_type.STD)
+  include Request_type.Infix
+end
+
 module type CREATE = sig
-  include module type of Version.Infix
-  include module type of Query.Infix
-  include module type of Request.Infix
-  include Row_type.STD
+
+  module T = Type
+
   module D = Dialect
+  include module type of Version.Infix
+
   module Q = Query
   module Qf = Query_fmt
+  include module type of Query.Infix
+
+  val static :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+
+  val static_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
+
+  val direct :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+
+  val direct_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
 end
 
 module Create = struct
-  include Version.Infix
-  include Query.Infix
-  include Request.Infix
-  include (Row_type : Row_type.STD)
+
+  module T = Type
+
   module D = Dialect
+  include Version.Infix
+
   module Q = Query
   module Qf = Query_fmt
+  include Query.Infix
+
+  let static req_type qs =
+    Request.create ~oneshot:false req_type (Fun.const (Query.parse qs))
+
+  let static_gen req_type qf =
+    Request.create ~oneshot:false req_type qf
+
+  let direct req_type qs =
+    Request.create ~oneshot:true req_type (Fun.const (Query.parse qs))
+
+  let direct_gen req_type qf =
+    Request.create ~oneshot:true req_type qf
+
 end

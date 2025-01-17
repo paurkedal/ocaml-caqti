@@ -22,15 +22,13 @@ open Caqti_template
 include Request
 
 let create ?oneshot pt rt rm make_query =
-  create ?oneshot pt rt rm
+  create ?oneshot (pt, rt, rm)
     (fun dialect -> make_query (Caqti_driver_info.of_dialect dialect))
 
 let query req driver_info =
   query req (Caqti_driver_info.dummy_dialect driver_info)
 
 module Infix = struct
-  include Request.Infix
-
   let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
   let (-->!) t u ?oneshot f = create ?oneshot t u Row_mult.one f
   let (-->?) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_one f
@@ -42,6 +40,11 @@ module Infix = struct
 
   let (@@:-) f g =
     f (fun d -> Caqti_query.of_string_exn (g (Caqti_driver_info.dialect_tag d)))
+
+  let (->.) t u ?oneshot s = create ?oneshot t u Row_mult.zero @:- s
+  let (->!) t u ?oneshot s = create ?oneshot t u Row_mult.one @:- s
+  let (->?) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_one @:- s
+  let (->*) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_more @:- s
 end
 
 let no_env _ _ = raise Not_found

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -53,7 +53,7 @@ module Q = struct
       @@ proj_end
 
   let create_bikereg =
-    unit ->. unit @@
+    direct T.(unit -->. unit)
     {eos|
       CREATE TEMPORARY TABLE bikereg (
         frameno text NOT NULL,
@@ -63,19 +63,19 @@ module Q = struct
     |eos}
 
   let reg_bike =
-    t2 string string ->. unit @@
+    static T.(t2 string string -->. unit)
     "INSERT INTO bikereg (frameno, owner) VALUES (?, ?)"
 
   let report_stolen =
-    string ->. unit @@
+    static T.(string -->. unit)
     "UPDATE bikereg SET stolen = current_timestamp WHERE frameno = ?"
 
   let select_stolen =
-    unit ->* bike @@
+    static T.(unit -->* bike)
     "SELECT * FROM bikereg WHERE NOT stolen IS NULL"
 
   let select_owner =
-    string ->? string @@
+    static T.(string -->? string)
     "SELECT owner FROM bikereg WHERE frameno = ?"
 end
 

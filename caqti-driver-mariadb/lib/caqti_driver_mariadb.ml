@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -57,9 +57,9 @@ let () =
 module Q = struct
   open Caqti_template.Create
   let set_utc =
-    (unit ->. unit) ~oneshot:true "SET time_zone = '+00:00'"
+    direct T.(unit -->. unit) "SET time_zone = '+00:00'"
   let set_statement_timeout =
-    (float ->. unit) ~oneshot:true "SET max_statement_time = ?"
+    direct T.(float -->. unit) "SET max_statement_time = ?"
 end
 
 module Connect_functor

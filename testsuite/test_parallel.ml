@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,17 +18,17 @@
 module Q = struct
   open Caqti_template.Create
 
-  let create = unit -->. unit @:-
+  let create = static T.(unit -->. unit)
     "CREATE TABLE test_parallel (x int NOT NULL, y int NOT NULL)"
-  let drop = unit -->. unit @:-
+  let drop = static T.(unit -->. unit)
     "DROP TABLE IF EXISTS test_parallel"
-  let insert = t2 int int -->. unit @:-
+  let insert = static T.(t2 int int -->. unit)
     "INSERT INTO test_parallel VALUES (?, ?)"
-  let delete = int -->. unit @:-
+  let delete = static T.(int -->. unit)
     "DELETE FROM test_parallel WHERE x = ?"
-  let select_1 = int -->* int @:-
+  let select_1 = static T.(int -->* int)
     "SELECT y FROM test_parallel WHERE x < ?"
-  let select_2 = int -->! option int @:-
+  let select_2 = static T.(int -->! option int)
     "SELECT sum(a.y*b.y) \
      FROM test_parallel a JOIN test_parallel b ON a.x < b.x \
      WHERE b.x < ?"

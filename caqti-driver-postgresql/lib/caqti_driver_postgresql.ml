@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -37,20 +37,21 @@ module Int_hashtbl = Hashtbl.Make (Int_hashable)
 module Q = struct
   open Caqti_template.Create
 
-  let start = (unit ->. unit) "BEGIN"
-  let commit = (unit ->. unit) "COMMIT"
-  let rollback = (unit ->. unit) "ROLLBACK"
+  let start = static T.(unit -->. unit) "BEGIN"
+  let commit = static T.(unit -->. unit) "COMMIT"
+  let rollback = static T.(unit -->. unit) "ROLLBACK"
 
-  let type_oid = (string ->? int)
+  let type_oid =
+    static T.(string -->? int)
     "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?"
 
-  let set_timezone_to_utc = (unit ->. unit) ~oneshot:true
-    "SET TimeZone TO 'UTC'"
+  let set_timezone_to_utc =
+    direct T.(unit -->. unit) "SET TimeZone TO 'UTC'"
 
   let set_statement_timeout t =
-    (unit -->. unit) ~oneshot:true @@ fun _ ->
+    direct_gen T.(unit -->. unit) @@ fun _ ->
     (* Parameters are not supported for SET. *)
-    S[L"SET statement_timeout TO "; L(string_of_int t)]
+    Q.lit "SET statement_timeout TO " @++ Q.int t
 end
 
 type Caqti_error.msg +=

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -258,9 +258,9 @@ let decode_row ~uri ~query row_type =
 module Q = struct
   open Caqti_template.Create
 
-  let start = (unit ->. unit) "BEGIN"
-  let commit = (unit ->. unit) "COMMIT"
-  let rollback = (unit ->. unit) "ROLLBACK"
+  let start = static T.(unit -->. unit) "BEGIN"
+  let commit = static T.(unit -->. unit) "COMMIT"
+  let rollback = static T.(unit -->. unit) "ROLLBACK"
 end
 
 module Connect_functor

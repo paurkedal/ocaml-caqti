@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,13 +18,13 @@
 module Q = struct
   open Caqti_template.Create
 
-  let select_two = unit -->! int @:- "SELECT 2"
-  let select_twice = int -->! int @:- "SELECT 2 * ?"
+  let select_two = static T.(unit -->! int) "SELECT 2"
+  let select_twice = static T.(int -->! int) "SELECT 2 * ?"
 
   let sleep =
-    unit -->! option int @@:- function
-     | D.Pgsql _ -> "SELECT pg_sleep(2)"
-     | _ -> "SELECT sleep(2)"
+    static_gen T.(unit -->! option int) @@ function
+     | D.Pgsql _ -> Q.parse "SELECT pg_sleep(2)"
+     | _ -> Q.parse "SELECT sleep(2)"
 end
 
 module Make (Ground : Testlib.Sig.Ground) = struct

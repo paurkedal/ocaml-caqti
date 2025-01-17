@@ -123,11 +123,13 @@ module Infix : sig
          | Column_eq (col, t, v) ->
             Q.lit col @++ " = " ^++ Q.const t v
 
-        let make_simple_select conditions columns row_type =
-          (unit -->* row_type) ~oneshot:true @@ fun _ ->
-          "SELECT " ^++ Q.concat ~sep:", " (List.map Q.lit columns) @++
-          " FROM $.foo" ^++
-          " WHERE " ^++ Q.concat ~sep:" AND " (List.map query_of_cond conditions)
+        let make_simple_select conds columns row_type =
+          let query =
+            "SELECT " ^++ Q.concat ~sep:", " (List.map Q.lit columns) @++
+            " FROM $.foo" ^++
+            " WHERE " ^++ Q.concat ~sep:" AND " (List.map query_of_cond conds)
+          in
+          direct_gen T.(unit -->* row_type) (fun _ -> query)
       ]}
       *)
 

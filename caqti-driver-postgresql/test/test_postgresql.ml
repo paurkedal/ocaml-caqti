@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@ open Testlib
 open Testlib_blocking
 
 let bad_select_req =
-  Caqti_template.Create.(unit -->! unit @:- "SELECT not_defined")
+  Caqti_template.Create.(static T.(unit -->! unit) "SELECT not_defined")
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   (match C.find bad_select_req () with

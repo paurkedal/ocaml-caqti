@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,7 +24,7 @@ let connect_uri = Uri.of_string "postgresql://"
 
 let fetch_many_request =
   let open Caqti_template.Create in
-  unit -->* t3 int int (t3 float bool bool) @:- {|
+  static T.(unit -->* t3 int int (t3 float bool bool)) {|
     WITH tmp (i) AS (VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9))
     SELECT a.i, b.i, CAST(c.i AS float), e.i < c.i, e.i < d.i
     FROM tmp a, tmp b, tmp c, tmp d, tmp e

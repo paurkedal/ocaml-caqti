@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,13 +21,14 @@ open Testlib_blocking
 module Req = Caqti_template.Create
 
 let drop_req =
-  Req.(unit ->. unit) "DROP TABLE IF EXISTS test_sqlite3"
+  Req.(static T.(unit -->. unit)) "DROP TABLE IF EXISTS test_sqlite3"
 
 let create_req =
-  Req.(unit ->. unit) "CREATE TABLE test_sqlite3 (integer primary key not null)"
+  Req.(direct T.(unit -->. unit))
+    "CREATE TABLE test_sqlite3 (integer primary key not null)"
 
 let bad_insert_req =
-  Req.(unit ->! unit) "INSERT INTO test_sqlite3 VALUES (1), (1)"
+  Req.(static T.(unit -->! unit)) "INSERT INTO test_sqlite3 VALUES (1), (1)"
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   C.exec drop_req ()
@@ -44,7 +45,7 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
       Alcotest.failf "unexpected error from bad_insert: %a" Caqti_error.pp err)
 
 let trim_req =
-  Req.(string -->! string @:- "SELECT trim(?)")
+  Req.(static T.(string -->! string) "SELECT trim(?)")
 
 let test_fun (module C : Caqti_blocking.CONNECTION) =
   (match C.driver_connection with

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,15 +19,15 @@ module Q = struct
   open Caqti_template.Create
 
   let nonlin1 =
-    t3 int int int -->! int @@ fun _ ->
+    static_gen T.(t3 int int int -->! int) @@ fun _ ->
     Q.concat [
       Q.lit "SELECT 2 * "; Q.param 2; Q.lit " + "; Q.param 2;
       Q.lit " - 3 * "; Q.param 0; Q.lit " + 5 * "; Q.param 1;
     ]
 
   let nonlin2 =
-    t3 int int int -->! int @:-
-    "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
+    static T.(t3 int int int -->! int)
+      "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
   let env1 =
     let env = let open Caqti_template.Create in function
@@ -36,10 +36,10 @@ module Q = struct
      | _ -> raise Not_found
     in
     let q = "SELECT $. - $(fourty)"
-      |> Caqti_query.of_string_exn
-      |> Caqti_query.expand env
+      |> Caqti_template.Query.parse
+      |> Caqti_template.Query.expand env
     in
-    (Caqti_type.unit -->! Caqti_type.int) @@ fun _ -> q
+    static_gen T.(Caqti_type.unit -->! Caqti_type.int) (fun _ -> q)
 end
 
 module Make (Ground : Testlib.Sig.Ground) = struct

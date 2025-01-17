@@ -32,68 +32,74 @@ let abc_of_string = function
 
 module Q = struct
   open Caqti_template.Create
+  let (%) f g x = f (g x)
 
   let select_null_etc =
-    t2 (option int) (option int) -->! t2 bool (option int) @:-
+    static T.(t2 (option int) (option int) -->! t2 bool (option int))
     "SELECT ? IS NULL, ?"
 
-  let select_and = t2 bool bool -->! bool @:-
+  let select_and = static T.(t2 bool bool -->! bool)
     "SELECT ? AND ?"
-  let select_plus_int = t2 int int -->! int @:-
+  let select_plus_int = static T.(t2 int int -->! int)
     "SELECT ? + ?"
-  let select_plus_int64 = t2 int64 int64 -->! int64 @:-
+  let select_plus_int64 = static T.(t2 int64 int64 -->! int64)
     "SELECT ? + ?"
-  let select_plus_float = t2 float float -->! float @:-
+  let select_plus_float = static T.(t2 float float -->! float)
     "SELECT ? + ?"
-  let select_cat = t2 string string -->! string @@:- function
-   | D.Mysql _ -> "SELECT concat(?, ?)"
-   | _ -> "SELECT ? || ?"
-  let select_octets_identity = octets -->! octets @@:- function
-   | D.Mysql _ -> "SELECT CAST(? AS binary)"
-   | D.Pgsql _ -> "SELECT ?"
-   | D.Sqlite _ -> "SELECT CAST(? AS blob)"
+  let select_cat = static_gen T.(t2 string string -->! string) @@ function
+   | D.Mysql _ -> Q.parse "SELECT concat(?, ?)"
+   | _ -> Q.parse "SELECT ? || ?"
+  let select_octets_identity = static_gen T.(octets -->! octets) @@ function
+   | D.Mysql _ -> Q.parse "SELECT CAST(? AS binary)"
+   | D.Pgsql _ -> Q.parse "SELECT ?"
+   | D.Sqlite _ -> Q.parse "SELECT CAST(? AS blob)"
    | _ -> failwith "Unimplemented."
 
   let select_compound_option =
-    (t2 (option int) (option int) -->!
-     t3 int (option (t3 (option int) (option int) (option int))) int) @:-
-    "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
+    static
+      T.(t2 (option int) (option int) -->!
+         t3 int (option (t3 (option int) (option int) (option int))) int)
+      "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
 
   let abc =
     Caqti_template.Row_type.enum
       ~encode:string_of_abc ~decode:abc_of_string "abc"
 
-  let create_type_abc = unit -->. unit @:-
+  let create_type_abc = static T.(unit -->. unit)
     "CREATE TYPE abc AS ENUM ('aye', 'bee', 'cee')"
-  let drop_type_abc = unit -->. unit @:-
+  let drop_type_abc = static T.(unit -->. unit)
     "DROP TYPE IF EXISTS abc"
-  let create_table_test_abc = unit -->. unit @@:- function
-   | D.Pgsql _ ->
-      "CREATE TEMPORARY TABLE test_abc (e abc PRIMARY KEY, s char(3) NOT NULL)"
-   | D.Mysql _ ->
-      "CREATE TEMPORARY TABLE test_abc \
-        (e ENUM('aye', 'bee', 'cee') PRIMARY KEY, s char(3) NOT NULL)"
-   | D.Sqlite _ ->
-      "CREATE TEMPORARY TABLE test_abc (e text PRIMARY KEY, s char(3) NOT NULL)"
-   | _ -> failwith "Unimplemented."
-  let drop_table_test_abc = unit -->. unit @:-
+  let create_table_test_abc =
+    static_gen T.(unit -->. unit) @@ Q.parse % function
+     | D.Pgsql _ ->
+        "CREATE TEMPORARY TABLE test_abc \
+          (e abc PRIMARY KEY, s char(3) NOT NULL)"
+     | D.Mysql _ ->
+        "CREATE TEMPORARY TABLE test_abc \
+          (e ENUM('aye', 'bee', 'cee') PRIMARY KEY, s char(3) NOT NULL)"
+     | D.Sqlite _ ->
+        "CREATE TEMPORARY TABLE test_abc \
+          (e text PRIMARY KEY, s char(3) NOT NULL)"
+     | _ -> failwith "Unimplemented."
+  let drop_table_test_abc = static T.(unit -->. unit)
     "DROP TABLE test_abc"
-  let insert_into_test_abc = t2 abc string -->. unit @:-
+  let insert_into_test_abc = static T.(t2 abc string -->. unit)
     "INSERT INTO test_abc VALUES (?, ?)"
-  let select_from_test_abc = unit -->* t2 abc string @:-
+  let select_from_test_abc = static T.(unit -->* t2 abc string)
     "SELECT * FROM test_abc"
 
-  let select_expanded = unit -->! t2 int string @@:- function
-   | D.Mysql _ -> "SELECT $(x1), CAST($(x2) AS char)"
-   | _ -> "SELECT $(x1), $(x2)"
+  let select_expanded =
+    static_gen T.(unit -->! t2 int string) @@ Q.parse % function
+     | D.Mysql _ -> "SELECT $(x1), CAST($(x2) AS char)"
+     | _ -> "SELECT $(x1), $(x2)"
 
-  let create_post_connect = unit -->. unit @:-
+  let create_post_connect = static T.(unit -->. unit)
     "CREATE TEMPORARY TABLE test_post_connect \
       (id serial PRIMARY KEY, word text NOT NULL)"
-  let insert_into_post_connect = string -->. unit @:-
+  let insert_into_post_connect = static T.(string -->. unit)
     "INSERT INTO test_post_connect (word) VALUES (?)"
 
-  let create_tmp = unit -->. unit @@:- function
+  let create_tmp = static_gen T.(unit -->. unit) @@ Q.parse % function
    | D.Pgsql _ ->
       "CREATE TEMPORARY TABLE test_sql \
          (id SERIAL NOT NULL, \
@@ -113,7 +119,7 @@ module Q = struct
           s TEXT NOT NULL, \
           o BLOB NOT NULL)"
    | _ -> failwith "Unimplemented."
-  let create_tmp_nullable = unit -->. unit @@:- function
+  let create_tmp_nullable = static_gen T.(unit -->. unit) @@ Q.parse % function
    | D.Pgsql _ ->
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, i INTEGER NOT NULL, s TEXT, o BYTEA)"
@@ -124,7 +130,7 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, i INTEGER NOT NULL, s TEXT, o BLOB)"
    | _ -> failwith "Unimplemented."
-  let create_tmp_binary = unit -->. unit @@:- function
+  let create_tmp_binary = static_gen T.(unit -->. unit) @@ Q.parse % function
    | D.Pgsql _ ->
       "CREATE TEMPORARY TABLE test_sql \
         (id SERIAL NOT NULL, data BYTEA NOT NULL)"
@@ -135,45 +141,48 @@ module Q = struct
       "CREATE TEMPORARY TABLE test_sql \
         (id INTEGER PRIMARY KEY, data BLOB NOT NULL)"
    | _ -> failwith "Unimplemented"
-  let drop_tmp = unit -->. unit @@:- function
-   | _ -> "DROP TABLE test_sql"
-  let insert_into_tmp = t3 int string octets -->. unit @:-
+  let drop_tmp = static T.(unit -->. unit)
+    "DROP TABLE test_sql"
+  let insert_into_tmp = static T.(t3 int string octets -->. unit)
     "INSERT INTO test_sql (i, s, o) VALUES (?, ?, ?)"
-  let update_in_tmp_where_i = t2 octets int -->. unit @:-
+  let update_in_tmp_where_i = static T.(t2 octets int -->. unit)
     "UPDATE test_sql SET o = ? WHERE i = ?"
-  let update_in_tmp = unit -->. unit @:-
+  let update_in_tmp = static T.(unit -->. unit)
     "UPDATE test_sql SET s = 'ZERO'"
-  let delete_from_tmp_where_i = int -->. unit @:-
+  let delete_from_tmp_where_i = static T.(int -->. unit)
     "DELETE FROM test_sql WHERE i = ?"
-  let delete_from_tmp = unit -->. unit @:-
+  let delete_from_tmp = static T.(unit -->. unit)
     "DELETE FROM test_sql"
-  let select_from_tmp = unit -->* t3 int string octets @:-
+  let select_from_tmp = static T.(unit -->* t3 int string octets)
     "SELECT i, s, o FROM test_sql ORDER BY i ASC"
   let select_from_tmp_where_i_lt =
-    int -->* t3 int string octets @:-
+    static T.(int -->* t3 int string octets)
     "SELECT i, s, o FROM test_sql WHERE i < ?"
   let select_from_tmp_nullable =
-    unit -->* t3 int (option string) (option octets) @:-
+    static T.(unit -->* t3 int (option string) (option octets))
       "SELECT i, s, o FROM test_sql"
-  let select_from_tmp_binary = unit -->* octets @:-
+  let select_from_tmp_binary = static T.(unit -->* octets)
     "SELECT data FROM test_sql"
 
-  let select_current_time = unit -->! ptime @:-
-    "SELECT current_timestamp"
-  let select_given_time = ptime -->! ptime @@:- function
-    | D.Pgsql _ | D.Sqlite _ -> "SELECT ?"
-    | D.Mysql _  -> "SELECT CAST(? AS datetime)"
-    | _ -> failwith "Unimplemented."
-  let compare_to_known_time = ptime -->! bool @@:- function
-    | D.Pgsql _  -> "SELECT ? = '2017-01-29T12:00:00.001002Z'"
-    | D.Sqlite _ -> "SELECT ? = '2017-01-29 12:00:00.001'"
-    | D.Mysql _  -> "SELECT CAST(? AS datetime) \
+  let select_current_time =
+    static T.(unit -->! ptime) "SELECT current_timestamp"
+  let select_given_time =
+    static_gen T.(ptime -->! ptime) @@ Q.parse % function
+     | D.Pgsql _ | D.Sqlite _ -> "SELECT ?"
+     | D.Mysql _  -> "SELECT CAST(? AS datetime)"
+     | _ -> failwith "Unimplemented."
+  let compare_to_known_time =
+    static_gen T.(ptime -->! bool) @@ Q.parse % function
+     | D.Pgsql _  -> "SELECT ? = '2017-01-29T12:00:00.001002Z'"
+     | D.Sqlite _ -> "SELECT ? = '2017-01-29 12:00:00.001'"
+     | D.Mysql _  -> "SELECT CAST(? AS datetime) \
                        = CAST('2017-01-29T12:00:00.001002' AS datetime)"
-    | _ -> failwith "Unimplemented."
-  let select_interval = ptime_span -->! ptime_span @@:- function
-    | D.Pgsql _ | D.Sqlite _ -> "SELECT ?"
-    | D.Mysql _ -> "SELECT CAST(? AS double)"
-    | _ -> failwith "Unimplemented"
+     | _ -> failwith "Unimplemented."
+  let select_interval =
+    static_gen T.(ptime_span -->! ptime_span) @@ Q.parse % function
+     | D.Pgsql _ | D.Sqlite _ -> "SELECT ?"
+     | D.Mysql _ -> "SELECT CAST(? AS double)"
+     | _ -> failwith "Unimplemented"
 end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
@@ -223,8 +232,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let s2 = String.make i '\'' in
       let req =
         let open Caqti_template.Create in
-        (t2 int int -->! t8 int int int64 int string string string int) ~oneshot
-        (fun dialect ->
+        let make_query dialect =
           let cast_if_mariadb tn f =
             (match dialect with
              | D.Mysql _ -> fun x ->
@@ -255,7 +263,11 @@ module Make (Ground : Testlib.Sig.Ground) = struct
             Q.lit "'"; Q.lit (string_of_int i); Q.lit "', ";
             quote_string s2; Q.lit ", ";       (* third quote *)
             Q.param 0; Q.lit " + 10";          (* first paramater last *)
-          ])
+          ]
+        in
+        Caqti_template.Request.create ~oneshot
+          T.(t2 int int -->! t8 int int int64 int string string string int)
+          make_query
       in
       Db.find req (i + 1, i + 2) >>= or_fail
         >>= fun (i12, i22, i30, i', s1', si', s2', i11) ->
@@ -499,27 +511,29 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let module Q = struct
       open Caqti_template.Create
       let sel2 =
-        t2 int int -->! t2 int int @:-
-        "SELECT -$2, -$1"
+        static T.(t2 int int -->! t2 int int)
+          "SELECT -$2, -$1"
       let sel3 =
-        t3 int int int -->! t3 int int int @:-
-        "SELECT -$3, -$2, -$1"
+        static T.(t3 int int int -->! t3 int int int)
+          "SELECT -$3, -$2, -$1"
       let sel4 =
-        t4 int int int int -->! t4 int int int int @:-
-        "SELECT -$4, -$3, -$2, -$1"
+        static T.(t4 int int int int -->! t4 int int int int)
+          "SELECT -$4, -$3, -$2, -$1"
       let sel5 =
-        t5 int int int int int -->! t5 int int int int int @:-
-        "SELECT -$5, -$4, -$3, -$2, -$1"
+        static T.(t5 int int int int int -->! t5 int int int int int)
+          "SELECT -$5, -$4, -$3, -$2, -$1"
       let sel6 =
-        t6 int int int int int int -->! t6 int int int int int int @:-
-        "SELECT -$6, -$5, -$4, -$3, -$2, -$1"
+        static T.(t6 int int int int int int -->! t6 int int int int int int)
+          "SELECT -$6, -$5, -$4, -$3, -$2, -$1"
       let sel7 =
-        t7 int int int int int int int -->! t7 int int int int int int int @:-
-        "SELECT -$7, -$6, -$5, -$4, -$3, -$2, -$1"
+        static
+          T.(t7 int int int int int int int -->! t7 int int int int int int int)
+          "SELECT -$7, -$6, -$5, -$4, -$3, -$2, -$1"
       let sel8 =
-        t8 int int int int int int int int -->!
-        t8 int int int int int int int int @:-
-        "SELECT -$8, -$7, -$6, -$5, -$4, -$3, -$2, -$1"
+        static
+          T.(t8 int int int int int int int int -->!
+             t8 int int int int int int int int)
+          "SELECT -$8, -$7, -$6, -$5, -$4, -$3, -$2, -$1"
     end in
     fun (module Db : CONNECTION) ->
       let i1, i2, i3, i4, i5, i6, i7, i8 = 2, 3, 5, 7, 11, 13, 17, 19 in

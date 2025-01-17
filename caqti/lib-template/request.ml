@@ -29,7 +29,7 @@ type ('a, 'b, +'m) t = {
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) param_type row_type row_mult query =
+let create ?(oneshot = false) (param_type, row_type, row_mult) query =
   let id = if oneshot then None else (incr last_id; Some !last_id) in
   {id; query; param_type; row_type; row_mult}
 
@@ -41,21 +41,6 @@ let query_id request = request.id
 let query request = request.query
 
 let empty_subst _ = raise Not_found
-
-module Infix = struct
-  let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
-  let (-->!) t u ?oneshot f = create ?oneshot t u Row_mult.one f
-  let (-->?) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_one f
-  let (-->*) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_more f
-
-  let (@:-) f s = let q = Query.parse s in f (fun _ -> q)
-  let (@@:-) f g = f (fun dialect -> Query.parse (g dialect))
-
-  let (->.) t u ?oneshot s = create ?oneshot t u Row_mult.zero @:- s
-  let (->!) t u ?oneshot s = create ?oneshot t u Row_mult.one @:- s
-  let (->?) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_one @:- s
-  let (->*) t u ?oneshot s = create ?oneshot t u Row_mult.zero_or_more @:- s
-end
 
 let default_dialect = Dialect.create_unknown ~purpose:`Printing ()
 

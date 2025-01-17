@@ -23,7 +23,7 @@ let expect_parse ~subst qs q' =
   let rq =
     let open Caqti_template.Create in
     let q = qs |> Q.parse |> Q.expand subst in
-    (unit -->. unit) ~oneshot:true @@ fun _ -> q
+    static_gen T.(unit -->. unit) @@ fun _ -> q
   in
   let q = Caqti_query.normal (Caqti_request.query rq Caqti_driver_info.dummy) in
   if not (Q.equal q q') then begin

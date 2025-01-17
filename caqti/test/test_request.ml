@@ -1,4 +1,4 @@
-(* Copyright (C) 2020--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2020--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,7 @@ module Q = Caqti_template.Query
 let expect_parse ~subst qs q' =
   let rq =
     let open Caqti_template.Create in
-    let q = qs |> Q.of_string_exn |> Q.expand subst in
+    let q = qs |> Q.parse |> Q.expand subst in
     (unit -->. unit) ~oneshot:true @@ fun _ -> q
   in
   let q = Caqti_query.normal (Caqti_request.query rq Caqti_driver_info.dummy) in

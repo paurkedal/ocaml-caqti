@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -37,9 +37,11 @@ module Infix = struct
   let (-->*) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_more f
 
   let (@:-) f s =
-    let q = Query.of_string_exn s in f (fun _ -> q)
+    let q = Caqti_query.of_string_exn s in
+    f (fun _ -> q)
+
   let (@@:-) f g =
-    f (fun di -> Query.of_string_exn (g (Caqti_driver_info.dialect_tag di)))
+    f (fun d -> Caqti_query.of_string_exn (g (Caqti_driver_info.dialect_tag d)))
 end
 
 let no_env _ _ = raise Not_found

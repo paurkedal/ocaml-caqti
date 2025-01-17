@@ -156,24 +156,27 @@ let show q =
   pp ppf q; Format.pp_print_flush ppf ();
   Buffer.contents buf
 
-type expand_error = {
-  query: t;
-  var: string;
-  reason: [`Undefined | `Invalid of t];
-}
+module Expand_error = struct
 
-let pp_expand_error ppf {query; var; reason} =
-  let open Format in
-  (match reason with
-   | `Undefined ->
-      fprintf ppf "Undefined variable %s in query %a" var pp query
-   | `Invalid expansion ->
-      fprintf ppf
-        "While expanding %a, lookup of %s gives %a, which is invalid \
-         because it contains an environment or parameter reference."
-        pp query var pp expansion)
+  type nonrec t = {
+    query: t;
+    var: string;
+    reason: [`Undefined | `Invalid of t];
+  }
 
-exception Expand_error of expand_error
+  let pp ppf {query; var; reason} =
+    let open Format in
+    (match reason with
+     | `Undefined ->
+        fprintf ppf "Undefined variable %s in query %a" var pp query
+     | `Invalid expansion ->
+        fprintf ppf
+          "While expanding %a, lookup of %s gives %a, which is invalid \
+           because it contains an environment or parameter reference."
+          pp query var pp expansion)
+end
+
+exception Expand_error of Expand_error.t
 
 type subst = string -> t
 
@@ -333,7 +336,24 @@ let angstrom_parser = Angstrom_parsers.expression
 let angstrom_parser_with_semicolon = Angstrom_parsers.expression_with_semi
 let angstrom_list_parser = Angstrom_parsers.expression_list
 
-let of_string s =
+module Parse_error = struct
+  type t = {
+    position: int;
+    message: string;
+  }
+
+  let create position message = {position; message}
+
+  let position err = err.position
+  let message err = err.message
+
+  let pp ppf err =
+    Format.fprintf ppf "Parse error at byte %d: %s" err.position err.message
+end
+
+exception Parse_error of Parse_error.t
+
+let parse_result s =
   let open Angstrom.Unbuffered in
   (match parse angstrom_parser_with_semicolon with
    | Partial {committed = 0; continue} ->
@@ -342,17 +362,17 @@ let of_string s =
       (match continue bs ~off:0 ~len Complete with
        | Done (committed, q) when committed = len -> Ok q
        | Done (committed, _) | Partial {committed; _} ->
-          Error (`Invalid (committed, "Expression cannot contain semicolon."))
+          let msg = "Expression cannot contain semicolon." in
+          Error (Parse_error.create committed msg)
        | Fail (committed, _, msg) ->
-          Error (`Invalid (committed, msg)))
+          Error (Parse_error.create committed msg))
    | Partial _ | Done _ | Fail _ ->
       assert false)
 
-let of_string_exn s =
-  (match of_string s with
+let parse s =
+  (match parse_result s with
    | Ok q -> q
-   | Error (`Invalid (pos, msg)) ->
-      Printf.ksprintf failwith "Parse error at byte %d: %s" pos msg)
+   | Error err -> raise (Parse_error err))
 
 module Infix = struct
   let (@++) = cat

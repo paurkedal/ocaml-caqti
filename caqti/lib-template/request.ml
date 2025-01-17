@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,8 +48,8 @@ module Infix = struct
   let (-->?) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_one f
   let (-->*) t u ?oneshot f = create ?oneshot t u Row_mult.zero_or_more f
 
-  let (@:-) f s = let q = Query.of_string_exn s in f (fun _ -> q)
-  let (@@:-) f g = f (fun dialect -> Query.of_string_exn (g dialect))
+  let (@:-) f s = let q = Query.parse s in f (fun _ -> q)
+  let (@@:-) f g = f (fun dialect -> Query.parse (g dialect))
 
   let (->.) t u ?oneshot s = create ?oneshot t u Row_mult.zero @:- s
   let (->!) t u ?oneshot s = create ?oneshot t u Row_mult.one @:- s

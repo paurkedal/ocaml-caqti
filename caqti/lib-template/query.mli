@@ -209,15 +209,17 @@ val show : t -> string
     The returned string is {e not suitable for sending to an SQL database};
     doing so may lead to an SQL injection vulnerability. *)
 
-type expand_error
+module Expand_error : sig
+  type t
+
+  val pp : Format.formatter -> t -> unit
+  (** Formats a human-readable error message. *)
+end
 (** A description of the error caused during {!expand} if the environment lookup
-    function returns an invalid result or [None] for a variable when the
-    expansion is final. *)
+    function returns an invalid result or fails to provide a value for a
+    variable when the expansion is final. *)
 
-val pp_expand_error : Format.formatter -> expand_error -> unit
-(** Prints an informative error. *)
-
-exception Expand_error of expand_error
+exception Expand_error of Expand_error.t
 (** The exception raised by {!expand} when there are issues expanding an
     environment variable using the provided callback. *)
 
@@ -229,18 +231,18 @@ type subst = string -> t
     Templates}. *)
 
 val expand : ?final: bool -> subst -> t -> t
-(** [expand subst query] replaces each occurrence of [E var] with [subst var] or
-    leaves it unchanged where [subst var] is [None].
+(** [expand subst query] replaces the occurrence of each variable [var] with
+    [subst var] where it is defined, otherwise if [final] is [false], the
+    variable is left unchanged, otherwise raises {!Expand_error}.  The result of
+    the substitution function may not contain variable references.
 
     @param final
-      If [true], then an error is raised instead of leaving environment
-      references unexpended if [f] returns [None].  This is used by drivers
-      for performing the final expansion.  Defaults to [false].
+      Whether this is the final expansion, as when invoked by the drivers.
+      Defaults to [false].
 
     @raise Expand_error
-      if [subst var] contains an [E]-node (nested reference) or if [~final:true]
-      is passed and [subst var] is [None] for some occurrence of [E var] in
-      [query]. *)
+      if the substitution function is invalid or if it is incomplete for a final
+      expansion. *)
 
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon
@@ -259,13 +261,30 @@ val angstrom_list_parser : t list Angstrom.t
     schema files with support for environment expansions, like substituting the
     name of the database schema. *)
 
-val of_string : string -> (t, [`Invalid of int * string]) result
+module Parse_error : sig
+  type t
+
+  val position : t -> int
+  (** The byte position of the string at which the parser failed. *)
+
+  val message : t -> string
+  (** A message describing the problem. *)
+
+  val pp : Format.formatter -> t -> unit
+  (** Formats a human-readable error message. *)
+end
+(** Describes errors from the high-level parsing functions. *)
+
+exception Parse_error of Parse_error.t
+(** The exception which may be raised by {!parse}. *)
+
+val parse : string -> t
 (** Parses a single expression using {!angstrom_parser_with_semicolon}.  The
     error indicates the byte position of the input string where the parse
     failure occurred in addition to an error message. See {{!query_template} The
-    Syntax of Query Templates} for how the input string is interpreted. *)
+    Syntax of Query Templates} for how the input string is interpreted.
 
-val of_string_exn : string -> t
-(** Like {!of_string}, but raises an exception on error.
+    @raise Parse_error if the argument is syntactically invalid. *)
 
-    @raise Failure if parsing failed. *)
+val parse_result : string -> (t, Parse_error.t) result
+(** Variant of {!parse} which returns a result instead of raising.  *)

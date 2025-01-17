@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -161,15 +161,9 @@ let test_expand () =
    | "cat." -> Query.lit "dog"
    | _ -> raise Not_found
   in
-  let q1 = Query.of_string_exn
-    " $. $(.) $alt. $(alt.) $cat. $(cat) "
-  in
-  let q1' = Query.of_string_exn
-    " default. default. other. other. $cat. $(cat) "
-  in
-  let q1'3 = Query.of_string_exn
-    " dot dot $alt. $(alt.) dog mouse "
-  in
+  let q1 = Query.parse " $. $(.) $alt. $(alt.) $cat. $(cat) " in
+  let q1' = Query.parse " default. default. other. other. $cat. $(cat) " in
+  let q1'3 = Query.parse " dot dot $alt. $(alt.) dog mouse " in
   A.(check query) "same" q1' (Caqti_query.expand env1 q1);
   A.(check query) "same" q1' (Caqti_query.expand env2 q1);
   A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)

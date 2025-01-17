@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ module type CREATE = sig
         let bounds_upto_req =
           let open Caqti_template.Create in
           t2 int32 float -->! option (t2 float float) @@ fun _ ->
-          Q.of_string_exn
+          Q.parse
             "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
       Note the use of the longer arrow [-->!], which takes a function instead of
@@ -99,7 +99,7 @@ module type CREATE = sig
            | _ -> "SELECT ? || ?"
       ]}
       Note that we here use the [@@:-] combinator instead of [@@] to avoid
-      calling {!Q.of_string_exn} on the result.  In summary
+      calling {!Q.parse} on the result.  In summary
 
         - Short arrows are shortcuts for the most common usage.
         - Long arrows provides the full functionality.

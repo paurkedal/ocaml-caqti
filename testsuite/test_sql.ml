@@ -265,7 +265,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
             Q.param 0; Q.lit " + 10";          (* first paramater last *)
           ]
         in
-        Caqti_template.Request.create ~oneshot
+        Caqti_template.Request.create (if oneshot then Direct else Static)
           T.(t2 int int -->! t8 int int int64 int string string string int)
           make_query
       in

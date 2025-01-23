@@ -70,15 +70,15 @@ module Create = struct
   include Query.Infix
 
   let static req_type qs =
-    Request.create ~oneshot:false req_type (Fun.const (Query.parse qs))
+    Request.create Static req_type (Fun.const (Query.parse qs))
 
   let static_gen req_type qf =
-    Request.create ~oneshot:false req_type qf
+    Request.create Static req_type qf
 
   let direct req_type qs =
-    Request.create ~oneshot:true req_type (Fun.const (Query.parse qs))
+    Request.create Direct req_type (Fun.const (Query.parse qs))
 
   let direct_gen req_type qf =
-    Request.create ~oneshot:true req_type qf
+    Request.create Direct req_type qf
 
 end

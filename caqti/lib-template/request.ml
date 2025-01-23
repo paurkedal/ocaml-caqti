@@ -29,8 +29,16 @@ type ('a, 'b, +'m) t = {
 
 let last_id = ref (-1)
 
-let create ?(oneshot = false) (param_type, row_type, row_mult) query =
-  let id = if oneshot then None else (incr last_id; Some !last_id) in
+type prepare_policy =
+  | Direct
+  | Static
+
+let create prepare_policy (param_type, row_type, row_mult) query =
+  let id =
+    (match prepare_policy with
+     | Direct -> None
+     | Static -> incr last_id; Some !last_id)
+  in
   {id; query; param_type; row_type; row_mult}
 
 let param_type request = request.param_type

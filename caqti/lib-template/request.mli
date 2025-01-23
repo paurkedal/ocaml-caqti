@@ -30,6 +30,27 @@
 
 (** {2 Primitive Constructor and Accessors} *)
 
+type prepare_policy =
+  | Direct
+    (** The query string is sent to the database on each request, or if the
+        driver only supports prepared queries, the preprepared query will be
+        released after each use.
+        Most importantly nothing is retained by the driver related to request
+        template created with this policy, so this is a safe option for
+        dynamically generated request templates.
+        This option is only a suitable choice when it is known in advance that
+        the request will be executed at most once, or very rarely, such as
+        schema updates. *)
+  | Static
+    (** The query string is prepared once per connection on not released before
+        the connection is closed.
+        This policy will cause a resource leak on long-lived connections if the
+        template is dynamically generated.
+        As the name suggest, this policy should only be used when the request
+        template has static lifetime. *)
+(** The prepare policy decides whether Caqti drivers use prepared queries and,
+    if so, the expected lifetime of the template. *)
+
 type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
 (** A request specification embedding a query generator, parameter encoder, and
     row decoder.
@@ -38,32 +59,21 @@ type ('a, 'b, +'m) t constraint 'm = [< `Zero | `One | `Many]
     - ['m] is the possible multiplicities of returned rows. *)
 
 val create :
-  ?oneshot: bool ->
-  ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) -> ('a, 'b, 'm) t
-(** [create (arg_type, row_type, row_mult) f] is a request which takes
-    parameters of type [arg_type], returns rows of type [row_type] with
-    multiplicity [row_mult], and which sends query strings generated from the
-    query [f di], where [di] is the {!Dialect.t} of the target driver.  The
-    driver is responsible for turning parameter references into a form accepted
-    by the database, while other differences must be handled by [f].
+  prepare_policy -> ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+  ('a, 'b, 'm) t
+(** [create prepare_policy (arg_type, row_type, row_mult) f] is a request
+    template
 
-    @param oneshot
-      Disables caching of a prepared statements on connections for this query.
+      - whose query will be prepared (or not) according to [prepare_policy],
+      - which takes parameters of type [arg_type],
+      - which returns rows of type [row_type] with multiplicity [row_mult], and
+      - which submits a query string rendered from the {!Query.t} returned by
+        [f di], where [di] is the {!Dialect.t} supplied by the driver library of
+        the connection.
 
-        - If false (the default), the statement is prepared and a handle is
-          permanently attached to the connection object right before the first
-          time it is executed.
-
-        - If true, everything allocated in order to execute the statement is
-          released after use.
-
-      In other words, the default is suitable for queries which are bound to
-      static modules.  Conversely, you should pass [~oneshot:true] if the query
-      is dynamically generated, whether it is within a function or a dynamic
-      module, since there will otherwise be a memory leak associated with
-      long-lived connections.  You might as well also pass [~oneshot:true] if
-      you know that the query will only executed at most once (or a very few
-      times) on each connection. *)
+    The driver is responsible for turning parameter references into a form
+    accepted by the database system, while other dialectical differences must be
+    handled by [f]. *)
 
 val param_type : ('a, _, _) t -> 'a Row_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)

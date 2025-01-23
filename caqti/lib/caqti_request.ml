@@ -21,8 +21,8 @@ open Caqti_template
 
 include Request
 
-let create ?oneshot pt rt rm make_query =
-  create ?oneshot (pt, rt, rm)
+let create ?(oneshot = false) pt rt rm make_query =
+  create (if oneshot then Direct else Static) (pt, rt, rm)
     (fun dialect -> make_query (Caqti_driver_info.of_dialect dialect))
 
 let query req driver_info =

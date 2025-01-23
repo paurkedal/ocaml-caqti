@@ -57,6 +57,8 @@ module type CREATE = sig
       describes a database query and how to encode parameters and decode the
       result.
 
+      {1 Basic Usage}
+
       Consider the example:
       {[
         let bounds_upto_req =
@@ -64,24 +66,27 @@ module type CREATE = sig
           static T.(t2 int32 float -->! option (t2 float float))
           "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
-      The first open provides shortcuts to everything we need.  This is followed
-      by a description of the parameter type and result row type combined with
-      an arrow which describes the multiplicity of the result rows.  The
-      exclamation mark in the arrow indicates that precisely one result row is
-      expected.  This line describing the shape of the data involved evaluates
-      to a function which takes a query template as the only argument, and
-      returns the request template.
+      First we opening the current module.
+      We then pick the function {!static} to create a template for prepared
+      queries where the query template has static lifetime.
+      The first argument describes the parameter type and the result row type
+      combined with an arrow which describes the multiplicity of the result
+      rows.
+      The exclamation mark in the arrow indicates that precisely one result row
+      is expected.
+      The second argument is the query template, here in the form of a string.
 
       In the query template, [?] refer to parameters, but you can also use the
       [PostgreSQL]-style [$1], [$2], etc. if you prefer, as long as you stick to
       the same convention for a given query template.  Caqti drivers translate
-      parameter references and rearranges parameters if necessary so that it
-      will work as expected independent of the database system.
+      parameter references to fit the database system, rearranging parameters if
+      necessary.
 
       Caqti provides a way to handle dialectical differences between database
-      systems apart from the parameter syntax.  The example above uses uses a
-      shortcut, since it does not need this functionality.  In the full form it
-      looks like:
+      systems apart from the parameter syntax.
+      The example above uses a shortcut, since it does not need this
+      functionality.
+      In the full form it looks like:
       {[
         let bounds_upto_req =
           let open Caqti_template.Create in
@@ -90,12 +95,10 @@ module type CREATE = sig
             Q.parse
               "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}
-      Note the use of the longer arrow [-->!], which takes a function instead of
-      a string as the last argument.  The function receives a {!Dialect.t} as
-      the first argument and returns a {!Query.t}.  Here we parse the original
-      query string, but the {!Query} and {!Query_fmt} modules provides
-      alternative ways of constructing query template which is more suitable for
-      dynamically generated queries.
+      The callback receives a {!Dialect.t} and returns a {!Query.t}.
+      We can now see that the still same query string is explicitly parsed.
+      {!Query} and {!Query_fmt} provides alternative ways of constructing query
+      template which is more suitable for dynamically generated queries.
 
       The following example makes use of the dialect argument to handle
       dialectical differences regarding string concatenation:
@@ -106,20 +109,18 @@ module type CREATE = sig
            | D.Mysql _ -> Q.parse "SELECT concat(?, ?)"
            | _ -> Q.parse "SELECT ? || ?"
       ]}
-      Note that we here use the [@@:-] combinator instead of [@@] to avoid
-      calling {!Q.parse} on the result.  In summary
+      In summary
 
-        - Short arrows are shortcuts for the most common usage.
-        - Long arrows provides the full functionality.
-        - The arrow decoration ([.], [!], [?], [*]) selects the expected
-          multiplicity (zero, one, zero or one, zero or more) of result rows.
-        - Additional combinators can be used with the long arrows as shortcuts
-          for the final application to simplify the specification of the query
-          template.
+        - Pick the main function according to the lifetime of prepared queries
+          and whether to use the simplified or generic callback.
+        - In the request type argument, the arrow decoration
+          selects the expected multiplicity of result rows:
+          [-->.] for zero, [-->!] for one, [-->?] for zero or one, [-->*] for
+          zero or more.
 
-      Applications which use custom row type descriptors may want to combine
-      them with the current module.  The following example shows how to
-      formulate an interface and implementation with two additional row types:
+      {1 Supplementing}
+
+      If needed, you can supplement the current module with custom types:
       {[
         module Ct : sig
           open Caqti_template
@@ -128,10 +129,10 @@ module type CREATE = sig
 
           module T : sig
             include module type of T
+
             val password : string Row_type.t
             val uri : Uri.t Row_type.t
           end
-
         end = struct
           open Caqti_template
 
@@ -139,33 +140,36 @@ module type CREATE = sig
 
           module T = struct
             include T
-            let password = redacted string
+
+            let password = redacted string (* a string redacted from logs *)
+
             let uri =
               let encode x = Ok (Uri.to_string x) in
               let decode s = Ok (Uri.of_string s) in
               Row_type.custom ~encode ~decode string
           end
-
         end
       ]}
   *)
 
-  (** {1 Type Descriptors} *)
+  (** {1 Reference} *)
+
+  (** {2 Type Descriptors} *)
 
   module T = Type
 
-  (** {1 Dialect Descriptors} *)
+  (** {2 Dialect Descriptors} *)
 
   module D = Dialect
   include module type of Version.Infix
 
-  (** {1 Query Templates} *)
+  (** {2 Query Templates} *)
 
   module Q = Query
   module Qf = Query_fmt
   include module type of Query.Infix
 
-  (** {1 Request Templates} *)
+  (** {2 Request Templates} *)
 
   val static :
     ('a, 'b, 'm) Request_type.t -> string ->

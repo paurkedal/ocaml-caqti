@@ -332,12 +332,11 @@ let decode_row ~uri row_type =
      | (y, (_, _, j)) -> assert (j = Caqti_type.length row_type); Ok y
      | exception Caqti_error.Exn (`Decode_rejected _ as err) -> Error err)
 
-type prepared = {
+type request_info = {
   query: string;
   param_length: int;
   param_types: Pg.oid array;
   binary_params: bool array;
-  single_row_mode: bool;
 }
 
 module Connect_functor
@@ -348,11 +347,13 @@ module Connect_functor
 struct
   open System
   open System.Fiber.Infix
+  open System_utils.Monad_syntax (System.Fiber)
   open System_unix
   module H = Connection_utils.Make_helpers (System)
 
-  let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
-  let (>|=?) m f = m >|= function Ok x -> f x | Error _ as r -> r
+  let ( let/? ) m f = match m with Ok x -> f x | Error _ as r -> Fiber.return r
+  let ( >|>=? ) m f = m >|= function Ok x -> f x | Error _ as r -> r
+  let ( let+*? ) = ( >|>=? )
 
   let driver_info = driver_info
 
@@ -362,12 +363,12 @@ struct
       let aux fd =
         let rec loop = function
          | Pg.Polling_reading ->
-            Unix.poll ~stdenv ~read:true fd >>= fun _ ->
+            let* _ = Unix.poll ~stdenv ~read:true fd in
             (match step () with
              | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
          | Pg.Polling_writing ->
-            Unix.poll ~stdenv ~write:true fd >>= fun _ ->
+            let* _ = Unix.poll ~stdenv ~write:true fd in
             (match step () with
              | exception Pg.Error msg -> Fiber.return (Error msg)
              | ps -> loop ps)
@@ -504,7 +505,7 @@ struct
 
     let in_use = ref false
     let in_transaction = ref false
-    let prepare_cache : prepared Int_hashtbl.t = Int_hashtbl.create 19
+    let prepare_cache : request_info Int_hashtbl.t = Int_hashtbl.create 19
 
     let query_name_of_id = sprintf "_caq%d"
 
@@ -539,39 +540,46 @@ struct
             {Caqti_error.msg = Connection_error_msg
               {error = Postgresql.Connection_failure _; _}; _})
             as r when n > 0 ->
-          reset () >>= fun reset_ok ->
+          let* reset_ok = reset () in
           if reset_ok then
             retry_on_connection_error ~n:(n - 1) f
           else
             Fiber.return r
        | Error _ as r -> Fiber.return r)
 
-    let send_oneshot_query
-          ?params ?param_types ?binary_params ?(single_row_mode = false)
-          query =
+    let send_simple_query query =
       retry_on_connection_error begin fun () ->
         Fiber.return @@ wrap_pg ~query begin fun () ->
-          db#send_query ?params ?param_types ?binary_params query;
+          db#send_query query;
+          db#consume_input
+        end
+      end
+
+    let send_direct_query ~single_row_mode request_info params =
+      let {query; param_types; binary_params; _} = request_info in
+      retry_on_connection_error begin fun () ->
+        Fiber.return @@ wrap_pg ~query begin fun () ->
+          db#send_query ~params ~param_types ~binary_params query;
           if single_row_mode then db#set_single_row_mode;
           db#consume_input
         end
       end
 
-    let send_prepared_query query_id prepared params =
-      let {query; param_types; binary_params; single_row_mode; _} =
-        prepared
-      in
-      retry_on_connection_error begin fun () ->
-        begin
-          if Int_hashtbl.mem prepare_cache query_id then Fiber.return (Ok ()) else
-          Fiber.return @@ wrap_pg ~query begin fun () ->
+    let send_prepared_query ~single_row_mode query_id request_info params =
+      let {query; param_types; binary_params; _} = request_info in
+      let send_prepare () =
+        if Int_hashtbl.mem prepare_cache query_id then Fiber.return (Ok ()) else
+        let*? () =
+          Fiber.return @@ wrap_pg ~query @@ fun () ->
             db#send_prepare ~param_types (query_name_of_id query_id) query;
             db#consume_input
-          end >>=? fun () ->
-          Pg_io.get_final_result ~stdenv ~uri ~query db >|=? fun result ->
-          Pg_io.check_command_result ~uri ~query result |>? fun () ->
-          Ok (Int_hashtbl.add prepare_cache query_id prepared)
-        end >|=? fun () ->
+        in
+        let+*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
+        Pg_io.check_command_result ~uri ~query result |> Result.map @@ fun () ->
+        Int_hashtbl.add prepare_cache query_id request_info
+      in
+      retry_on_connection_error begin fun () ->
+        let+*? () = send_prepare () in
         wrap_pg ~query begin fun () ->
           db#send_query_prepared
             ~params ~binary_params (query_name_of_id query_id);
@@ -594,7 +602,7 @@ struct
           Fiber.return (Ok (Some result))
        | Pg.Tuples_ok ->
           assert (result#ntuples = 0);
-          Pg_io.get_next_result ~stdenv ~uri ~query db >|=?
+          Pg_io.get_next_result ~stdenv ~uri ~query db >|>=?
           (function
            | None -> Ok None
            | Some _ ->
@@ -749,69 +757,63 @@ struct
     let pp_request_with_param ppf =
       Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
-    let call' ~f req param =
+    let build_request_info request =
+      let templ = Caqti_template.Request.query request dialect in
+      let query = Pg_ext.query_string ~subst db templ in
+      let param_type = Caqti_template.Request.param_type request in
+      let param_length = Caqti_type.length param_type in
+      let param_types = Array.make param_length 0 in
+      let binary_params = Array.make param_length false in
+      init_param_types ~type_oid_cache param_types binary_params param_type
+        |> Result.map @@ fun () ->
+      {query; param_length; param_types; binary_params}
+
+    let build_params request request_info param =
+      let param_type = Caqti_template.Request.param_type request in
+      let params = Array.make request_info.param_length Pg.null in
+      Param_encoder.encode ~uri params param_type param
+        |> Result.map (fun () -> params)
+
+    let send_request ~single_row_mode request param =
+      (match Caqti_template.Request.query_id request with
+       | None ->
+          let/? request_info = build_request_info request in
+          let/? params = build_params request request_info param in
+          let+? () = send_direct_query ~single_row_mode request_info params in
+          request_info.query
+       | Some query_id ->
+          let/? request_info =
+            (match Int_hashtbl.find_opt prepare_cache query_id with
+             | Some request_info -> Ok request_info
+             | None -> build_request_info request)
+          in
+          let/? params = build_params request request_info param in
+          let+? () =
+            send_prepared_query ~single_row_mode query_id request_info params
+          in
+          request_info.query)
+
+    let call_without_oids ~f request param =
       Log.debug ~src:Logging.request_log_src (fun f ->
-        f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
+        f "Sending %a" pp_request_with_param (request, param)) >>= fun () ->
 
       let single_row_mode =
         use_single_row_mode
-          && Caqti_mult.can_be_many (Caqti_template.Request.row_mult req)
+          && Caqti_mult.can_be_many (Caqti_template.Request.row_mult request)
       in
 
       (* Prepare, if requested, and send the query. *)
-      let param_type = Caqti_template.Request.param_type req in
-      (match Caqti_template.Request.query_id req with
-       | None ->
-          let templ = Caqti_template.Request.query req dialect in
-          let query = Pg_ext.query_string ~subst db templ in
-          let param_length = Caqti_type.length param_type in
-          let param_types = Array.make param_length 0 in
-          let binary_params = Array.make param_length false in
-          init_param_types ~type_oid_cache param_types binary_params param_type
-            |> Fiber.return >>=? fun () ->
-          let params = Array.make param_length Pg.null in
-          (match Param_encoder.encode ~uri params param_type param with
-           | Ok () ->
-              send_oneshot_query ~params ~binary_params ~single_row_mode query
-                >|=? fun () ->
-              Ok query
-           | Error _ as r ->
-              Fiber.return r)
-       | Some query_id ->
-          begin
-            try Ok (Int_hashtbl.find prepare_cache query_id) with
-             | Not_found ->
-                let templ = Caqti_template.Request.query req dialect in
-                let query = Pg_ext.query_string ~subst db templ in
-                let param_length = Caqti_type.length param_type in
-                let param_types = Array.make param_length 0 in
-                let binary_params = Array.make param_length false in
-                init_param_types
-                    ~type_oid_cache param_types binary_params param_type
-                  |>? fun () ->
-                Ok {query; param_length; param_types; binary_params;
-                    single_row_mode}
-          end |> Fiber.return >>=? fun prepared ->
-          let params = Array.make prepared.param_length Pg.null in
-          (match Param_encoder.encode ~uri params param_type param with
-           | Ok () ->
-              send_prepared_query query_id prepared params >|=? fun () ->
-              Ok prepared.query
-           | Error _ as r ->
-              Fiber.return r))
-        >>=? fun query ->
+      let*? query = send_request ~single_row_mode request param in
 
       (* Fetch and process the result. *)
-      let row_type = Caqti_template.Request.row_type req in
+      let row_type = Caqti_template.Request.row_type request in
       if single_row_mode then
         f Response.{row_type; query; source = Single_row}
       else begin
-        let row_mult = Caqti_template.Request.row_mult req in
-        fetch_final_result ~query () >>=? fun result ->
-        (match
-            Pg_io.check_query_result
-              ~uri ~query ~row_mult ~single_row_mode result
-         with
+        let row_mult = Caqti_template.Request.row_mult request in
+        let*? result = fetch_final_result ~query () in
+        (match Pg_io.check_query_result
+                ~uri ~query ~row_mult ~single_row_mode result with
          | Ok () -> f Response.{row_type; query; source = Complete result}
          | Error _ as r -> Fiber.return r)
       end
@@ -819,7 +821,7 @@ struct
     let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
      | Caqti_type.Field (Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
-        call' ~f:Response.find_opt Q.type_oid name >>=
+        call_without_oids ~f:Response.find_opt Q.type_oid name >>=
         (function
          | Ok (Some oid) ->
             Fiber.return (Ok (Hashtbl.add type_oid_cache name oid))
@@ -855,7 +857,7 @@ struct
 
     let call ~f req param = using_db @@ fun () ->
       fetch_type_oids (Caqti_template.Request.param_type req) >>=? fun () ->
-      call' ~f req param
+      call_without_oids ~f req param
 
     let deallocate req =
       (match Caqti_template.Request.query_id req with
@@ -863,8 +865,8 @@ struct
           if Int_hashtbl.mem prepare_cache query_id then
             begin
               let query = sprintf "DEALLOCATE _caq%d" query_id in
-              send_oneshot_query query >>=? fun () ->
-              fetch_final_result ~query () >|=? fun result ->
+              let*? () = send_simple_query query in
+              let+*? result = fetch_final_result ~query () in
               Int_hashtbl.remove prepare_cache query_id;
               Pg_io.check_query_result
                 ~uri ~query ~row_mult:Caqti_mult.zero ~single_row_mode:false
@@ -890,7 +892,7 @@ struct
     let check f = f (try db#status = Pg.Ok with Pg.Error _ -> false)
 
     let exec q p = call ~f:Response.exec q p
-    let start () = exec Q.start () >|=? fun () -> Ok (in_transaction := true)
+    let start () = exec Q.start () >|=? fun () -> in_transaction := true
     let commit () = in_transaction := false; exec Q.commit ()
     let rollback () = in_transaction := false; exec Q.rollback ()
 
@@ -944,7 +946,7 @@ struct
          * we can repeatedly get the latest result and it will always be
          * Copy_in, so checking for a single result would trigger an error.
          *)
-        send_oneshot_query query >>=? fun () ->
+        send_simple_query query >>=? fun () ->
         fetch_one_result ~query ()
         >>=? fun result ->
           (* We expect the Copy_in response only - turn other success responses
@@ -974,7 +976,7 @@ struct
           (* After ending the copy, there will be a new result for the initial
            * query.
            *)
-        fetch_final_result ~query () >|=? Pg_io.check_command_result ~uri ~query
+        fetch_final_result ~query () >|>=? Pg_io.check_command_result ~uri ~query
       end
   end
 

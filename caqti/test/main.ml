@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,6 +19,7 @@ let tests = [
   "heap", Test_heap.test_cases;
   "query", Test_query.test_cases;
   "request", Test_request.test_cases;
+  "request_cache", Test_request_cache.test_cases;
   "switch", Test_switch.test_cases;
   "version", Test_version.test_cases;
 ]

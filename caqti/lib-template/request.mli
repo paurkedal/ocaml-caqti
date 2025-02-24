@@ -41,6 +41,9 @@ type prepare_policy =
         This option is only a suitable choice when it is known in advance that
         the request will be executed at most once, or very rarely, such as
         schema updates. *)
+  | Dynamic
+    (** The query string is prepared once per connection and scheduled for
+        release after the request object has been garbage collected. *)
   | Static
     (** The query string is prepared once per connection on not released before
         the connection is closed.
@@ -74,6 +77,9 @@ val create :
     The driver is responsible for turning parameter references into a form
     accepted by the database system, while other dialectical differences must be
     handled by [f]. *)
+
+val prepare_policy : (_, _, _) t -> prepare_policy
+(** [prepare_policy req] is the prepare policy of [req]. *)
 
 val param_type : ('a, _, _) t -> 'a Row_type.t
 (** [param_type req] is the type of parameter bundles expected by [req]. *)
@@ -130,3 +136,12 @@ val make_pp_with_param :
     [true].  If you enable it for applications which do not consistenly annotate
     sensitive parameters with {!Row_type.redacted}, make sure your debug logs
     are well-secured. *)
+
+(**/**)
+[@@@alert "-caqti_private"]
+
+type liveness_witness
+[@@alert caqti_private]
+
+val liveness_witness : (_, _, _) t -> liveness_witness
+[@@alert caqti_private]

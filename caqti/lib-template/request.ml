@@ -19,8 +19,14 @@
 
 module Log = (val Logs.src_log (Logs.Src.create "caqti"))
 
+type prepare_policy =
+  | Direct
+  | Dynamic
+  | Static
+
 type ('a, 'b, +'m) t = {
   id: int option;
+  prepare_policy: prepare_policy;
   query: Dialect.t -> Query.t;
   param_type: 'a Row_type.t;
   row_type: 'b Row_type.t;
@@ -29,18 +35,15 @@ type ('a, 'b, +'m) t = {
 
 let last_id = ref (-1)
 
-type prepare_policy =
-  | Direct
-  | Static
-
 let create prepare_policy (param_type, row_type, row_mult) query =
   let id =
     (match prepare_policy with
      | Direct -> None
-     | Static -> incr last_id; Some !last_id)
+     | Static | Dynamic -> incr last_id; Some !last_id)
   in
-  {id; query; param_type; row_type; row_mult}
+  {id; prepare_policy; query; param_type; row_type; row_mult}
 
+let prepare_policy request = request.prepare_policy
 let param_type request = request.param_type
 let row_type request = request.row_type
 let row_mult request = request.row_mult
@@ -81,3 +84,9 @@ let make_pp_with_param ?dialect ?subst () ppf (req, param) =
   pp ppf req;
   if pp_with_param_enabled then
     Format.fprintf ppf " %a" Row_type.pp_value (req.param_type, param)
+
+type liveness_witness = int option
+
+let liveness_witness request =
+  assert (request.id <> None);
+  request.id

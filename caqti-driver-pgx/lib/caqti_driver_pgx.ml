@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -498,8 +498,11 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       rev_quotes: Pgx.Value.t list;
     }
 
+    module Pcache =
+      Request_cache.Make (struct type t = prepared let weight _ = 1 end)
+
     let in_use = ref false
-    let prepare_cache : (int, prepared) Hashtbl.t = Hashtbl.create 19
+    let pcache : Pcache.t = Pcache.create dialect
 
     let reset _ = Fiber.return () (* FIXME *)
 
@@ -569,10 +572,36 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let pp_request_with_param ppf =
       Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
+    let free_prepared prepared =
+      intercept_request_failed ~uri ~query:"DEALLOCATE"
+        (fun () -> Pgx_with_io.Prepared.close prepared.pgx_prepared)
+
+    let deallocate req =
+      (match Caqti_template.Request.prepare_policy req with
+       | Dynamic | Static ->
+          (match Pcache.deallocate pcache req with
+           | None ->
+              Fiber.return (Ok ())
+           | Some (prepared, commit) ->
+              free_prepared prepared >|=? commit)
+       | Direct ->
+          failwith "deallocate called on oneshot request")
+
+    let deallocate_some () =
+      let rec loop = function
+       | [] -> Fiber.return (Ok ())
+       | prepared :: orphans ->
+          let*? () = free_prepared prepared in
+          loop orphans
+      in
+      let orphans, commit = Pcache.trim pcache in
+      loop orphans >|=? commit
+
     let call ~f req param =
+      using_db @@ fun db ->
+      deallocate_some () >>=? fun () ->
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
-      using_db @@ fun db ->
       let pre_prepare () =
         let templ = Caqti_template.Request.query req dialect in
         let query, rev_quotes = query_string ~subst templ in
@@ -594,38 +623,27 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
               params;
             })
       in
-      (match Caqti_request.query_id req with
-       | Some query_id ->
-          (match Hashtbl.find_opt prepare_cache query_id with
+      (match Caqti_template.Request.prepare_policy req with
+       | Dynamic | Static ->
+          (match Pcache.find_and_promote pcache req with
            | Some pq -> Fiber.return (Ok pq)
            | None ->
               let*? query, types, rev_quotes = pre_prepare () in
+              let query_id = Option.get (Caqti_template.Request.query_id req) in
               let name = sprintf "q%d" query_id in
               let+? pgx_prepared =
                 intercept_request_failed ~uri ~query (fun () ->
                   Pgx_with_io.Prepared.prepare ~name ~query ~types db)
               in
               let pq = {query; pgx_prepared; rev_quotes} in
-              Hashtbl.add prepare_cache query_id pq; pq)
+              Pcache.add pcache req pq;
+              pq)
           >>=? post_prepare
-       | None ->
+       | Direct ->
           let*? query, types, rev_quotes = pre_prepare () in
           Pgx_with_io.Prepared.with_prepare db ~types ~query
             ~f:(fun pgx_prepared ->
                   post_prepare {query; pgx_prepared; rev_quotes}))
-
-    let deallocate req =
-      (match Caqti_request.query_id req with
-       | Some query_id ->
-          (match Hashtbl.find_opt prepare_cache query_id with
-           | None ->
-              Fiber.return (Ok ())
-           | Some prepared ->
-              Hashtbl.remove prepare_cache query_id;
-              intercept_request_failed ~uri ~query:"DEALLOCATE"
-                (fun () -> Pgx_with_io.Prepared.close prepared.pgx_prepared))
-       | None ->
-          failwith "deallocate called on oneshot request")
 
     let disconnect () =
       using_db @@ fun _ ->

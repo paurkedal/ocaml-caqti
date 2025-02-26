@@ -70,9 +70,15 @@ module Connect_functor
 struct
   open System
   open System.Fiber.Infix
+  open System_utils.Monad_syntax (System.Fiber)
   module H = Connection_utils.Make_helpers (System)
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
+
+  let rec fold_s_list f =
+    (function
+     | [] -> Fiber.return ()
+     | x :: xs -> f x >>= fun () -> fold_s_list f xs)
 
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a fiber := 'a Fiber.t
@@ -382,7 +388,7 @@ struct
           loop
       end
 
-      type pcache_entry = {
+      type prepared = {
         query: string;
         stmt: Mdb.Stmt.t;
         param_length: int;
@@ -390,10 +396,61 @@ struct
         quotes: Request_utils.linear_param list;
       }
 
-      let pcache : (int, pcache_entry) Hashtbl.t = Hashtbl.create 23
+      module Pcache =
+        Request_cache.Make (struct type t = prepared let weight _ = 1 end)
+
+      let pcache : Pcache.t = Pcache.create dialect
 
       let pp_request_with_param ppf =
         Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
+
+      let free_prepared prepared =
+        let rewrite_error = function
+         | Ok () -> Ok ()
+         | Error err ->
+            let query = sprintf "DEALLOCATE (%s)" prepared.query in
+            request_failed ~query err
+        in
+        Mdb.Stmt.close prepared.stmt >|= rewrite_error
+
+      let deallocate req =
+        (match Caqti_template.Request.prepare_policy req with
+         | Dynamic | Static ->
+            (match Pcache.deallocate pcache req with
+             | None -> Fiber.return (Ok ())
+             | Some (prepared, commit) -> free_prepared prepared >|=? commit)
+         | Direct ->
+            failwith "deallocate called on oneshot request")
+
+      let deallocate_some () =
+        let rec loop = function
+         | [] -> Fiber.return (Ok ())
+         | prepared :: orphans ->
+            let*? () = free_prepared prepared in
+            loop orphans
+        in
+        let orphans, commit = Pcache.trim pcache in
+        loop orphans >|=? commit
+
+      let prepare request =
+        deallocate_some () >>=? fun () ->
+        (match Pcache.find_and_promote pcache request with
+         | Some prepared ->
+            Fiber.return (Ok prepared)
+         | None ->
+            let templ = Caqti_template.Request.query request dialect in
+            let templ = Caqti_template.Query.expand ~final:true subst templ in
+            let query = Request_utils.linear_query_string templ in
+            Mdb.prepare db query >|= function
+             | Error err -> request_failed ~query err
+             | Ok stmt ->
+                let param_length = Request_utils.linear_param_length templ in
+                let param_order, quotes =
+                  Request_utils.linear_param_order templ in
+                let prepared =
+                  {query; stmt; param_length; param_order; quotes} in
+                Pcache.add pcache request prepared;
+                Ok prepared)
 
       let call ~f req param = using_db @@ fun () ->
         let open Caqti_template in
@@ -418,8 +475,8 @@ struct
                | Ok res -> f Response.{query; res; row_type})
            | Ok (_ :: _) -> assert false) in
 
-        (match Request.query_id req with
-         | None ->
+        (match Request.prepare_policy req with
+         | Direct ->
             let templ = Request.query req dialect in
             let templ = Query.expand ~final:true subst templ in
             let query = Request_utils.linear_query_string templ in
@@ -430,9 +487,9 @@ struct
                 let param_length = Request_utils.linear_param_length templ in
                 let param_order, quotes =
                   Request_utils.linear_param_order templ in
-                let pcache_entry =
+                let prepared =
                   {query; stmt; param_length; param_order; quotes} in
-                process pcache_entry >>= fun process_result ->
+                process prepared >>= fun process_result ->
                 Mdb.Stmt.close stmt >>=
                 (function
                  | Error (code, msg) ->
@@ -440,62 +497,32 @@ struct
                       p "Ignoring error while closing statement: %d %s" code msg)
                  | Ok () -> Fiber.return ()) >|= fun () ->
                 process_result)
-         | Some id ->
-            (try Fiber.return (Ok (Hashtbl.find pcache id)) with
-             | Not_found ->
-                let templ = Request.query req dialect in
-                let templ = Query.expand ~final:true subst templ in
-                let query = Request_utils.linear_query_string templ in
-                Mdb.prepare db query >|=
-                (function
-                 | Error err -> request_failed ~query err
-                 | Ok stmt ->
-                    let param_length = Request_utils.linear_param_length templ in
-                    let param_order, quotes =
-                      Request_utils.linear_param_order templ in
-                    let pcache_entry =
-                      {query; stmt; param_length; param_order; quotes} in
-                    Hashtbl.add pcache id pcache_entry;
-                    Ok pcache_entry))
-              >>=? fun pcache_entry ->
-            process pcache_entry >>= fun process_result ->
-            Mdb.Stmt.reset pcache_entry.stmt >>= fun reset_result ->
-            (match reset_result with
-             | Ok () -> Fiber.return ()
-             | Error (code, msg) ->
-                Log.warn (fun p ->
-                  p "Removing statement from cache due to failed reset: %d %s"
-                    code msg) >|= fun () ->
-                Hashtbl.remove pcache id) >|= fun () ->
+         | Dynamic | Static ->
+            let*? prepared = prepare req in
+            let* process_result = process prepared in
+            let+ () =
+              Mdb.Stmt.reset prepared.stmt >>=
+              (function
+               | Ok () -> Fiber.return ()
+               | Error (code, msg) ->
+                  Log.warn (fun p ->
+                    p "Removing statement from cache due to failed reset: %d %s"
+                      code msg) >|= fun () ->
+                  Pcache.remove_and_discard pcache req)
+            in
             process_result)
 
-      let deallocate req =
-        (match Caqti_template.Request.query_id req with
-         | Some query_id ->
-            (match Hashtbl.find pcache query_id with
-             | exception Not_found -> Fiber.return (Ok ())
-             | pcache_entry ->
-                Mdb.Stmt.close pcache_entry.stmt >>=
-                (function
-                 | Ok () ->
-                    Hashtbl.remove pcache query_id;
-                    Fiber.return (Ok ())
-                 | Error err ->
-                    let query = sprintf "DEALLOCATE %d" query_id in
-                    Fiber.return (request_failed ~query err)))
-         | None ->
-            failwith "deallocate called on oneshot request")
-
       let disconnect () = using_db @@ fun () ->
-        let close_stmt _ pcache_entry prologue =
-          prologue >>= fun () ->
-          Mdb.Stmt.close pcache_entry.stmt >>=
+        let close_stmt prepared =
+          Mdb.Stmt.close prepared.stmt >>=
           (function
            | Ok () -> Fiber.return ()
            | Error (code, msg) ->
               Log.warn (fun p ->
-                p "Ignoring failure during disconnect: %d %s" code msg)) in
-        Hashtbl.fold close_stmt pcache (Fiber.return ()) >>= fun () ->
+                p "Ignoring failure during disconnect: %d %s" code msg))
+        in
+        fold_s_list close_stmt (Pcache.elements pcache) >>= fun () ->
+        Pcache.clear_and_discard pcache;
         Mdb.close db
 
       let validate () = using_db @@ fun () ->

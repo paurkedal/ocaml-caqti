@@ -35,8 +35,9 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let test i =
       Fiber.catch
         (fun () ->
-          Db.call ~f:(fun _ -> fail' Not_found) Q.select_two ()
-            >|= fun _ -> assert false)
+          Db.call ~f:(fun _ -> fail' Not_found) Q.select_two () >>= function
+           | Ok _ -> Alcotest.fail "Exception from call-back lost."
+           | Error err -> Alcotest.failf "%a" Caqti_error.pp err)
         (function
          | Not_found -> Fiber.return ()
          | exn -> failwith ("unexpected exception: " ^ Printexc.to_string exn))

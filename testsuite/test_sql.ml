@@ -227,7 +227,9 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     (* Non-prepared and prepared with non-linear parameters and quotes. *)
     repeat 254 (fun i ->
       let i = i mod 127 + 1 in
-      let oneshot = i < 127 in
+      let prepare_policy : Caqti_template.Request.prepare_policy =
+        (match Random.int 3 with 0 -> Direct | 1 -> Dynamic | _ -> Static)
+      in
       let s1 = String.make 1 (Char.chr i) in
       let s2 = String.make i '\'' in
       let req =
@@ -265,14 +267,14 @@ module Make (Ground : Testlib.Sig.Ground) = struct
             Q.param 0; Q.lit " + 10";          (* first paramater last *)
           ]
         in
-        Caqti_template.Request.create (if oneshot then Direct else Static)
+        Caqti_template.Request.create prepare_policy
           T.(t2 int int -->! t8 int int int64 int string string string int)
           make_query
       in
       Db.find req (i + 1, i + 2) >>= or_fail
         >>= fun (i12, i22, i30, i', s1', si', s2', i11) ->
-      (if oneshot then Fiber.return () else Db.deallocate req >>= or_fail)
-        >|= fun () ->
+      (if prepare_policy = Direct then Fiber.return () else
+       Db.deallocate req >>= or_fail) >|= fun () ->
       Alcotest.(check int) "first $2 occurrence" (i + 12) i12;
       Alcotest.(check int) "second $2 occurrence" (i + 22) i22;
       Alcotest.(check int64) "first quote" (Int64.of_int (i + 30)) i30;
@@ -660,6 +662,41 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     assert (actual = all_pairs);
     Db.exec Q.drop_tmp () >>= or_fail
 
+  let prepared_statement_count =
+    let req =
+      let open Caqti_template.Create in
+      direct_gen T.(unit -->! int) @@ function
+       | D.Mysql _ ->
+          Q.lit "SELECT VARIABLE_VALUE FROM information_schema.SESSION_STATUS \
+                 WHERE VARIABLE_NAME = 'Prepared_stmt_count'"
+       | D.Pgsql _ ->
+          Q.lit "SELECT count(*) FROM pg_prepared_statements"
+       | _ ->
+          Q.lit "SELECT 0"
+    in
+    fun (module Db : CONNECTION) -> Db.find req () >>= or_fail
+
+  let test_dynamic_release (module Db : CONNECTION) =
+    let rec loop n =
+      if n = 0 then Fiber.return () else
+      let i = Random.int n in
+      let req =
+        let open Caqti_template.Create in
+        Caqti_template.Request.create Dynamic T.(unit -->! int) @@ fun _ ->
+        "SELECT " ^++ Q.int i
+      in
+      Db.find req () >>= or_fail >>= fun i' ->
+      Alcotest.(check int) (Printf.sprintf "SELECT %d" i) i i';
+      loop (n - 1)
+    in
+    prepared_statement_count (module Db) >>= fun c_pre ->
+    loop 20_000 >>= fun () ->
+    Gc.compact ();
+    loop 1_000 >>= fun () ->
+    prepared_statement_count (module Db) >|= fun c_post ->
+    if c_post - c_pre > 1_000 then
+      Alcotest.failf "Too many prepared statements left: %d, %d" c_pre c_post
+
   let test_drain pool = Pool.drain pool
 
   let connection_test_cases = [
@@ -673,6 +710,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "stream", `Quick, test_stream;
     "stream_both_ways", `Quick, test_stream_both_ways;
     "stream_binary", `Quick, test_stream_binary;
+    "dynamic_release", `Slow, test_dynamic_release;
   ]
   let pool_test_cases = [
     "drain", `Quick, test_drain;

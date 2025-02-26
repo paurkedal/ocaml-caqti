@@ -272,10 +272,8 @@ struct
   open System
   open System_unix
   open System.Fiber.Infix
+  open System_utils.Monad_syntax (System.Fiber)
   module H = Connection_utils.Make_helpers (System)
-
-  let (>>=?) m mf = m >>= (function Ok x -> mf x | Error _ as r -> Fiber.return r)
-  let (>|=?) m f = m >|= (function Ok x -> f x | Error _ as r -> r)
 
   let driver_info = driver_info
 
@@ -440,7 +438,12 @@ struct
         Preemptive.detach seq
     end
 
-    let pcache = Hashtbl.create 19
+    module Pcache = Request_cache.Make (struct
+      type t = Sqlite3.stmt * Sqlite3.Data.t list * string
+      let weight _ = 1
+    end)
+
+    let pcache = Pcache.create dialect
 
     let prepare req =
       let prepare_helper query =
@@ -458,12 +461,44 @@ struct
       let templ = Caqti_template.Query.expand subst templ in
       let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
-      Ok (stmt, quotes, query)
+      (stmt, quotes, query)
 
     let pp_request_with_param ppf =
       Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
+    let free_prepared (stmt, _, query) =
+      (match Sqlite3.finalize stmt with
+       | Sqlite3.Rc.OK -> Ok ()
+       | rc ->
+          let query = sprintf "DEALLOCATE (%s)" query in
+          Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
+       | exception Sqlite3.Error msg ->
+          let query = sprintf "DEALLOCATE (%s)" query in
+          let msg = Caqti_error.Msg msg in
+          Error (Caqti_error.request_failed ~uri ~query msg))
+
+    let deallocate req = using_db @@ fun () ->
+      (match Caqti_template.Request.prepare_policy req with
+       | Dynamic | Static ->
+          (match Pcache.deallocate pcache req with
+           | None -> Fiber.return (Ok ())
+           | Some (entry, commit) ->
+              Preemptive.detach free_prepared entry >|=? commit)
+       | Direct -> failwith "deallocate called on oneshot request")
+
+    let deallocate_some () =
+      let rec loop = function
+       | [] -> Ok ()
+       | pcache_entry :: orphans ->
+          (match free_prepared pcache_entry with
+           | Ok () -> loop orphans
+           | r -> r)
+      in
+      let orphans, commit = Pcache.trim pcache in
+      Preemptive.detach loop orphans >|= Result.map commit
+
     let call ~f req param = using_db @@ fun () ->
+      deallocate_some () >>=? fun () ->
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
@@ -471,14 +506,15 @@ struct
       let param_type = Caqti_template.Request.param_type req in
       let row_type = Caqti_template.Request.row_type req in
 
-      (match Caqti_template.Request.query_id req with
-       | None -> prepare req
-       | Some id ->
-          (try Fiber.return (Ok (Hashtbl.find pcache id)) with
-           | Not_found ->
+      (match Caqti_template.Request.prepare_policy req with
+       | Direct -> prepare req
+       | Dynamic | Static ->
+          (match Pcache.find_and_promote pcache req with
+           | Some pcache_entry -> Fiber.return (Ok pcache_entry)
+           | None ->
               prepare req >|=? fun pcache_entry ->
-              Hashtbl.add pcache id pcache_entry;
-              Ok pcache_entry))
+              Pcache.add pcache req pcache_entry;
+              pcache_entry))
       >>=? fun (stmt, quotes, query) ->
 
       (* CHECKME: Does binding involve IO? *)
@@ -504,53 +540,33 @@ struct
 
       (* CHECKME: Does finalize or reset involve IO? *)
       let cleanup () =
-        (match Caqti_template.Request.query_id req with
-         | None ->
+        (match Caqti_template.Request.prepare_policy req with
+         | Direct ->
             (match Sqlite3.finalize stmt with
              | Sqlite3.Rc.OK -> Fiber.return ()
              | rc ->
                 Log.warn (fun p ->
                   p "Ignoring error %s when finalizing statement."
                     (Sqlite3.Rc.to_string rc)))
-         | Some id ->
+         | Dynamic | Static ->
             (match Sqlite3.reset stmt with
              | Sqlite3.Rc.OK -> Fiber.return ()
              | _ ->
                 Log.warn (fun p ->
                   p "Dropping cache statement due to error.") >|= fun () ->
-                Hashtbl.remove pcache id))
+                Pcache.remove_and_discard pcache req))
       in
       Fiber.finally (fun () -> f resp) cleanup
-
-    let deallocate req = using_db @@ fun () ->
-      (match Caqti_template.Request.query_id req with
-       | Some query_id ->
-          (match Hashtbl.find pcache query_id with
-           | exception Not_found -> Fiber.return (Ok ())
-           | (stmt, _, _) ->
-              Preemptive.detach begin fun () ->
-                (match Sqlite3.finalize stmt with
-                 | Sqlite3.Rc.OK -> Ok (Hashtbl.remove pcache query_id)
-                 | rc ->
-                    let query = sprintf "DEALLOCATE %d" query_id in
-                    Error
-                      (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
-                 | exception Sqlite3.Error msg ->
-                    let query = sprintf "DEALLOCATE %d" query_id in
-                    let msg = Caqti_error.Msg msg in
-                    Error (Caqti_error.request_failed ~uri ~query msg))
-              end ())
-       | None -> failwith "deallocate called on oneshot request")
 
     let disconnect () = using_db @@ fun () ->
       let finalize_error_count = ref 0 in
       let not_busy = ref false in
       Preemptive.detach begin fun () ->
-        let uncache _ (stmt, _, _) =
+        let uncache (stmt, _, _) =
           (match Sqlite3.finalize stmt with
            | Sqlite3.Rc.OK -> ()
            | _ -> finalize_error_count := !finalize_error_count + 1) in
-        Hashtbl.iter uncache pcache;
+        Pcache.iter uncache pcache;
         not_busy := Sqlite3.db_close db
         (* If this reports busy, it means we missed an Sqlite3.finalize or other
          * cleanup action, so this should not happen. *)

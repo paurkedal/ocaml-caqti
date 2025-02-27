@@ -34,35 +34,11 @@
 module Private : sig
   type t =
     | L of string
-      (** [L frag] translates to the literally inserted substring [frag].  The
-          [frag] argument must be trusted or verified to be secure to avoid SQL
-          injection attacks.  Use {!V}, {!Q}, or {!P} to safely insert strings or
-          other values. *)
     | V : 'a Field_type.t * 'a -> t
-      (** [V (t, v)] translates to a parameter of type [t] bound to the value [v].
-          That is, the query string will contain a parameter reference which does
-          not conflict with any {!P} nodes and bind [v] to the corresponding
-          parameter each time the query is executed.  This allows taking advantage
-          of driver-dependent serialization and escaping mechanisms to safely send
-          values to the database server. *)
     | Q of string
-      (** [Q s] corresponds to a quoted string literal.  This is passed as part of
-          the query string if a suitable quoting function is available in the
-          client library, otherwise it is equivalent to
-          {!V}[(]{!Caqti_template.Field_type.String}[, s)]. *)
     | P of int
-      (** [P i] refers to parameter number [i], counting from 0, so that e.g.
-          [P 0] translates to ["$1"] for PostgreSQL and ["?1"] for SQLite3. *)
     | E of string
-      (** [E name] will be replaced by the fragment returned by an environment
-          lookup function, as passed directly to {!expand} or indirectly through
-          the [?env] argument found in higher-level functions.  An error will be
-          issued for any remaining [E]-nodes in the final translation to a query
-          string. *)
     | S of t list
-      (** [S frags] is the concatenation of [frags].  Apart from combining
-          different kinds of nodes, this constructor can be nested according to
-          the flow of the generating code. *)
 end [@@alert caqti_private]
 (**/**)
 
@@ -81,7 +57,12 @@ val empty : t
 
 val lit : string -> t
 (** [lit frag] expands to [frag], literally; i.e. the argument is passed
-    unchanged to the database system as a substring of the query. *)
+    unchanged to the database system as a substring of the query.
+    Do not use this to inject untrusted data into the query string, since it can
+    lead to an SQL injection vulnerability.
+    Even when it can be done safely, it is probably easier and more portable to
+    use the appropriate function from {!embeddingvalues} or the {!quote}
+    function. *)
 
 val quote : string -> t
 (** [quote str] expands to the literally quoted string [str] if an reliable
@@ -145,7 +126,7 @@ module Infix : sig
       [cat q (lit sfx)]. *)
 end
 
-(** {3 Embedding Values}
+(** {3:embeddingvalues Embedding Values}
 
     The following functions can be used to embed values into a query, including
     the generic {!const}, corresponding specialized variants.  Additionally
@@ -165,16 +146,17 @@ val ptime : Ptime.t -> t
 val ptime_span : Ptime.span -> t
 
 val const : 'a Field_type.t -> 'a -> t
-(** [const t x] is a fragment representing the value [x] of field type [t].
-    This typically expands to a parameter reference which will receive the value
-    [x] when executed, though the value may also be embedded in the query if it
-    is deemed safe. *)
+(** [const t x] is a fragment representing the value [x] of field type [t],
+    using driver-dependent serialization and escaping mechanisms.
+    Drivers will typically expand this to a parameter reference which will
+    receive the value [x] when executed, though the value may also be embedded
+    in the query if it is deemed safe. *)
 
 val const_fields : 'a Row_type.t -> 'a -> t list
 (** [const_fields t x] returns a list of fragments corresponding to the
     single-field projections of the value [x] as described by the type
     descriptor [t].  Each element of the returned list will be either a
-    {!V}-fragment containing the projected value, or the [L["NULL"]] fragment if
+    {!const}-fragment containing the projected value, or [lit "NULL"] if
     the projection is [None].
 
     The result can be turned into a comma-separated list with {!concat}, except
@@ -185,17 +167,25 @@ val const_fields : 'a Row_type.t -> 'a -> t list
 (** {2 Normalization and Equality} *)
 
 val normal : t -> t
-(** [normal q] rewrites [q] to a normal form containing at most one top-level
-    {!S} constructor, containing no empty literals, and no consecutive literals.
+(** [normal q] rewrites [q] to a normal form, flattening nested concatenations
+    and removing empty fragments from the internal representation.
     This function can be used to post-process queries before using {!equal} and
     {!hash}. *)
 
 val equal : t -> t -> bool
-(** Equality predicate for {!t}. *)
+(** [equal q1 q2] is true iff [q1] and [q2] has the same internal
+    representation.
+    It may be necessary to pre-process the query templates with {!normal} if
+    they are not constructed by a common deterministic algorithm. *)
 
 val hash : t -> int
-(** A hash function compatible with {!equal}.  The hash function may change
-    across minor versions and may depend on architecture. *)
+(** [hash q] computes a hash over the internal representation of [q] which is
+    compatible with {!equal}.
+    The hash function may change across minor versions and may depend on
+    architecture.
+    It may be necessary to pre-process the query template with {!normal}, unless
+    the hash is to be used among a collection of query templates constructed by
+    a common deterministic algorithm. *)
 
 
 (** {2 Parsing, Expansion, and Printing} *)

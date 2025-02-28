@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,10 +33,9 @@ include Benchmark_all.Make (struct
   let run_fiber f = f ()
 
   let run_main f =
+    Mirage_crypto_rng_unix.use_default ();
     Eio_main.run @@ fun stdenv ->
     Switch.run @@ fun sw ->
-    Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) stdenv
-      @@ fun () ->
     f ((stdenv :> Caqti_eio.stdenv), sw)
 
   include Caqti_eio

@@ -27,10 +27,6 @@
     MirageOS users on the current API is very welcome. *)
 
 module Make :
-  functor (_ : Mirage_crypto_rng_mirage.S) ->
-  functor (_ : Mirage_time.S) ->
-  functor (_ : Mirage_clock.MCLOCK) ->
-  functor (_ : Mirage_clock.PCLOCK) ->
   functor (STACK : Tcpip.Stack.V4V6) ->
   functor (DNS : Dns_client_mirage.S) ->
 sig

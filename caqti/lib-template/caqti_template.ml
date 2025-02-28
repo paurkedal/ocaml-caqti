@@ -49,6 +49,14 @@ module type CREATE = sig
     ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
     ('a, 'b, 'm) Request.t
 
+  val dynamic :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+
+  val dynamic_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
+
   val direct :
     ('a, 'b, 'm) Request_type.t -> string ->
     ('a, 'b, 'm) Request.t
@@ -74,6 +82,12 @@ module Create = struct
 
   let static_gen req_type qf =
     Request.create Static req_type qf
+
+  let dynamic req_type qs =
+    Request.create Dynamic req_type (Fun.const (Query.parse qs))
+
+  let dynamic_gen req_type qf =
+    Request.create Dynamic req_type qf
 
   let direct req_type qs =
     Request.create Direct req_type (Fun.const (Query.parse qs))

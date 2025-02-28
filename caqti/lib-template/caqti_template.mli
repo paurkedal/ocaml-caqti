@@ -169,7 +169,13 @@ module type CREATE = sig
   module Qf = Query_fmt
   include module type of Query.Infix
 
-  (** {2 Request Templates} *)
+  (** {2 Request Templates}
+
+      The following are shortcuts for {!Request.create} and {!Query.parse}
+      In particular {!static}, {!dynamic}, and {!direct} covers the most common
+      case of sending a pre-composed query string to the database while the
+      {!static_gen}, {!dynamic_gen}, and {!direct_gen} are the correspending
+      fully generic variants. *)
 
   val static :
     ('a, 'b, 'm) Request_type.t -> string ->
@@ -178,6 +184,19 @@ module type CREATE = sig
       query template is provided as a string to be parsed by {!Query.parse}. *)
 
   val static_gen :
+    ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template of static lifetime for prepared requests where the
+      query template is dialect-dependent and explicitly constructed by the
+      caller. *)
+
+  val dynamic :
+    ('a, 'b, 'm) Request_type.t -> string ->
+    ('a, 'b, 'm) Request.t
+  (** Creates a template of static lifetime for prepared requests where the
+      query template is provided as a string to be parsed by {!Query.parse}. *)
+
+  val dynamic_gen :
     ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
     ('a, 'b, 'm) Request.t
   (** Creates a template of static lifetime for prepared requests where the

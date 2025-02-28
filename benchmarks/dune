@@ -39,7 +39,7 @@
     caqti-tls-eio
     eio
     eio_main
-    mirage-crypto-rng-eio))
+    mirage-crypto-rng.unix))
 
 (executable
  (name main_lwt_unix)

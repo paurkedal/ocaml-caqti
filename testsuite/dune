@@ -106,7 +106,7 @@
   (modules main_eio_unix)
   (libraries
     caqti caqti-eio.unix caqti.plugin
-    alcotest eio eio_main mirage-crypto-rng-eio
+    alcotest eio eio_main mirage-crypto-rng.unix
     testlib testlib_eio_unix testsuite))
 
 (rule

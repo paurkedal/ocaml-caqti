@@ -14,8 +14,6 @@
     logs.lwt
     lwt
     mirage-channel
-    mirage-clock
-    mirage-crypto-rng-mirage
-    mirage-time
+    mirage-sleep
     tcpip
     tls-mirage))

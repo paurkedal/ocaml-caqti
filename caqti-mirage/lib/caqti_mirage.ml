@@ -22,10 +22,6 @@ module type SOCKET_OPS =
   Caqti_platform.System_sig.SOCKET_OPS with type 'a fiber := 'a Lwt.t
 
 module Make
-  (RANDOM : Mirage_crypto_rng_mirage.S)
-  (TIME : Mirage_time.S)
-  (MCLOCK : Mirage_clock.MCLOCK)
-  (PCLOCK : Mirage_clock.PCLOCK)
   (STACK : Tcpip.Stack.V4V6)
   (DNS : Dns_client_mirage.S) =
 struct
@@ -52,7 +48,7 @@ struct
         if Mtime.is_later t ~than:t_now then 0L else
         Mtime.Span.to_uint64_ns (Mtime.span t t_now)
       in
-      let task = TIME.sleep_ns dt_ns >|= f in
+      let task = Mirage_sleep.ns dt_ns >|= f in
       let hook =
         Caqti_lwt.Switch.on_release_cancellable sw
           (fun () -> Lwt.cancel task; Lwt.return_unit)

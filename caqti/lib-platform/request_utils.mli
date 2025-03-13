@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,20 +17,19 @@
 
 (** Internal request-related utilities. *)
 
+open Caqti_template
+
 (** {2 Queries} *)
 
 type linear_param =
-  Linear_param : int * 'a Caqti_type.Field.t * 'a -> linear_param
+  Linear_param : int * 'a Field_type.t * 'a -> linear_param
 
-val linear_param_length :
-  ?subst: Caqti_template.Query.subst ->
-  Caqti_query.t -> int
+val linear_param_length : ?subst: Query.subst -> Query.t -> int
 (** [linear_param_length templ] is the number of linear parameters expected by a
     query represented by [templ]. *)
 
 val linear_param_order :
-  ?subst: Caqti_template.Query.subst ->
-  Caqti_query.t -> int list list * linear_param list
+  ?subst: Query.subst -> Query.t -> int list list * linear_param list
 (** [linear_param_order templ] describes the parameter bindings expected for
     [templ] after linearizing parameters and lifting quoted strings out of the
     query:
@@ -44,43 +43,41 @@ val linear_param_order :
 
     All positions are zero-based. *)
 
-val linear_query_string :
-  ?subst: Caqti_template.Query.subst ->
-  Caqti_query.t -> string
+val linear_query_string : ?subst: Query.subst -> Query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)
 
 (** {2 Parameter Encoding and Row Decoding} *)
 
 val raise_encode_missing :
-  uri: Uri.t -> field_type: 'a Caqti_type.Field.t -> unit -> 'counit
+  uri: Uri.t -> field_type: 'a Field_type.t -> unit -> 'counit
 val raise_encode_rejected :
-  uri: Uri.t -> typ: 'a Caqti_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
 val raise_encode_failed :
-  uri: Uri.t -> typ: 'a Caqti_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
 val raise_decode_missing :
-  uri: Uri.t -> field_type: 'a Caqti_type.Field.t -> unit -> 'counit
+  uri: Uri.t -> field_type: 'a Field_type.t -> unit -> 'counit
 val raise_decode_rejected :
-  uri: Uri.t -> typ: 'a Caqti_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
 val raise_response_failed :
   uri: Uri.t -> query: string -> Caqti_error.msg -> 'counit
 val raise_response_rejected :
   uri: Uri.t -> query: string -> Caqti_error.msg -> 'counit
 
 type 'a field_encoder = {
-  write_value: 'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'b -> 'a -> 'a;
-  write_null: 'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> 'a;
+  write_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'b -> 'a -> 'a;
+  write_null: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'a;
 }
 constraint 'e = [> `Encode_rejected of Caqti_error.coding_error]
 
 val encode_param :
-  uri: Uri.t -> 'a field_encoder -> 'b Caqti_type.t -> 'b -> 'a -> 'a
+  uri: Uri.t -> 'a field_encoder -> 'b Row_type.t -> 'b -> 'a -> 'a
 
 type 'a field_decoder = {
-  read_value: 'b. uri: Uri.t -> 'b Caqti_type.Field.t -> 'a -> 'b * 'a;
+  read_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'b * 'a;
   skip_null: int -> 'a -> 'a option;
 }
 constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
 
 val decode_row :
-  uri: Uri.t -> 'a field_decoder -> 'b Caqti_type.t -> 'a -> 'b * 'a
+  uri: Uri.t -> 'a field_decoder -> 'b Row_type.t -> 'a -> 'b * 'a

@@ -476,6 +476,7 @@ struct
       val uri : Uri.t
       val db : Pg.connection
       val use_single_row_mode : bool
+      val dynamic_capacity : int
     end) =
   struct
     open Connection_arg
@@ -501,7 +502,7 @@ struct
 
     let in_use = ref false
     let in_transaction = ref false
-    let pcache : Pcache.t = Pcache.create dialect
+    let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
 
     let wrap_pg ~query f =
       try Ok (f ()) with
@@ -992,7 +993,7 @@ struct
       end
   end
 
-  let connect ~sw:_ ~stdenv ~subst ~config:_ uri =
+  let connect ~sw:_ ~stdenv ~subst ~config uri =
     Fiber.return (Pg_ext.parse_uri uri)
       >>=? fun (conninfo, notice_processing, use_single_row_mode) ->
     (match new Pg.connection ~conninfo () with
@@ -1033,6 +1034,8 @@ struct
                     let uri = uri
                     let db = db
                     let use_single_row_mode = use_single_row_mode
+                    let dynamic_capacity =
+                      Caqti_connect_config.(get dynamic_prepare_capacity) config
                   end)
                 in
                 let module Connection = struct

@@ -286,6 +286,7 @@ struct
       val subst : Caqti_template.Query.subst
       val uri : Uri.t
       val db : Sqlite3.db
+      val dynamic_capacity : int
     end) =
   struct
     open Connection_arg
@@ -443,7 +444,7 @@ struct
       let weight _ = 1
     end)
 
-    let pcache = Pcache.create dialect
+    let pcache = Pcache.create ~dynamic_capacity dialect
 
     let prepare req =
       let prepare_helper query =
@@ -625,6 +626,8 @@ struct
         let subst = subst dialect
         let uri = uri
         let db = db
+        let dynamic_capacity =
+          Caqti_connect_config.(get dynamic_prepare_capacity) config
       end in
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct

@@ -388,6 +388,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       val uri : Uri.t
       val db_arg : Pgx_with_io.t
       val select_type_oid : Pgx_with_io.Prepared.s
+      val dynamic_capacity : int
     end) =
   struct
     open Connection_arg
@@ -502,7 +503,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       Request_cache.Make (struct type t = prepared let weight _ = 1 end)
 
     let in_use = ref false
-    let pcache : Pcache.t = Pcache.create dialect
+    let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
 
     let reset _ = Fiber.return () (* FIXME *)
 
@@ -772,6 +773,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let uri = uri
       let db_arg = db
       let select_type_oid = select_type_oid
+      let dynamic_capacity =
+        Caqti_connect_config.(get dynamic_prepare_capacity) config
     end) in
     let module Connection = struct
       let driver_info = driver_info

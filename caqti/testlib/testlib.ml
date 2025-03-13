@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -86,7 +86,16 @@ let common_args () =
     Arg.(value @@ opt (some tweaks_version_conv) (Some (1, 8)) @@
          info ~doc ~env ["tweaks-version"])
   in
-  let preprocess tweaks_version log_level uris uris_file =
+  let dynamic_prepare_capacity =
+    let doc =
+      "The maximum number of dynamic queries to keep in the prepare cache."
+    in
+    let env = Cmd.Env.info "CAQTI_DYNAMIC_PREPARE_CAPACITY" in
+    Arg.(value @@ opt (some int) None @@
+         info ~doc ~env ["dynamic-prepare-capacity"])
+  in
+  let preprocess
+        tweaks_version dynamic_prepare_capacity log_level uris uris_file =
     Logs.set_level log_level;
     let uris =
       (match uris with
@@ -96,11 +105,20 @@ let common_args () =
     let connect_config = Caqti_connect_config.default
       |> Option.fold ~none:Fun.id
           ~some:Caqti_connect_config.(set tweaks_version) tweaks_version
+      |> Option.fold ~none:Fun.id
+          ~some:Caqti_connect_config.(set dynamic_prepare_capacity)
+          dynamic_prepare_capacity
     in
     {uris; connect_config}
   in
   let base_term =
-    Term.(const preprocess $ tweaks_version $ log_level $ uris $ uris_file)
+    let open Term in
+    const preprocess
+      $ tweaks_version
+      $ dynamic_prepare_capacity
+      $ log_level
+      $ uris
+      $ uris_file
   in
   List.fold_right Term.app !other_common_args base_term
 

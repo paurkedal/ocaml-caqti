@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -61,3 +61,5 @@ let reset : type a. a key -> t -> t = fun (module Key) m ->
 (* Configuration Keys *)
 
 let tweaks_version : (int * int) key = create_key "tweaks_version" (1, 7)
+
+let dynamic_prepare_capacity = create_key "dynamic_prepare_capacity" 32

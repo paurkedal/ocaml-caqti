@@ -287,6 +287,7 @@ struct
         val subst : Caqti_template.Query.subst
         val uri : Uri.t
         val db : Mdb.t
+        val dynamic_capacity : int
       end) =
     struct
       open Connection_arg
@@ -399,7 +400,7 @@ struct
       module Pcache =
         Request_cache.Make (struct type t = prepared let weight _ = 1 end)
 
-      let pcache : Pcache.t = Pcache.create dialect
+      let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
 
       let pp_request_with_param ppf =
         Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
@@ -588,7 +589,7 @@ struct
       Ok {host; user; pass; port; db; flags = None; config_group}
   end
 
-  let connect ~sw:_ ~stdenv ~subst ~config:_ uri =
+  let connect ~sw:_ ~stdenv ~subst ~config uri =
     let module With_stdenv = Pass_stdenv (struct let stdenv = stdenv end) in
     let open With_stdenv in
 
@@ -606,6 +607,8 @@ struct
             let subst = subst dialect
             let uri = uri
             let db = db
+            let dynamic_capacity =
+              Caqti_connect_config.(get dynamic_prepare_capacity config)
           end)
         in
         let module C = struct

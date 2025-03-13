@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,6 +42,9 @@ val reset : 'a key -> t -> t
 val tweaks_version : (int * int) key
 (** Declares compatibility with {{!tweaks} database tweaks} introduced up to the
     given version of Caqti.  Defaults to a conservative value. *)
+
+val dynamic_prepare_capacity : int key
+(** The maximum number of dynamic queries to keep in the prepare-cache. *)
 
 (**/**) (* for internal use *)
 val create_key : string -> 'a -> 'a key

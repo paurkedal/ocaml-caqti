@@ -696,10 +696,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     Gc.compact ();
     loop 4_000 >>= fun () ->
     Gc.compact ();
-    loop 2_000 >>= fun () ->
+    loop 4_000 >>= fun () ->
+    Gc.compact ();
+    loop 4_000 >>= fun () ->
     prepared_statement_count (module Db) >|= fun c_post ->
-    if c_post - c_pre > 2_000 then
-      Alcotest.failf "Too many prepared statements left (%d, %d)" c_pre c_post
+    if c_post - c_pre > 4_000 then
+      Alcotest.failf "Too many prepared statements left, %d - %d" c_post c_pre
 
   let test_drain pool = Pool.drain pool
 

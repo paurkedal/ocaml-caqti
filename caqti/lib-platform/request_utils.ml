@@ -212,3 +212,7 @@ let rec decode_row
        | Row_type.Reject msg -> reject_decode ~uri ~typ msg)
    | Annot (_, t0) ->
       decode_row ~uri f t0)
+
+let fresh_name_generator prefix =
+  let c = ref 0 in
+  fun () -> incr c; Printf.sprintf "%s%d" prefix !c

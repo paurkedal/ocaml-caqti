@@ -598,6 +598,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let orphans, commit = Pcache.trim pcache in
       loop orphans >|=? commit
 
+    let fresh_name = Request_utils.fresh_name_generator "caq"
+
     let call ~f req param =
       using_db @@ fun db ->
       deallocate_some () >>=? fun () ->
@@ -630,8 +632,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
            | Some pq -> Fiber.return (Ok pq)
            | None ->
               let*? query, types, rev_quotes = pre_prepare () in
-              let query_id = Option.get (Caqti_template.Request.query_id req) in
-              let name = sprintf "q%d" query_id in
+              let name = fresh_name () in
               let+? pgx_prepared =
                 intercept_request_failed ~uri ~query (fun () ->
                   Pgx_with_io.Prepared.prepare ~name ~query ~types db)

@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,9 +15,12 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 type ('a, 'b) eq = ('a, 'b) Caqti_template.Shims.Type.eq = Equal : ('a, 'a) eq
 module Field = Caqti_template.Field_type
 include Caqti_template.Row_type
+include Caqti_template.Row_type.Private
 module Std = struct
   include (Caqti_template.Row_type : Caqti_template.Row_type.STD)
 

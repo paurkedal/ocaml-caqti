@@ -91,10 +91,6 @@ val row_mult : (_, _, 'm) t -> 'm Row_mult.t
 (** [row_mult req] indicates how many rows [req] may return.  This is asserted
     when constructing the query. *)
 
-val query_id : ('a, 'b, 'm) t -> int option
-(** If [req] is a prepared query, then [query_id req] is [Some id] for some [id]
-    which uniquely identifies [req], otherwise it is [None]. *)
-
 val query : ('a, 'b, 'm) t -> Dialect.t -> Query.t
 (** [query req] is the function which generates the query of this request
     possibly tailored for the given driver. *)
@@ -139,6 +135,9 @@ val make_pp_with_param :
 
 (**/**)
 [@@@alert "-caqti_private"]
+
+val query_id : ('a, 'b, 'm) t -> int option
+[@@alert caqti_private]
 
 type liveness_witness
 [@@alert caqti_private]

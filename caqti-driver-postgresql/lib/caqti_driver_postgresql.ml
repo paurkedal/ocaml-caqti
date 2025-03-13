@@ -760,12 +760,16 @@ struct
     let pp_request_with_param ppf =
       Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
 
+    let fresh_static_name = Request_utils.fresh_name_generator "caqs"
+    let fresh_dynamic_name = Request_utils.fresh_name_generator "caqd"
+
     let build_request_info request =
       let templ = Caqti_template.Request.query request dialect in
       let query_name =
-        (match Caqti_template.Request.query_id request with
-         | None -> ""
-         | Some id -> sprintf "_caq%d" id)
+        (match Caqti_template.Request.prepare_policy request with
+         | Direct -> ""
+         | Static -> fresh_static_name ()
+         | Dynamic -> fresh_dynamic_name ())
       in
       let query = Pg_ext.query_string ~subst db templ in
       let param_type = Caqti_template.Request.param_type request in

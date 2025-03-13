@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,33 +19,41 @@ open Shims
 
 exception Reject of string
 
-type _ record_serial = ..
+module Private = struct
 
-type 'a product_id = {
-  serial: 'a record_serial;
-  is_serial: 'b. 'b record_serial -> ('a, 'b) Type.eq option;
-}
+  type _ record_serial = ..
 
-let make_id (type a) () : a product_id =
-  let module M = struct
-    type _ record_serial += Serial : a record_serial
-  end in
-  let is_serial : type b. b record_serial -> (a, b) Type.eq option = function
-   | M.Serial -> Some Equal
-   | _ -> None
-  in
-  {serial = M.Serial; is_serial}
+  type 'a product_id = {
+    serial: 'a record_serial;
+    is_serial: 'b. 'b record_serial -> ('a, 'b) Type.eq option;
+  }
 
-let unify_id {is_serial; _} {serial; _} = is_serial serial
+  let make_id (type a) () : a product_id =
+    let module M = struct
+      type _ record_serial += Serial : a record_serial
+    end in
+    let is_serial : type b. b record_serial -> (a, b) Type.eq option = function
+     | M.Serial -> Some Equal
+     | _ -> None
+    in
+    {serial = M.Serial; is_serial}
 
-type _ t =
-  | Field : 'a Field_type.t -> 'a t
-  | Option : 'a t -> 'a option t
-  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-  | Annot : [`Redacted] * 'a t -> 'a t
-and (_, _) product =
-  | Proj_end : ('a, 'a) product
-  | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+  let unify_id {is_serial; _} {serial; _} = is_serial serial
+
+  type _ t =
+    | Field : 'a Field_type.t -> 'a t
+    | Option : 'a t -> 'a option t
+    | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
+    | Annot : [`Redacted] * 'a t -> 'a t
+  and (_, _) product =
+    | Proj_end : ('a, 'a) product
+    | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+
+end
+open Private
+
+type 'a t = 'a Private.t
+type ('a, 'b) product = ('a, 'b) Private.product
 
 type any = Any : 'a t -> any
 

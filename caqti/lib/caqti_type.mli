@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,9 @@
 
 (** Type descriptors for fields and tuples. *)
 
+[@@@alert "-caqti_private"]
+open Caqti_template
+
 exception Reject of string
 
 type ('a, 'b) eq = ('a, 'b) Caqti_template.Shims.Type.eq = Equal : ('a, 'a) eq
@@ -28,7 +31,7 @@ type ('a, 'b) eq = ('a, 'b) Caqti_template.Shims.Type.eq = Equal : ('a, 'a) eq
 
 (** Facilities for extending and using primitive field types. *)
 module Field : sig
-  type 'a t = 'a Caqti_template.Field_type.t =
+  type 'a t = 'a Field_type.t =
     | Bool : bool t
     | Int : int t
     | Int16 : int t
@@ -55,26 +58,33 @@ end
 
 (** {2:row_types Row Types} *)
 
-type 'a product_id = 'a Caqti_template.Row_type.product_id
-(** A type-carrying identifier used in {!t} to allow expressing equality
-    predicates, including for associated values.  {e This is not part of the
-    public API, but exposed due to its occurrence in {!t}}. *)
+(**/**)
+type 'a product_id = 'a Row_type.Private.product_id
+[@@alert caqti_private "This is a temporary alias for a private type."]
+(**/**)
 
+type 'a t = 'a Row_type.Private.t = private
+  | Field : 'a Field.t -> 'a t [@alert caqti_private]
+  | Option : 'a t -> 'a option t [@alert caqti_private]
+  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
+    [@alert caqti_private]
+  | Annot : [`Redacted] * 'a t -> 'a t [@alert caqti_private] (**)
 (** Type descriptor for row types.
 
-    {b Note.} The concrete representation of this type should be considered
-    private, including pattern-matching usage; use the below functions for
-    compatibility with future versions. *)
-type 'a t = 'a Caqti_template.Row_type.t = private
-  | Field : 'a Field.t -> 'a t
-  | Option : 'a t -> 'a option t
-  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-  | Annot : [`Redacted] * 'a t -> 'a t
-and ('a, 'b) product = ('a, 'b) Caqti_template.Row_type.product = private
-  | Proj_end : ('a, 'a) product
+    {b Note.} The private constructor aliases for this type will be removed,
+    likely before the next major version. *)
+
+and ('a, 'b) product = ('a, 'b) Row_type.Private.product = private
+  | Proj_end : ('a, 'a) product [@alert caqti_private]
   | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+    [@alert caqti_private] (**)
+(** Type descriptor for building cartesian products of row types.
+
+    {b Note.} The private constructor aliases for this type will be removed,
+    likely before the next major version. *)
 
 (** {!t} with existentially wrapped static type. *)
+
 type any = Any : 'a t -> any
 
 val unify : 'a t -> 'b t -> ('a, 'b) eq option

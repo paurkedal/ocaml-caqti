@@ -28,6 +28,8 @@ let create ?(oneshot = false) pt rt rm make_query =
 let query req driver_info =
   query req (Caqti_driver_info.dummy_dialect driver_info)
 
+let query_id = query_id
+
 module Infix = struct
   let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
   let (-->!) t u ?oneshot f = create ?oneshot t u Row_mult.one f

@@ -81,3 +81,5 @@ constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
 
 val decode_row :
   uri: Uri.t -> 'a field_decoder -> 'b Row_type.t -> 'a -> 'b * 'a
+
+val fresh_name_generator : string -> (unit -> string)

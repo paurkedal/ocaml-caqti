@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,33 +15,39 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Database row types. *)
+(** Database row types, also used for parameters. *)
 
 open Shims
 
 (** {2:row_types Row Types} *)
 
-type 'a product_id
-(** A type-carrying identifier used in {!t} to allow expressing equality
-    predicates, including for associated values.  {e This is not part of the
-    public API, but exposed due to its occurrence in {!t}}. *)
+(**/**)
+module Private : sig
 
-(** Type descriptor for row types.
+  type 'a product_id
 
-    {b Note.} The concrete representation of this type should be considered
-    private, including pattern-matching usage; use the below functions for
-    compatibility with future versions. *)
-type 'a t = private
-  | Field : 'a Field_type.t -> 'a t
-  | Option : 'a t -> 'a option t
-  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-  | Annot : [`Redacted] * 'a t -> 'a t
-and ('a, 'b) product = private
-  | Proj_end : ('a, 'a) product
-  | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+  type 'a t = private
+    | Field : 'a Field_type.t -> 'a t
+    | Option : 'a t -> 'a option t
+    | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
+    | Annot : [`Redacted] * 'a t -> 'a t
+  and ('a, 'b) product = private
+    | Proj_end : ('a, 'a) product
+    | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+end
+[@@alert caqti_private
+  "This module exposes the internal representation of row types, which may \
+   change between minor relases without prior notice."]
+(**/**)
 
-(** {!t} with existentially wrapped static type. *)
+type 'a t = 'a Private.t [@@alert "-caqti_private"]
+(** Type descriptor for row types. *)
+
+type ('a, 'b) product = ('a, 'b) Private.product [@@alert "-caqti_private"]
+(** Type descriptor used for building cartesian products of row types. *)
+
 type any = Any : 'a t -> any
+(** {!t} with existentially wrapped static type. *)
 
 val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
 (** If [t1] and [t2] are the same row type representations, then [unify t1 t2]

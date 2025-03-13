@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -75,9 +75,11 @@ val row_mult : (_, _, 'm) t -> 'm Caqti_mult.t
 (** [row_mult req] indicates how many rows [req] may return.  This is asserted
     when constructing the query. *)
 
+(**/**)
 val query_id : ('a, 'b, 'm) t -> int option
-(** If [req] is a prepared query, then [query_id req] is [Some id] for some [id]
-    which uniquely identifies [req], otherwise it is [None]. *)
+[@@alert deprecated
+  "This function is no longer used internally by Caqti and will be removed."]
+(**/**)
 
 val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 (** [query req] is the function which generates the query of this request

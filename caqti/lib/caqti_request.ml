@@ -26,10 +26,10 @@ type ('a, 'b, +'m) t = {
   row_mult: 'm Caqti_mult.t;
 } constraint 'm = [< `Zero | `One | `Many]
 
-let last_id = ref (-1)
+let last_id = Atomic.make (-1)
 
 let create ?(oneshot = false) param_type row_type row_mult query =
-  let id = if oneshot then None else (incr last_id; Some !last_id) in
+  let id = if oneshot then None else Some (Atomic.fetch_and_add last_id 1) in
   {id; query; param_type; row_type; row_mult}
 
 let param_type request = request.param_type

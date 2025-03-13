@@ -27,6 +27,7 @@ depends: [
   "ptime"
   "re" {with-test}
   "tls"
+  "atomic"
   "uri" {>= "2.2.0"}
   "x509"
 ]

@@ -91,7 +91,7 @@ module type CREATE = sig
         let bounds_upto_req =
           let open Caqti_template.Create in
           static_gen
-            T.(t2 int32 float -->! option (t2 float float)) @@ fun _ ->
+            T.(t2 int32 float -->! option (t2 float float)) @@ Fun.const @@
             Q.parse
               "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
       ]}

@@ -17,11 +17,11 @@
 
 [@@@alert "-caqti_private"]
 
+open Caqti_template
 open Caqti_platform
 open Printf
 
 let dialect =
-  let open Caqti_template in
   let server_version =
     Version.of_string_unsafe (Sqlite3.sqlite_version_info ())
   in
@@ -87,7 +87,7 @@ let wrap_rc ?db errcode =
   let extended_errcode = Option.map Sqlite3.extended_errcode_int db in
   Error_msg {errcode; errmsg; extended_errcode}
 
-let data_of_value : type a. a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
+let data_of_value : type a. a Field_type.t -> a -> Sqlite3.Data.t =
   fun field_type x ->
   (match field_type with
    | Bool   -> Sqlite3.Data.INT (if x then 1L else 0L)
@@ -111,15 +111,14 @@ let data_of_value : type a. a Caqti_type.Field.t -> a -> Sqlite3.Data.t =
 
 (* TODO: Check integer ranges? The Int64.to_* functions don't raise. *)
 let value_of_data
-    : type a. uri: Uri.t ->
-      a Caqti_type.Field.t -> Sqlite3.Data.t -> a =
+    : type a. uri: Uri.t -> a Field_type.t -> Sqlite3.Data.t -> a =
   fun ~uri field_type data ->
   let to_ptime_span x =
     (match Ptime.Span.of_float_s x with
      | Some t -> t
      | None ->
         let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
-        let typ = Caqti_type.field field_type in
+        let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   let cannot_convert_to ft =
@@ -127,7 +126,7 @@ let value_of_data
       Printf.sprintf "Cannot convert %s to %s."
         (Sqlite3.Data.to_string_debug data) ft
     in
-    let typ = Caqti_type.field field_type in
+    let typ = Row_type.field field_type in
     Request_utils.raise_decode_rejected ~uri ~typ (Caqti_error.Msg msg)
   in
   (match field_type, data with
@@ -155,7 +154,7 @@ let value_of_data
        | Ok y -> y
        | Error msg ->
           let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
+          let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Pdate, _ -> cannot_convert_to "date"
    | Ptime as field_type, Sqlite3.Data.TEXT y ->
@@ -164,7 +163,7 @@ let value_of_data
        | Ok y -> y
        | Error msg ->
           let msg = Caqti_error.Msg msg in
-          let typ = Caqti_type.field field_type in
+          let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Ptime, _ -> cannot_convert_to "time"
    | Ptime_span, Sqlite3.Data.FLOAT x ->
@@ -174,7 +173,6 @@ let value_of_data
    | Ptime_span, _ -> cannot_convert_to "time span")
 
 let query_quotes q =
-  let open Caqti_template in
   let rec loop : Query.t -> _ = function
    | L _ | P _ | E _ -> Fun.id
    | V (t, v) -> List.cons (data_of_value t v)
@@ -184,7 +182,6 @@ let query_quotes q =
   List.rev (loop q [])
 
 let query_string q =
-  let open Caqti_template in
   let quotes = query_quotes q in
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
@@ -205,7 +202,7 @@ let bind_quotes ~uri ~db stmt oq =
     (match Sqlite3.bind stmt (j + 1) x with
      | Sqlite3.Rc.OK -> Ok ()
      | rc ->
-        let typ = Caqti_type.string in
+        let typ = Row_type.string in
         Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc ~db rc)))
   in
   List_ext.iteri_r aux oq
@@ -214,7 +211,7 @@ let encode_null_field ~uri ~db stmt field_type iP =
   (match Sqlite3.bind stmt (iP + 1) Sqlite3.Data.NULL with
    | Sqlite3.Rc.OK -> ()
    | rc ->
-      let typ = Caqti_type.field field_type in
+      let typ = Row_type.field field_type in
       Request_utils.raise_encode_failed ~uri ~typ (wrap_rc ~db rc))
 
 let encode_field ~uri ~db stmt field_type field_value iP =
@@ -222,7 +219,7 @@ let encode_field ~uri ~db stmt field_type field_value iP =
   (match Sqlite3.bind stmt (iP + 1) d with
    | Sqlite3.Rc.OK -> ()
    | rc ->
-      let typ = Caqti_type.field field_type in
+      let typ = Row_type.field field_type in
       Request_utils.raise_encode_failed ~uri ~typ (wrap_rc ~db rc))
 
 let encode_param ~uri ~db stmt t =
@@ -283,7 +280,7 @@ struct
 
   module Make_connection_base
     (Connection_arg : sig
-      val subst : Caqti_template.Query.subst
+      val subst : Query.subst
       val uri : Uri.t
       val db : Sqlite3.db
       val dynamic_capacity : int
@@ -299,7 +296,7 @@ struct
 
       type ('b, 'm) t = {
         stmt: Sqlite3.stmt;
-        row_type: 'b Caqti_type.t;
+        row_type: 'b Row_type.t;
         query: string;
         mutable affected_count: int;
         mutable has_been_executed: bool;
@@ -334,7 +331,7 @@ struct
               Request_utils.raise_response_failed ~uri ~query (wrap_rc ~db rc))
 
       let exec ({row_type; query; _} as response) =
-        assert (Caqti_type.unify row_type Caqti_type.unit <> None);
+        assert (Row_type.unify row_type Row_type.unit <> None);
         let retrieve () =
           (match run_step response with
            | Sqlite3.Rc.DONE -> Ok ()
@@ -458,14 +455,14 @@ struct
           Error (Caqti_error.request_failed ~uri ~query msg)
       in
 
-      let templ = Caqti_request.query req driver_info in
-      let templ = Caqti_template.Query.expand subst templ in
+      let templ = Request.query req dialect in
+      let templ = Query.expand subst templ in
       let quotes, query = query_string templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       (stmt, quotes, query)
 
     let pp_request_with_param ppf =
-      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
+      Request.make_pp_with_param ~subst ~dialect () ppf
 
     let free_prepared (stmt, _, query) =
       (match Sqlite3.finalize stmt with
@@ -479,7 +476,7 @@ struct
           Error (Caqti_error.request_failed ~uri ~query msg))
 
     let deallocate req = using_db @@ fun () ->
-      (match Caqti_template.Request.prepare_policy req with
+      (match Request.prepare_policy req with
        | Dynamic | Static ->
           (match Pcache.deallocate pcache req with
            | None -> Fiber.return (Ok ())
@@ -504,10 +501,10 @@ struct
         f "Sending %a" pp_request_with_param (req, param))
         >>= fun () ->
 
-      let param_type = Caqti_template.Request.param_type req in
-      let row_type = Caqti_template.Request.row_type req in
+      let param_type = Request.param_type req in
+      let row_type = Request.row_type req in
 
-      (match Caqti_template.Request.prepare_policy req with
+      (match Request.prepare_policy req with
        | Direct -> prepare req
        | Dynamic | Static ->
           (match Pcache.find_and_promote pcache req with
@@ -523,7 +520,7 @@ struct
       let nQ = List.length quotes in
       (match encode_param ~uri ~db stmt param_type param nQ with
        | Ok nQP ->
-          let nP = Caqti_type.length param_type in
+          let nP = Row_type.length param_type in
           if nQP > nQ + nP then
             failwith "Too many arguments passed to query; \
                       check that the parameter type is correct."
@@ -541,7 +538,7 @@ struct
 
       (* CHECKME: Does finalize or reset involve IO? *)
       let cleanup () =
-        (match Caqti_template.Request.prepare_policy req with
+        (match Request.prepare_policy req with
          | Direct ->
             (match Sqlite3.finalize stmt with
              | Sqlite3.Rc.OK -> Fiber.return ()

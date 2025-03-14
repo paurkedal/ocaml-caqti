@@ -16,6 +16,7 @@
  *)
 
 [@@@alert "-caqti_private"]
+open Caqti_template
 open Caqti_platform
 open Printf
 module Pg = Postgresql
@@ -94,8 +95,8 @@ let () =
 
 let driver_info =
   let dummy_dialect =
-    Caqti_template.Dialect.create_pgsql
-      ~server_version:(Caqti_template.Version.of_string_unsafe "")
+    Dialect.create_pgsql
+      ~server_version:(Version.of_string_unsafe "")
       ~client_library:`postgresql
       ()
   in
@@ -107,7 +108,7 @@ module Pg_ext = struct
   (* Turns a constant into [(must_quote, encode)].  Note the slight difference
    * from encoded parameters like booleans and quoting. *)
   let query_string_of_value
-    : type a. Pg.connection -> a Caqti_type.Field.t -> bool * (a -> string) =
+    : type a. Pg.connection -> a Field_type.t -> bool * (a -> string) =
     fun db ->
     let escape_string s = db#escape_string s in
     (function
@@ -125,7 +126,6 @@ module Pg_ext = struct
      | Enum _ -> (true, escape_string))
 
   let query_string ~subst (db : Pg.connection) templ =
-    let open Caqti_template in
     let buf = Buffer.create 64 in
     let rec loop : Query.t -> _ = function
      | L s -> Buffer.add_string buf s
@@ -196,7 +196,7 @@ let interval_oid = Pg.oid_of_ftype Pg.INTERVAL
 let unknown_oid = Pg.oid_of_ftype Pg.UNKNOWN
 
 let init_param_types ~type_oid_cache =
-  let oid_of_field_type : type a. a Caqti_type.Field.t -> _ = function
+  let oid_of_field_type : type a. a Field_type.t -> _ = function
    | Bool -> Ok bool_oid
    | Int -> Ok int8_oid
    | Int16 -> Ok int2_oid
@@ -210,22 +210,22 @@ let init_param_types ~type_oid_cache =
    | Ptime_span -> Ok interval_oid
    | Enum name -> Ok (Hashtbl.find type_oid_cache name)
   in
-  let rec recurse : type a. _ -> _ -> a Caqti_type.t -> _ -> _
+  let rec recurse : type a. _ -> _ -> a Row_type.t -> _ -> _
       = fun pt bp -> function
-   | Caqti_type.Field ft -> fun i ->
+   | Field ft -> fun i ->
       oid_of_field_type ft |>? fun oid ->
       pt.(i) <- oid;
       bp.(i) <- oid = bytea_oid;
       Ok (i + 1)
-   | Caqti_type.Option t ->
+   | Option t ->
       recurse pt bp t
-   | Caqti_type.Product (_, _, prod) ->
-      let rec loop : type i. (a, i) Caqti_type.product -> _ = function
+   | Product (_, _, prod) ->
+      let rec loop : type i. (a, i) Row_type.product -> _ = function
        | Proj_end -> Result.ok
        | Proj (t, _, prod) -> recurse pt bp t %>? loop prod
       in
       loop prod
-   | Caqti_type.Annot (_, t0) ->
+   | Annot (_, t0) ->
       recurse pt bp t0
   in
   fun pt bp t ->
@@ -242,7 +242,7 @@ end
 module Make_encoder (String_encoder : STRING_ENCODER) = struct
   open String_encoder
 
-  let encode_field : type a. a Caqti_type.Field.t -> a -> string =
+  let encode_field : type a. a Field_type.t -> a -> string =
     fun field_type x ->
     (match field_type with
      | Bool -> Pg_ext.pgstring_of_bool x
@@ -276,14 +276,13 @@ module Param_encoder = Make_encoder (struct
   let encode_octets s = s
 end)
 
-let decode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> string -> a =
+let decode_field : type a. uri: Uri.t -> a Field_type.t -> string -> a =
   fun ~uri field_type s ->
   let wrap_conv_exn f s =
     (try (f s) with
      | _ ->
         let msg = Caqti_error.Msg (sprintf "Invalid value %S." s) in
-        let typ = Caqti_type.field field_type in
+        let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   let wrap_conv_res f s =
@@ -291,7 +290,7 @@ let decode_field
      | Ok y -> y
      | Error msg ->
         let msg = Caqti_error.Msg msg in
-        let typ = Caqti_type.field field_type in
+        let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
@@ -321,7 +320,7 @@ let decode_row ~uri row_type =
   let decode = Request_utils.decode_row ~uri {read_value; skip_null} row_type in
   fun (resp, i) ->
     (match decode (resp, i, 0) with
-     | (y, (_, _, j)) -> assert (j = Caqti_type.length row_type); Ok y
+     | (y, (_, _, j)) -> assert (j = Row_type.length row_type); Ok y
      | exception Caqti_error.Exn (`Decode_rejected _ as err) -> Error err)
 
 type request_info = {
@@ -418,7 +417,7 @@ struct
       in
       (match result#status with
        | Pg.Command_ok ->
-          (match Caqti_mult.expose row_mult with
+          (match Row_mult.expose row_mult with
            | `Zero -> Ok ()
            | (`One | `Zero_or_one | `Zero_or_more) ->
               reject "Tuples expected for this query.")
@@ -427,7 +426,7 @@ struct
             if result#ntuples = 0 then Ok () else
             reject "Tuples returned in single-row-mode."
           else
-          (match Caqti_mult.expose row_mult with
+          (match Row_mult.expose row_mult with
            | `Zero ->
               if result#ntuples = 0 then Ok () else
               reject "No tuples expected for this query."
@@ -459,7 +458,7 @@ struct
 
     let check_command_result ~uri ~query result =
       check_query_result
-        ~uri ~query ~row_mult:Caqti_mult.zero ~single_row_mode:false result
+        ~uri ~query ~row_mult:Row_mult.zero ~single_row_mode:false result
   end
 
   (* Driver Interface *)
@@ -471,8 +470,8 @@ struct
   module Make_connection_base
     (Connection_arg : sig
       val stdenv : stdenv
-      val dialect : Caqti_template.Dialect.t
-      val subst : Caqti_template.Query.subst
+      val dialect : Dialect.t
+      val subst : Query.subst
       val uri : Uri.t
       val db : Pg.connection
       val use_single_row_mode : bool
@@ -595,7 +594,7 @@ struct
        | _ ->
           Fiber.return @@ Result.map (fun () -> None) @@
           Pg_io.check_query_result
-            ~uri ~query ~row_mult:Caqti_mult.zero_or_more ~single_row_mode:true
+            ~uri ~query ~row_mult:Row_mult.zero_or_more ~single_row_mode:true
             result)
 
     let prepare {query_name; query; param_types; _} =
@@ -615,7 +614,7 @@ struct
       let*? () = send_simple_query query in
       let+*? result = fetch_final_result ~query () in
       Pg_io.check_query_result
-        ~uri ~query ~row_mult:Caqti_mult.zero ~single_row_mode:false
+        ~uri ~query ~row_mult:Row_mult.zero ~single_row_mode:false
         result
 
     module Response = struct
@@ -625,7 +624,7 @@ struct
         | Single_row
 
       type ('b, 'm) t = {
-        row_type: 'b Caqti_type.t;
+        row_type: 'b Row_type.t;
         source: source;
         query: string;
       }
@@ -758,22 +757,22 @@ struct
     let type_oid_cache = Hashtbl.create 19
 
     let pp_request_with_param ppf =
-      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
+      Request.make_pp_with_param ~subst ~dialect () ppf
 
     let fresh_static_name = Request_utils.fresh_name_generator "caqs"
     let fresh_dynamic_name = Request_utils.fresh_name_generator "caqd"
 
     let build_request_info request =
-      let templ = Caqti_template.Request.query request dialect in
+      let templ = Request.query request dialect in
       let query_name =
-        (match Caqti_template.Request.prepare_policy request with
+        (match Request.prepare_policy request with
          | Direct -> ""
          | Static -> fresh_static_name ()
          | Dynamic -> fresh_dynamic_name ())
       in
       let query = Pg_ext.query_string ~subst db templ in
-      let param_type = Caqti_template.Request.param_type request in
-      let param_length = Caqti_type.length param_type in
+      let param_type = Request.param_type request in
+      let param_length = Row_type.length param_type in
       let param_types = Array.make param_length 0 in
       let binary_params = Array.make param_length false in
       init_param_types ~type_oid_cache param_types binary_params param_type
@@ -781,13 +780,13 @@ struct
       {query_name; query; param_length; param_types; binary_params}
 
     let build_params request request_info param =
-      let param_type = Caqti_template.Request.param_type request in
+      let param_type = Request.param_type request in
       let params = Array.make request_info.param_length Pg.null in
       Param_encoder.encode ~uri params param_type param
         |> Result.map (fun () -> params)
 
     let send_request ~single_row_mode request param =
-      (match Caqti_template.Request.prepare_policy request with
+      (match Request.prepare_policy request with
        | Direct ->
           let/? request_info = build_request_info request in
           let/? params = build_params request request_info param in
@@ -814,18 +813,18 @@ struct
 
       let single_row_mode =
         use_single_row_mode
-          && Caqti_mult.can_be_many (Caqti_template.Request.row_mult request)
+          && Row_mult.can_be_many (Request.row_mult request)
       in
 
       (* Prepare, if requested, and send the query. *)
       let*? query = send_request ~single_row_mode request param in
 
       (* Fetch and process the result. *)
-      let row_type = Caqti_template.Request.row_type request in
+      let row_type = Request.row_type request in
       if single_row_mode then
         f Response.{row_type; query; source = Single_row}
       else begin
-        let row_mult = Caqti_template.Request.row_mult request in
+        let row_mult = Request.row_mult request in
         let*? result = fetch_final_result ~query () in
         (match Pg_io.check_query_result
                 ~uri ~query ~row_mult ~single_row_mode result with
@@ -833,8 +832,8 @@ struct
          | Error _ as r -> Fiber.return r)
       end
 
-    let rec fetch_type_oids : type a. a Caqti_type.t -> _ = function
-     | Caqti_type.Field (Enum name as field_type)
+    let rec fetch_type_oids : type a. a Row_type.t -> _ = function
+     | Field (Enum name as field_type)
           when not (Hashtbl.mem type_oid_cache name) ->
         call_without_oids ~f:Response.find_opt Q.type_oid name >>=
         (function
@@ -852,15 +851,15 @@ struct
             Error (Caqti_error.encode_missing ~uri ~field_type ())
          | Error #Caqti_error.call as r ->
             Fiber.return r)
-     | Caqti_type.Field _ -> Fiber.return (Ok ())
-     | Caqti_type.Option t -> fetch_type_oids t
-     | Caqti_type.Product (_, _, prod) ->
-        let rec loop : type i. (a, i) Caqti_type.product -> _ = function
+     | Field _ -> Fiber.return (Ok ())
+     | Option t -> fetch_type_oids t
+     | Product (_, _, prod) ->
+        let rec loop : type i. (a, i) Row_type.product -> _ = function
          | Proj_end -> Fiber.return (Ok ())
          | Proj (t, _, prod) -> fetch_type_oids t >>=? fun () -> loop prod
         in
         loop prod
-     | Caqti_type.Annot (_, t0) -> fetch_type_oids t0
+     | Annot (_, t0) -> fetch_type_oids t0
 
     let using_db f =
       if !in_use then
@@ -871,7 +870,7 @@ struct
         (fun () -> reset () >|= fun _ -> in_use := false)
 
     let deallocate request = using_db @@ fun () ->
-      (match Caqti_template.Request.prepare_policy request with
+      (match Request.prepare_policy request with
        | Direct -> failwith "deallocate called on direct request"
        | Dynamic | Static ->
           (match Pcache.deallocate pcache request with
@@ -891,7 +890,7 @@ struct
 
     let call ~f req param = using_db @@ fun () ->
       deallocate_some () >>=? fun () ->
-      fetch_type_oids (Caqti_template.Request.param_type req) >>=? fun () ->
+      fetch_type_oids (Request.param_type req) >>=? fun () ->
       call_without_oids ~f req param
 
     let disconnect () = using_db @@ fun () ->
@@ -925,7 +924,7 @@ struct
       let query =
         sprintf "COPY %s (%s) FROM STDIN" table (String.concat "," columns)
       in
-      let param_length = Caqti_type.length row_type in
+      let param_length = Row_type.length row_type in
       let fail msg =
         Fiber.return
           (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))
@@ -1022,7 +1021,7 @@ struct
                 db#set_notice_processing notice_processing;
                 let server_version =
                   let v0, v1, v2 = db#server_version in
-                  Caqti_template.Version.of_string_unsafe
+                  Version.of_string_unsafe
                     (if v0 < 10 then
                       Printf.sprintf "%d.%d.%d" v0 v1 v2
                      else
@@ -1031,7 +1030,7 @@ struct
                 let module B = Make_connection_base
                   (struct
                     let dialect =
-                      Caqti_template.Dialect.create_pgsql
+                      Dialect.create_pgsql
                         ~server_version ~client_library:`postgresql ()
                     let subst = subst dialect
                     let stdenv = stdenv

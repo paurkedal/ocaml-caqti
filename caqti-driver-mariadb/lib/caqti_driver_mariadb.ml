@@ -17,6 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
+open Caqti_template
 open Caqti_platform
 open Printf
 
@@ -85,8 +86,7 @@ struct
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let dialect =
-    Caqti_template.Dialect.create_mysql
-      ~server_version:(Caqti_template.Version.of_string_unsafe "") ()
+    Dialect.create_mysql ~server_version:(Version.of_string_unsafe "") ()
   let driver_info =
     Caqti_driver_info.of_dialect dialect
 
@@ -176,8 +176,7 @@ struct
       end
     end
 
-    let encode_field
-        : type a. a Caqti_type.Field.t -> a -> Mdb.Field.value =
+    let encode_field : type a. a Field_type.t -> a -> Mdb.Field.value =
       fun field_type x ->
       (match field_type with
        | Bool -> `Int (if x then 1 else 0)
@@ -204,7 +203,7 @@ struct
           `Float (Ptime.Span.to_float_s x))
 
     let decode_field
-        : type b. uri: Uri.t -> b Caqti_type.Field.t -> Mdb.Field.t -> b =
+        : type b. uri: Uri.t -> b Field_type.t -> Mdb.Field.t -> b =
       fun ~uri field_type field ->
       try match field_type with
        | Bool -> Mdb_ext.Field.bool field
@@ -243,7 +242,7 @@ struct
        | Failure _ ->
           let typename = Mdb_ext.Field.typename field in
           let msg = Caqti_error.Msg ("Received " ^ typename ^ ".") in
-          let typ = Caqti_type.field field_type in
+          let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg
 
     let encode_param ~uri params t v acc =
@@ -277,14 +276,14 @@ struct
       fun row ->
         try
           let (y, (_, j)) = decode (row, 0) in
-          assert (j = Caqti_type.length row_type);
+          assert (j = Row_type.length row_type);
           Ok (Some y)
         with Caqti_error.Exn (#Caqti_error.retrieve as err) ->
           Error err
 
     module Make_connection_base
       (Connection_arg : sig
-        val subst : Caqti_template.Query.subst
+        val subst : Query.subst
         val uri : Uri.t
         val db : Mdb.t
         val dynamic_capacity : int
@@ -311,7 +310,7 @@ struct
         type ('b, +'m) t = {
           query: string;
           res: Mdb.Res.t;
-          row_type: 'b Caqti_type.t;
+          row_type: 'b Row_type.t;
         }
 
         let reject_f ~query fmt = ksprintf (response_rejected ~query) fmt
@@ -403,7 +402,7 @@ struct
       let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
 
       let pp_request_with_param ppf =
-        Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
+        Request.make_pp_with_param ~subst ~dialect () ppf
 
       let free_prepared prepared =
         let rewrite_error = function
@@ -415,7 +414,7 @@ struct
         Mdb.Stmt.close prepared.stmt >|= rewrite_error
 
       let deallocate req =
-        (match Caqti_template.Request.prepare_policy req with
+        (match Request.prepare_policy req with
          | Dynamic | Static ->
             (match Pcache.deallocate pcache req with
              | None -> Fiber.return (Ok ())
@@ -439,8 +438,8 @@ struct
          | Some prepared ->
             Fiber.return (Ok prepared)
          | None ->
-            let templ = Caqti_template.Request.query request dialect in
-            let templ = Caqti_template.Query.expand ~final:true subst templ in
+            let templ = Request.query request dialect in
+            let templ = Query.expand ~final:true subst templ in
             let query = Request_utils.linear_query_string templ in
             Mdb.prepare db query >|= function
              | Error err -> request_failed ~query err
@@ -454,7 +453,6 @@ struct
                 Ok prepared)
 
       let call ~f req param = using_db @@ fun () ->
-        let open Caqti_template in
         Log.debug ~src:Logging.request_log_src (fun f ->
           f "Sending %a" pp_request_with_param (req, param))
           >>= fun () ->

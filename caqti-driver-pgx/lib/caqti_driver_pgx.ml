@@ -17,6 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
+open Caqti_template
 open Caqti_platform
 open Postgresql_conv
 open Printf
@@ -49,7 +50,7 @@ let host_of_string str =
        | Error _ -> None)
    | Error _ -> None)
 
-let pg_type_name : type a. a Caqti_type.Field.t -> string = function
+let pg_type_name : type a. a Field_type.t -> string = function
  | Bool -> "bool"
  | Int -> "int8"
  | Int16 -> "int2"
@@ -64,7 +65,7 @@ let pg_type_name : type a. a Caqti_type.Field.t -> string = function
  | Enum name -> name
 
 let encode_field
-    : type a. a Caqti_type.Field.t -> a -> Pgx.Value.t
+    : type a. a Field_type.t -> a -> Pgx.Value.t
     = fun field_type x ->
   (match field_type with
    | Bool -> Pgx.Value.of_bool x
@@ -81,7 +82,6 @@ let encode_field
    | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
 
 let query_string ~subst templ =
-  let open Caqti_template in
   let templ = Query.expand ~final:true subst templ in
 
   let rec extract_quotes : Query.t -> _ = function
@@ -114,15 +114,14 @@ let encode_param ~uri t param =
   with Caqti_error.Exn (#Caqti_error.call as err) ->
     Error err
 
-let decode_field
-    : type a. uri: Uri.t -> a Caqti_type.Field.t -> Pgx.Value.t -> a
-    = fun ~uri field_type v ->
+let decode_field : type a. uri: Uri.t -> a Field_type.t -> Pgx.Value.t -> a =
+  fun ~uri field_type v ->
   let wrap_conv_exn f s =
     (match f s with
      | y -> y
      | exception Pgx.Value.Conversion_failure msg_str ->
         let msg = Caqti_error.Msg msg_str in
-        let typ = Caqti_type.field field_type in
+        let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   let wrap_conv_res f s =
@@ -130,7 +129,7 @@ let decode_field
      | Ok y -> y
      | Error msg_str ->
         let msg = Caqti_error.Msg msg_str in
-        let typ = Caqti_type.field field_type in
+        let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
   (match field_type with
@@ -239,8 +238,8 @@ let parse_uri uri =
   in
   Ok {host; port; user; password; database; unix_domain_socket_dir}
 
-let dialect = Caqti_template.Dialect.create_pgsql
-  ~server_version:(Caqti_template.Version.of_string_unsafe "")
+let dialect = Dialect.create_pgsql
+  ~server_version:(Version.of_string_unsafe "")
   ~client_library:`pgx
   ()
 
@@ -384,7 +383,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     (Pgx_with_io : Pgx.S with type 'a Io.t = 'a Fiber.t
                           and type Io.ssl_config = ssl_config)
     (Connection_arg : sig
-      val subst : Caqti_template.Query.subst
+      val subst : Query.subst
       val uri : Uri.t
       val db_arg : Pgx_with_io.t
       val select_type_oid : Pgx_with_io.Prepared.s
@@ -399,7 +398,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
       type ('b, 'm) t = {
         query: string;
-        row_type: 'b Caqti_type.t;
+        row_type: 'b Row_type.t;
         prepared: Pgx_with_io.Prepared.s;
         params: Pgx.Value.t list;
       }
@@ -543,7 +542,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
                | None ->
                   failf "Expected an int32 in response from OID request.")
            | [] ->
-              failf "OID for type %a not found." Caqti_type.Field.pp ft
+              failf "OID for type %a not found." Field_type.pp ft
            | [_] ->
               failf "Expected single field result from OID request."
            | _ ->
@@ -551,13 +550,13 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
     let type_oids param_type =
       let rec loop :
-          type a. a Caqti_type.t -> Pgx.oid list ->
+          type a. a Row_type.t -> Pgx.oid list ->
           (Pgx.oid list, _) result Fiber.t =
         (function
          | Field ft -> fun acc -> field_type_oid ft >|=? fun ft -> ft :: acc
          | Option t -> loop t
          | Product (_, _, prod) ->
-            let rec loop_prod : type i. (a, i) Caqti_type.product -> _ =
+            let rec loop_prod : type i. (a, i) Row_type.product -> _ =
               (function
                | Proj_end -> fun acc -> Fiber.return (Ok acc)
                | Proj (t, _, prod) ->
@@ -568,17 +567,17 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
             loop_prod prod
          | Annot (_, t) -> loop t)
       in
-      loop (Caqti_type.option param_type) []
+      loop (Row_type.option param_type) []
 
     let pp_request_with_param ppf =
-      Caqti_template.Request.make_pp_with_param ~subst ~dialect () ppf
+      Request.make_pp_with_param ~subst ~dialect () ppf
 
     let free_prepared prepared =
       intercept_request_failed ~uri ~query:"DEALLOCATE"
         (fun () -> Pgx_with_io.Prepared.close prepared.pgx_prepared)
 
     let deallocate req =
-      (match Caqti_template.Request.prepare_policy req with
+      (match Request.prepare_policy req with
        | Dynamic | Static ->
           (match Pcache.deallocate pcache req with
            | None ->
@@ -606,27 +605,27 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
       let pre_prepare () =
-        let templ = Caqti_template.Request.query req dialect in
+        let templ = Request.query req dialect in
         let query, rev_quotes = query_string ~subst templ in
-        let*? param_types = type_oids (Caqti_request.param_type req) in
-        let+? string_oid = field_type_oid Caqti_type.Field.String in
+        let*? param_types = type_oids (Request.param_type req) in
+        let+? string_oid = field_type_oid Field_type.String in
         let quote_types = List.rev_map (fun _ -> string_oid) rev_quotes in
         let types = List.rev_append quote_types param_types in
         (query, types, rev_quotes)
       in
       let post_prepare pq =
-        (match encode_param ~uri (Caqti_request.param_type req) param with
+        (match encode_param ~uri (Request.param_type req) param with
          | Error _ as r -> Fiber.return r
          | Ok regular_params ->
             let params = List.rev_append pq.rev_quotes regular_params in
             f {
-              Response.row_type = Caqti_request.row_type req;
+              Response.row_type = Request.row_type req;
               query = pq.query;
               prepared = pq.pgx_prepared;
               params;
             })
       in
-      (match Caqti_template.Request.prepare_policy req with
+      (match Request.prepare_policy req with
        | Dynamic | Static ->
           (match Pcache.find_and_promote pcache req with
            | Some pq -> Fiber.return (Ok pq)

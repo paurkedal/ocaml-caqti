@@ -35,8 +35,8 @@ let dynamic_select i =
   let request_type = T.(unit -->! int) in
   Request.create Dynamic request_type (fun _ -> query)
 
-let is_promoted i = Int.hash i land 1 = 0
-let is_retained i = Int.hash i land 2 = 0
+let is_promoted i = Hashtbl.hash (i : int) land 1 = 0
+let is_retained i = Hashtbl.hash (i : int) land 2 = 0
 let is_orphaned i = not (is_promoted i || is_retained i)
 
 let test_hit_or_miss () =

@@ -1,4 +1,4 @@
-## unreleased
+## v2.2.0 - unreleased
 
 Improvements:
 
@@ -6,6 +6,29 @@ Improvements:
     (`Caqti_error.cause`) for integrity constraint violations.
   - There is now experimental support for Miou (#117 by Calascibetta
     Romain).
+  - The new library `caqti.template` provides a preview of a interface for
+    creating and working with request templates, with a few new features
+    and, I think, a tidier design.  This is not yet suitable for production
+    code, since it will change before the final version.  Feedback is
+    welcome.
+
+Fixes:
+
+  - Fixed a memory leak in the fall-back implementation of the `populate`
+    connection method which affects all except the postgresql drivers.
+
+Deprecations:
+
+  - `Caqti_request.query_id` is deprecated and will be removed.
+  - Constructors of `Caqti_type.t` are now fully private and will be moved
+    away and likely defined differently in the next major release.
+
+Dependency updates:
+
+  - Prepare for upcoming mirage (#124 by Hannes Mehnert).
+
+The following packages are updated in this release: caqti, caqti-lwt,
+caqti-miou, caqti-mirage, and all drivers.
 
 ## v2.1.2 - 2024-09-04
 
@@ -36,7 +59,7 @@ This release has been replaced by 2.1.1.
 
   - There is now TLS support for PGX.  The networking code (for PGX) was
     revised in the process, in particular the EIO variant is now buffered,
-    which improves performarce.  TLS implemantions are shipped as separate
+    which improves performance.  TLS implementations are shipped as separate
     packages (`caqti-tls*`) but `caqti-tls-async`, `caqti-tls-eio`, and
     `caqti-tls-lwt` should be considered experimental and will be omitted
     from the OPAM release for now.  On the other hand, `caqti-mirage` now

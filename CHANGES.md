@@ -1,4 +1,4 @@
-## v2.2.0 - unreleased
+## v2.2.0 - 2025-03-20
 
 Improvements:
 

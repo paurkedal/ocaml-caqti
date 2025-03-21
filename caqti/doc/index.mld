@@ -1,16 +1,5 @@
 {0 caqti index}
 
-{1 Library caqti.template}
-
-This library provides the interface to create templates for requests to send
-to the database.  A request template essentially combines a parametrised
-query string with a parameter encoder and a row decoder, and can often be
-defined statically.  Execution of queries are handled by other packages,
-depending on your preferred concurrency and OS libraries.
-
-The entry point of this library is the module:
-{!module-Caqti_template}
-
 {1 Library caqti}
 
 This is classic API for Caqti, which mirrors the above libray and provides
@@ -37,6 +26,21 @@ This library exposes the following toplevel modules:
     Caqti_type
     Caqti_type_sig
 }
+
+{1 Preview library caqti.template}
+
+For now, {b this library is provides as a preview only.  The interface will
+change in incompatible ways} before it's declared ready for usage in
+production code.
+
+This library provides the interface to create templates for requests to send
+to the database.  A request template essentially combines a parametrised
+query string with a parameter encoder and a row decoder, and can often be
+defined statically.  Execution of queries are handled by other packages,
+depending on your preferred concurrency and OS libraries.
+
+The entry point of this library is the module:
+{!module-Caqti_template}
 
 {1 Library caqti.blocking}
 

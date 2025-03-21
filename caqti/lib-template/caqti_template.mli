@@ -21,8 +21,7 @@
 (** {2 Primitives}
 
     These modules are part of the stable API, but the casual user may find it
-    sufficient to use the top-level definitions and reexports described in the
-    following sections. *)
+    sufficient to use the {!Create} module. *)
 
 (** {3 Prerequisities} *)
 

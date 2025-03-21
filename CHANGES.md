@@ -1,3 +1,11 @@
+## v2.2.1 - 2025-03-21
+
+A few minor fixes discovered while making the 2.2.0 release:
+
+  - Restored compatibility with OCaml before 5.1 in a test code.
+  - Make it clear in the documentation that caqti.template is a preview.
+  - Fixed version constraint for lru.
+
 ## v2.2.0 - 2025-03-20
 
 Improvements:

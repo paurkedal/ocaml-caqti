@@ -27,7 +27,7 @@ let dialect =
 
 let static_select =
   let open Caqti_template.Create in
-  static T.(unit -->! int) "SELECT 0"
+  static T.(unit -->! int) "SELECT -1"
 
 let dynamic_select i =
   let open Caqti_template.Create in
@@ -46,20 +46,24 @@ let test_hit_or_miss () =
   let retained = List.filter is_retained all in
   let orphaned = List.filter is_orphaned all in
   let retained_requests = Queue.create () in
-  let cache =
-    Cache.create ~dynamic_capacity:(n - List.length orphaned) dialect
-  in
+  let dynamic_capacity = n - List.length orphaned in
+  let cache = Cache.create ~dynamic_capacity dialect in
   Cache.add cache static_select (-1);
+  let promote_upto j =
+    promoted |> List.iter begin fun i ->
+      if i < j then
+        let elt = Cache.find_and_promote cache (dynamic_select i) in
+        A.(check (option int)) "promote" (Some i) elt
+    end
+  in
   for i = 0 to n - 1 do
-    A.(check int) "weight" i (Cache.dynamic_weight cache);
+    if i < dynamic_capacity then
+      A.(check int) "weight" i (Cache.dynamic_weight cache);
     let request = dynamic_select i in
     if is_retained i then Queue.add request retained_requests;
-    Cache.add cache request i
+    Cache.add cache request i;
+    if is_orphaned i then promote_upto i
   done;
-  promoted |> List.iter begin fun i ->
-    let elt = Cache.find_and_promote cache (dynamic_select i) in
-    A.(check (option int)) "promote" (Some i) elt
-  end;
 
   Gc.compact ();
 

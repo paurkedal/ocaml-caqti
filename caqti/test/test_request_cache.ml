@@ -65,6 +65,8 @@ let test_hit_or_miss () =
     if is_orphaned i then promote_upto i
   done;
 
+  (* The second Gc.compact call is needed for OCaml 5.0.0 and 5.1.1. *)
+  Gc.compact ();
   Gc.compact ();
 
   let trimmed, commit = Cache.trim ~max_promote_count:n cache in

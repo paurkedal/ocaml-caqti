@@ -24,21 +24,28 @@ module Resource = struct
   }
 
   let alive = Hashtbl.create 17
+  let alive_mutex = Mutex.create ()
 
-  let latest_id = ref 0
+  let with_alive_locked f =
+    Mutex.lock alive_mutex;
+    Fun.protect ~finally:(fun () -> Mutex.unlock alive_mutex) f
+
+  let latest_id = Atomic.make 0
 
   let create () =
-    incr latest_id;
-    Hashtbl.add alive !latest_id ();
-    Ok {id = !latest_id; use_count = Atomic.make 0}
+    let id = Atomic.fetch_and_add latest_id 1 in
+    with_alive_locked (fun () -> Hashtbl.add alive id ());
+    Ok {id; use_count = Atomic.make 0}
 
   let create_or_fail () =
     if Random.int 4 = 0 then Error () else
     create ()
 
   let free resource =
-    assert (Hashtbl.mem alive resource.id);
-    Hashtbl.remove alive resource.id
+    with_alive_locked begin fun () ->
+      assert (Hashtbl.mem alive resource.id);
+      Hashtbl.remove alive resource.id
+    end
 end
 
 exception Timeout

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -95,7 +95,12 @@ struct
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
     mutable alarm: Alarm.t option;
+    mutex: Mutex.t;
   }
+
+  let with_lock pool f =
+    Mutex.lock pool.mutex;
+    Fun.protect ~finally:(fun () -> Mutex.unlock pool.mutex) f
 
 (*
   let configure c pool =
@@ -132,9 +137,10 @@ struct
       queue = Queue.create ();
       waiting = Taskq.empty;
       alarm = None;
+      mutex = Mutex.create ();
     }
 
-  let size {cur_size; _} = cur_size
+  let size pool = with_lock pool (fun () -> pool.cur_size)
 
   let wait ~priority pool =
     let semaphore = Semaphore.create () in
@@ -162,7 +168,7 @@ struct
          | Error err -> on_error (); Error err))
       (fun () -> on_error (); Fiber.return ())
 
-  let rec acquire ~priority pool =
+  let rec acquire_unlocked ~priority pool =
     if Queue.is_empty pool.queue then begin
       if pool.cur_size < pool.max_size then
         begin
@@ -171,7 +177,7 @@ struct
         end
       else
         wait ~priority pool >>= fun () ->
-        acquire ~priority pool
+        acquire_unlocked ~priority pool
     end else begin
       let entry = Queue.take pool.queue in
       pool.validate entry.resource >>= fun ok ->
@@ -227,7 +233,12 @@ struct
         in
         loop ())
 
+  let acquire ~priority pool =
+    with_lock pool (fun () -> acquire_unlocked ~priority pool)
+
   let release pool entry =
+    with_lock pool @@ fun () ->
+    entry.used_count <- entry.used_count + 1;
     if not (can_reuse pool entry) then begin
       pool.cur_size <- pool.cur_size - 1;
       pool.free entry.resource >|= fun () ->
@@ -255,9 +266,9 @@ struct
     acquire ~priority pool >>=? fun entry ->
     Fiber.finally
       (fun () -> f entry.resource)
-      (fun () -> entry.used_count <- entry.used_count + 1; release pool entry)
+      (fun () -> release pool entry)
 
-  let rec drain pool =
+  let rec drain_unlocked pool =
     if pool.cur_size = 0 then
       begin
         pool.alarm |> Option.iter begin fun alarm ->
@@ -272,7 +283,9 @@ struct
        | Some entry ->
           pool.cur_size <- pool.cur_size - 1;
           pool.free entry.resource) >>= fun () ->
-      drain pool
+      drain_unlocked pool
+
+  let drain pool = with_lock pool (fun () -> drain_unlocked pool)
 
 end
 

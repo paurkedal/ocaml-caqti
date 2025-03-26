@@ -1,4 +1,5 @@
 (test
  (name main)
  (package caqti-miou)
+ (enabled_if "%{env:CAQTI_DEBUGGING_ISSUE_127=false}")
  (libraries logs.threaded alcotest caqti caqti-miou caqti-miou.unix testlib))

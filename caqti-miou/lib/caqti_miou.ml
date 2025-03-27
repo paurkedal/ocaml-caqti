@@ -35,33 +35,6 @@ end
 
 module Stream = Caqti_platform.Stream.Make (Fiber)
 
-module Semaphore = struct
-  type t = {
-    mutable value: int;
-    mutex: Miou.Mutex.t;
-    condition: Miou.Condition.t;
-  }
-
-  let create () =
-    {
-      value= 1;
-      mutex= Miou.Mutex.create ();
-      condition= Miou.Condition.create ();
-    }
-
-  let acquire t =
-    Miou.Mutex.protect t.mutex @@ fun () ->
-    while t.value <= 0 do
-      Miou.Condition.wait t.condition t.mutex
-    done;
-    t.value <- t.value - 1
-
-  let release t =
-    Miou.Mutex.protect t.mutex @@ fun () ->
-    t.value <- t.value + 1;
-    Miou.Condition.signal t.condition
-end
-
 module Log = struct
   type 'a log = 'a Logs.log
 
@@ -200,7 +173,7 @@ module System_core = struct
   module Stream = Stream
   module Switch = Switch
   module Mutex = Miou.Mutex
-  module Semaphore = Semaphore
+  module Condition = Miou.Condition
   module Log = Log
   module Sequencer = Sequencer
 

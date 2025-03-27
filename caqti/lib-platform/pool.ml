@@ -66,8 +66,8 @@ struct
     m >>= function Ok x -> f x | Error e -> Fiber.return (Error e)
 
   module Task = struct
-    type t = {priority: float; semaphore: Semaphore.t}
-    let wake {semaphore; _} = Semaphore.release semaphore
+    type t = {priority: float; condition: Condition.t}
+    let wake {condition; _} = Condition.signal condition
     let compare {priority = pA; _} {priority = pB; _} = Float.compare pB pA
   end
 
@@ -140,11 +140,10 @@ struct
 
   let size pool = pool.cur_size (* TODO: atomic *)
 
-  let unlock_wait ~priority pool =
-    let semaphore = Semaphore.create () in
-    pool.waiting <- Taskq.push Task.({priority; semaphore}) pool.waiting;
-    Mutex.unlock pool.mutex;
-    Semaphore.acquire semaphore
+  let wait_lck ~priority pool =
+    let condition = Condition.create () in
+    pool.waiting <- Taskq.push Task.({priority; condition}) pool.waiting;
+    Condition.wait condition pool.mutex
 
   let schedule_lck pool =
     if not (Taskq.is_empty pool.waiting) then begin
@@ -174,6 +173,8 @@ struct
 
   let rec acquire ~priority pool =
     Mutex.lock pool.mutex >>= fun () ->
+    acquire_and_unlock ~priority pool
+  and acquire_and_unlock ~priority pool =
     if Queue.is_empty pool.queue then begin
       if pool.cur_size < pool.max_size then
         begin
@@ -183,8 +184,8 @@ struct
         end
       else
         begin
-          unlock_wait ~priority pool >>= fun () ->
-          acquire ~priority pool
+          wait_lck ~priority pool >>= fun () ->
+          acquire_and_unlock ~priority pool
         end
     end else begin
       let entry = Queue.take pool.queue in
@@ -289,6 +290,8 @@ struct
 
   let rec drain pool =
     Mutex.lock pool.mutex >>= fun () ->
+    drain_and_unlock pool
+  and drain_and_unlock pool =
     if pool.cur_size = 0 then
       begin
         pool.alarm |> Option.iter begin fun alarm ->
@@ -301,12 +304,13 @@ struct
     else
       (match Queue.take_opt pool.queue with
        | None ->
-          unlock_wait ~priority:0.0 pool
+          wait_lck ~priority:0.0 pool >>= fun () ->
+          drain_and_unlock pool
        | Some entry ->
           pool.cur_size <- pool.cur_size - 1;
           Mutex.unlock pool.mutex;
-          pool.free entry.resource) >>= fun () ->
-      drain pool
+          pool.free entry.resource >>= fun () ->
+          drain pool)
 
 end
 

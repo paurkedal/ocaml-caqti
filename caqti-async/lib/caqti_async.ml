@@ -78,11 +78,11 @@ module System_core = struct
     let unlock m = Mvar.take_now_exn m
   end
 
-  module Semaphore = struct
-    type t = unit Ivar.t
-    let create = Ivar.create
-    let release v = Ivar.fill_exn v ()
-    let acquire v = Ivar.read v
+  module Condition = struct
+    include Async_kernel.Condition
+    type nonrec t = unit t
+    let wait c m = Mutex.unlock m; wait c >>= fun () -> Mutex.lock m
+    let signal c = signal c ()
   end
 
   module Switch = Caqti_platform.Switch.Make (Fiber)

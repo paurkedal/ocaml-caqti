@@ -48,12 +48,10 @@ module Stream = Caqti_platform.Stream.Make (Fiber)
 
 module Mutex = Eio.Mutex
 
-module Semaphore = struct
-  type t = Eio.Semaphore.t
-
-  let create () = Eio.Semaphore.make 0
-  let release = Eio.Semaphore.release
-  let acquire = Eio.Semaphore.acquire
+module Condition = struct
+  include Eio.Condition
+  let wait = await
+  let signal = broadcast (* does not matter for our purpose *)
 end
 
 module Log = struct

@@ -44,11 +44,11 @@ module System_core = struct
 
   module Mutex = Lwt_mutex
 
-  module Semaphore = struct
-    type t = unit Lwt_mvar.t
-    let create = Lwt_mvar.create_empty
-    let release v = Lwt.async (Lwt_mvar.put v)
-    let acquire = Lwt_mvar.take
+  module Condition = struct
+    type t = unit Lwt_condition.t
+    let create = Lwt_condition.create
+    let wait c mutex = Lwt_condition.wait ~mutex c
+    let signal c = Lwt_condition.signal c ()
   end
 
   module Log = struct

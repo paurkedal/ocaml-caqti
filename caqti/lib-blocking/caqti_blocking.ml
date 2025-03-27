@@ -58,14 +58,7 @@ module System_core = struct
 
   module Mutex = Stdlib.Mutex
 
-  module Semaphore = struct
-    type t = bool ref
-    let create () = ref false
-    let release v = v := true
-    let acquire v =
-      if not !v then
-        failwith "Cannot acquire unreleased semaphore in blocking context."
-  end
+  module Condition = Stdlib.Condition
 
   module Log = struct
     type 'a log = 'a Logs.log

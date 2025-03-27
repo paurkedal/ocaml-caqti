@@ -87,11 +87,11 @@ module type CORE = sig
     val unlock : t -> unit
   end
 
-  module Semaphore : sig
+  module Condition : sig
     type t
     val create : unit -> t
-    val release : t -> unit
-    val acquire : t -> unit Fiber.t
+    val wait : t -> Mutex.t -> unit Fiber.t
+    val signal : t -> unit
   end
 
   module Log : sig

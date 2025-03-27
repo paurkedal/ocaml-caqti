@@ -136,8 +136,7 @@ let test_n n =
   (* NOTE(dinosaure): see the note below, we need to give a better chance to
      wait all tasks. *)
   with_timeout 5.0 wait_for_all;
-  (* FIXME(paurkedal): Re-enable after fixing #126
-  assert (Pool.size pool <= max_idle_size); *)
+  assert (Pool.size pool <= max_idle_size);
   assert (!wait_count = 0);
   Pool.drain pool;
   assert (Pool.size pool = 0);

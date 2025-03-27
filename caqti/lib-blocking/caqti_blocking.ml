@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -55,6 +55,8 @@ module System_core = struct
   let async ~sw:_ f = f ()
 
   module Stream = Stream
+
+  module Mutex = Stdlib.Mutex
 
   module Semaphore = struct
     type t = bool ref

@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -70,6 +70,13 @@ module System_core = struct
   let async ~sw:_ f = don't_wait_for (f ())
 
   module Stream = Stream
+
+  module Mutex = struct
+    type t = (unit, Core.read_write) Mvar.t
+    let create = Mvar.create
+    let lock m = Mvar.put m ()
+    let unlock m = Mvar.take_now_exn m
+  end
 
   module Semaphore = struct
     type t = unit Ivar.t

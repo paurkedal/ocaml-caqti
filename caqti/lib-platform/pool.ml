@@ -91,16 +91,14 @@ struct
     max_idle_age: Mtime.Span.t option;
     max_size: int;
     max_use_count: int option;
+
+    (* Mutable *)
+    mutex: Mutex.t;
     mutable cur_size: int;
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
     mutable alarm: Alarm.t option;
-    mutex: Mutex.t;
   }
-
-  let with_lock pool f =
-    Mutex.lock pool.mutex;
-    Fun.protect ~finally:(fun () -> Mutex.unlock pool.mutex) f
 
 (*
   let configure c pool =
@@ -140,14 +138,15 @@ struct
       mutex = Mutex.create ();
     }
 
-  let size pool = with_lock pool (fun () -> pool.cur_size)
+  let size pool = pool.cur_size (* TODO: atomic *)
 
-  let wait ~priority pool =
+  let unlock_wait ~priority pool =
     let semaphore = Semaphore.create () in
     pool.waiting <- Taskq.push Task.({priority; semaphore}) pool.waiting;
+    Mutex.unlock pool.mutex;
     Semaphore.acquire semaphore
 
-  let schedule pool =
+  let schedule_lck pool =
     if not (Taskq.is_empty pool.waiting) then begin
       let task, taskq = Taskq.pop_e pool.waiting in
       pool.waiting <- taskq;
@@ -156,46 +155,57 @@ struct
 
   let realloc pool =
     let on_error () =
+      Mutex.lock pool.mutex >|= fun () ->
       pool.cur_size <- pool.cur_size - 1;
-      schedule pool
+      schedule_lck pool;
+      Mutex.unlock pool.mutex
     in
     Fiber.cleanup
       (fun () ->
-        pool.create () >|=
+        pool.create () >>=
         (function
          | Ok resource ->
-            Ok {resource; used_count = 0; used_latest = Mtime_clock.now ()}
-         | Error err -> on_error (); Error err))
-      (fun () -> on_error (); Fiber.return ())
+            Fiber.return @@
+              Ok {resource; used_count = 0; used_latest = Mtime_clock.now ()}
+         | Error err ->
+            on_error () >|= fun () ->
+            Error err))
+      on_error
 
-  let rec acquire_unlocked ~priority pool =
+  let rec acquire ~priority pool =
+    Mutex.lock pool.mutex >>= fun () ->
     if Queue.is_empty pool.queue then begin
       if pool.cur_size < pool.max_size then
         begin
           pool.cur_size <- pool.cur_size + 1;
+          Mutex.unlock pool.mutex;
           realloc pool
         end
       else
-        wait ~priority pool >>= fun () ->
-        acquire_unlocked ~priority pool
+        begin
+          unlock_wait ~priority pool >>= fun () ->
+          acquire ~priority pool
+        end
     end else begin
       let entry = Queue.take pool.queue in
+      Mutex.unlock pool.mutex;
       pool.validate entry.resource >>= fun ok ->
       if ok then
         Fiber.return (Ok entry)
-      else begin
-        Log.warn ~src:pool.log_src (fun f ->
-          f "Dropped pooled connection due to invalidation.") >>= fun () ->
-        realloc pool
-      end
+      else
+        begin
+          Log.warn ~src:pool.log_src (fun f ->
+            f "Dropped pooled connection due to invalidation.") >>= fun () ->
+          realloc pool
+        end
     end
 
-  let can_reuse pool entry =
+  let can_reuse_lck pool entry =
     pool.cur_size <= pool.max_idle_size
      && Option.fold ~none:true ~some:(fun n -> entry.used_count < n)
           pool.max_use_count
 
-  let rec dispose_expiring pool =
+  let rec dispose_expiring_lck pool =
     (match pool.max_idle_age, pool.alarm with
      | None, None -> ()
      | Some _, Some _ -> ()
@@ -228,39 +238,48 @@ struct
                         ~sw:pool.switch ~stdenv:pool.stdenv expiry
                         begin fun () ->
                           pool.alarm <- None;
-                          dispose_expiring pool
+                          dispose_expiring_lck pool
                         end))
         in
         loop ())
 
-  let acquire ~priority pool =
-    with_lock pool (fun () -> acquire_unlocked ~priority pool)
-
   let release pool entry =
-    with_lock pool @@ fun () ->
+    Mutex.lock pool.mutex >>= fun () ->
     entry.used_count <- entry.used_count + 1;
-    if not (can_reuse pool entry) then begin
-      pool.cur_size <- pool.cur_size - 1;
-      pool.free entry.resource >|= fun () ->
-      schedule pool
-    end else begin
-      pool.check entry.resource begin fun ok ->
-        if ok then
-          begin
-            entry.used_latest <- Mtime_clock.now ();
-            Queue.add entry pool.queue;
-            dispose_expiring pool
-          end
-        else
-          begin
-            Logs.warn ~src:pool.log_src (fun f ->
-              f "Will not repool connection due to invalidation.");
-            pool.cur_size <- pool.cur_size - 1
-          end;
-        schedule pool
-      end;
-      Fiber.return ()
-    end
+    if not (can_reuse_lck pool entry) then
+      begin
+        pool.cur_size <- pool.cur_size - 1;
+        Mutex.unlock pool.mutex;
+        pool.free entry.resource >>= fun () ->
+        Mutex.lock pool.mutex >|= fun () ->
+        schedule_lck pool;
+        Mutex.unlock pool.mutex
+      end
+    else
+      begin
+        Mutex.unlock pool.mutex;
+        (* TODO: Consider changing the signature of check to return a bool
+         * Fiber.t to avoid the async call. *)
+        pool.check entry.resource begin fun ok ->
+          async ~sw:pool.switch @@ fun () ->
+          Mutex.lock pool.mutex >|= fun () ->
+          if ok then
+            begin
+              entry.used_latest <- Mtime_clock.now ();
+              Queue.add entry pool.queue;
+              dispose_expiring_lck pool
+            end
+          else
+            begin
+              Logs.warn ~src:pool.log_src (fun f ->
+                f "Will not repool connection due to invalidation.");
+              pool.cur_size <- pool.cur_size - 1
+            end;
+          schedule_lck pool;
+          Mutex.unlock pool.mutex
+        end;
+        Fiber.return ()
+      end
 
   let use ?(priority = 0.0) f pool =
     acquire ~priority pool >>=? fun entry ->
@@ -268,24 +287,26 @@ struct
       (fun () -> f entry.resource)
       (fun () -> release pool entry)
 
-  let rec drain_unlocked pool =
+  let rec drain pool =
+    Mutex.lock pool.mutex >>= fun () ->
     if pool.cur_size = 0 then
       begin
         pool.alarm |> Option.iter begin fun alarm ->
           Alarm.unschedule alarm;
           pool.alarm <- None
         end;
-      Fiber.return ()
+        Mutex.unlock pool.mutex;
+        Fiber.return ()
       end
     else
       (match Queue.take_opt pool.queue with
-       | None -> wait ~priority:0.0 pool
+       | None ->
+          unlock_wait ~priority:0.0 pool
        | Some entry ->
           pool.cur_size <- pool.cur_size - 1;
+          Mutex.unlock pool.mutex;
           pool.free entry.resource) >>= fun () ->
-      drain_unlocked pool
-
-  let drain pool = with_lock pool (fun () -> drain_unlocked pool)
+      drain pool
 
 end
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -79,6 +79,13 @@ module type CORE = sig
 
   val async : sw: Switch.t -> (unit -> unit Fiber.t) -> unit
   (** [async f] runs [f ()] asynchroneously if possible, else immediately. *)
+
+  module Mutex : sig
+    type t
+    val create : unit -> t
+    val lock : t -> unit Fiber.t
+    val unlock : t -> unit
+  end
 
   module Semaphore : sig
     type t

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,6 +45,8 @@ module Fiber = struct
 end
 
 module Stream = Caqti_platform.Stream.Make (Fiber)
+
+module Mutex = Eio.Mutex
 
 module Semaphore = struct
   type t = Eio.Semaphore.t

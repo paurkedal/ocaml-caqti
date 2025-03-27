@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -199,6 +199,7 @@ module System_core = struct
   module Fiber = Fiber
   module Stream = Stream
   module Switch = Switch
+  module Mutex = Miou.Mutex
   module Semaphore = Semaphore
   module Log = Log
   module Sequencer = Sequencer

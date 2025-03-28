@@ -142,10 +142,10 @@ let test_n n =
       Alcotest.failf "%d resources left in pool, expected at most %d"
         (Pool.size pool) max_idle_size
   end;
-  assert (!wait_count = 0);
+  Alcotest.(check int) "still waiting" 0 !wait_count;
   Pool.drain pool;
-  assert (Pool.size pool = 0);
-  assert (Hashtbl.length Resource.alive = 0)
+  Alcotest.(check int) "pool size after drain" 0 (Pool.size pool);
+  Alcotest.(check int) "alive after drain" 0 (Hashtbl.length Resource.alive)
 
 let test () =
   Miou_unix.run @@ fun () ->

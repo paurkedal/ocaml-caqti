@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -105,10 +105,10 @@ let test_n n =
   in
   Lwt_unix.with_timeout 2.0 wait_for_all >>= fun () ->
   assert (Pool.size pool <= max_idle_size);
-  assert (!wait_count = 0);
+  Alcotest.(check int) "still waiting" 0 !wait_count;
   Pool.drain pool >|= fun () ->
-  assert (Pool.size pool = 0);
-  assert (Hashtbl.length Resource.alive = 0)
+  Alcotest.(check int) "pool size after drain" 0 (Pool.size pool);
+  Alcotest.(check int) "alive after drain" 0 (Hashtbl.length Resource.alive)
 
 let test _ () =
   test_n 0 >>= fun () ->

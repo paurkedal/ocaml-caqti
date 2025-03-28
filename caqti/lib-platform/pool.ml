@@ -62,6 +62,11 @@ struct
   open System
   open System.Fiber.Infix
 
+  type reaper_state =
+    | Idle
+    | Working
+    | Waiting of Alarm.t
+
   let (>>=?) m f =
     m >>= function Ok x -> f x | Error e -> Fiber.return (Error e)
 
@@ -97,7 +102,7 @@ struct
     mutable cur_size: int;
     queue: 'a entry Queue.t;
     mutable waiting: Taskq.t;
-    mutable alarm: Alarm.t option;
+    mutable reaper_state: reaper_state;
   }
 
 (*
@@ -134,7 +139,7 @@ struct
       cur_size = 0;
       queue = Queue.create ();
       waiting = Taskq.empty;
-      alarm = None;
+      reaper_state = Idle;
       mutex = Mutex.create ();
     }
 
@@ -206,43 +211,57 @@ struct
      && Option.fold ~none:true ~some:(fun n -> entry.used_count < n)
           pool.max_use_count
 
-  let rec dispose_expiring_lck pool =
-    (match pool.max_idle_age, pool.alarm with
-     | None, None -> ()
-     | Some _, Some _ -> ()
-     | None, Some alarm ->
+  let dispose_expiring_lck pool =
+    let rec process_queue_lck () =
+      (* We hold the lock and only release it while freeing resources, which
+       * means that some other operations may have been processed right before
+       * each recursive call. *)
+      (match Queue.peek_opt pool.queue, pool.max_idle_age with
+       | None, _ | _, None -> Fiber.return ()
+       | Some entry, Some max_idle_age ->
+          let now = Mtime_clock.now () in
+          (match Mtime.add_span entry.used_latest max_idle_age with
+           | None ->
+              Logs.warn ~src:pool.log_src (fun f -> f
+                "Cannot schedule pool expiration check due to \
+                 Mtime overflow.");
+              pool.reaper_state <- Idle;
+              Fiber.return ()
+           | Some expiry when Mtime.compare now expiry < 0 ->
+              let alarm =
+                Alarm.schedule
+                  ~sw:pool.switch ~stdenv:pool.stdenv
+                  expiry on_alarm
+              in
+              pool.reaper_state <- Waiting alarm;
+              Fiber.return ()
+           | Some _ ->
+              let entry = Queue.take pool.queue in
+              pool.cur_size <- pool.cur_size - 1;
+              Mutex.unlock pool.mutex;
+              pool.free entry.resource >>= fun () ->
+              Mutex.lock pool.mutex >>= fun () ->
+              assert (pool.reaper_state = Working);
+              process_queue_lck ()))
+    and on_alarm () =
+      async ~sw:pool.switch begin fun () ->
+        Mutex.lock pool.mutex >>= fun () ->
+        pool.reaper_state <- Working;
+        process_queue_lck () >|= fun () ->
+        Mutex.unlock pool.mutex
+      end
+    in
+    (match pool.reaper_state, pool.max_idle_age with
+     | Idle, None | Working, _ | Waiting _, Some _ ->
+        Fiber.return ()
+     | Idle, Some _ ->
+        pool.reaper_state <- Working;
+        process_queue_lck ()
+     | Waiting alarm, None ->
+        (* Not reachable unless live reconfiguration is implemented. *)
         Alarm.unschedule alarm;
-        pool.alarm <- None
-     | Some max_idle_age, None ->
-        let now = Mtime_clock.now () in
-        let rec loop () =
-          (match Queue.peek_opt pool.queue with
-           | None -> ()
-           | Some entry ->
-              (match Mtime.add_span entry.used_latest max_idle_age with
-               | None ->
-                  Logs.warn ~src:pool.log_src (fun f -> f
-                    "Cannot schedule pool expiration check due to \
-                     Mtime overflow.")
-               | Some expiry ->
-                  if Mtime.compare now expiry >= 0 then
-                    begin
-                      let entry = Queue.take pool.queue in
-                      pool.cur_size <- pool.cur_size - 1;
-                      async ~sw:pool.switch
-                        (fun () -> pool.free entry.resource);
-                      loop ()
-                    end
-                  else
-                    pool.alarm <- Option.some @@
-                      Alarm.schedule
-                        ~sw:pool.switch ~stdenv:pool.stdenv expiry
-                        begin fun () ->
-                          pool.alarm <- None;
-                          dispose_expiring_lck pool
-                        end))
-        in
-        loop ())
+        pool.reaper_state <- Idle;
+        Fiber.return ())
 
   let release pool entry =
     Mutex.lock pool.mutex >>= fun () ->
@@ -263,19 +282,22 @@ struct
          * Fiber.t to avoid the async call. *)
         pool.check entry.resource begin fun ok ->
           async ~sw:pool.switch @@ fun () ->
-          Mutex.lock pool.mutex >|= fun () ->
-          if ok then
-            begin
-              entry.used_latest <- Mtime_clock.now ();
-              Queue.add entry pool.queue;
-              dispose_expiring_lck pool
-            end
-          else
-            begin
-              Logs.warn ~src:pool.log_src (fun f ->
-                f "Will not repool connection due to invalidation.");
-              pool.cur_size <- pool.cur_size - 1
-            end;
+          Mutex.lock pool.mutex >>= fun () ->
+          begin
+            if ok then
+              begin
+                entry.used_latest <- Mtime_clock.now ();
+                Queue.add entry pool.queue;
+                dispose_expiring_lck pool
+              end
+            else
+              begin
+                Logs.warn ~src:pool.log_src (fun f ->
+                  f "Will not repool connection due to invalidation.");
+                pool.cur_size <- pool.cur_size - 1;
+                Fiber.return ()
+              end
+          end >|= fun () ->
           schedule_lck pool;
           Mutex.unlock pool.mutex
         end;
@@ -294,10 +316,11 @@ struct
   and drain_and_unlock pool =
     if pool.cur_size = 0 then
       begin
-        pool.alarm |> Option.iter begin fun alarm ->
-          Alarm.unschedule alarm;
-          pool.alarm <- None
-        end;
+        (match pool.reaper_state with
+         | Idle | Working -> ()
+         | Waiting alarm ->
+            Alarm.unschedule alarm;
+            pool.reaper_state <- Idle);
         Mutex.unlock pool.mutex;
         Fiber.return ()
       end

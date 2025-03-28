@@ -1,7 +1,11 @@
+## v2.2.3 - 2025-03-28
+
+  - Make the pool implementation shared-memory safe.
+
 ## v2.2.2 - 2025-03-25
 
-Fix one test and comment out a failing assertion in another test, the latter
-awaiting solution to #126.
+  - Fix one test and comment out a failing assertion in another test, the
+    latter awaiting solution to #126.
 
 ## v2.2.1 - 2025-03-21
 

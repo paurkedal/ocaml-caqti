@@ -1,3 +1,8 @@
+## v2.2.4 - 2025-03-28
+
+  - Remove Stdlib qualification from caqti.blocking to restore compatibility
+    with OCaml 4.
+
 ## v2.2.3 - 2025-03-28
 
   - Make the pool implementation shared-memory safe.

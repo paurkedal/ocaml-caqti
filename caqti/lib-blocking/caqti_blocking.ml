@@ -56,9 +56,9 @@ module System_core = struct
 
   module Stream = Stream
 
-  module Mutex = Stdlib.Mutex
+  module Mutex = Mutex
 
-  module Condition = Stdlib.Condition
+  module Condition = Condition
 
   module Log = struct
     type 'a log = 'a Logs.log

@@ -291,7 +291,9 @@ struct
     struct
       open Connection_arg
 
-      let dialect = dialect
+      let dialect =
+        Dialect.create_mysql
+          ~server_version:(Version.of_string_unsafe (Mdb.get_server_info db)) ()
 
       let using_db_ref = ref false
       let using_db f =

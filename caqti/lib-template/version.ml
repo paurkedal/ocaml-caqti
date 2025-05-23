@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,8 @@
 
 type t = string
 
+let is_known v = v <> ""
+
 let rec skip_zeros_from s i =
   if i = String.length s || s.[i] <> '0' then i else
   skip_zeros_from s (i + 1)
@@ -27,11 +29,11 @@ let rec skip_digits_from s i =
    | '0'..'9' -> skip_digits_from s (i + 1)
    | _ -> i)
 
-let rec compare_with_empty_from v i =
-  if i = String.length v then 0 else
+let rec compare_with_empty v i j =
+  if i = j then 0 else
   (match v.[i] with
    | '~' -> -1
-   | '0' | '.' -> compare_with_empty_from v (i + 1)
+   | '0' | '.' | '-' -> compare_with_empty v (i + 1) j
    | _ -> 1)
 
 let compare_char chL chR =
@@ -40,14 +42,28 @@ let compare_char chL chR =
   if chR = '~' then +1 else
   Char.compare chL chR
 
+let skip_group s i =
+  (match String.index_from_opt s i '-' with
+   | None -> String.length s
+   | Some j -> j)
+
 let compare vL vR =
   let nL, nR = String.length vL, String.length vR in
   let rec start iL iR =
     if iL = nL && iR = nR then 0 else
-    if iL = nL then - compare_with_empty_from vR iR else
-    if iR = nR then + compare_with_empty_from vL iL else
+    if iL = nL then - compare_with_empty vR iR nR else
+    if iR = nR then + compare_with_empty vL iL nL else
     (match vL.[iL], vR.[iR] with
      | '.', '.' -> start (iL + 1) (iR + 1)
+     | '-', '-' -> start (iL + 1) (iR + 1)
+     | '.', '-' ->
+        let jL = skip_group vL (iL + 1) in
+        let c = compare_with_empty vL (iL + 1) jL in
+        if c <> 0 then +c else start jL iR
+     | '-', '.' ->
+        let jR = skip_group vR (iR + 1) in
+        let c = compare_with_empty vR (iR + 1) jR in
+        if c <> 0 then -c else start iL jR
      | '0'..'9', '0'..'9' ->
         let iL = skip_zeros_from vL iL in
         let iR = skip_zeros_from vR iR in
@@ -75,7 +91,8 @@ let compare vL vR =
 
 let equal vL vR = compare vL vR = 0
 
-let pp = Format.pp_print_string
+let pp ppf version =
+  Format.pp_print_string ppf (if is_known version then version else "[unknown]")
 
 let of_string_unsafe version = version
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,6 +34,10 @@ let versions = List.map (List.map Version.of_string_unsafe) [
   ["0.1"; "0.1.0"; "000.1.000"];
   ["0.1.0r1"; "00.001.0r1"; "000.1.000r1"];
   ["0.1r1"];
+  ["0.2~"];
+  ["0.2.0.000"];
+  ["0.2-2"];
+  ["0.2.1"];
   ["25.100"; "025.0100"];
 ]
 

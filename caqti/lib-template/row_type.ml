@@ -17,43 +17,22 @@
 
 open Shims
 
-exception Reject of string
+type annot = [`Redacted] (* TODO: Consider open type. *)
 
 module Private = struct
-
-  type _ record_serial = ..
-
-  type 'a product_id = {
-    serial: 'a record_serial;
-    is_serial: 'b. 'b record_serial -> ('a, 'b) Type.eq option;
-  }
-
-  let make_id (type a) () : a product_id =
-    let module M = struct
-      type _ record_serial += Serial : a record_serial
-    end in
-    let is_serial : type b. b record_serial -> (a, b) Type.eq option = function
-     | M.Serial -> Some Equal
-     | _ -> None
-    in
-    {serial = M.Serial; is_serial}
-
-  let unify_id {is_serial; _} {serial; _} = is_serial serial
-
   type _ t =
     | Field : 'a Field_type.t -> 'a t
     | Option : 'a t -> 'a option t
-    | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-    | Annot : [`Redacted] * 'a t -> 'a t
+    | Product : ('i, 'a) Constructor_type.t * 'i * ('i, 'a) product -> 'a t
+    | Annot : annot * 'a t -> 'a t
   and (_, _) product =
-    | Proj_end : ('a, 'a) product
-    | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
-
+    | Proj_end : ('a Constructor_type.return, 'a) product
+    | Proj : 'b t * ('a -> 'b) * ('i, 'a) product -> ('b -> 'i, 'a) product
 end
 open Private
 
 type 'a t = 'a Private.t
-type ('a, 'b) product = ('a, 'b) Private.product
+type ('i, 'a) product = ('i, 'a) Private.product
 
 type any = Any : 'a t -> any
 
@@ -63,90 +42,82 @@ let rec unify : type a b. a t -> b t -> (a, b) Type.eq option =
    | Field ft1, Field ft2 -> Field_type.unify ft1 ft2
    | Field _, _ | _, Field _ -> None
    | Option t1, Option t2 ->
-      (match unify t1 t2 with None -> None | Some Equal -> Some Equal)
+      (match unify t1 t2 with
+       | None -> None
+       | Some Equal -> Some Equal)
    | Option _, _ | _, Option _ -> None
-   | Product (id1, _, _), Product (id2, _, _) -> unify_id id1 id2
+   | Product (name1, _, pt1), Product (name2, _, pt2) ->
+      (match Constructor_type.unify name1 name2 with
+       | Some dep -> unify_product pt1 pt2 dep
+       | None -> None)
    | Product _, _ | _, Product _ -> None
    | Annot (`Redacted, t1), Annot (`Redacted, t2) -> unify t1 t2)
+and unify_product
+  : type i j a b. (i, a) product -> (j, b) product ->
+    (i, j) Constructor_type.dep_eq -> (a, b) Type.eq option =
+  fun pt1 pt2 deq ->
+  (match pt1, pt2, deq with
+   | Proj_end, Proj_end, Eq -> Some Type.Equal
+   | Proj (t1, _, pt1), Proj (t2, _, pt2), Dep dep ->
+      (match unify t1 t2 with
+       | Some Type.Equal -> unify_product pt1 pt2 (dep Type.Equal)
+       | None -> None)
+   | _ -> .)
 
-let equal_option f x y =
-  (match x, y with
-   | None, None -> true
-   | Some x, Some y -> f x y
-   | None, Some _ | Some _, None -> false)
-let rec equal_value : type a. a t -> a -> a -> bool =
+(* length *)
+
+let rec length : type a. a t -> int =
   (function
-   | Field ft -> Field_type.equal_value ft
-   | Option t -> equal_option (equal_value t)
-   | Product (_, _, prod) -> equal_value_prod prod
-   | Annot (_, t) -> equal_value t)
-and equal_value_prod : type a i. (a, i) product -> a -> a -> bool =
+   | Field _ -> 1
+   | Option t -> length t
+   | Product (_, _, pt) -> length_product pt
+   | Annot (_, t) -> length t)
+and length_product : type a i. (i, a) product -> int =
   (function
-   | Proj_end -> fun _ _ -> true
-   | Proj (t, p, prod) ->
-      let eq_first = equal_value t in
-      let eq_rest = equal_value_prod prod in
-      fun x y -> eq_first (p x) (p y) && eq_rest x y)
+   | Proj_end -> 0
+   | Proj (t, _, pt) -> length t + length_product pt)
 
-let rec length : type a. a t -> int = function
- | Field _ -> 1
- | Option t -> length t
- | Product (_, _, prod) ->
-    let rec loop : type a i. (a, i) product -> _ -> _ = function
-     | Proj_end -> Fun.id
-     | Proj (t, _, prod) -> fun n -> loop prod (n + length t)
-    in
-    loop prod 0
- | Annot (_, t) -> length t
+(* pp *)
 
-let rec pp_at : type a. int -> Format.formatter -> a t -> unit =
-    fun prec ppf -> function
- | Field ft -> Format.pp_print_string ppf (Field_type.to_string ft)
- | Option t -> pp_at 1 ppf t; Format.pp_print_string ppf " option"
- | Product (_, _, Proj_end) -> Format.pp_print_string ppf "unit"
- | Product (_, _, Proj (t0, _, prod)) ->
-    if prec > 0 then Format.pp_print_char ppf '(';
-    let rec loop : type a i. (a, i) product -> _ = function
-     | Proj_end -> ()
-     | Proj (t, _, prod) ->
+let rec pp : type a. a t -> int -> Format.formatter -> unit -> unit =
+  (function
+   | Field ft ->
+      let string_of_ft = Field_type.to_string ft in
+      fun _ ppf () -> Format.pp_print_string ppf string_of_ft
+   | Option t ->
+      let pp_t = pp t 1 in
+      fun _ ppf () -> Format.fprintf ppf "@[%a@ option@]" pp_t ()
+   | Product (_, _, Proj_end) ->
+      fun _ ppf () -> Format.pp_print_string ppf "unit"
+   | Product (_, _, Proj (t0, _, pt)) ->
+      let pp_t0 = pp t0 1 in
+      let pp_pt = pp_product_tail pt in
+      fun prec ->
+        fun ppf () ->
+          if prec > 0 then Format.pp_print_char ppf '(';
+          pp_t0 ppf ();
+          pp_pt ppf ();
+          if prec > 0 then Format.pp_print_char ppf ')'
+   | Annot (`Redacted, t) ->
+      let pp_t = pp t 1 in
+      fun _prec ppf () ->
+        pp_t ppf ();
+        Format.pp_print_string ppf " redacted")
+and pp_product_tail
+  : type a i. (i, a) product -> Format.formatter -> unit -> unit =
+  (function
+   | Proj_end -> fun _ () -> ()
+   | Proj (t, _, pt) ->
+      let pp_t = pp t 1 in
+      let pp_pt = pp_product_tail pt in
+      fun ppf () ->
         Format.pp_print_string ppf " × ";
-        pp_at 1 ppf t;
-        loop prod
-    in
-    pp_at 1 ppf t0;
-    loop prod;
-    if prec > 0 then Format.pp_print_char ppf ')'
- | Annot (`Redacted, t) ->
-    pp_at 1 ppf t;
-    Format.pp_print_string ppf " redacted"
+        pp_t ppf ();
+        pp_pt ppf ())
 
-let pp ppf = pp_at 0 ppf
-let pp_any ppf (Any t) = pp_at 0 ppf t
-
-let rec pp_value : type a. _ -> a t * a -> unit = fun ppf -> function
- | Field ft, fv -> Field_type.pp_value ppf (ft, fv)
- | Option _, None -> Format.pp_print_string ppf "None"
- | Option t, Some x ->
-    Format.pp_print_string ppf "Some ";
-    pp_value ppf (t, x)
- | Product (_, _, prod), x ->
-    let rec loop : type i. int -> (a, i) product -> _ = fun i -> function
-     | Proj_end -> ()
-     | Proj (t, p, prod) ->
-        if i > 0 then Format.pp_print_string ppf ", ";
-        pp_value ppf (t, p x);
-        loop (i + 1) prod
-    in
-    loop 0 prod
- | Annot (`Redacted, _), _ ->
-    Format.pp_print_string ppf "#redacted#"
-
-let show t =
-  let buf = Buffer.create 64 in
-  let ppf = Format.formatter_of_buffer buf in
-  pp ppf t;
-  Format.pp_print_flush ppf ();
-  Buffer.contents buf
+let pp ppf t = pp t 1 ppf ()
+let pp_any ppf (Any t) = pp ppf t
+let show t = Format.asprintf "%a" pp t
 
 let field ft = Field ft
 
@@ -166,193 +137,660 @@ module type STD = sig
   val redacted : 'a t -> 'a t
   val unit : unit t
   val t2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
+  val elim_t2 : ('a1 * 'a2) t -> ('a1 t * 'a2 t) option
   val t3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
+  val elim_t3 : ('a1 * 'a2 * 'a3) t -> ('a1 t * 'a2 t * 'a3 t) option
   val t4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
+  val elim_t4 :
+    ('a1 * 'a2 * 'a3 * 'a4) t -> ('a1 t * 'a2 t * 'a3 t * 'a4 t) option
   val t5 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
+  val elim_t5 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t) option
   val t6 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
+  val elim_t6 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t) option
   val t7 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
+  val elim_t7 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t) option
   val t8 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
+  val elim_t8 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t) option
   val t9 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t
+  val elim_t9 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t)
+      option
   val t10 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t -> 'a10 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t
+  val elim_t10 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t) option
   val t11 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t -> 'a10 t -> 'a11 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t
+  val elim_t11 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t * 'a11 t) option
   val t12 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
+  val elim_t12 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11
+      * 'a12) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t * 'a11 t * 'a12 t) option
 end
 
 let option t = Option t
 
-let product intro prod = Product (make_id (), intro, prod)
+let rec derive_dep_eq
+  : type a i. (i, a) product -> (i, i) Constructor_type.dep_eq =
+  let open Constructor_type in
+  (function
+   | Proj_end -> Eq
+   | Proj (_, _, prod) -> Dep (fun Type.Equal -> derive_dep_eq prod))
+
+exception Reject of string
+
+let product : type i a. i -> (i, a) product -> a t =
+  fun intro prod ->
+    let open struct
+      open Constructor_type
+      type (_, _) tag += Tag : (i, a) tag
+      let unify_tag : type j b. (j, b) tag -> (i, j) dep_eq option =
+        (function
+         | Tag -> Some (derive_dep_eq prod)
+         | _ -> None)
+      let name = {tag = Tag; unify_tag}
+    end in
+    Product (name, intro, prod)
+
+let product' name intro prod = Product (name, intro, prod)
+
 let proj t p prod = Proj (t, p, prod)
 let proj_end = Proj_end
 
 let enum ~encode ~decode name =
-  let decode' y =
-    (match decode y with
-     | Ok x -> x
-     | Error msg -> raise (Reject msg))
+  product decode
+    @@ proj (Field (Enum name)) encode
+    @@ proj_end
+
+let unit = product (Ok ()) proj_end
+
+type (_, _) Constructor_type.tag +=
+  | T2 : (
+      'a0 -> 'a1 -> ('a0 * 'a1) Constructor_type.return,
+      'a0 * 'a1
+    ) Constructor_type.tag
+  | T3 : (
+      'a0 -> 'a1 -> 'a2 -> ('a0 * 'a1 * 'a2) Constructor_type.return,
+      'a0 * 'a1 * 'a2
+    ) Constructor_type.tag
+  | T4 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 ->
+      ('a0 * 'a1 * 'a2 * 'a3) Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3
+    ) Constructor_type.tag
+  | T5 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4) Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4
+    ) Constructor_type.tag
+  | T6 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5) Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5
+    ) Constructor_type.tag
+  | T7 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6
+    ) Constructor_type.tag
+  | T8 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 -> 'a7 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7
+    ) Constructor_type.tag
+  | T9 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 -> 'a7 -> 'a8 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8)
+        Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8
+    ) Constructor_type.tag
+  | T10 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 -> 'a7 -> 'a8 -> 'a9 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9)
+        Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9
+    ) Constructor_type.tag
+  | T11 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 -> 'a7 -> 'a8 -> 'a9 ->
+      'a10 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10)
+        Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10
+    ) Constructor_type.tag
+  | T12 : (
+      'a0 -> 'a1 -> 'a2 -> 'a3 -> 'a4 -> 'a5 -> 'a6 -> 'a7 -> 'a8 -> 'a9 ->
+      'a10 -> 'a11 ->
+      ('a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11)
+        Constructor_type.return,
+      'a0 * 'a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11
+    ) Constructor_type.tag
+
+let t2 =
+  let unify_tag
+    : type j b a0 a1.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> (a0 * a1) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T2 -> Some (Dep (fun Equal -> Dep (fun Equal -> Eq)))
+     | _ -> None)
   in
-  product decode' @@ proj (Field (Enum name)) encode @@ proj_end
-
-let unit = product () proj_end
-
-let t2 t1 t2 =
-  let intro x1 x2 = (x1, x2) in
-  product intro
-    @@ proj t1 fst
-    @@ proj t2 snd
+  fun t0 t1 ->
+    product' {tag = T2; unify_tag}
+      (fun x0 x1 -> Ok (x0, x1))
+    @@ proj t0 fst
+    @@ proj t1 snd
     @@ proj_end
 
-let t3 t1 t2 t3 =
-  let intro x1 x2 x3 = (x1, x2, x3) in
-  product intro
-    @@ proj t1 (fun (x, _, _) -> x)
-    @@ proj t2 (fun (_, x, _) -> x)
-    @@ proj t3 (fun (_, _, x) -> x)
+let elim_t2 : type a0 a1. (a0 * a1) t -> (a0 t * a1 t) option =
+  (function
+   | Product ({tag = T2; _}, _, Proj (t0, _, Proj (t1, _, Proj_end))) ->
+      Some (t0, t1)
+   | _ -> None)
+
+let t3 =
+  let unify_tag
+    : type j b a0 a1 a2.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> (a0 * a1 * a2) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T3 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq))))
+     | _ -> None)
+  in
+  fun t0 t1 t2 ->
+    product' {tag = T3; unify_tag}
+      (fun x0 x1 x2 -> Ok (x0, x1, x2))
+    @@ proj t0 (fun (x, _, _) -> x)
+    @@ proj t1 (fun (_, x, _) -> x)
+    @@ proj t2 (fun (_, _, x) -> x)
     @@ proj_end
 
-let t4 t1 t2 t3 t4 =
-  let intro x1 x2 x3 x4 = (x1, x2, x3, x4) in
-  product intro
-    @@ proj t1 (fun (x, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _) -> x)
-    @@ proj t4 (fun (_, _, _, x) -> x)
+let elim_t3 : type a0 a1 a2. (a0 * a1 * a2) t -> (a0 t * a1 t * a2 t) option =
+  (function
+   | Product ({tag = T3; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _, Proj_end)))) ->
+      Some (t0, t1, t2)
+   | _ -> None)
+
+let t4 =
+  let unify_tag
+    : type j b a0 a1 a2 a3.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> (a0 * a1 * a2 * a3) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T4 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq)))))
+     | _ -> None)
+  in
+  fun t0 t1 t2 t3 ->
+    product' {tag = T4; unify_tag}
+      (fun x0 x1 x2 x3 -> Ok (x0, x1, x2, x3))
+    @@ proj t0 (fun (x, _, _, _) -> x)
+    @@ proj t1 (fun (_, x, _, _) -> x)
+    @@ proj t2 (fun (_, _, x, _) -> x)
+    @@ proj t3 (fun (_, _, _, x) -> x)
     @@ proj_end
 
-let t5 t1 t2 t3 t4 t5 =
-  let intro x1 x2 x3 x4 x5 = (x1, x2, x3, x4, x5) in
-  product intro
-    @@ proj t1 (fun (x, _, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _, _) -> x)
-    @@ proj t4 (fun (_, _, _, x, _) -> x)
-    @@ proj t5 (fun (_, _, _, _, x) -> x)
+let elim_t4
+  : type a0 a1 a2 a3.
+    (a0 * a1 * a2 * a3) t -> (a0 t * a1 t * a2 t * a3 t) option =
+  (function
+   | Product ({tag = T4; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _, Proj_end))))) ->
+      Some (t0, t1, t2, t3)
+   | _ -> None)
+
+let t5 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 ->
+       (a0 * a1 * a2 * a3 * a4) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T5 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq))))))
+     | _ -> None)
+  in
+  fun t0 t1 t2 t3 t4 ->
+    product' {tag = T5; unify_tag}
+      (fun x0 x1 x2 x3 x4 -> Ok (x0, x1, x2, x3, x4))
+    @@ proj t0 (fun (x, _, _, _, _) -> x)
+    @@ proj t1 (fun (_, x, _, _, _) -> x)
+    @@ proj t2 (fun (_, _, x, _, _) -> x)
+    @@ proj t3 (fun (_, _, _, x, _) -> x)
+    @@ proj t4 (fun (_, _, _, _, x) -> x)
     @@ proj_end
 
-let t6 t1 t2 t3 t4 t5 t6 =
-  let intro x1 x2 x3 x4 x5 x6 = (x1, x2, x3, x4, x5, x6) in
-  product intro
-    @@ proj t1 (fun (x, _, _, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _, _, _) -> x)
-    @@ proj t4 (fun (_, _, _, x, _, _) -> x)
-    @@ proj t5 (fun (_, _, _, _, x, _) -> x)
-    @@ proj t6 (fun (_, _, _, _, _, x) -> x)
+let elim_t5
+  : type a0 a1 a2 a3 a4.
+    (a0 * a1 * a2 * a3 * a4) t -> (a0 t * a1 t * a2 t * a3 t * a4 t) option =
+  (function
+   | Product ({tag = T5; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _, Proj_end)))))) ->
+      Some (t0, t1, t2, t3, t4)
+   | _ -> None)
+
+let t6 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 ->
+       (a0 * a1 * a2 * a3 * a4 * a5) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T6 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq)))))))
+     | _ -> None)
+  in
+  fun t0 t1 t2 t3 t4 t5 ->
+    product' {tag = T6; unify_tag}
+      (fun x0 x1 x2 x3 x4 x5 -> Ok (x0, x1, x2, x3, x4, x5))
+    @@ proj t0 (fun (x, _, _, _, _, _) -> x)
+    @@ proj t1 (fun (_, x, _, _, _, _) -> x)
+    @@ proj t2 (fun (_, _, x, _, _, _) -> x)
+    @@ proj t3 (fun (_, _, _, x, _, _) -> x)
+    @@ proj t4 (fun (_, _, _, _, x, _) -> x)
+    @@ proj t5 (fun (_, _, _, _, _, x) -> x)
     @@ proj_end
 
-let t7 t1 t2 t3 t4 t5 t6 t7 =
-  let intro x1 x2 x3 x4 x5 x6 x7 = (x1, x2, x3, x4, x5, x6, x7) in
-  product intro
-    @@ proj t1 (fun (x, _, _, _, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _, _, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _, _, _, _) -> x)
-    @@ proj t4 (fun (_, _, _, x, _, _, _) -> x)
-    @@ proj t5 (fun (_, _, _, _, x, _, _) -> x)
-    @@ proj t6 (fun (_, _, _, _, _, x, _) -> x)
-    @@ proj t7 (fun (_, _, _, _, _, _, x) -> x)
-    @@ proj_end
+let elim_t6
+  : type a0 a1 a2 a3 a4 a5.
+    (a0 * a1 * a2 * a3 * a4 * a5) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t) option =
+  (function
+   | Product ({tag = T6; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _, Proj_end))))))) ->
+      Some (t0, t1, t2, t3, t4, t5)
+   | _ -> None)
 
-let t8 t1 t2 t3 t4 t5 t6 t7 t8 =
-  let intro x1 x2 x3 x4 x5 x6 x7 x8 = (x1, x2, x3, x4, x5, x6, x7, x8) in
-  product intro
-    @@ proj t1 (fun (x, _, _, _, _, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _, _, _, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _, _, _, _, _) -> x)
-    @@ proj t4 (fun (_, _, _, x, _, _, _, _) -> x)
-    @@ proj t5 (fun (_, _, _, _, x, _, _, _) -> x)
-    @@ proj t6 (fun (_, _, _, _, _, x, _, _) -> x)
-    @@ proj t7 (fun (_, _, _, _, _, _, x, _) -> x)
-    @@ proj t8 (fun (_, _, _, _, _, _, _, x) -> x)
-    @@ proj_end
+let t7 t0 t1 t2 t3 t4 t5 t6 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 ->
+       (a0 * a1 * a2 * a3 * a4 * a5 * a6) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T7 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq))))))))
+     | _ -> None)
+  in
+  product' {tag = T7; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 -> Ok (x0, x1, x2, x3, x4, x5, x6))
+  @@ proj t0 (fun (x, _, _, _, _, _, _) -> x)
+  @@ proj t1 (fun (_, x, _, _, _, _, _) -> x)
+  @@ proj t2 (fun (_, _, x, _, _, _, _) -> x)
+  @@ proj t3 (fun (_, _, _, x, _, _, _) -> x)
+  @@ proj t4 (fun (_, _, _, _, x, _, _) -> x)
+  @@ proj t5 (fun (_, _, _, _, _, x, _) -> x)
+  @@ proj t6 (fun (_, _, _, _, _, _, x) -> x)
+  @@ proj_end
+
+let elim_t7
+  : type a0 a1 a2 a3 a4 a5 a6.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t) option =
+  (function
+   | Product ({tag = T7; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _, Proj_end)))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6)
+   | _ -> None)
+
+let t8 t0 t1 t2 t3 t4 t5 t6 t7 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6 a7.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 ->
+       (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T8 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq)))))))))
+     | _ -> None)
+  in
+  product' {tag = T8; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 x7 -> Ok (x0, x1, x2, x3, x4, x5, x6, x7))
+  @@ proj t0 (fun (x, _, _, _, _, _, _, _) -> x)
+  @@ proj t1 (fun (_, x, _, _, _, _, _, _) -> x)
+  @@ proj t2 (fun (_, _, x, _, _, _, _, _) -> x)
+  @@ proj t3 (fun (_, _, _, x, _, _, _, _) -> x)
+  @@ proj t4 (fun (_, _, _, _, x, _, _, _) -> x)
+  @@ proj t5 (fun (_, _, _, _, _, x, _, _) -> x)
+  @@ proj t6 (fun (_, _, _, _, _, _, x, _) -> x)
+  @@ proj t7 (fun (_, _, _, _, _, _, _, x) -> x)
+  @@ proj_end
+
+let elim_t8
+  : type a0 a1 a2 a3 a4 a5 a6 a7.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t * a7 t) option =
+  (function
+   | Product ({tag = T8; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _,
+        Proj (t7, _, Proj_end))))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6, t7)
+   | _ -> None)
 
 let t9 t1 t2 t3 t4 t5 t6 t7 t8 t9 =
-  let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 =
-    (x1, x2, x3, x4, x5, x6, x7, x8, x9)
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6 a7 a8.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 ->
+       (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8) Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T9 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq))))))))))
+     | _ -> None)
   in
-  product intro
-    @@ proj t1 (fun (x, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t2 (fun (_, x, _, _, _, _, _, _, _) -> x)
-    @@ proj t3 (fun (_, _, x, _, _, _, _, _, _) -> x)
-    @@ proj t4 (fun (_, _, _, x, _, _, _, _, _) -> x)
-    @@ proj t5 (fun (_, _, _, _, x, _, _, _, _) -> x)
-    @@ proj t6 (fun (_, _, _, _, _, x, _, _, _) -> x)
-    @@ proj t7 (fun (_, _, _, _, _, _, x, _, _) -> x)
-    @@ proj t8 (fun (_, _, _, _, _, _, _, x, _) -> x)
-    @@ proj t9 (fun (_, _, _, _, _, _, _, _, x) -> x)
-    @@ proj_end
+  product' {tag = T9; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 x7 x8 ->
+      Ok (x0, x1, x2, x3, x4, x5, x6, x7, x8))
+  @@ proj t1 (fun (x, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t2 (fun (_, x, _, _, _, _, _, _, _) -> x)
+  @@ proj t3 (fun (_, _, x, _, _, _, _, _, _) -> x)
+  @@ proj t4 (fun (_, _, _, x, _, _, _, _, _) -> x)
+  @@ proj t5 (fun (_, _, _, _, x, _, _, _, _) -> x)
+  @@ proj t6 (fun (_, _, _, _, _, x, _, _, _) -> x)
+  @@ proj t7 (fun (_, _, _, _, _, _, x, _, _) -> x)
+  @@ proj t8 (fun (_, _, _, _, _, _, _, x, _) -> x)
+  @@ proj t9 (fun (_, _, _, _, _, _, _, _, x) -> x)
+  @@ proj_end
 
-let t10 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 =
-  let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 =
-    (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
-  in
-  product intro
-    @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _) -> x)
-    @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _) -> x)
-    @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _) -> x)
-    @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _) -> x)
-    @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _) -> x)
-    @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _) -> x)
-    @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _) -> x)
-    @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x) -> x)
-    @@ proj_end
+let elim_t9
+  : type a0 a1 a2 a3 a4 a5 a6 a7 a8.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t * a7 t * a8 t) option =
+  (function
+   | Product ({tag = T9; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _,
+        Proj (t7, _,
+        Proj (t8, _, Proj_end)))))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6, t7, t8)
+   | _ -> None)
 
-let t11 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 =
-  let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 =
-    (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11)
+let t10 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6 a7 a8 a9.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 ->
+       (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9)
+         Constructor_type.return, j) Constructor_type.dep_eq option =
+    (function
+     | T10 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq)))))))))))
+     | _ -> None)
   in
-  product intro
-    @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _, _) -> x)
-    @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _, _) -> x)
-    @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _, _) -> x)
-    @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _, _) -> x)
-    @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _, _) -> x)
-    @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _, _) -> x)
-    @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x, _) -> x)
-    @@ proj t11 (fun (_, _, _, _, _, _, _, _, _, _, x) -> x)
-    @@ proj_end
+  product' {tag = T10; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 ->
+      Ok (x0, x1, x2, x3, x4, x5, x6, x7, x8, x9))
+  @@ proj t0 (fun (x, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t1 (fun (_, x, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t2 (fun (_, _, x, _, _, _, _, _, _, _) -> x)
+  @@ proj t3 (fun (_, _, _, x, _, _, _, _, _, _) -> x)
+  @@ proj t4 (fun (_, _, _, _, x, _, _, _, _, _) -> x)
+  @@ proj t5 (fun (_, _, _, _, _, x, _, _, _, _) -> x)
+  @@ proj t6 (fun (_, _, _, _, _, _, x, _, _, _) -> x)
+  @@ proj t7 (fun (_, _, _, _, _, _, _, x, _, _) -> x)
+  @@ proj t8 (fun (_, _, _, _, _, _, _, _, x, _) -> x)
+  @@ proj t9 (fun (_, _, _, _, _, _, _, _, _, x) -> x)
+  @@ proj_end
 
-let t12 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 =
-  let intro x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 =
-    (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12)
+let elim_t10
+  : type a0 a1 a2 a3 a4 a5 a6 a7 a8 a9.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t * a7 t * a8 t * a9 t)
+      option =
+  (function
+   | Product ({tag = T10; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _,
+        Proj (t7, _,
+        Proj (t8, _,
+        Proj (t9, _, Proj_end))))))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
+   | _ -> None)
+
+let t11 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 -> a10 ->
+       (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10)
+         Constructor_type.return, j) Constructor_type.dep_eq option =
+    (function
+     | T11 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq))))))))))))
+     | _ -> None)
   in
-  product intro
-    @@ proj t1  (fun (x, _, _, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t2  (fun (_, x, _, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t3  (fun (_, _, x, _, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t4  (fun (_, _, _, x, _, _, _, _, _, _, _, _) -> x)
-    @@ proj t5  (fun (_, _, _, _, x, _, _, _, _, _, _, _) -> x)
-    @@ proj t6  (fun (_, _, _, _, _, x, _, _, _, _, _, _) -> x)
-    @@ proj t7  (fun (_, _, _, _, _, _, x, _, _, _, _, _) -> x)
-    @@ proj t8  (fun (_, _, _, _, _, _, _, x, _, _, _, _) -> x)
-    @@ proj t9  (fun (_, _, _, _, _, _, _, _, x, _, _, _) -> x)
-    @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, x, _, _) -> x)
-    @@ proj t11 (fun (_, _, _, _, _, _, _, _, _, _, x, _) -> x)
-    @@ proj t12 (fun (_, _, _, _, _, _, _, _, _, _, _, x) -> x)
-    @@ proj_end
+  product' {tag = T11; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 ->
+      Ok (x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10))
+  @@ proj t0  (fun (x, _, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t1  (fun (_, x, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t2  (fun (_, _, x, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t3  (fun (_, _, _, x, _, _, _, _, _, _, _) -> x)
+  @@ proj t4  (fun (_, _, _, _, x, _, _, _, _, _, _) -> x)
+  @@ proj t5  (fun (_, _, _, _, _, x, _, _, _, _, _) -> x)
+  @@ proj t6  (fun (_, _, _, _, _, _, x, _, _, _, _) -> x)
+  @@ proj t7  (fun (_, _, _, _, _, _, _, x, _, _, _) -> x)
+  @@ proj t8  (fun (_, _, _, _, _, _, _, _, x, _, _) -> x)
+  @@ proj t9  (fun (_, _, _, _, _, _, _, _, _, x, _) -> x)
+  @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, _, x) -> x)
+  @@ proj_end
+
+let elim_t11
+  : type a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t * a7 t * a8 t * a9 t
+      * a10 t) option =
+  (function
+   | Product ({tag = T11; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _,
+        Proj (t7, _,
+        Proj (t8, _,
+        Proj (t9, _,
+        Proj (t10, _, Proj_end)))))))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)
+   | _ -> None)
+
+let t12 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 =
+  let unify_tag
+    : type j b a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11.
+      (j, b) Constructor_type.tag ->
+      (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 -> a10 -> a11 ->
+        (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10 * a11)
+          Constructor_type.return, j)
+        Constructor_type.dep_eq option =
+    (function
+     | T12 ->
+        Some (Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal ->
+              Dep (fun Type.Equal -> Eq)))))))))))))
+     | _ -> None)
+  in
+  product' {tag = T12; unify_tag}
+    (fun x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 ->
+      Ok (x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11))
+  @@ proj t0  (fun (x, _, _, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t1  (fun (_, x, _, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t2  (fun (_, _, x, _, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t3  (fun (_, _, _, x, _, _, _, _, _, _, _, _) -> x)
+  @@ proj t4  (fun (_, _, _, _, x, _, _, _, _, _, _, _) -> x)
+  @@ proj t5  (fun (_, _, _, _, _, x, _, _, _, _, _, _) -> x)
+  @@ proj t6  (fun (_, _, _, _, _, _, x, _, _, _, _, _) -> x)
+  @@ proj t7  (fun (_, _, _, _, _, _, _, x, _, _, _, _) -> x)
+  @@ proj t8  (fun (_, _, _, _, _, _, _, _, x, _, _, _) -> x)
+  @@ proj t9  (fun (_, _, _, _, _, _, _, _, _, x, _, _) -> x)
+  @@ proj t10 (fun (_, _, _, _, _, _, _, _, _, _, x, _) -> x)
+  @@ proj t11 (fun (_, _, _, _, _, _, _, _, _, _, _, x) -> x)
+  @@ proj_end
+
+let elim_t12
+  : type a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11.
+    (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10 * a11) t ->
+    (a0 t * a1 t * a2 t * a3 t * a4 t * a5 t * a6 t * a7 t * a8 t * a9 t
+      * a10 t * a11 t) option =
+  (function
+   | Product ({tag = T12; _}, _,
+        Proj (t0, _,
+        Proj (t1, _,
+        Proj (t2, _,
+        Proj (t3, _,
+        Proj (t4, _,
+        Proj (t5, _,
+        Proj (t6, _,
+        Proj (t7, _,
+        Proj (t8, _,
+        Proj (t9, _,
+        Proj (t10, _,
+        Proj (t11, _, Proj_end))))))))))))) ->
+      Some (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
+   | _ -> None)
 
 let custom ~encode ~decode rep =
   let encode' x =
@@ -360,23 +798,18 @@ let custom ~encode ~decode rep =
      | Ok y -> y
      | Error msg -> raise (Reject msg))
   in
-  let decode' y =
-    (match decode y with
-     | Ok x -> x
-     | Error msg -> raise (Reject msg))
-  in
-  product decode' @@ proj rep encode' @@ proj_end
+  product decode @@ proj rep encode' @@ proj_end
 
 let redacted t = Annot (`Redacted, t)
 
-let bool = Field Bool
-let int = Field Int
-let int16 = Field Int16
-let int32 = Field Int32
-let int64 = Field Int64
-let float = Field Float
-let string = Field String
-let octets = Field Octets
-let pdate = Field Pdate
-let ptime = Field Ptime
-let ptime_span = Field Ptime_span
+let bool = field Bool
+let int = field Int
+let int16 = field Int16
+let int32 = field Int32
+let int64 = field Int64
+let float = field Float
+let string = field String
+let octets = field Octets
+let pdate = field Pdate
+let ptime = field Ptime
+let ptime_span = field Ptime_span

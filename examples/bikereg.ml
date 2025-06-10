@@ -44,7 +44,7 @@ module Q = struct
 
   let bike =
     let open Bike in
-    let intro frameno owner stolen = {frameno; owner; stolen} in
+    let intro frameno owner stolen = Ok {frameno; owner; stolen} in
     let open Caqti_template.Row_type in
     product intro
       @@ proj string (fun bike -> bike.frameno)

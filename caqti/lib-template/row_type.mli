@@ -17,33 +17,35 @@
 
 (** Database row types, also used for parameters. *)
 
+[@@@alert "-caqti_private"]
+
 open Shims
 
-(** {2:row_types Row Types} *)
+type annot = [`Redacted] (* TODO: Consider open type. *)
 
 (**/**)
 module Private : sig
 
-  type 'a product_id
-
-  type 'a t = private
+  type _ t =
     | Field : 'a Field_type.t -> 'a t
     | Option : 'a t -> 'a option t
-    | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-    | Annot : [`Redacted] * 'a t -> 'a t
-  and ('a, 'b) product = private
-    | Proj_end : ('a, 'a) product
-    | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+    | Product : ('i, 'a) Constructor_type.t * 'i * ('i, 'a) product -> 'a t
+    | Annot : annot * 'a t -> 'a t
+  and (_, _) product =
+    | Proj_end : ('a Constructor_type.return, 'a) product
+    | Proj : 'b t * ('a -> 'b) * ('i, 'a) product -> ('b -> 'i, 'a) product
 end
 [@@alert caqti_private
   "This module exposes the internal representation of row types, which may \
    change between minor relases without prior notice."]
 (**/**)
 
-type 'a t = 'a Private.t [@@alert "-caqti_private"]
+(** {2:row_types Row Types} *)
+
+type 'a t = 'a Private.t
 (** Type descriptor for row types. *)
 
-type ('a, 'b) product = ('a, 'b) Private.product [@@alert "-caqti_private"]
+type ('i, 'a) product = ('i, 'a) Private.product
 (** Type descriptor used for building cartesian products of row types. *)
 
 type any = Any : 'a t -> any
@@ -54,9 +56,6 @@ val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
     is the witness of the unification of their static type parameters, otherwise
     it is [None]. *)
 
-val equal_value : 'a t -> 'a -> 'a -> bool
-(** [equal_value t] is the equality predicate for values of row type [t]. *)
-
 val length : 'a t -> int
 (** [length t] is the number of fields used to represent [t]. *)
 
@@ -65,12 +64,6 @@ val pp : Format.formatter -> 'a t -> unit
 
 val pp_any : Format.formatter -> any -> unit
 (** [pp_any ppf t] prints a human presentation of [t] on [ppf]. *)
-
-val pp_value : Format.formatter -> 'a t * 'a -> unit
-(** [pp_value ppf (t, v)] prints a human representation of [v] given the type
-    descriptor [t]. This function is meant for debugging; the output is neither
-    guaranteed to be consistent across releases nor to contain a complete record
-    of the data. *)
 
 val show : 'a t -> string
 (** [show t] is a human presentation of [t]. *)
@@ -83,9 +76,10 @@ exception Reject of string
 (** Implementers of {!val-product} types may raise this exception to signal that
     a conversion cannot be carried out. *)
 
-val product : 'i -> ('a, 'i) product -> 'a t
-val proj : 'b t -> ('a -> 'b) -> ('a, 'i) product -> ('a, 'b -> 'i) product
-val proj_end : ('a, 'a) product
+val product : 'i -> ('i, 'a) product -> 'a t
+val product' : ('i, 'a) Constructor_type.t -> 'i -> ('i, 'a) product -> 'a t
+val proj : 'b t -> ('a -> 'b) -> ('i, 'a) product -> ('b -> 'i, 'a) product
+val proj_end : ('a Constructor_type.return, 'a) product
 (** Given a set of projection functions [p1 : t -> t1], ..., [pN : t -> tN] and
     a function [intro : t1 -> ... -> tN -> t] to reconstruct values of [t] from
     the projections,
@@ -253,31 +247,54 @@ module type STD = sig
   val t2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
   (** Creates a pair type. *)
 
+  val elim_t2 : ('a1 * 'a2) t -> ('a1 t * 'a2 t) option
+
   val t3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
   (** Creates a 3-tuple type. *)
 
+  val elim_t3 : ('a1 * 'a2 * 'a3) t -> ('a1 t * 'a2 t * 'a3 t) option
+
   val t4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
   (** Creates a 4-tuple type. *)
+
+  val elim_t4 :
+    ('a1 * 'a2 * 'a3 * 'a4) t -> ('a1 t * 'a2 t * 'a3 t * 'a4 t) option
 
   val t5 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t
   (** Creates a 5-tuple type. *)
 
+  val elim_t5 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t) option
+
   val t6 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t
   (** Creates a 6-tuple type. *)
+
+  val elim_t6 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t) option
 
   val t7 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t
   (** Creates a 7-tuple type. *)
 
+  val elim_t7 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t) option
+
   val t8 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t
   (** Creates a 8-tuple type. *)
+
+  val elim_t8 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t) option
 
   val t9 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
@@ -285,11 +302,21 @@ module type STD = sig
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t
   (** Creates a 9-tuple type. *)
 
+  val elim_t9 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t)
+      option
+
   val t10 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t -> 'a10 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t
   (** Creates a 10-tuple type. *)
+
+  val elim_t10 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t) option
 
   val t11 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
@@ -297,11 +324,22 @@ module type STD = sig
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t
   (** Creates a 11-tuple type. *)
 
+  val elim_t11 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t * 'a11 t) option
+
   val t12 :
     'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> 'a5 t -> 'a6 t -> 'a7 t -> 'a8 t ->
     'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
   (** Creates a 12-tuple type. *)
+
+  val elim_t12 :
+    ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11
+      * 'a12) t ->
+    ('a1 t * 'a2 t * 'a3 t * 'a4 t * 'a5 t * 'a6 t * 'a7 t * 'a8 t * 'a9 t
+      * 'a10 t * 'a11 t * 'a12 t) option
 
 end
 

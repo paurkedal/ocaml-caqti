@@ -17,18 +17,47 @@
 
 [@@@alert "-caqti_private"]
 
+open Caqti_template
 type ('a, 'b) eq = ('a, 'b) Caqti_template.Shims.Type.eq = Equal : ('a, 'a) eq
 module Field = Caqti_template.Field_type
 include Caqti_template.Row_type
-include Caqti_template.Row_type.Private
+let equal_value = Caqti_template.Row.equal
+let pp_value ppf (t, v) = Caqti_template.Row.pp t ppf v
+
+type (_, _) product =
+  | Proj_end : ('a, 'a) product
+  | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
+
+let field ft = Private.Field ft
+
 module Std = struct
   include (Caqti_template.Row_type : Caqti_template.Row_type.STD)
 
   (* moved away from STD signature *)
   let enum = enum
-  let product = product
-  let proj = proj
-  let proj_end = proj_end
+
+  type (_, _) rewritten_product =
+    | Rewritten_product :
+        ('i -> 'j) * ('j, 'a) Row_type.product ->
+        ('i, 'a) rewritten_product
+
+  let rec rewrite_product
+    : type i a. (a, i) product -> (i, a) rewritten_product =
+    (function
+     | Proj_end ->
+        Rewritten_product (Result.ok, Row_type.Private.Proj_end)
+     | Proj (t, p, tps) ->
+        let Rewritten_product (conv, ts') = rewrite_product tps in
+        let conv' f = fun x -> conv (f x) in
+        Rewritten_product (conv', Row_type.Private.Proj (t, p, ts')))
+
+  let product intro tps =
+    let Rewritten_product (conv, ts') = rewrite_product tps in
+    product (conv intro) ts'
+
+  let proj t p tps = Proj (t, p, tps)
+  let proj_end = Proj_end
+
   let custom = custom
 
   (* deprecated *)

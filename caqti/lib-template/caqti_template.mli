@@ -31,9 +31,11 @@ module Dialect = Dialect
 
 (** {3 Data Types} *)
 
+module Constructor_type = Constructor_type
 module Field_type = Field_type
 module Row_type = Row_type
 module Row_mult = Row_mult
+module Row = Row
 
 module Type : sig
   include Row_type.STD

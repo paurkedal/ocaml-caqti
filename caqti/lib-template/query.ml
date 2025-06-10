@@ -68,19 +68,29 @@ let ptime x = V (Field_type.Ptime, x)
 let ptime_span x = V (Field_type.Ptime_span, x)
 let const t v = V (t, v)
 
-let nulls t = List.init (Row_type.length t) (fun _ -> L"NULL")
-
-let rec const_fields : type a. a Row_type.t -> a -> t list =
+let rec const_fields_opt : type a. a Row_type.t -> a option -> t list =
   (function
-   | Field ft -> fun x -> [V (ft, x)]
-   | Option t -> (function None -> nulls t | Some x -> const_fields t x)
-   | Product (_, _, pt) -> const_fields_product pt
-   | Annot (_, t) -> const_fields t)
-and const_fields_product : type a i. (a, i) Row_type.product -> a -> t list =
+   | Field ft ->
+      (function None -> [L "NULL"] | Some x -> [V (ft, x)])
+   | Option t ->
+      let of_t = const_fields_opt t in
+      (function None -> of_t None | Some x -> of_t x)
+   | Product (_, _, pt) ->
+      const_fields_opt_of_product pt
+   | Annot (_, t) ->
+      const_fields_opt t)
+and const_fields_opt_of_product
+  : type i a. (i, a) Row_type.product -> a option -> t list =
   (function
    | Proj_end -> fun _ -> []
-   | Proj (t, p, pt') ->
-      fun x -> const_fields t (p x) @ const_fields_product pt' x)
+   | Proj (t, p, pt) ->
+      let of_t = const_fields_opt t in
+      let of_pt = const_fields_opt_of_product pt in
+      fun x -> of_t (Option.map p x) @ of_pt x)
+
+let const_fields (t : _ Row_type.t) =
+  let f = const_fields_opt t in
+  fun x -> f (Some x)
 
 let rec equal_list f xs ys = (* stdlib 4.12.0 *)
   (match xs, ys with

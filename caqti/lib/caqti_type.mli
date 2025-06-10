@@ -58,36 +58,13 @@ end
 
 (** {2:row_types Row Types} *)
 
-(**/**)
-type 'a product_id = 'a Row_type.Private.product_id
-[@@alert caqti_private "This is a temporary alias for a private type."]
-(**/**)
+type 'a t = 'a Row_type.t
+(** Type descriptor for row types. *)
 
-type 'a t = 'a Row_type.Private.t = private
-  | Field : 'a Field.t -> 'a t
-    [@caqti_private "This is a temporary alias for a private constructor."]
-  | Option : 'a t -> 'a option t
-    [@caqti_private "This is a temporary alias for a private constructor."]
-  | Product : 'a product_id * 'i * ('a, 'i) product -> 'a t
-    [@caqti_private "This is a temporary alias for a private constructor."]
-  | Annot : [`Redacted] * 'a t -> 'a t
-    [@caqti_private "This is a temporary alias for a private constructor."]
-    (**)
-(** Type descriptor for row types.
-
-    {b Note.} The private constructor aliases for this type will be removed,
-    likely before the next major version. *)
-
-and ('a, 'b) product = ('a, 'b) Row_type.Private.product = private
+type ('a, 'i) product =
   | Proj_end : ('a, 'a) product
-    [@caqti_private "This is a temporary alias for a private constructor."]
   | Proj : 'b t * ('a -> 'b) * ('a, 'i) product -> ('a, 'b -> 'i) product
-    [@caqti_private "This is a temporary alias for a private constructor."]
-    (**)
-(** Type descriptor for building cartesian products of row types.
-
-    {b Note.} The private constructor aliases for this type will be removed,
-    likely before the next major version. *)
+(** Type descriptor for building cartesian products of row types. *)
 
 (** {!t} with existentially wrapped static type. *)
 

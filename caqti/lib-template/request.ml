@@ -83,7 +83,7 @@ let make_pp_with_param ?dialect ?subst () ppf (req, param) =
   let pp = make_pp ?subst ?dialect () in
   pp ppf req;
   if pp_with_param_enabled then
-    Format.fprintf ppf " %a" Row_type.pp_value (req.param_type, param)
+    Format.fprintf ppf " %a" (Row.pp req.param_type) param
 
 type liveness_witness = int option
 

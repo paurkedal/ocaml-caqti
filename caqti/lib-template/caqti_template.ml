@@ -15,6 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+module Constructor_type = Constructor_type
 module Dialect = Dialect
 module Field_type = Field_type
 module Query = Query
@@ -22,6 +23,7 @@ module Query_fmt = Query_fmt
 module Request = Request
 module Row_mult = Row_mult
 module Row_type = Row_type
+module Row = Row
 module Shims = Shims
 module Version = Version
 

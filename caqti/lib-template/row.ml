@@ -28,7 +28,7 @@ let rec equal_poly : type a. a Row_type.t -> a -> a -> bool =
          | None, None -> true
          | Some x, Some y -> equal_t x y
          | None, Some _ | Some _, None -> false)
-   | Product (_, _, pt) -> equal_product pt
+   | Product (_, pt) -> equal_product pt
    | Annot (_, t) -> equal_poly t)
 
 and equal_product : type i a. (i, a) Row_type.product -> a -> a -> bool =
@@ -77,7 +77,7 @@ let rec pp_poly
         let case_some = pp_t state in
         fun ppf ->
           (function None -> case_none ppf () | Some x -> case_some ppf x)
-   | Product (_, _, pt) -> pp_product pt
+   | Product (_, pt) -> pp_product pt
    | Annot (`Redacted, t) ->
       let length_t = Row_type.length t in
       fun state ppf _ -> pp_rep_lit length_t "#redacted#" state ppf ())

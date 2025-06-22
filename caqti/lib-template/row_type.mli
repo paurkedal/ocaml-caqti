@@ -29,10 +29,10 @@ module Private : sig
   type _ t =
     | Field : 'a Field_type.t -> 'a t
     | Option : 'a t -> 'a option t
-    | Product : ('i, 'a) Constructor_type.t * 'i * ('i, 'a) product -> 'a t
+    | Product : ('i, 'a) Constructor.t * ('i, 'a) product -> 'a t
     | Annot : annot * 'a t -> 'a t
   and (_, _) product =
-    | Proj_end : ('a Constructor_type.return, 'a) product
+    | Proj_end : ('a Constructor.return, 'a) product
     | Proj : 'b t * ('a -> 'b) * ('i, 'a) product -> ('b -> 'i, 'a) product
 end
 [@@alert caqti_private
@@ -77,9 +77,9 @@ exception Reject of string
     a conversion cannot be carried out. *)
 
 val product : 'i -> ('i, 'a) product -> 'a t
-val product' : ('i, 'a) Constructor_type.t -> 'i -> ('i, 'a) product -> 'a t
+val product' : ('i, 'a) Constructor.t -> ('i, 'a) product -> 'a t
 val proj : 'b t -> ('a -> 'b) -> ('i, 'a) product -> ('b -> 'i, 'a) product
-val proj_end : ('a Constructor_type.return, 'a) product
+val proj_end : ('a Constructor.return, 'a) product
 (** Given a set of projection functions [p1 : t -> t1], ..., [pN : t -> tN] and
     a function [intro : t1 -> ... -> tN -> t] to reconstruct values of [t] from
     the projections,

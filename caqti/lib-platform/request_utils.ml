@@ -104,7 +104,7 @@ let rec encode_null_param : type a. uri: _ -> _ -> a Row_type.t -> _ =
   (function
    | Field ft -> f.write_null ~uri ft
    | Option t -> encode_null_param ~uri f t
-   | Product (_, _, ts) -> encode_null_param_of_product ~uri f ts
+   | Product (_, ts) -> encode_null_param_of_product ~uri f ts
    | Annot (_, t) -> encode_null_param ~uri f t)
 and encode_null_param_of_product
   : type a i. uri: _ -> _ -> (i, a) Row_type.product -> _  =
@@ -130,7 +130,7 @@ let rec encode_param
       let encode_none = encode_null_param ~uri f t in
       let encode_some = encode_param ~uri f t in
       (function None -> encode_none | Some x -> encode_some x)
-   | Product (_, _, ts) ->
+   | Product (_, ts) ->
       (try encode_param_of_product ~uri f ts with
        | Row_type.Reject msg -> reject_encode ~uri ~typ msg)
    | Annot (_, t) -> encode_param ~uri f t)
@@ -168,23 +168,24 @@ let rec decode_row : type a. uri: _ -> _ -> a Row_type.t -> 'b -> a * 'b =
          | None ->
             let x, acc = decode_t acc in
             (Some x, acc))
-   | Product (_, intro, Proj_end) ->
+   | Product ({construct; _}, Proj_end) ->
       fun acc ->
-        (match intro with
+        (match construct with
          | Ok y -> (y, acc)
          | Error msg -> reject_decode ~uri ~typ msg)
-   | Product (_, intro, Proj (t1, _, Proj (t2, _, Proj_end))) ->
+   | Product ({construct; _}, Proj (t1, _, Proj (t2, _, Proj_end))) ->
       (* Optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
       fun acc ->
         let x1, acc = decode_t1 acc in
         let x2, acc = decode_t2 acc in
-        (match intro x1 x2 with
+        (match construct x1 x2 with
          | Ok y -> (y, acc)
          | Error msg -> reject_decode ~uri ~typ msg
          | exception Row_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (_, intro, Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj_end)))) ->
+   | Product ({construct; _},
+        Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj_end)))) ->
       (* Optimization *)
       let decode_t1 = decode_row ~uri f t1 in
       let decode_t2 = decode_row ~uri f t2 in
@@ -193,11 +194,11 @@ let rec decode_row : type a. uri: _ -> _ -> a Row_type.t -> 'b -> a * 'b =
         let x1, acc = decode_t1 acc in
         let x2, acc = decode_t2 acc in
         let x3, acc = decode_t3 acc in
-        (match intro x1 x2 x3 with
+        (match construct x1 x2 x3 with
          | Ok y -> (y, acc)
          | Error msg -> reject_decode ~uri ~typ msg
          | exception Row_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (_, intro,
+   | Product ({construct; _},
         Proj (t1, _, Proj (t2, _, Proj (t3, _, Proj (t4, _, Proj_end))))) ->
       (* Optimization *)
       let decode_t1 = decode_row ~uri f t1 in
@@ -209,27 +210,27 @@ let rec decode_row : type a. uri: _ -> _ -> a Row_type.t -> 'b -> a * 'b =
         let x2, acc = decode_t2 acc in
         let x3, acc = decode_t3 acc in
         let x4, acc = decode_t4 acc in
-        (match intro x1 x2 x3 x4 with
+        (match construct x1 x2 x3 x4 with
          | Ok y -> (y, acc)
          | Error msg -> reject_decode ~uri ~typ msg
          | exception Row_type.Reject msg -> reject_decode ~uri ~typ msg)
-   | Product (_, intro, ts) as typ ->
+   | Product ({construct; _}, ts) as typ ->
       let rec loop
         : type a i. (i, a) Row_type.product -> i -> _ -> a * _ =
         (function
          | Proj_end ->
-            fun intro acc ->
-              (match intro with
+            fun construct acc ->
+              (match construct with
                | Ok y -> (y, acc)
                | Error msg -> reject_decode ~uri ~typ msg)
          | Proj (t, _, ts) ->
             let decode_t = decode_row ~uri f t in
             let decode_ts = loop ts in
-            fun intro acc ->
+            fun construct acc ->
               let x, acc = decode_t acc in
-              decode_ts (intro x) acc)
+              decode_ts (construct x) acc)
       in
-      (try loop ts intro with
+      (try loop ts construct with
        | Row_type.Reject msg -> reject_decode ~uri ~typ msg)
    | Annot (_, t0) ->
       decode_row ~uri f t0)

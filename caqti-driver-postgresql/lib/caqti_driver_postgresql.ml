@@ -219,7 +219,7 @@ let init_param_types ~type_oid_cache =
       Ok (i + 1)
    | Option t ->
       recurse pt bp t
-   | Product (_, _, prod) ->
+   | Product (_, prod) ->
       let rec loop : type i. (i, a) Row_type.product -> _ = function
        | Proj_end -> Result.ok
        | Proj (t, _, prod) -> recurse pt bp t %>? loop prod
@@ -853,7 +853,7 @@ struct
             Fiber.return r)
      | Field _ -> Fiber.return (Ok ())
      | Option t -> fetch_type_oids t
-     | Product (_, _, prod) ->
+     | Product (_, prod) ->
         let rec loop : type i. (i, a) Row_type.product -> _ = function
          | Proj_end -> Fiber.return (Ok ())
          | Proj (t, _, prod) -> fetch_type_oids t >>=? fun () -> loop prod

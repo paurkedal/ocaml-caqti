@@ -28,6 +28,7 @@ type (_, _) tag = ..
 type (!'i, 'a) t = {
   tag: ('i, 'a) tag;
   unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) dep_eq option;
+  construct: 'i;
 }
 
 let unify : type i j a b. (i, a) t -> (j, b) t -> (i, j) dep_eq option =

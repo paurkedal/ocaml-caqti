@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Constructor_type = Constructor_type
+module Constructor = Constructor
 module Dialect = Dialect
 module Field_type = Field_type
 module Query = Query

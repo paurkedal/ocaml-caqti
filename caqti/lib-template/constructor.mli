@@ -15,15 +15,17 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Type descriptor for constructors used for decoding rows.
+(** Reified constructors used for product row types.
+
     Usage of this module is somewhat technical and only needed when defining
     type descriptors for custom parametric types, or if, for some other reason,
     the type descriptor cannot be defined once statically.
     For statically defined types, the descriptor can be generated automatically.
 
-    The constructor type descriptor encodes the shape of the constructed value
-    and the arguments, which may include type parameters.
-    Type descriptors for the arguments are included here.
+    The descriptor defined here bundles a bare constructor function with a tag
+    from an open GADT encoding its type.
+    The type may be parametric as long as parameters in the result type occurs
+    in argument types.
 
     As an example, consider the record type:
     {[
@@ -58,18 +60,18 @@
     descriptors describing the same type, if they are not physically equal.
 
     The right way of defining this descriptor is to use {!Row_type.product'},
-    which takes the constructor type descriptor as an extra first argument.
+    which takes the constructor descriptor instead of the bare constructor.
     To create the custom descriptor, you need to define a {!tag} with correct
     signature and a corresponding function to support type-unifying equality:
     {[
-      type (_, _) Constructor_type.tag +=
+      type (_, _) Constructor.tag +=
         Acquired_value : (
-          string -> 'a -> float -> 'a acquired_value Constructor_type.return,
+          string -> 'a -> float -> 'a acquired_value Constructor.return,
           'a acquired_value
-        ) Constructor_type.tag
+        ) Constructor.tag
 
-      let acquired_value_constructor_type =
-        let open Constructor_type in
+      let acquired_value_constructor =
+        let open Constructor in
         let unify_tag
           : type j b a. (j, b) tag ->
             (string -> a -> float -> a acquired_value return, j) dep_eq option =
@@ -80,15 +82,15 @@
                     Dep (fun Type.Equal -> Eq))))
            | _ -> None)
         in
-        {tag = Acquired_value; unify_tag}
+        let construct source value confidence = Ok {source; value; confidence} in
+        {tag = Acquired_value; unify_tag; construct}
     ]}
     Our original attempt to define the descriptor can then be adjusted to
     support parametricity:
     {[
       let acquired_value_rowtype value_rowtype =
         let open Row_type in
-        product' acquired_value_constructor_type
-          (fun source value confidence -> Ok {source; value; confidence})
+        product' acquired_value_constructor
         @@ proj string (fun {source; _} -> source)
         @@ proj value_rowtype (fun {value; _} -> value)
         @@ proj float (fun {confidence; _} -> confidence)
@@ -117,6 +119,7 @@ type (_, _) tag = ..
 type (!'i, 'a) t = {
   tag: ('i, 'a) tag;
   unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) dep_eq option;
+  construct: 'i;
 }
 
 val unify : ('i, 'a) t -> ('j, 'b) t -> ('i, 'j) dep_eq option

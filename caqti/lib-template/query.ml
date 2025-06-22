@@ -75,7 +75,7 @@ let rec const_fields_opt : type a. a Row_type.t -> a option -> t list =
    | Option t ->
       let of_t = const_fields_opt t in
       (function None -> of_t None | Some x -> of_t x)
-   | Product (_, _, pt) ->
+   | Product (_, pt) ->
       const_fields_opt_of_product pt
    | Annot (_, t) ->
       const_fields_opt t)

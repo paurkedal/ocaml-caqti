@@ -555,7 +555,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         (function
          | Field ft -> fun acc -> field_type_oid ft >|=? fun ft -> ft :: acc
          | Option t -> loop t
-         | Product (_, _, prod) ->
+         | Product (_, prod) ->
             let rec loop_prod : type i. (i, a) Row_type.product -> _ =
               (function
                | Proj_end -> fun acc -> Fiber.return (Ok acc)

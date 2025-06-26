@@ -55,6 +55,8 @@ let concat =
      | None, _ -> S qs
      | Some sep, q :: qs -> S (q :: loop (L sep) [] (List.rev qs)))
 
+let parens q = concat [lit "("; q; lit ")"]
+
 let bool x = V (Field_type.Bool, x)
 let int x = V (Field_type.Int, x)
 let int16 x = V (Field_type.Int16, x)

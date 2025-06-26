@@ -84,6 +84,9 @@ val concat : ?sep: string -> t list -> t
 (** [concat ?sep frags] concatenates [frags], optionally separated by [sep].
     Returns the empty fragment on the empty list of fragments. *)
 
+val parens : t -> t
+(** [parens frag] wraps [frag] in paranthesis *)
+
 val cat : t -> t -> t
 (** [cat q1 q2] expands to the juxtaposition of the expansions of [q1] followed
     by [q2].  This is an associative alternative to {!concat} when no separator

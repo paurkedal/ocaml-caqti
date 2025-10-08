@@ -19,17 +19,18 @@ open Shims
 
 type 'a return = ('a, string) result
 
-type ('i, 'j) dep_eq =
-  | Eq : ('i return, 'i return) dep_eq
-  | Dep : (('a, 'b) Type.eq -> ('i, 'j) dep_eq) -> ('a -> 'i, 'b -> 'j) dep_eq
+type ('i, 'j) unifier =
+  | Equal : ('i return, 'i return) unifier
+  | Assume : (('a, 'b) Type.eq -> ('i, 'j) unifier) ->
+      ('a -> 'i, 'b -> 'j) unifier
 
 type (_, _) tag = ..
 
 type (!'i, 'a) t = {
   tag: ('i, 'a) tag;
-  unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) dep_eq option;
+  unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) unifier option;
   construct: 'i;
 }
 
-let unify : type i j a b. (i, a) t -> (j, b) t -> (i, j) dep_eq option =
+let unify : type i j a b. (i, a) t -> (j, b) t -> (i, j) unifier option =
   fun x y -> x.unify_tag y.tag

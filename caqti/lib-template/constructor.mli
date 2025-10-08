@@ -61,8 +61,9 @@
 
     The right way of defining this descriptor is to use {!Row_type.product'},
     which takes the constructor descriptor instead of the bare constructor.
-    To create the custom descriptor, you need to define a {!tag} with correct
-    signature and a corresponding function to support type-unifying equality:
+    To create the custom descriptor, you need to define a {!type-tag} with
+    correct signature and a corresponding function to support type-unifying
+    equality:
     {[
       type (_, _) Constructor.tag +=
         Acquired_value : (
@@ -74,12 +75,12 @@
         let open Constructor in
         let unify_tag
           : type j b a. (j, b) tag ->
-            (string -> a -> float -> a acquired_value return, j) dep_eq option =
+            (string -> a -> float -> a acquired_value return, j) unifier option =
           (function
            | Acquired_value ->
-              Some (Dep (fun Type.Equal ->
-                    Dep (fun Type.Equal ->
-                    Dep (fun Type.Equal -> Eq))))
+              Some (Assume (fun Type.Equal ->
+                    Assume (fun Type.Equal ->
+                    Assume (fun Type.Equal -> Equal))))
            | _ -> None)
         in
         let construct source value confidence = Ok {source; value; confidence} in
@@ -107,21 +108,54 @@ open Shims
 type 'a return = ('a, string) result
 (** The result type of the constructor function. *)
 
-type ('i, 'j) dep_eq =
-  | Eq : ('i return, 'i return) dep_eq
-  | Dep : (('a, 'b) Type.eq -> ('i, 'j) dep_eq) -> ('a -> 'i, 'b -> 'j) dep_eq
-(** A variant of {!Stdlib.Type.eq} which interprets function types such that
-    domains translates to proof obligations and the codomain translates to a
-    subsequent proof. *)
+type ('i, 'j) unifier =
+  | Equal : ('i return, 'i return) unifier
+  | Assume : (('a, 'b) Type.eq -> ('i, 'j) unifier) ->
+      ('a -> 'i, 'b -> 'j) unifier (**)
+(** [('i, 'j) unifier] witness that two constructors of types [('i, _) t] and
+    [('j, _) t] are equal and provides a dependent unification of ['i] and ['j]
+    in the following sense:
+
+      - The ['i] and ['j] parameters are constrained by this type definition to
+        have the same function shape which terminates in a result type.  I.e.
+        they look like ['a1 -> ... -> 'aN -> 'b return].
+      - For each constructor argument, a node [Assume f] is provided, where [f]
+        accepts an equality proof of the constructor argument and returns a
+        proof of the remaining constructor type.
+      - The final node [Equal] witness, after resolving [Assume] nodes, that the
+        constructed values have the same type.
+
+    By constraining the return type, we avoid that the type accepted by {!Equal}
+    overlaps with {!Assume}, meaning we can refute {!Equal} patterns when the
+    type in question is known to be a function type. *)
 
 type (_, _) tag = ..
+(** [('a1 -> ... -> 'aN -> 'r return, 'r) tag] represents the type of a
+    constructor which takes arguments of type ['a1], ..., ['aN] and returns
+    values of type ['r].
+    These tags is normally only passed around in the combination {!type-t}. *)
 
 type (!'i, 'a) t = {
   tag: ('i, 'a) tag;
-  unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) dep_eq option;
+    (** The constructor type. *)
+  unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) unifier option;
+    (** Unifying equality for the constructor type. *)
   construct: 'i;
+    (** The bare constructor. *)
 }
+(** [('a1 -> ... -> 'aN -> 'r return, 'r) t] represents a constructor which
+    takes arguments of type ['a1], ..., ['aN] and constructs values of type
+    ['r].  The public record type is exposed to allow passing the {!unify_tag}
+    field in a way which preserves universal quantification.
 
-val unify : ('i, 'a) t -> ('j, 'b) t -> ('i, 'j) dep_eq option
-(** [unify x y] is [Some eq] if [x] and [y] are equal, otherwise [None].  In the
-    former case, [eq] records the type unifications between [x] and [y]. *)
+    This type is only a reification of the constructor to allow comparison,
+    disallowed for bare functions, and type unification.
+    Ideally the {!construct} field is unique, while {!tag} and {!unify_tag} are
+    implied by the type; the rest is technicalities which could be handle by a
+    PPX or other kind of code generator.  *)
+
+val unify : ('i, 'a) t -> ('j, 'b) t -> ('i, 'j) unifier option
+(** [unify t t'] is [Some witness] if [t] and [t'] are equal, otherwise [None].
+    In the former case, [witness] provides the unification of the result type of
+    the construction, provided the unifications of each constructor argument
+    type. *)

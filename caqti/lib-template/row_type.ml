@@ -54,14 +54,12 @@ let rec unify : type a b. a t -> b t -> (a, b) Type.eq option =
    | Annot (`Redacted, t1), Annot (`Redacted, t2) -> unify t1 t2)
 and unify_product
   : type i j a b. (i, a) product -> (j, b) product ->
-    (i, j) Constructor.dep_eq -> (a, b) Type.eq option =
+    (i, j) Constructor.unifier -> (a, b) Type.eq option =
   fun pt1 pt2 deq ->
   (match pt1, pt2, deq with
-   | Proj_end, Proj_end, Eq -> Some Type.Equal
-   | Proj (t1, _, pt1), Proj (t2, _, pt2), Dep dep ->
-      (match unify t1 t2 with
-       | Some Type.Equal -> unify_product pt1 pt2 (dep Type.Equal)
-       | None -> None)
+   | Proj_end, Proj_end, Equal -> Some Type.Equal
+   | Proj (t1, _, pt1), Proj (t2, _, pt2), Assume dep ->
+      Option.bind (unify t1 t2) (fun p -> unify_product pt1 pt2 (dep p))
    | _ -> .)
 
 (* length *)
@@ -204,12 +202,12 @@ end
 
 let option t = Option t
 
-let rec derive_dep_eq
-  : type a i. (i, a) product -> (i, i) Constructor.dep_eq =
+let rec product_unifier
+  : type a i. (i, a) product -> (i, i) Constructor.unifier =
   let open Constructor in
   (function
-   | Proj_end -> Eq
-   | Proj (_, _, prod) -> Dep (fun Type.Equal -> derive_dep_eq prod))
+   | Proj_end -> Equal
+   | Proj (_, _, prod) -> Assume (fun Type.Equal -> product_unifier prod))
 
 exception Reject of string
 
@@ -218,9 +216,9 @@ let product : type i a. i -> (i, a) product -> a t =
     let open struct
       open Constructor
       type (_, _) tag += Tag : (i, a) tag
-      let unify_tag : type j b. (j, b) tag -> (i, j) dep_eq option =
+      let unify_tag : type j b. (j, b) tag -> (i, j) unifier option =
         (function
-         | Tag -> Some (derive_dep_eq prod)
+         | Tag -> Some (product_unifier prod)
          | _ -> None)
       let ctor = {tag = Tag; unify_tag; construct = intro}
     end in
@@ -303,9 +301,11 @@ let t2 =
   let unify_tag
     : type j b a0 a1.
       (j, b) Constructor.tag ->
-      (a0 -> a1 -> (a0 * a1) Constructor.return, j) Constructor.dep_eq option =
+      (a0 -> a1 -> (a0 * a1) Constructor.return, j) Constructor.unifier option =
     (function
-     | T2 -> Some (Dep (fun Equal -> Dep (fun Equal -> Eq)))
+     | T2 ->
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))
      | _ -> None)
   in
   let construct x0 x1 = Ok (x0, x1) in
@@ -326,12 +326,12 @@ let t3 =
     : type j b a0 a1 a2.
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> (a0 * a1 * a2) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T3 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal))))
      | _ -> None)
   in
   let construct x0 x1 x2 = Ok (x0, x1, x2) in
@@ -356,13 +356,13 @@ let t4 =
     : type j b a0 a1 a2 a3.
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> (a0 * a1 * a2 * a3) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T4 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq)))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 = Ok (x0, x1, x2, x3) in
@@ -392,14 +392,14 @@ let t5 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 ->
        (a0 * a1 * a2 * a3 * a4) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T5 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 = Ok (x0, x1, x2, x3, x4) in
@@ -431,15 +431,15 @@ let t6 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 ->
        (a0 * a1 * a2 * a3 * a4 * a5) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T6 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq)))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))))))
      | _ -> None)
   in
   fun t0 t1 t2 t3 t4 t5 ->
@@ -474,16 +474,16 @@ let t7 t0 t1 t2 t3 t4 t5 t6 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 ->
        (a0 * a1 * a2 * a3 * a4 * a5 * a6) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T7 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 = Ok (x0, x1, x2, x3, x4, x5, x6) in
@@ -519,17 +519,17 @@ let t8 t0 t1 t2 t3 t4 t5 t6 t7 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 ->
        (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T8 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq)))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 x7 = Ok (x0, x1, x2, x3, x4, x5, x6, x7) in
@@ -567,18 +567,18 @@ let t9 t1 t2 t3 t4 t5 t6 t7 t8 t9 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 ->
        (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8) Constructor.return, j)
-        Constructor.dep_eq option =
+        Constructor.unifier option =
     (function
      | T9 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq))))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal))))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 x7 x8 =
@@ -620,19 +620,19 @@ let t10 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 ->
        (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9)
-         Constructor.return, j) Constructor.dep_eq option =
+         Constructor.return, j) Constructor.unifier option =
     (function
      | T10 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq)))))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 =
@@ -677,20 +677,20 @@ let t11 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 -> a10 ->
        (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10)
-         Constructor.return, j) Constructor.dep_eq option =
+         Constructor.return, j) Constructor.unifier option =
     (function
      | T11 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq))))))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal))))))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 =
@@ -737,21 +737,21 @@ let t12 t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 =
       (j, b) Constructor.tag ->
       (a0 -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 -> a10 -> a11 ->
         (a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9 * a10 * a11)
-          Constructor.return, j) Constructor.dep_eq option =
+          Constructor.return, j) Constructor.unifier option =
     (function
      | T12 ->
-        Some (Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal ->
-              Dep (fun Type.Equal -> Eq)))))))))))))
+        Some (Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal ->
+              Assume (fun Type.Equal -> Equal)))))))))))))
      | _ -> None)
   in
   let construct x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 =

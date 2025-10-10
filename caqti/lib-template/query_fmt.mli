@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -90,8 +90,7 @@ val query : Query.t t
 (** {2 Value Formatters}
 
     The following formatters emit values of basic field types by passing them as
-    parameters.  This is done by emitting a {!Caqti_template.Query.V} node with
-    a appropriate field type. *)
+    parameters. *)
 
 val bool : bool t
 val int : int t

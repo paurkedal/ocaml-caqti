@@ -150,9 +150,9 @@ type (!'i, 'a) t = {
 
     This type is only a reification of the constructor to allow comparison,
     disallowed for bare functions, and type unification.
-    Ideally the {!construct} field is unique, while {!tag} and {!unify_tag} are
-    implied by the type; the rest is technicalities which could be handle by a
-    PPX or other kind of code generator.  *)
+    Ideally the {!field-construct} field is unique, while {!field-tag} and
+    {!field-unify_tag} are implied by the type; the rest is technicalities which
+    could be handle by a PPX or other kind of code generator.  *)
 
 val unify : ('i, 'a) t -> ('j, 'b) t -> ('i, 'j) unifier option
 (** [unify t t'] is [Some witness] if [t] and [t'] are equal, otherwise [None].

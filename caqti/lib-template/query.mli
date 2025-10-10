@@ -22,8 +22,8 @@
 
     There are three ways to construct a template:
 
-      - Using the parser ({!of_string}, {!of_string_exn}, etc.) if the query
-        template is known at compile time.
+      - Using the parser ({!parse}, {!parse_result}, etc.) if the query template
+        is known at compile time.
 
       - Using the {{!query_construction} constructors} of the current module.
 
@@ -118,7 +118,7 @@ module Infix : sig
       *)
 
   val (@++) : t -> t -> t
-  (** An alias for {!cat}. *)
+  (** An alias for {!Query.cat}. *)
 
   val (^++) : string -> t -> t
   (** [pfx ^++ q] is [q] prefixed with the literal fragment [pfx], i.e.
@@ -228,14 +228,14 @@ type subst = string -> t
 val expand : ?final: bool -> subst -> t -> t
 (** [expand subst query] replaces the occurrence of each variable [var] with
     [subst var] where it is defined, otherwise if [final] is [false], the
-    variable is left unchanged, otherwise raises {!Expand_error}.  The result of
-    the substitution function may not contain variable references.
+    variable is left unchanged, otherwise raises {!exception-Expand_error}.
+    The result of the substitution function may not contain variable references.
 
     @param final
       Whether this is the final expansion, as when invoked by the drivers.
       Defaults to [false].
 
-    @raise Expand_error
+    @raise exception-Expand_error
       if the substitution function is invalid or if it is incomplete for a final
       expansion. *)
 
@@ -279,7 +279,7 @@ val parse : string -> t
     failure occurred in addition to an error message. See {{!query_template} The
     Syntax of Query Templates} for how the input string is interpreted.
 
-    @raise Parse_error if the argument is syntactically invalid. *)
+    @raise exception-Parse_error if the argument is syntactically invalid. *)
 
 val parse_result : string -> (t, Parse_error.t) result
 (** Variant of {!parse} which returns a result instead of raising.  *)

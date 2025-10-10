@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,11 +30,12 @@ module type S = sig
 
   (** {1 Explicit Construction and Release}
 
-      These functions are somewhat unsafe, since they don't enforce lifetime by
-      passing a new switch as an argument to the user.  They are nevertheless
-      useful for applications which haven't been switch to the EIO-style
-      resource handling discipline, esp. when dealing with connection pools.
-      The [caqti-eio] package uses {!Eio.Switch} which lacks these functions. *)
+      The following functions are resource-unsafe, since do not scope the
+      lifetime of constructed switches to a function call like {!run}.
+      They are nevertheless useful for applications which do not follow the
+      EIO-style resource handling discipline.
+      The [caqti-eio] package uses the native EIO switch implementation, which
+      excludes these functions. *)
 
   val eternal : t
   (** A switch which is never released. *)

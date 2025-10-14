@@ -26,7 +26,7 @@ type ('i, 'j) unifier =
 
 type (_, _) tag = ..
 
-type (!'i, 'a) t = {
+type ('i, 'a) t = {
   tag: ('i, 'a) tag;
   unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) unifier option;
   construct: 'i;

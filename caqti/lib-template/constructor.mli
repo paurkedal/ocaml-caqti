@@ -139,7 +139,7 @@ type (_, _) tag = ..
     values of type ['r].
     These tags is normally only passed around in the combination {!type-t}. *)
 
-type (!'i, 'a) t = {
+type ('i, 'a) t = {
   tag: ('i, 'a) tag;
     (** The constructor type. *)
   unify_tag: 'j 'b. ('j, 'b) tag -> ('i, 'j) unifier option;

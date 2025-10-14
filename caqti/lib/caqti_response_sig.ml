@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -83,7 +83,7 @@ module type S = sig
       {b Note.} Do not make nested queries in the callback to this function.
       Cf. {!fold_s}. *)
 
-  val to_stream : ('b, 'm) t -> ('b, [> Caqti_error.retrieve] as 'err) stream
+  val to_stream : ('b, 'm) t -> ('b, [> Caqti_error.retrieve]) stream
     (** [to_stream resp] returns a stream whose elements are the decoded rows
         returned by [resp]. *)
 end

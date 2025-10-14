@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -124,14 +124,14 @@ module type Convenience = sig
 
   val exec :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (unit, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    (unit, [> Caqti_error.call_or_retrieve]) result fiber
   (** [exec req x] performs [req] with parameters [x] and checks that no rows
       are returned.
       See also {!Caqti_response_sig.S.exec}. *)
 
   val exec_with_affected_count :
     ('a, unit, [< `Zero]) Caqti_request.t -> 'a ->
-    (int, [> Caqti_error.call_or_retrieve | `Unsupported] as 'e) result fiber
+    (int, [> Caqti_error.call_or_retrieve | `Unsupported]) result fiber
   (** [exec_with_affected_count req x] performs [req] with parameters [x],
       checks that no rows are returned, and returns the number of affected rows.
 
@@ -140,7 +140,7 @@ module type Convenience = sig
 
   val find :
     ('a, 'b, [< `One]) Caqti_request.t -> 'a ->
-    ('b, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    ('b, [> Caqti_error.call_or_retrieve]) result fiber
   (** [find req x] performs [req] with parameters [x], checks that a single row
       is retured, and returns it.
 
@@ -148,7 +148,7 @@ module type Convenience = sig
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Caqti_request.t -> 'a ->
-    ('b option, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    ('b option, [> Caqti_error.call_or_retrieve]) result fiber
   (** [find_opt req x] performs [req] with parameters [x] and returns either
       [None] if no rows are returned or [Some y] if a single now [y] is returned
       and fails otherwise.
@@ -158,7 +158,7 @@ module type Convenience = sig
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t ->
     ('b -> 'c -> 'c) ->
-    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    'a -> 'c -> ('c, [> Caqti_error.call_or_retrieve]) result fiber
   (** [fold req f x acc] performs [req] with parameters [x] and passes [acc]
       through the composition of [f y] across the result rows [y] in the order
       of retrieval.
@@ -194,14 +194,14 @@ module type Convenience = sig
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
-    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    ('b list, [> Caqti_error.call_or_retrieve]) result fiber
   (** [collect_list request x] performs a [req] with parameters [x] and returns
       a list of rows in order of retrieval.  The accumulation is tail recursive
       but slightly less efficient than {!rev_collect_list}. *)
 
   val rev_collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Caqti_request.t -> 'a ->
-    ('b list, [> Caqti_error.call_or_retrieve] as 'e) result fiber
+    ('b list, [> Caqti_error.call_or_retrieve]) result fiber
   (** [rev_collect_list request x] performs [request] with parameters [x] and
       returns a list of rows in the reverse order of retrieval.  The
       accumulation is tail recursive and slighly more efficient than

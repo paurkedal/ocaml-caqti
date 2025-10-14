@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,11 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Compatibility shims. *)
-
-module Type : sig
-  type (_, _) eq = Equal : ('a, 'a) eq
-  (** Type equality witness.  This will eventually be replaced by the equavalent
-      definition available in [Stdlib.Type] since OCaml 5.1, but for now, we
-      must keep backwards compatibility with older compilers. *)
+module Type = struct
+  type ('a, 'b) eq = ('a, 'b) Stdlib.Type.eq = Equal : ('a, 'a) eq
 end

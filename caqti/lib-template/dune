@@ -3,6 +3,30 @@
  (public_name caqti.template)
  (libraries angstrom bigstringaf logs ptime uri))
 
+(rule
+ (target shims.mli)
+ (deps shims.5.1.mli)
+ (enabled_if (>= %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+
+(rule
+ (target shims.ml)
+ (deps shims.5.1.ml)
+ (enabled_if (>= %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+
+(rule
+ (target shims.mli)
+ (deps shims.fallback.mli)
+ (enabled_if (< %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+
+(rule
+ (target shims.ml)
+ (deps shims.fallback.ml)
+ (enabled_if (< %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+
 (mdx
   (package caqti)
   (preludes mdx.prelude)

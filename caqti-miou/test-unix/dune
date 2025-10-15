@@ -1,4 +1,5 @@
 (test
  (name main)
  (package caqti-miou)
+ (enabled_if (>= %{ocaml_version} "5.0"))
  (libraries logs.threaded alcotest caqti caqti-miou caqti-miou.unix testlib))

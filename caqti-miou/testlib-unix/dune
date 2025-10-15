@@ -1,3 +1,4 @@
 (library
  (name testlib_miou_unix)
+ (optional)
  (libraries alcotest caqti_miou caqti_miou_unix testlib))

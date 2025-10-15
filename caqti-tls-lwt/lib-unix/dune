@@ -16,5 +16,6 @@
 (plugin
  (package caqti-tls-lwt)
  (name caqti-tls-lwt-unix)
+ (optional)
  (libraries caqti-tls-lwt.unix)
  (site (caqti plugins)))

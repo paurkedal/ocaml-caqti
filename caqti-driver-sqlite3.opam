@@ -13,7 +13,7 @@ depends: [
   "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "3.9"}
   "odoc" {with-doc}
-  "sqlite3" {>= "5.2.0"}
+  "sqlite3" {>= "5.0.1"}
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

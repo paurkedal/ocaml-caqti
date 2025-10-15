@@ -81,6 +81,14 @@ module Make (Ground : Testlib.Sig.Ground) = struct
        | Ok () -> Alcotest.fail "Error not reported."
        | Error (`Request_failed _ | `Response_failed _ as err) ->
           let actual_cause = Caqti_error.cause err in
+
+          (* Skip for sqlite3 < 5.2.0 due to missing extended error code. *)
+          let open Caqti_template.Version.Infix in
+          (match Db.dialect with
+           | Caqti_template.Dialect.Sqlite {server_version; _} ->
+              if server_version <=* "5.2" then Alcotest.skip ()
+           | _ -> ());
+
           Alcotest.(check string) "cause"
             (Caqti_error.show_cause expected_cause)
             (Caqti_error.show_cause actual_cause)

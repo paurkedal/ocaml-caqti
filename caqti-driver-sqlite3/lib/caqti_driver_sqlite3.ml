@@ -82,10 +82,17 @@ let () =
   in
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
-let wrap_rc ?db errcode =
-  let errmsg = Option.map Sqlite3.errmsg db in
-  let extended_errcode = Option.map Sqlite3.extended_errcode_int db in
-  Error_msg {errcode; errmsg; extended_errcode}
+let wrap_rc =
+  (match Sqlite3_shim.extended_errcode_int with
+   | None ->
+      fun ?db errcode ->
+        let errmsg = Option.map Sqlite3.errmsg db in
+        Error_msg {errcode; errmsg; extended_errcode = None}
+   | Some extended_errcode_int ->
+      fun ?db errcode ->
+        let errmsg = Option.map Sqlite3.errmsg db in
+        let extended_errcode = Option.map extended_errcode_int db in
+        Error_msg {errcode; errmsg; extended_errcode})
 
 let data_of_value : type a. a Field_type.t -> a -> Sqlite3.Data.t =
   fun field_type x ->

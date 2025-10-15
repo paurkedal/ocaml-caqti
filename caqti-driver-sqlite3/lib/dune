@@ -10,3 +10,10 @@
  (name caqti-driver-sqlite3)
  (libraries caqti-driver-sqlite3)
  (site (caqti plugins)))
+
+(rule
+ (enabled_if (>= %{version:sqlite3} 5.2.0))
+ (action (copy# sqlite3_shim.5.2.ml sqlite3_shim.ml)))
+(rule
+ (enabled_if (< %{version:sqlite3} 5.2.0))
+ (action (copy# sqlite3_shim.fallback.ml sqlite3_shim.ml)))

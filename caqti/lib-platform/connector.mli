@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
 
 val define_loader : (string -> (unit, string) result) -> unit
 (** Defines the function used to dynamically load driver libraries. This is
-    normally called during initialization by the [caqti-dynload] library, if
+    normally called during initialization by the [caqti.plugin] library, if
     linked into the application. *)
 
 val load_library : string -> (unit, string) result

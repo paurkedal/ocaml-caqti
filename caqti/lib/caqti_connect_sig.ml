@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,7 +56,7 @@ module type S = sig
       The correct driver for the database system is inferred from the schema of
       [uri]; see the respective drivers for the supported schemas and related
       URI syntax.  A driver can either be linked in to the application or, if
-      supported, dynamically linked using the [caqti-dynload] package.
+      supported, dynamically linked using the [caqti.plugin] package.
 
       @param subst
         Alternative to [env] when using the new experimental API.

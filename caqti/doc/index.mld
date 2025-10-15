@@ -57,9 +57,6 @@ library, which allows Caqti to automatically load driver libraries inferred
 from the URI when connecting to a new kind of database for the first time.
 It has entry point; linking aganist it provides all of its functionality.
 
-This library is an experimental drop-in replacement for the caqti-dynload
-package.
-
 
 {1 Platform Libraries for Internal Use}
 

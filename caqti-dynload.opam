@@ -7,12 +7,9 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "alcotest" {with-test & >= "1.5.0"}
   "caqti" {>= "2.0.0" & < "3.0.0~"}
-  "caqti-driver-sqlite3" {with-test}
-  "cmdliner" {with-test & >= "1.1.0"}
   "dune" {>= "3.9"}
-  "ocaml" {>= "4.04.0"}
+  "ocaml"
   "ocamlfind"
 ]
 build: [
@@ -20,8 +17,10 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 dev-repo: "git+https://github.com/paurkedal/ocaml-caqti.git"
-synopsis: "Dynamic linking of Caqti drivers using findlib.dynload"
+synopsis: "Dynamic linking of Caqti drivers using findlib.dynload (deprecated)"
 description: """
+This package is deprecated, please use caqti.plugin instead.
+
 This library registers a dynamic linker which will be called when
 encoutering an unhandled database URI.  It tries to load a findlib package
 named "caqti-driver-<scheme>" where "<scheme>" is the scheme of the URI,

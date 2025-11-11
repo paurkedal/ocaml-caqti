@@ -1,7 +1,7 @@
 (library
  (name caqti_template)
  (public_name caqti.template)
- (libraries angstrom bigstringaf logs ptime uri))
+ (libraries angstrom bigstringaf logs lru ptime uri))
 
 (rule
  (target shims.mli)

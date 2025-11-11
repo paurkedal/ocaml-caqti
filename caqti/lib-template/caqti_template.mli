@@ -176,7 +176,10 @@ module type CREATE = sig
       In particular {!static}, {!dynamic}, and {!direct} covers the most common
       case of sending a pre-composed query string to the database while the
       {!static_gen}, {!dynamic_gen}, and {!direct_gen} are the correspending
-      fully generic variants. *)
+      fully generic variants.
+
+      Where the query is supplied as function of a dialect, the function should
+      be pure and may be recalled repeatedly, cf. {!Request.create}. *)
 
   val static :
     ('a, 'b, 'm) Request_type.t -> string ->

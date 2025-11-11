@@ -36,6 +36,7 @@ type ('a, 'b, +'m) t = {
 let last_id = ref (-1)
 
 let create prepare_policy (param_type, row_type, row_mult) query =
+  let query = Lru.memo ~cap:8 (fun _ -> query) in
   let id =
     (match prepare_policy with
      | Direct -> None

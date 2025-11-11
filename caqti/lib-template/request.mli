@@ -76,7 +76,12 @@ val create :
 
     The driver is responsible for turning parameter references into a form
     accepted by the database system, while other dialectical differences must be
-    handled by [f]. *)
+    handled by [f].
+
+    The function [f] should be pure; no guarantee is given on when and how many
+    times it is called.  For efficiency reasons it is memoized internally using
+    a small LRU cache, reflecting that fact that it is typically only called on
+    a few arguments during the lifetime of the program. *)
 
 val prepare_policy : (_, _, _) t -> prepare_policy
 (** [prepare_policy req] is the prepare policy of [req]. *)

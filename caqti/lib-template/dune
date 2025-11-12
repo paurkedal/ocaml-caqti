@@ -3,32 +3,56 @@
  (public_name caqti.template)
  (libraries angstrom bigstringaf logs lru ptime uri))
 
+(mdx
+  (package caqti)
+  (preludes mdx.prelude)
+  (files :standard *.mli)
+  (libraries caqti.template uri))
+
+; [5.1, ..)
 (rule
  (target shims.mli)
  (deps shims.5.1.mli)
  (enabled_if (>= %{ocaml_version} 5.1))
  (action (copy# %{deps} %{target})))
-
 (rule
  (target shims.ml)
  (deps shims.5.1.ml)
  (enabled_if (>= %{ocaml_version} 5.1))
  (action (copy# %{deps} %{target})))
 
+; [5.0, 5.1)
+(rule
+ (target shims.mli)
+ (deps shims.5.0.mli)
+ (enabled_if (and (>= %{ocaml_version} 5.0) (< %{ocaml_version} 5.1)))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target shims.ml)
+ (deps shims.5.0.ml)
+ (enabled_if (and (>= %{ocaml_version} 5.0) (< %{ocaml_version} 5.1)))
+ (action (copy# %{deps} %{target})))
+
+; [4.14, 5.0)
+(rule
+ (target shims.mli)
+ (deps shims.4.12.mli)
+ (enabled_if (and (>= %{ocaml_version} 4.12) (< %{ocaml_version} 5.0)))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target shims.ml)
+ (deps shims.4.12.ml)
+ (enabled_if (and (>= %{ocaml_version} 4.12) (< %{ocaml_version} 5.0)))
+ (action (copy# %{deps} %{target})))
+
+; [.., 4.12)
 (rule
  (target shims.mli)
  (deps shims.fallback.mli)
- (enabled_if (< %{ocaml_version} 5.1))
+ (enabled_if (< %{ocaml_version} 4.12))
  (action (copy# %{deps} %{target})))
-
 (rule
  (target shims.ml)
  (deps shims.fallback.ml)
- (enabled_if (< %{ocaml_version} 5.1))
+ (enabled_if (< %{ocaml_version} 4.12))
  (action (copy# %{deps} %{target})))
-
-(mdx
-  (package caqti)
-  (preludes mdx.prelude)
-  (files :standard *.mli)
-  (libraries caqti.template uri))

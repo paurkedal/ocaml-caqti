@@ -33,14 +33,14 @@ type ('a, 'b, +'m) t = {
   row_mult: 'm Row_mult.t;
 } constraint 'm = [< `Zero | `One | `Many]
 
-let last_id = ref (-1)
+let last_id = Shims.Atomic.make (-1)
 
 let create prepare_policy (param_type, row_type, row_mult) query =
-  let query = Lru.memo ~cap:8 (fun _ -> query) in
+  let query = Shims.memo_if_safe ~cap:8 (fun _ -> query) in
   let id =
     (match prepare_policy with
      | Direct -> None
-     | Static | Dynamic -> incr last_id; Some !last_id)
+     | Static | Dynamic -> Some (Shims.Atomic.fetch_and_add last_id 1))
   in
   {id; prepare_policy; query; param_type; row_type; row_mult}
 

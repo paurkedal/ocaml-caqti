@@ -16,7 +16,7 @@
  *)
 
 module Type = struct
-  type ('a, 'b) eq = ('a, 'b) Stdlib.Type.eq = Equal : ('a, 'a) eq
+  type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)
 end
 
 module Atomic = struct
@@ -26,6 +26,14 @@ module Atomic = struct
 end
 
 let memo_if_safe ?hashed ?weight ~cap f =
-  let mutex = Stdlib.Mutex.create () in
-  let f' = Lru.memo ?hashed ?weight ~cap f in
-  fun x -> Stdlib.Mutex.protect mutex (fun () -> f' x)
+  let updating = Atomic.make 0 in
+  let f'memo = Lru.memo ?hashed ?weight ~cap f in
+  let rec f'direct x = f f'direct x in
+  fun x ->
+    Fun.protect
+      ~finally:(fun () -> ignore (Atomic.fetch_and_add updating (-1)))
+      (fun () ->
+        if Atomic.fetch_and_add updating 1 = 0 then
+          f'memo x
+        else
+          f'direct x)

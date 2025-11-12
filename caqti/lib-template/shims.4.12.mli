@@ -29,14 +29,13 @@ end
 
 (**/**)
 
-(* This is a non-atomic fallback. *)
 module Atomic : sig
-  type 'a t
+  type 'a t = 'a Stdlib.Atomic.t
   val make : 'a -> 'a t
   val fetch_and_add : int t -> int -> int
 end
 
-(* This is a non-memoizing fallback. *)
+(* This is an opportunistically memoizing fallback. *)
 val memo_if_safe :
   ?hashed: (('a -> int) * ('a -> 'a -> bool)) ->
   ?weight: ('b -> int) ->

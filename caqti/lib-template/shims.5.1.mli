@@ -24,3 +24,15 @@
 module Type : sig
   type ('a, 'b) eq = ('a, 'b) Stdlib.Type.eq = Equal : ('a, 'a) eq
 end
+
+module Atomic : sig
+  type 'a t = 'a Stdlib.Atomic.t
+  val make : 'a -> 'a t
+  val fetch_and_add : int t -> int -> int
+end
+
+val memo_if_safe :
+  ?hashed: (('a -> int) * ('a -> 'a -> bool)) ->
+  ?weight: ('b -> int) ->
+  cap: int ->
+  (('a -> 'b) -> 'a -> 'b) -> 'a -> 'b

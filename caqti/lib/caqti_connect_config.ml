@@ -63,3 +63,5 @@ let reset : type a. a key -> t -> t = fun (module Key) m ->
 let tweaks_version : (int * int) key = create_key "tweaks_version" (1, 7)
 
 let dynamic_prepare_capacity = create_key "dynamic_prepare_capacity" 32
+
+let enable_query_annotations = create_key "enable_query_annotations" false

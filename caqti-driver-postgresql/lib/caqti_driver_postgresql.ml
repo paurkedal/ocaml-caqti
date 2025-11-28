@@ -125,7 +125,7 @@ module Pg_ext = struct
      | Ptime_span -> (true, pgstring_of_ptime_span)
      | Enum _ -> (true, escape_string))
 
-  let query_string ~subst (db : Pg.connection) templ =
+  let query_string ~annotate ~subst (db : Pg.connection) templ =
     let buf = Buffer.create 64 in
     let rec loop : Query.t -> _ = function
      | L s -> Buffer.add_string buf s
@@ -141,6 +141,10 @@ module Pg_ext = struct
      | P i -> bprintf buf "$%d" (i + 1)
      | E _ -> assert false
      | S frags -> List.iter loop frags
+     | Annot (a, q) ->
+        if annotate then Query.Private.Annot.bprint_start_tag buf a;
+        loop q;
+        if annotate then Query.Private.Annot.bprint_stop_tag buf a
     in
     loop (Query.expand ~final:true subst templ);
     Buffer.contents buf
@@ -476,6 +480,7 @@ struct
       val db : Pg.connection
       val use_single_row_mode : bool
       val dynamic_capacity : int
+      val annotate : bool
     end) =
   struct
     open Connection_arg
@@ -770,7 +775,7 @@ struct
          | Static -> fresh_static_name ()
          | Dynamic -> fresh_dynamic_name ())
       in
-      let query = Pg_ext.query_string ~subst db templ in
+      let query = Pg_ext.query_string ~annotate ~subst db templ in
       let param_type = Request.param_type request in
       let param_length = Row_type.length param_type in
       let param_types = Array.make param_length 0 in
@@ -1039,6 +1044,8 @@ struct
                     let use_single_row_mode = use_single_row_mode
                     let dynamic_capacity =
                       Caqti_connect_config.(get dynamic_prepare_capacity) config
+                    let annotate =
+                      Caqti_connect_config.(get enable_query_annotations) config
                   end)
                 in
                 let module Connection = struct

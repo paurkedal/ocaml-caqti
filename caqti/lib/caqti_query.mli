@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -66,6 +66,9 @@ type t = Caqti_template.Query.Private.t [@alert "-caqti_private"] =
     (** [S frags] is the concatenation of [frags].  Apart from combining
         different kinds of nodes, this constructor can be nested according to
         the flow of the generating code. *)
+  | Annot of Caqti_template.Query.Private.Annot.t * t
+    [@alert "-caqti_private"] [@alert caqti_private]
+    (** This constructor is private. *)
 (** [t] is an intermediate representation of a query string to be send to a
     database, possibly combined with some hidden parameters used to safely embed
     values.  Apart from embedding values, this representation provides indexed

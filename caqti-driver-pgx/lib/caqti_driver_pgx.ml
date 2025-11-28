@@ -81,7 +81,7 @@ let encode_field
    | Ptime -> Pgx.Value.of_string (pgstring_of_ptime x)
    | Ptime_span -> Pgx.Value.of_string (pgstring_of_ptime_span x))
 
-let query_string ~subst templ =
+let query_string ~annotate ~subst templ =
   let templ = Query.expand ~final:true subst templ in
 
   let rec extract_quotes : Query.t -> _ = function
@@ -90,6 +90,7 @@ let query_string ~subst templ =
    | L _ | P _ -> Fun.id
    | E _ -> fun _ -> assert false
    | S qs -> List_ext.fold extract_quotes qs
+   | Annot (_, q) -> extract_quotes q
   in
   let nQ, rev_quotes = extract_quotes templ (0, []) in
 
@@ -101,6 +102,12 @@ let query_string ~subst templ =
    | P j -> fun jQ -> bprintf buf "$%d" (nQ + 1 + j); jQ
    | E _ -> assert false
    | S qs -> List_ext.fold write_query_string qs
+   | Annot (a, q) ->
+      fun jQ ->
+        if annotate then Query.Private.Annot.bprint_start_tag buf a;
+        let jQ = write_query_string q jQ in
+        if annotate then Query.Private.Annot.bprint_stop_tag buf a;
+        jQ
   in
   let _jQ = write_query_string templ 1 in
   (Buffer.contents buf, rev_quotes)
@@ -388,6 +395,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       val db_arg : Pgx_with_io.t
       val select_type_oid : Pgx_with_io.Prepared.s
       val dynamic_capacity : int
+      val annotate : bool
     end) =
   struct
     open Connection_arg
@@ -606,7 +614,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
       let pre_prepare () =
         let templ = Request.query req dialect in
-        let query, rev_quotes = query_string ~subst templ in
+        let query, rev_quotes = query_string ~annotate ~subst templ in
         let*? param_types = type_oids (Request.param_type req) in
         let+? string_oid = field_type_oid Field_type.String in
         let quote_types = List.rev_map (fun _ -> string_oid) rev_quotes in
@@ -775,6 +783,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let select_type_oid = select_type_oid
       let dynamic_capacity =
         Caqti_connect_config.(get dynamic_prepare_capacity) config
+      let annotate =
+        Caqti_connect_config.(get enable_query_annotations) config
     end) in
     let module Connection = struct
       let driver_info = driver_info

@@ -46,6 +46,9 @@ val tweaks_version : (int * int) key
 val dynamic_prepare_capacity : int key
 (** The maximum number of dynamic queries to keep in the prepare-cache. *)
 
+val enable_query_annotations : bool key
+(** Whether to add source annotations as comments in generated SQL code. *)
+
 (**/**) (* for internal use *)
 val create_key : string -> 'a -> 'a key
 val mem_name : string -> t -> bool

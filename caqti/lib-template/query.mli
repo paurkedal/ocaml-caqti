@@ -32,6 +32,16 @@
 
 (**/**)
 module Private : sig
+
+  module Annot : sig
+    type t =
+      | Pos of string * int * int * int
+
+    val bprint : Buffer.t -> t -> unit
+    val bprint_start_tag : Buffer.t -> t -> unit
+    val bprint_stop_tag : Buffer.t -> t -> unit
+  end
+
   type t =
     | L of string
     | V : 'a Field_type.t * 'a -> t
@@ -39,6 +49,7 @@ module Private : sig
     | P of int
     | E of string
     | S of t list
+    | Annot of Annot.t * t
 end [@@alert caqti_private]
 (**/**)
 
@@ -129,6 +140,14 @@ module Infix : sig
       [cat q (lit sfx)]. *)
 end
 
+val with_pos : string * int * int * int -> t -> t
+(** [with_pos position query] annotates [query] with the source location
+    described by [pos]. *)
+
+val with_pos_of : (string * int * int * int) * t -> t
+(** An uncurried variant of {!with_pos} which can be called more conveniently as
+    [with_pos_of @@ __POS_OF__ @@ query] for the precise location range. *)
+
 (** {3:embeddingvalues Embedding Values}
 
     The following functions can be used to embed values into a query, including
@@ -192,6 +211,8 @@ val hash : t -> int
 
 
 (** {2 Parsing, Expansion, and Printing} *)
+
+val make_pp : annotate: bool -> unit -> Format.formatter -> t -> unit
 
 val pp : Format.formatter -> t -> unit
 (** [pp ppf q] prints a {e human}-readable representation of [q] on [ppf].

@@ -94,8 +94,26 @@ let common_args () =
     Arg.(value @@ opt (some int) None @@
          info ~doc ~env ["dynamic-prepare-capacity"])
   in
+  let enable_query_annotations =
+    let env = Cmd.Env.info "CAQTI_ENABLE_QUERY_ANNOTATIONS" in
+    let en =
+      let doc =
+        "Annotate query strings sent the database with source locations."
+      in
+      Arg.(value @@ flag @@ info ~doc ~env ["enable-query-annotations"])
+    in
+    let dis =
+      let doc =
+        "Revert the effect of --enable-query-annotations or the corresponding \
+         environment variable."
+      in
+      Arg.(value @@ flag @@ info ~doc ["disable-query-annotations"])
+    in
+    Term.(const (fun c cc -> c && not cc) $ en $ dis)
+  in
   let preprocess
-        tweaks_version dynamic_prepare_capacity log_level uris uris_file =
+        tweaks_version dynamic_prepare_capacity enable_query_annotations
+        log_level uris uris_file =
     Logs.set_level log_level;
     let uris =
       (match uris with
@@ -108,6 +126,8 @@ let common_args () =
       |> Option.fold ~none:Fun.id
           ~some:Caqti_connect_config.(set dynamic_prepare_capacity)
           dynamic_prepare_capacity
+      |> Caqti_connect_config.(set enable_query_annotations)
+          enable_query_annotations
     in
     {uris; connect_config}
   in
@@ -116,6 +136,7 @@ let common_args () =
     const preprocess
       $ tweaks_version
       $ dynamic_prepare_capacity
+      $ enable_query_annotations
       $ log_level
       $ uris
       $ uris_file

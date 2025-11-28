@@ -185,10 +185,11 @@ let query_quotes q =
    | V (t, v) -> List.cons (data_of_value t v)
    | Q s -> List.cons (Sqlite3.Data.TEXT s)
    | S qs -> List_ext.fold loop qs
+   | Annot (_, q) -> loop q
   in
   List.rev (loop q [])
 
-let query_string q =
+let query_string ~annotate q =
   let quotes = query_quotes q in
   let buf = Buffer.create 64 in
   let iQ = ref 1 in
@@ -200,6 +201,10 @@ let query_string q =
    | P i -> bprintf buf "?%d" (iP0 + i)
    | E _ -> assert false
    | S qs -> List.iter loop qs
+   | Annot (a, q) ->
+      if annotate then Query.Private.Annot.bprint_start_tag buf a;
+      loop q;
+      if annotate then Query.Private.Annot.bprint_stop_tag buf a
   in
   loop q;
   (quotes, Buffer.contents buf)
@@ -291,6 +296,7 @@ struct
       val uri : Uri.t
       val db : Sqlite3.db
       val dynamic_capacity : int
+      val annotate : bool
     end) =
   struct
     open Connection_arg
@@ -464,7 +470,7 @@ struct
 
       let templ = Request.query req dialect in
       let templ = Query.expand subst templ in
-      let quotes, query = query_string templ in
+      let quotes, query = query_string ~annotate templ in
       Preemptive.detach prepare_helper query >|=? fun stmt ->
       (stmt, quotes, query)
 
@@ -632,6 +638,8 @@ struct
         let db = db
         let dynamic_capacity =
           Caqti_connect_config.(get dynamic_prepare_capacity) config
+        let annotate =
+          Caqti_connect_config.(get enable_query_annotations) config
       end in
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct

@@ -287,6 +287,7 @@ struct
         val uri : Uri.t
         val db : Mdb.t
         val dynamic_capacity : int
+        val annotate : bool
       end) =
     struct
       open Connection_arg
@@ -442,7 +443,7 @@ struct
          | None ->
             let templ = Request.query request dialect in
             let templ = Query.expand ~final:true subst templ in
-            let query = Request_utils.linear_query_string templ in
+            let query = Request_utils.linear_query_string ~annotate templ in
             Mdb.prepare db query >|= function
              | Error err -> request_failed ~query err
              | Ok stmt ->
@@ -480,7 +481,7 @@ struct
          | Direct ->
             let templ = Request.query req dialect in
             let templ = Query.expand ~final:true subst templ in
-            let query = Request_utils.linear_query_string templ in
+            let query = Request_utils.linear_query_string ~annotate templ in
             Mdb.prepare db query >>=
             (function
              | Error err -> Fiber.return (request_failed ~query err)
@@ -608,7 +609,9 @@ struct
             let uri = uri
             let db = db
             let dynamic_capacity =
-              Caqti_connect_config.(get dynamic_prepare_capacity config)
+              Caqti_connect_config.(get dynamic_prepare_capacity) config
+            let annotate =
+              Caqti_connect_config.(get enable_query_annotations) config
           end)
         in
         let module C = struct

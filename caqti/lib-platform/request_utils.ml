@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert "-caqti_private"]
+
 open Caqti_template
 
 let (%>) f g x = g (f x)
@@ -33,6 +35,7 @@ let linear_param_length ?(subst = empty_subst) templ =
    | P _ -> succ
    | E _ -> assert false
    | S frags -> List_ext.fold loop frags
+   | Annot (_, q) -> loop q
   in
   loop templ 0
 
@@ -45,6 +48,7 @@ let nonlinear_param_length ?(subst = empty_subst) templ =
    | P n -> max (n + 1)
    | E _ -> assert false
    | S frags -> List_ext.fold loop frags
+   | Annot (_, q) -> loop q
   in
   loop templ 0
 
@@ -62,11 +66,12 @@ let linear_param_order ?(subst = empty_subst) templ =
    | P i -> fun (j, params) -> a.(i) <- j :: a.(i); (j + 1, params)
    | E _ -> assert false
    | S frags -> List_ext.fold loop frags
+   | Annot (_, q) -> loop q
   in
   let _, params = loop templ (0, []) in
   (Array.to_list a, List.rev params)
 
-let linear_query_string ?(subst = empty_subst) templ =
+let linear_query_string ~annotate ?(subst = empty_subst) templ =
   let templ = Query.expand subst templ in
   let buf = Buffer.create 64 in
   let rec loop : Query.t -> unit = function
@@ -74,6 +79,10 @@ let linear_query_string ?(subst = empty_subst) templ =
    | Q _ | V _ | P _ -> Buffer.add_char buf '?'
    | E _ -> assert false
    | S frags -> List.iter loop frags
+   | Annot (a, q) ->
+      if annotate then Query.Private.Annot.bprint_start_tag buf a;
+      loop q;
+      if annotate then Query.Private.Annot.bprint_stop_tag buf a
   in
   loop templ;
   Buffer.contents buf

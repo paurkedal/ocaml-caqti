@@ -255,7 +255,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
              | 1 -> fun x -> Q.string x
              | _ -> assert false)
           in
-          Q.concat [
+          Q.with_pos_of @@ __POS_OF__@@ Q.concat [
             Q.lit "SELECT ";
             Q.param 1; Q.lit " + 10, ";        (* last parameter first *)
             Q.param 1; Q.lit " + 20, ";        (* and duplicated *)

@@ -18,6 +18,35 @@
 open Shims
 
 module Private = struct
+
+  module Annot = struct
+    type t =
+      | Pos of string * int * int * int
+
+    let equal a b =
+      (match a, b with
+       | Pos (s, i, j, k), Pos (s', i', j', k') ->
+          s = s' && i = i' && j = j' && k = k')
+
+    let bprint buf = function
+      | Pos (s, i, j, k) -> Printf.bprintf buf "%s:%d:%d-%d" s i j k
+
+    let start_tag_pre = "/*@"
+    let start_tag_post = "{*/"
+    let stop_tag = "/*}*/"
+
+    let bprint_start_tag buf a =
+      Buffer.add_string buf start_tag_pre;
+      bprint buf a;
+      Buffer.add_string buf start_tag_post
+
+    let bprint_stop_tag buf _ =
+      Buffer.add_string buf stop_tag
+
+    let pp ppf = function
+      | Pos (s, i, j, k) -> Format.fprintf ppf "%s:%d:%d-%d" s i j k
+  end
+
   type t =
     | L of string
     | V : 'a Field_type.t * 'a -> t
@@ -25,6 +54,7 @@ module Private = struct
     | P of int
     | E of string
     | S of t list
+    | Annot of Annot.t * t
 end
 open Private
 
@@ -56,6 +86,9 @@ let concat =
      | Some sep, q :: qs -> S (q :: loop (L sep) [] (List.rev qs)))
 
 let parens q = concat [lit "("; q; lit ")"]
+
+let with_pos (s, i, j, k) q = Annot (Pos (s, i, j, k), q)
+let with_pos_of ((s, i, j, k), q) = Annot (Pos (s, i, j, k), q)
 
 let bool x = V (Field_type.Bool, x)
 let int x = V (Field_type.Int, x)
@@ -104,14 +137,14 @@ let normal =
   let rec collect acc = function
    | [] -> List.rev acc
    | ((L"" | S[]) :: qs) -> collect acc qs
-   | ((P _ | V _ | Q _ | E _ as q) :: qs) -> collect (q :: acc) qs
+   | ((P _ | V _ | Q _ | E _ | Annot _ as q) :: qs) -> collect (q :: acc) qs
    | (S (q' :: qs') :: qs) -> collect acc (q' :: S qs' :: qs)
    | (L s :: qs) -> collectL acc [s] qs
   and collectL acc accL = function
    | ((L"" | S[]) :: qs) -> collectL acc accL qs
    | (L s :: qs) -> collectL acc (s :: accL) qs
    | (S (q' :: qs') :: qs) -> collectL acc accL (q' :: S qs' :: qs)
-   | [] | ((P _ | V _ | Q _ | E _) :: _) as qs ->
+   | [] | ((P _ | V _ | Q _ | E _ | Annot _) :: _) as qs ->
       collect (L (String.concat "" (List.rev accL)) :: acc) qs
   in
   fun q ->
@@ -131,36 +164,50 @@ let rec equal t1 t2 =
    | P i1, P i2 -> Int.equal i1 i2
    | E n1, E n2 -> String.equal n1 n2
    | S ts1, S ts2 -> equal_list equal ts1 ts2
+   | Annot (a1, q1), Annot (a2, q2) -> Annot.equal a1 a2 && equal q1 q2
    | V _, _ -> false
    | L _, _ -> false
    | Q _, _ -> false
    | P _, _ -> false
    | E _, _ -> false
-   | S _, _ -> false)
+   | S _, _ -> false
+   | Annot _, _ -> false)
 
 let hash = Hashtbl.hash
 
-let rec pp ppf = function
- | L s -> Format.pp_print_string ppf s
- | V (t, v) -> Field_type.pp_value ppf (t, v)
- | Q s ->
-    (* Using non-SQL quoting, to avoid issues with newlines and other control
-     * characters when printing to log files. *)
-    Format.pp_print_string ppf "E'";
-    for i = 0 to String.length s - 1 do
-      (match s.[i] with
-       | '\\' -> Format.pp_print_string ppf {|\\|}
-       | '\'' -> Format.pp_print_string ppf {|\'|}
-       | '\t' -> Format.pp_print_string ppf {|\t|}
-       | '\n' -> Format.pp_print_string ppf {|\n|}
-       | '\r' -> Format.pp_print_string ppf {|\r|}
-       | '\x00'..'\x1f' as c -> Format.fprintf ppf {|\x%02x|} (Char.code c)
-       | _ -> Format.pp_print_char ppf s.[i])
-    done;
-    Format.pp_print_char ppf '\''
- | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
- | E n -> Format.fprintf ppf "$(%s)" n
- | S qs -> List.iter (pp ppf) qs
+let make_pp ~annotate () =
+  let rec pp ppf = function
+   | L s -> Format.pp_print_string ppf s
+   | V (t, v) -> Field_type.pp_value ppf (t, v)
+   | Q s ->
+      (* Using non-SQL quoting, to avoid issues with newlines and other control
+       * characters when printing to log files. *)
+      Format.pp_print_string ppf "E'";
+      for i = 0 to String.length s - 1 do
+        (match s.[i] with
+         | '\\' -> Format.pp_print_string ppf {|\\|}
+         | '\'' -> Format.pp_print_string ppf {|\'|}
+         | '\t' -> Format.pp_print_string ppf {|\t|}
+         | '\n' -> Format.pp_print_string ppf {|\n|}
+         | '\r' -> Format.pp_print_string ppf {|\r|}
+         | '\x00'..'\x1f' as c -> Format.fprintf ppf {|\x%02x|} (Char.code c)
+         | _ -> Format.pp_print_char ppf s.[i])
+      done;
+      Format.pp_print_char ppf '\''
+   | P n -> Format.pp_print_char ppf '$'; Format.pp_print_int ppf (n + 1)
+   | E n -> Format.fprintf ppf "$(%s)" n
+   | S qs -> List.iter (pp ppf) qs
+   | Annot (a, q) when annotate ->
+      Format.pp_print_string ppf Annot.start_tag_pre;
+      Annot.pp ppf a;
+      Format.pp_print_string ppf Annot.start_tag_post;
+      pp ppf q;
+      Format.pp_print_string ppf Annot.stop_tag
+   | Annot (_, q) -> pp ppf q
+  in
+  pp
+
+let pp = make_pp ~annotate:false ()
 
 let show q =
   let buf = Buffer.create 512 in
@@ -197,6 +244,7 @@ let expand ?(final = false) f query =
    | L _ | V _ | Q _ -> true
    | P _ | E _ -> false
    | S qs -> List.for_all is_valid qs
+   | Annot (_, q) -> is_valid q
   in
   let rec recurse = function
    | L _ | V _ | Q _ | P _ as q -> q
@@ -221,6 +269,7 @@ let expand ?(final = false) f query =
           else
             not_found ())
    | S qs -> S (List.map recurse qs)
+   | Annot (a, q) -> Annot (a, recurse q)
   in
   recurse query
 

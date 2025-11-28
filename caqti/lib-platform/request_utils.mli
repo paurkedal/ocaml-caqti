@@ -43,7 +43,8 @@ val linear_param_order :
 
     All positions are zero-based. *)
 
-val linear_query_string : ?subst: Query.subst -> Query.t -> string
+val linear_query_string :
+  annotate: bool -> ?subst: Query.subst -> Query.t -> string
 (** [linear_query_string templ] is [templ] where ["?"] is substituted for
     parameters and quoted strings. *)
 

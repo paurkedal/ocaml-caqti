@@ -62,6 +62,7 @@ type t = Private.t
 
 let empty = S []
 let lit frag = L frag
+let litf fmt = Printf.ksprintf lit fmt
 let quote str = Q str
 let param i = P i
 let var v = E v

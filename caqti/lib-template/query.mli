@@ -75,6 +75,9 @@ val lit : string -> t
     use the appropriate function from {!embeddingvalues} or the {!quote}
     function. *)
 
+val litf : ('a, unit, string, t) format4 -> 'a
+(** A formatted variant of {!lit}. *)
+
 val quote : string -> t
 (** [quote str] expands to the literally quoted string [str] if an reliable
     escape function is available from the driver library, otherwise [quote] is

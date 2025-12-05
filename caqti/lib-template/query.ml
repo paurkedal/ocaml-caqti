@@ -242,7 +242,8 @@ type subst = string -> t
 let expand ?(final = false) f query =
   let rec is_valid = function
    | L _ | V _ | Q _ -> true
-   | P _ | E _ -> false
+   | E _ -> not final
+   | P _ -> false
    | S qs -> List.for_all is_valid qs
    | Annot (_, q) -> is_valid q
   in

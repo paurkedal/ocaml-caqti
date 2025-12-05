@@ -250,7 +250,7 @@ val expand : ?final: bool -> subst -> t -> t
 (** [expand subst query] replaces the occurrence of each variable [var] with
     [subst var] where it is defined, otherwise if [final] is [false], the
     variable is left unchanged, otherwise raises {!exception-Expand_error}.
-    The result of the substitution function may not contain variable references.
+    The result of a substitution will not be recusively expanded.
 
     @param final
       Whether this is the final expansion, as when invoked by the drivers.

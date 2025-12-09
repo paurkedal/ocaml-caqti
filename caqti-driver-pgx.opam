@@ -1,6 +1,7 @@
 opam-version: "2.0"
 name: "caqti-driver-pgx"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+x-maintenance-intent: ["(latest)"]
 authors: [
   "Petter A. Urkedal <paurkedal@gmail.com>"
 ]

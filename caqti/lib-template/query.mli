@@ -189,7 +189,7 @@ val const_fields : 'a Row_type.t -> 'a -> t list
     care. *)
 
 
-(** {2 Normalization and Equality} *)
+(** {2 Normalization, Equality, Extraction} *)
 
 val normal : t -> t
 (** [normal q] rewrites [q] to a normal form, flattening nested concatenations
@@ -211,6 +211,9 @@ val hash : t -> int
     It may be necessary to pre-process the query template with {!normal}, unless
     the hash is to be used among a collection of query templates constructed by
     a common deterministic algorithm. *)
+
+val vars : t -> string list
+(** [vars e] are the names of variables which occur in [e]. *)
 
 
 (** {2 Parsing, Expansion, and Printing} *)

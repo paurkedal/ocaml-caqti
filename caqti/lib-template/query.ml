@@ -176,6 +176,17 @@ let rec equal t1 t2 =
 
 let hash = Hashtbl.hash
 
+let fold_list f x acc = List.fold_left (Fun.flip f) acc x
+
+let vars =
+  let rec loop = function
+   | E var -> List.cons var
+   | L _ | Q _ | P _ | V _ -> Fun.id
+   | S qs -> fold_list loop qs
+   | Annot (_, q) -> loop q
+  in
+  fun q -> loop q []
+
 let make_pp ~annotate () =
   let rec pp ppf = function
    | L s -> Format.pp_print_string ppf s

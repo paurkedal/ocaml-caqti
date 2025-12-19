@@ -37,7 +37,7 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
     |> Result.iter_error (Alcotest.failf "%a" Caqti_error.pp);
   (match C.find bad_insert_req () with
    | Ok () -> Alcotest.fail "unexpected ok from bad_insert"
-   | Error (`Response_failed
+   | Error (`Request_failed
         {msg = Caqti_driver_sqlite3.Error_msg {errcode; _}; _}) ->
       Alcotest.(check string) "result code"
         "CONSTRAINT" (Sqlite3.Rc.to_string errcode)

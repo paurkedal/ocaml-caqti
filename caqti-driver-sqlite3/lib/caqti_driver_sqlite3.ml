@@ -341,7 +341,9 @@ struct
            | Sqlite3.Rc.DONE -> None
            | Sqlite3.Rc.ROW -> decode stmt
            | rc ->
-              Request_utils.raise_response_failed ~uri ~query (wrap_rc ~db rc))
+              let msg = wrap_rc ~db rc in
+              let error = Caqti_error.request_failed ~uri ~query msg in
+              raise (Caqti_error.Exn error))
 
       let exec ({row_type; query; _} as response) =
         assert (Row_type.unify row_type Row_type.unit <> None);
@@ -352,7 +354,7 @@ struct
               let msg = Caqti_error.Msg "Received unexpected row for exec." in
               Error (Caqti_error.response_rejected ~uri ~query msg)
            | rc ->
-              Error (Caqti_error.response_failed ~uri ~query (wrap_rc ~db rc)))
+              Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc)))
         in
         Preemptive.detach retrieve ()
 

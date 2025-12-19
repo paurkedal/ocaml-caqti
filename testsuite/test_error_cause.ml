@@ -79,7 +79,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let test (module Db : CONNECTION) =
       Db.exec req () >|= function
        | Ok () -> Alcotest.fail "Error not reported."
-       | Error (`Request_failed _ | `Response_failed _ as err) ->
+       | Error (`Request_failed _ as err) ->
           let actual_cause = Caqti_error.cause err in
 
           (* Skip for sqlite3 < 5.2.0 due to missing extended error code. *)

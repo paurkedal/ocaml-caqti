@@ -1,0 +1,6 @@
+(library
+ (name caqti_schema_test)
+ (libraries caqti_schema caqti.template))
+
+(mdx
+ (libraries caqti_schema caqti_schema_test caqti.template))

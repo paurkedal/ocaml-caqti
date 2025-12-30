@@ -1,0 +1,4 @@
+(library
+ (name caqti_schema)
+ (public_name caqti.schema)
+ (libraries caqti.template))

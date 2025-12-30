@@ -35,6 +35,12 @@ issue #140} needs to be adressed before this library works for installed
 binaries.  The caqti-dynload package provides an alternative, though it will
 be deprecated after the issue is resolved.
 
+{1 Experimental Libraries}
+
+The following library is experimental, it may be heavily revised or
+abandoned without further notice:
+{!module-Caqti_schema}
+
 
 {1 Platform Libraries for Internal Use}
 

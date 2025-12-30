@@ -1,0 +1,34 @@
+(mdx
+ (libraries
+    caqti
+    caqti-driver-postgresql
+    caqti.blocking
+    caqti_schema
+    caqti_schema_test
+    uri))
+
+(executable
+ (name main_blocking)
+ (modules main_blocking)
+ (libraries
+    caqti
+    caqti.blocking
+    caqti.plugin
+    caqti_schema
+    caqti_schema_test
+    lwt
+    lwt.unix
+    testlib
+    testlib_blocking
+    uri))
+
+(rule
+ (alias runtest)
+ (package caqti)
+ (deps
+  (:test main_blocking.exe)
+  (:U %{env:CAQTI_TEST_URIS_FILE=../../../testsuite/uris.conf})
+;  (include ../../../testsuite/dune.uri-deps-blocking)
+  (env_var CAQTI_TEST_X509_AUTHENTICATOR))
+ (locks /db/caqti-schema)
+ (action (run %{test} -U %{U})))

@@ -1,0 +1,3 @@
+(library
+ (name caqti_schema_test)
+ (libraries caqti_schema caqti testlib))

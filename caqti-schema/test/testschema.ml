@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@ module Group = struct
   type tag
   open New_table (struct type t = tag end)
 
-  let gid = column "id" Int
+  let gid = column "gid" Int
   let gid_key = unique Result.ok [gid, Fun.id]
   let name = column "name" String
 

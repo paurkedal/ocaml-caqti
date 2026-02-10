@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -58,6 +58,11 @@ val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
 
 val length : 'a t -> int
 (** [length t] is the number of fields used to represent [t]. *)
+
+val fields : 'a t -> Field_type.any Seq.t
+(** [fields t] is the sequence of field types used to represent [t] in the order
+    in which they will be encoded and decoded.  The sequnce contains [length t]
+    elements. *)
 
 val pp : Format.formatter -> 'a t -> unit
 (** [pp ppf t] prints a human presentation of [t] on [ppf]. *)

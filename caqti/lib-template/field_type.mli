@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,6 +32,8 @@ type 'a t =
   | Ptime : Ptime.t t
   | Ptime_span : Ptime.span t
   | Enum : string -> string t
+
+type any = Any : 'a t -> any
 
 val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
 

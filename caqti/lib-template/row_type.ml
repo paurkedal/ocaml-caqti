@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -74,6 +74,24 @@ and length_product : type a i. (i, a) product -> int =
   (function
    | Proj_end -> 0
    | Proj (t, _, pt) -> length t + length_product pt)
+
+(* fields *)
+
+let fields =
+  let rec recurse
+    : type a. a t -> Field_type.any Seq.t -> Field_type.any Seq.t =
+    (function
+     | Field ft -> fun cont () -> Seq.Cons (Field_type.Any ft, cont)
+     | Option t -> recurse t
+     | Product (_, pt) -> recurse_product pt
+     | Annot (_, t) -> recurse t)
+  and recurse_product
+    : type a i. (i, a) product -> Field_type.any Seq.t -> Field_type.any Seq.t =
+    (function
+     | Proj_end -> Fun.id
+     | Proj (t, _, pt) -> fun cont -> recurse t (recurse_product pt cont))
+  in
+  fun t -> recurse t Seq.empty
 
 (* pp *)
 

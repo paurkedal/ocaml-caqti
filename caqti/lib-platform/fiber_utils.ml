@@ -36,4 +36,19 @@ module Make (Fiber : System_sig.FIBER) = struct
     Fiber.cleanup
       (fun () -> f () >|= fun res -> in_use := false; res)
       (fun () -> in_use := false; Fiber.return ())
+
+  let rec iter_s_list f = function
+   | [] -> Fiber.return ()
+   | x :: xs -> f x >>= fun () -> iter_s_list f xs
+
+  let rec iter_rs_list f = function
+   | [] -> Fiber.return (Ok ())
+   | x :: xs -> f x >>=? fun () -> iter_rs_list f xs
+
+  let map_rs_list f =
+    let rec loop acc = function
+     | [] -> Fiber.return (Ok (List.rev acc))
+     | x :: xs -> let*? y = f x in loop (y :: acc) xs
+    in
+    loop []
 end

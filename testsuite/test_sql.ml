@@ -215,15 +215,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   let test_post_connect (module Db : CONNECTION) =
     Db.exec Q.insert_into_post_connect "swallow" >>= or_fail
 
-  let test_expr (module Db : CONNECTION) =
-
-    let maybe_deallocate q =
-      if Random.int 50 = 0 then
-        Db.deallocate q >>= or_fail
-      else
-        Fiber.return ()
-    in
-
+  let test_params_and_quotes (module Db: CONNECTION) =
     (* Non-prepared and prepared with non-linear parameters and quotes. *)
     repeat 254 (fun i ->
       let i = i mod 127 + 1 in
@@ -283,7 +275,15 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Alcotest.(check string) "second quote" s1 s1';
       Alcotest.(check string) "third quote" s2 s2';
       Alcotest.(check string) "only $1 occurrence" (string_of_int i) si'
-    ) >>= fun () ->
+    )
+
+  let test_expr_and_decode (module Db : CONNECTION) =
+    let maybe_deallocate q =
+      if Random.int 50 = 0 then
+        Db.deallocate q >>= or_fail
+      else
+        Fiber.return ()
+    in
 
     (* Prepared: null *)
     repeat 3 (fun _ ->
@@ -680,7 +680,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       let i = Random.int n in
       let req =
         let open Caqti_template.Create in
-        Caqti_template.Request.create Dynamic T.(unit -->! int) @@ fun _ ->
+        dynamic_gen T.(unit -->! int) @@ fun _ ->
         "SELECT " ^++ Q.int i
       in
       Db.find req () >>= or_fail >>= fun i' ->
@@ -701,12 +701,59 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     if c_post - c_pre > 4_000 then
       Alcotest.failf "Too many prepared statements left, %d - %d" c_post c_pre
 
+  let test_nilrequest =
+    let open Caqti_template.Create in
+    let q = Fun.const [] in
+    let req_static, req_direct = static_gen_multi q, direct_gen_multi q in
+    fun (module Db : CONNECTION) ->
+      let req_dynamic = dynamic_gen_multi q in
+      Db.exec req_static () >>= or_fail >>= fun () ->
+      Db.exec req_direct () >>= or_fail >>= fun () ->
+      Db.exec req_dynamic () >>= or_fail
+
+  let test_multirequest =
+    let init_req =
+      let open Caqti_template.Create in
+      direct_gen_multi @@ fun _ ->
+      [
+        Q.lit "CREATE TEMPORARY TABLE test_multi \
+               (x INTEGER NOT NULL, y INTEGER NOT NULL, PRIMARY KEY (x, y))";
+        Q.lit "ALTER TABLE test_multi ADD COLUMN c TEXT";
+      ]
+    in
+    let insert_req_static, insert_req_dynamic, insert_req_direct =
+      let open Caqti_template.Create in
+      let q = Fun.const [
+        Q.parse "DELETE FROM test_multi";
+        Q.parse "INSERT INTO test_multi (x, y) VALUES (0, 25)";
+        Q.parse "INSERT INTO test_multi (x, y) VALUES (16, 27)";
+        Q.parse "INSERT INTO test_multi (x, y) VALUES (9, 16)";
+      ] in
+      (static_gen_multi q, dynamic_gen_multi q, direct_gen_multi q)
+    in
+    let select_sum_req =
+      let open Caqti_template.Create in
+      static T.(unit -->! t2 int int) "SELECT sum(x), sum(y) FROM test_multi"
+    in
+    fun (module Db : CONNECTION) ->
+      Db.exec init_req () >>= or_fail >>= fun () ->
+      let check_with_policy policy_name insert_req =
+        Db.exec insert_req () >>= or_fail >>= fun () ->
+        Db.find select_sum_req () >>= or_fail >|= fun (sx, sy) ->
+        Alcotest.(check int) ("xs_" ^ policy_name) 25 sx;
+        Alcotest.(check int) ("ys_" ^ policy_name) 68 sy
+      in
+      check_with_policy "static" insert_req_static >>= fun () ->
+      check_with_policy "dynamic" insert_req_dynamic >>= fun () ->
+      check_with_policy "direct" insert_req_direct
+
   let test_drain pool = Pool.drain pool
 
   let connection_test_cases = [
     "post_connect", `Quick, test_post_connect;
     "expand", `Quick, test_expand;
-    "expr", `Quick, test_expr;
+    "params_and_quotes", `Quick, test_params_and_quotes;
+    "expr_and_decode", `Quick, test_expr_and_decode;
     "enum", `Quick, test_enum;
     "table", `Quick, test_table;
     "tuples", `Quick, test_tuples;
@@ -715,6 +762,8 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "stream_both_ways", `Quick, test_stream_both_ways;
     "stream_binary", `Quick, test_stream_binary;
     "dynamic_release", `Slow, test_dynamic_release;
+    "nilrequest", `Quick, test_nilrequest;
+    "multirequest", `Quick, test_multirequest;
   ]
   let pool_test_cases = [
     "drain", `Quick, test_drain;

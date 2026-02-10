@@ -42,7 +42,7 @@ module Key = struct
       param_type: 'a Row_type.t;
       row_type: 'b Row_type.t;
       row_mult: 'm Row_mult.t;
-      query: Query.t;
+      queries: Query.t list;
     } -> t
 
   let create request dialect =
@@ -50,17 +50,17 @@ module Key = struct
       param_type = Request.param_type request;
       row_type = Request.row_type request;
       row_mult = Request.row_mult request;
-      query = Request.query request dialect;
+      queries = Request.queries request dialect;
     }
 
   let equal (T k1) (T k2) =
-    Query.equal k1.query k2.query
+    List.equal Query.equal k1.queries k2.queries
       && Row_type.unify k1.param_type k2.param_type <> None
       && Row_type.unify k1.row_type k2.row_type <> None
 
   let hash (T k) =
     (* TODO: Consider also hashing over the types. *)
-    Query.hash k.query
+    Hashtbl.hash k.queries
 
 end
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -51,6 +51,9 @@ module type CREATE = sig
     ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
     ('a, 'b, 'm) Request.t
 
+  val static_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
+
   val dynamic :
     ('a, 'b, 'm) Request_type.t -> string ->
     ('a, 'b, 'm) Request.t
@@ -59,6 +62,9 @@ module type CREATE = sig
     ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
     ('a, 'b, 'm) Request.t
 
+  val dynamic_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
+
   val direct :
     ('a, 'b, 'm) Request_type.t -> string ->
     ('a, 'b, 'm) Request.t
@@ -66,6 +72,9 @@ module type CREATE = sig
   val direct_gen :
     ('a, 'b, 'm) Request_type.t -> (Dialect.t -> Query.t) ->
     ('a, 'b, 'm) Request.t
+
+  val direct_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
 end
 
 module Create = struct
@@ -79,22 +88,16 @@ module Create = struct
   module Qf = Query_fmt
   include Query.Infix
 
-  let static req_type qs =
-    Request.create Static req_type (Fun.const (Query.parse qs))
+  let static rt qs = Request.create Static rt (Fun.const (Query.parse qs))
+  let static_gen req_type qf = Request.create Static req_type qf
+  let static_gen_multi qf = Request.create_multi Static qf
 
-  let static_gen req_type qf =
-    Request.create Static req_type qf
+  let dynamic rt qs = Request.create Dynamic rt (Fun.const (Query.parse qs))
+  let dynamic_gen rt qf = Request.create Dynamic rt qf
+  let dynamic_gen_multi qf = Request.create_multi Dynamic qf
 
-  let dynamic req_type qs =
-    Request.create Dynamic req_type (Fun.const (Query.parse qs))
-
-  let dynamic_gen req_type qf =
-    Request.create Dynamic req_type qf
-
-  let direct req_type qs =
-    Request.create Direct req_type (Fun.const (Query.parse qs))
-
-  let direct_gen req_type qf =
-    Request.create Direct req_type qf
+  let direct rt qs = Request.create Direct rt (Fun.const (Query.parse qs))
+  let direct_gen rt qf = Request.create Direct rt qf
+  let direct_gen_multi qf = Request.create_multi Direct qf
 
 end

@@ -74,11 +74,6 @@ struct
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
 
-  let rec fold_s_list f =
-    (function
-     | [] -> Fiber.return ()
-     | x :: xs -> f x >>= fun () -> fold_s_list f xs)
-
   module type CONNECTION = Caqti_connection_sig.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
@@ -310,14 +305,23 @@ struct
       module Response = struct
         type ('b, +'m) t = {
           query: string;
-          res: Mdb.Res.t;
+          res: Mdb.Res.t option;
           row_type: 'b Row_type.t;
         }
 
         let reject_f ~query fmt = ksprintf (response_rejected ~query) fmt
 
-        let affected_count {res; _} = Fiber.return (Ok (Mdb.Res.affected_rows res))
-        let returned_count {res; _} = Fiber.return (Ok (Mdb.Res.num_rows res))
+        let num_rows = function
+         | {res = None; _} -> 0
+         | {res = Some res; _} -> Mdb.Res.num_rows res
+
+        let affected_count = function
+         | {res = None; _} -> Fiber.return (Ok 0)
+         | {res = Some res; _} -> Fiber.return (Ok (Mdb.Res.affected_rows res))
+
+        let returned_count = function
+         | {res = None; _} -> Fiber.return (Ok 0)
+         | {res = Some res; _} -> Fiber.return (Ok (Mdb.Res.num_rows res))
 
         let decode_next_row ~query row_type =
           let decode = decode_row ~uri row_type in
@@ -327,66 +331,89 @@ struct
              | Ok (Some row) -> decode row
              | Error err -> response_failed ~query err
 
-        let exec {res; query; _} =
-          (match Mdb.Res.num_rows res with
+        let exec ({query; _} as response) =
+          (match num_rows response with
            | 0 -> Fiber.return (Ok ())
            | n -> Fiber.return (reject_f ~query "Received %d tuples for exec." n))
 
-        let find {query; res; row_type} =
-          (match Mdb.Res.num_rows res with
-           | 1 ->
-              decode_next_row ~query row_type res >|=
-              (function
-               | Ok None -> assert false
-               | Ok (Some y) -> Ok y
-               | Error _ as r -> r)
-           | n -> Fiber.return (reject_f ~query "Received %d tuples for find." n))
+        let find = function
+         | {query; res = None; _} ->
+            Fiber.return (reject_f ~query "Cannot call find on noop request.")
+         | {query; res = Some res; row_type} ->
+            (match Mdb.Res.num_rows res with
+             | 1 ->
+                decode_next_row ~query row_type res >|=
+                (function
+                 | Ok None -> assert false
+                 | Ok (Some y) -> Ok y
+                 | Error _ as r -> r)
+             | n ->
+                Fiber.return (reject_f ~query "Received %d tuples for find." n))
 
-        let find_opt {query; res; row_type} =
-          (match Mdb.Res.num_rows res with
-           | 0 -> Fiber.return (Ok None)
-           | 1 -> decode_next_row ~query row_type res
-           | n -> Fiber.return (reject_f ~query "Received %d tuples for find_opt." n))
+        let find_opt = function
+         | {query; res = None; _} ->
+            Fiber.return (reject_f ~query "Cannot call find_opt on noop request.")
+         | {query; res = Some res; row_type} ->
+            (match Mdb.Res.num_rows res with
+             | 0 -> Fiber.return (Ok None)
+             | 1 -> decode_next_row ~query row_type res
+             | n -> Fiber.return (reject_f ~query "Received %d tuples for find_opt." n))
 
-        let fold f {query; res; row_type} =
-          let decode = decode_next_row ~query row_type in
-          let rec loop acc =
-            decode res >>= function
-             | Ok None -> Fiber.return (Ok acc)
-             | Ok (Some y) -> loop (f y acc)
-             | Error _ as r -> Fiber.return r
-          in
-          loop
+        let fold f = function
+         | {query; res = None; _} ->
+            fun _acc ->
+              Fiber.return (reject_f ~query "Cannot call fold on noop request.")
+         | {query; res = Some res; row_type} ->
+            let decode = decode_next_row ~query row_type in
+            let rec loop acc =
+              decode res >>= function
+               | Ok None -> Fiber.return (Ok acc)
+               | Ok (Some y) -> loop (f y acc)
+               | Error _ as r -> Fiber.return r
+            in
+            loop
 
-        let fold_s f {query; res; row_type} =
-          let decode = decode_next_row ~query row_type in
-          let rec loop acc =
-            decode res >>= function
-             | Ok None -> Fiber.return (Ok acc)
-             | Ok (Some y) -> f y acc >>=? loop
-             | Error _ as r -> Fiber.return r
-          in
-          loop
+        let fold_s f = function
+         | {query; res = None; _} ->
+            fun _acc ->
+              Fiber.return (reject_f ~query "Cannot call fold_s on noop request.")
+         | {query; res = Some res; row_type} ->
+            let decode = decode_next_row ~query row_type in
+            let rec loop acc =
+              decode res >>= function
+               | Ok None -> Fiber.return (Ok acc)
+               | Ok (Some y) -> f y acc >>=? loop
+               | Error _ as r -> Fiber.return r
+            in
+            loop
 
-        let iter_s f {query; res; row_type} =
-          let decode = decode_next_row ~query row_type in
-          let rec loop () =
-            decode res >>= function
-             | Ok None -> Fiber.return (Ok ())
-             | Ok (Some y) -> f y >>=? loop
-             | Error _ as r -> Fiber.return r
-          in
-          loop ()
+        let iter_s f = function
+         | {query; res = None; _} ->
+            Fiber.return (reject_f ~query "Cannot call iter_s on noop request.")
+         | {query; res = Some res; row_type} ->
+            let decode = decode_next_row ~query row_type in
+            let rec loop () =
+              decode res >>= function
+               | Ok None -> Fiber.return (Ok ())
+               | Ok (Some y) -> f y >>=? loop
+               | Error _ as r -> Fiber.return r
+            in
+            loop ()
 
-        let to_stream {query; res; row_type} =
-          let decode = decode_next_row ~query row_type in
-          let rec loop () =
-            decode res >>= function
-             | Ok None -> Fiber.return Stream.Nil
-             | Error err -> Fiber.return (Stream.Error err)
-             | Ok (Some y) -> Fiber.return (Stream.Cons (y, loop))
-          in
-          loop
+        let to_stream = function
+         | {query; res = None; _} ->
+            let msg = "Cannot call to_stream on noop request." in
+            Stream.error
+              (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
+         | {query; res = Some res; row_type} ->
+            let decode = decode_next_row ~query row_type in
+            let rec loop () =
+              decode res >>= function
+               | Ok None -> Fiber.return Stream.Nil
+               | Error err -> Fiber.return (Stream.Error err)
+               | Ok (Some y) -> Fiber.return (Stream.Cons (y, loop))
+            in
+            loop
       end
 
       type prepared = {
@@ -398,7 +425,7 @@ struct
       }
 
       module Pcache =
-        Request_cache.Make (struct type t = prepared let weight _ = 1 end)
+        Request_cache.Make (struct type t = prepared list let weight _ = 1 end)
 
       let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
 
@@ -419,7 +446,8 @@ struct
          | Dynamic | Static ->
             (match Pcache.deallocate pcache req with
              | None -> Fiber.return (Ok ())
-             | Some (prepared, commit) -> free_prepared prepared >|=? commit)
+             | Some (prepared, commit) ->
+                iter_rs_list free_prepared prepared >|=? commit)
          | Direct ->
             failwith "deallocate called on oneshot request")
 
@@ -427,37 +455,56 @@ struct
         let rec loop = function
          | [] -> Fiber.return (Ok ())
          | prepared :: orphans ->
-            let*? () = free_prepared prepared in
+            let*? () = iter_rs_list free_prepared prepared in
             loop orphans
         in
         let orphans, commit = Pcache.trim pcache in
         loop orphans >|=? commit
 
-      let prepare request =
+      let prepare_single qt =
+        let qt = Query.expand ~final:true subst qt in
+        let query = Request_utils.linear_query_string ~annotate qt in
+        (Mdb.prepare db query >|= function
+         | Error err -> request_failed ~query err
+         | Ok stmt ->
+            let param_length = Request_utils.linear_param_length qt in
+            let param_order, quotes =
+              Request_utils.linear_param_order qt in
+            Ok {query; stmt; param_length; param_order; quotes})
+
+      let prepare_cached request =
         deallocate_some () >>=? fun () ->
         (match Pcache.find_and_promote pcache request with
          | Some prepared ->
             Fiber.return (Ok prepared)
          | None ->
-            let templ = Request.query request dialect in
-            let templ = Query.expand ~final:true subst templ in
-            let query = Request_utils.linear_query_string ~annotate templ in
-            Mdb.prepare db query >|= function
-             | Error err -> request_failed ~query err
-             | Ok stmt ->
-                let param_length = Request_utils.linear_param_length templ in
-                let param_order, quotes =
-                  Request_utils.linear_param_order templ in
-                let prepared =
-                  {query; stmt; param_length; param_order; quotes} in
-                Pcache.add pcache request prepared;
-                Ok prepared)
+            let qts = Request.queries request dialect in
+            let+? prepared = map_rs_list prepare_single qts in
+            Pcache.add pcache request prepared;
+            prepared)
+
+      let close_single {stmt; _} =
+        (Mdb.Stmt.close stmt >>= function
+         | Ok () ->
+            Fiber.return ()
+         | Error (code, msg) ->
+            Log.warn (fun p ->
+              p "Ignoring error while closing statement: %d %s" code msg))
+
+      let reset_or_deallocate req pqs =
+        (iter_rs_list (fun {stmt; _} -> Mdb.Stmt.reset stmt) pqs >>= function
+         | Ok () ->
+            Fiber.return ()
+         | Error (code, msg) ->
+            Log.warn (fun p ->
+              p "Removing statement from cache due to failed reset: %d %s"
+                code msg) >|= fun () ->
+            Pcache.remove_and_discard pcache req)
 
       let call ~f req param = using_db @@ fun () ->
         Log.debug ~src:Logging.request_log_src (fun f ->
           f "Sending %a" pp_request_with_param (req, param))
           >>= fun () ->
-
         let process {query; stmt; param_length; param_order; quotes} =
           let param_type = Request.param_type req in
           let row_type = Request.row_type req in
@@ -469,48 +516,39 @@ struct
           (match encode_param ~uri params param_type param param_order with
            | Error _ as r -> Fiber.return r
            | Ok [] ->
-              Mdb.Stmt.execute stmt params >>=
-              (function
-               | Error err -> Fiber.return (request_failed ~query err)
-               | Ok res -> f Response.{query; res; row_type})
-           | Ok (_ :: _) -> assert false) in
-
+              (Mdb.Stmt.execute stmt params >|= function
+               | Error err -> request_failed ~query err
+               | Ok res -> Ok Response.{query; res = Some res; row_type})
+           | Ok (_ :: _) -> assert false)
+        in
+        let postprocess pqs = function
+         | [] ->
+            let row_type = Request.row_type req in
+            f Response.{query = "/* empty */"; res = None; row_type}
+         | [response] ->
+            f response
+         | responses ->
+            let check response pq =
+              if Response.num_rows response = 0 then None else
+              let msg = "Rows returned from multistatement request." in
+              Some (response_rejected ~query:pq.query msg)
+            in
+            (match List.map2 check responses pqs |> List.filter_map Fun.id with
+             | [] -> f (List.hd (List.rev responses))
+             | err :: _ -> Fiber.return err (* TODO merge errors *))
+        in
         (match Request.prepare_policy req with
          | Direct ->
-            let templ = Request.query req dialect in
-            let templ = Query.expand ~final:true subst templ in
-            let query = Request_utils.linear_query_string ~annotate templ in
-            Mdb.prepare db query >>=
-            (function
-             | Error err -> Fiber.return (request_failed ~query err)
-             | Ok stmt ->
-                let param_length = Request_utils.linear_param_length templ in
-                let param_order, quotes =
-                  Request_utils.linear_param_order templ in
-                let prepared =
-                  {query; stmt; param_length; param_order; quotes} in
-                process prepared >>= fun process_result ->
-                Mdb.Stmt.close stmt >>=
-                (function
-                 | Error (code, msg) ->
-                    Log.warn (fun p ->
-                      p "Ignoring error while closing statement: %d %s" code msg)
-                 | Ok () -> Fiber.return ()) >|= fun () ->
-                process_result)
+            let qts = Request.queries req dialect in
+            let*? pqs = map_rs_list prepare_single qts in
+            Fiber.finally
+              (fun () -> map_rs_list process pqs >>=? postprocess pqs)
+              (fun () -> iter_s_list close_single pqs)
          | Dynamic | Static ->
-            let*? prepared = prepare req in
-            let* process_result = process prepared in
-            let+ () =
-              Mdb.Stmt.reset prepared.stmt >>=
-              (function
-               | Ok () -> Fiber.return ()
-               | Error (code, msg) ->
-                  Log.warn (fun p ->
-                    p "Removing statement from cache due to failed reset: %d %s"
-                      code msg) >|= fun () ->
-                  Pcache.remove_and_discard pcache req)
-            in
-            process_result)
+            let*? pqs = prepare_cached req in
+            Fiber.finally
+              (fun () -> map_rs_list process pqs >>=? postprocess pqs)
+              (fun () -> reset_or_deallocate req pqs))
 
       let disconnect () = using_db @@ fun () ->
         let close_stmt prepared =
@@ -521,7 +559,8 @@ struct
               Log.warn (fun p ->
                 p "Ignoring failure during disconnect: %d %s" code msg))
         in
-        fold_s_list close_stmt (Pcache.elements pcache) >>= fun () ->
+        iter_s_list (iter_s_list close_stmt) (Pcache.elements pcache)
+          >>= fun () ->
         Pcache.clear_and_discard pcache;
         Mdb.close db
 

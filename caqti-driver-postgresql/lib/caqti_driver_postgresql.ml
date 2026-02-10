@@ -327,13 +327,25 @@ let decode_row ~uri row_type =
      | (y, (_, _, j)) -> assert (j = Row_type.length row_type); Ok y
      | exception Caqti_error.Exn (`Decode_rejected _ as err) -> Error err)
 
+type queries_info =
+  | Empty
+  | Direct of {
+      length: int;
+      combined: string;
+    }
+  | Prepared of {
+      prologue: (string * string) list;
+      main: string * string
+    }
+
 type request_info = {
-  query_name: string;
-  query: string;
+  queries_info: queries_info;
   param_length: int;
   param_types: Pg.oid array;
   binary_params: bool array;
 }
+
+let fresh_name = Request_utils.fresh_name_generator "caq"
 
 module Pcache =
   Request_cache.Make (struct type t = request_info let weight _ = 1 end)
@@ -552,28 +564,46 @@ struct
         end
       end
 
-    let send_direct_query ~single_row_mode request_info params =
-      let {query; param_types; binary_params; _} = request_info in
-      Fiber.return @@ wrap_pg ~query begin fun () ->
-        db#send_query ~params ~param_types ~binary_params query;
-        if single_row_mode then db#set_single_row_mode;
-        db#consume_input
-      end
-
-    let send_prepared_query ~single_row_mode request_info params =
-      let {query_name; query; binary_params; _} = request_info in
-      assert (query_name <> "");
-      Fiber.return @@ wrap_pg ~query begin fun () ->
-        db#send_query_prepared ~params ~binary_params query_name;
-        if single_row_mode then db#set_single_row_mode;
-        db#consume_input
-      end
+    let send_queries ~single_row_mode request_info params =
+      let {param_types; binary_params; _} = request_info in
+      (match request_info.queries_info with
+       | Empty ->
+          Fiber.return (Ok ())
+       | Direct {combined = query; _} ->
+          Fiber.return @@ wrap_pg ~query begin fun () ->
+            db#send_query ~params ~param_types ~binary_params query;
+            if single_row_mode then db#set_single_row_mode;
+            db#consume_input
+          end
+       | Prepared {prologue; main = (name, query)} ->
+          let send name query =
+            wrap_pg ~query begin fun () ->
+              db#send_query_prepared ~params ~binary_params name;
+              if single_row_mode then db#set_single_row_mode;
+              db#consume_input
+            end
+          in
+          let send_and_fetch (name, query) =
+            let/? () = send name query in
+            let*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
+            Fiber.return (Pg_io.check_command_result ~uri ~query result)
+          in
+          iter_rs_list send_and_fetch prologue >>=? fun () ->
+          Fiber.return (send name query))
 
     let fetch_one_result ~query () =
       Pg_io.get_one_result ~stdenv ~uri ~query db
 
     let fetch_final_result ~query () =
       Pg_io.get_final_result ~stdenv ~uri ~query db
+
+    let fetch_and_check_final_result ~query ~row_mult () =
+      let+ result = fetch_final_result ~query () in
+      Result.bind result begin fun result ->
+        Pg_io.check_query_result
+          ~uri ~query ~row_mult ~single_row_mode:false result
+          |> Result.map (fun () -> result)
+      end
 
     let fetch_single_row ~query () =
       Pg_io.get_one_result ~stdenv ~uri ~query db >>=? fun result ->
@@ -596,27 +626,41 @@ struct
             ~uri ~query ~row_mult:Row_mult.zero_or_more ~single_row_mode:true
             result)
 
-    let prepare {query_name; query; param_types; _} =
-      assert (query_name <> "");
-      let*? () =
-        Fiber.return @@ wrap_pg ~query @@ fun () ->
-          db#send_prepare ~param_types query_name query;
-          db#consume_input
+    let prepare {queries_info; param_types; _} =
+      let prepare_single (name, query) =
+        let*? () =
+          Fiber.return @@ wrap_pg ~query @@ fun () ->
+            db#send_prepare ~param_types name query;
+            db#consume_input
+        in
+        let+*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
+        Pg_io.check_command_result ~uri ~query result
       in
-      let+*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
-      Pg_io.check_command_result ~uri ~query result
+      (match queries_info with
+       | Empty | Direct _ -> Fiber.return (Ok ())
+       | Prepared {prologue; main} ->
+          iter_rs_list prepare_single prologue >>=? fun () ->
+          prepare_single main)
 
-    let free_prepared request_info =
-      let query = sprintf "DEALLOCATE %s" request_info.query_name in
-      let*? () = send_simple_query_or_retry query in
-      let+*? result = fetch_final_result ~query () in
-      Pg_io.check_query_result
-        ~uri ~query ~row_mult:Row_mult.zero ~single_row_mode:false
-        result
+    let free_prepared {queries_info; _} =
+      let free_single (name, _) =
+        let query = sprintf "DEALLOCATE %s" name in
+        let*? () = send_simple_query_or_retry query in
+        let+*? result = fetch_final_result ~query () in
+        Pg_io.check_query_result
+          ~uri ~query ~row_mult:Row_mult.zero ~single_row_mode:false
+          result
+      in
+      (match queries_info with
+       | Empty | Direct _ -> Fiber.return (Ok ())
+       | Prepared {prologue; main} ->
+          iter_rs_list free_single prologue >>=? fun () ->
+          free_single main)
 
     module Response = struct
 
       type source =
+        | Empty
         | Complete of Pg.result
         | Single_row
 
@@ -627,12 +671,16 @@ struct
       }
 
       let returned_count = function
+       | {source = Empty; _} ->
+          Fiber.return (Ok 0)
        | {source = Complete result; _} ->
           Fiber.return (Ok result#ntuples)
        | {source = Single_row; _} ->
           Fiber.return (Error `Unsupported)
 
       let affected_count = function
+       | {source = Empty; _} ->
+          Fiber.return (Ok 0)
        | {source = Complete result; _} ->
           Fiber.return (Ok (int_of_string result#cmd_tuples))
        | {source = Single_row; _} ->
@@ -643,7 +691,7 @@ struct
       let find = function
        | {row_type; source = Complete result; _} ->
           Fiber.return (decode_row ~uri row_type (result, 0))
-       | {source = Single_row; _} ->
+       | {source = Empty | Single_row; _} ->
           assert false
 
       let find_opt = function
@@ -654,12 +702,14 @@ struct
              | Ok y -> Ok (Some y)
              | Error _ as r -> r)
           end
-       | {source = Single_row; _} ->
+       | {source = Empty | Single_row; _} ->
           assert false
 
       let fold f {row_type; query; source} =
         let decode = decode_row ~uri row_type in
         (match source with
+         | Empty ->
+            fun acc -> Fiber.return (Ok acc)
          | Complete result ->
             let n = result#ntuples in
             let rec loop i acc =
@@ -683,6 +733,8 @@ struct
       let fold_s f {row_type; query; source} =
         let decode = decode_row ~uri row_type in
         (match source with
+         | Empty ->
+            fun acc -> Fiber.return (Ok acc)
          | Complete result ->
             let n = result#ntuples in
             let rec loop i acc =
@@ -706,6 +758,8 @@ struct
       let iter_s f {row_type; query; source} =
         let decode = decode_row ~uri row_type in
         (match source with
+         | Empty ->
+            Fiber.return (Ok ())
          | Complete result ->
             let n = result#ntuples in
             let rec loop i =
@@ -729,6 +783,8 @@ struct
       let to_stream {row_type; query; source} =
         let decode = decode_row ~uri row_type in
         (match source with
+         | Empty ->
+            Stream.empty
          | Complete result ->
             let n = result#ntuples in
             let rec seq i () =
@@ -756,25 +812,39 @@ struct
     let pp_request_with_param ppf =
       Request.make_pp_with_param ~subst ~dialect () ppf
 
-    let fresh_static_name = Request_utils.fresh_name_generator "caqs"
-    let fresh_dynamic_name = Request_utils.fresh_name_generator "caqd"
-
-    let build_request_info request =
-      let templ = Request.query request dialect in
-      let query_name =
-        (match Request.prepare_policy request with
-         | Direct -> ""
-         | Static -> fresh_static_name ()
-         | Dynamic -> fresh_dynamic_name ())
+    let build_request_info request db =
+      let query_strings =
+        Request.queries request dialect
+          |> List.map (Pg_ext.query_string ~annotate ~subst db)
       in
-      let query = Pg_ext.query_string ~annotate ~subst db templ in
+      let queries_info =
+        if query_strings = [] then Empty else
+        (match Request.prepare_policy request with
+         | Request.Direct ->
+            Direct {
+              length = List.length query_strings;
+              combined = String.concat "; " query_strings;
+            }
+         | Request.Static | Request.Dynamic ->
+            let name = fresh_name () in
+            let nominate i query_string =
+              (name ^ "s" ^ string_of_int i, query_string)
+            in
+            (match List.rev query_strings with
+             | [] -> assert false
+             | main_query :: rev_prologue_queries ->
+                Prepared {
+                  prologue = List.mapi nominate (List.rev rev_prologue_queries);
+                  main = (name, main_query);
+                }))
+      in
       let param_type = Request.param_type request in
       let param_length = Row_type.length param_type in
       let param_types = Array.make param_length 0 in
       let binary_params = Array.make param_length false in
       init_param_types ~type_oid_cache param_types binary_params param_type
         |> Result.map @@ fun () ->
-      {query_name; query; param_length; param_types; binary_params}
+      {queries_info; param_length; param_types; binary_params}
 
     let build_params request request_info param =
       let param_type = Request.param_type request in
@@ -786,49 +856,63 @@ struct
       retry_on_connection_error @@ fun () ->
       (match Request.prepare_policy request with
        | Direct ->
-          let/? request_info = build_request_info request in
+          let/? request_info = build_request_info request db in
           let/? params = build_params request request_info param in
-          let+? () = send_direct_query ~single_row_mode request_info params in
-          request_info.query
+          let+? () = send_queries ~single_row_mode request_info params in
+          request_info
        | Dynamic | Static ->
           let*? request_info =
             (match Pcache.find_and_promote pcache request with
              | Some request_info ->
                 Fiber.return (Ok request_info)
              | None ->
-                let/? request_info = build_request_info request in
+                let/? request_info = build_request_info request db in
                 let+? () = prepare request_info in
                 Pcache.add pcache request request_info;
                 request_info)
           in
           let/? params = build_params request request_info param in
-          let+? () = send_prepared_query ~single_row_mode request_info params in
-          request_info.query)
+          let+? () = send_queries ~single_row_mode request_info params in
+          request_info)
 
     let call_without_oids ~f request param =
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (request, param)) >>= fun () ->
 
+      let row_mult = Request.row_mult request in
+      let row_type = Request.row_type request in
       let single_row_mode =
         use_single_row_mode
           && Row_mult.can_be_many (Request.row_mult request)
       in
 
       (* Prepare, if requested, and send the query. *)
-      let*? query = send_request ~single_row_mode request param in
+      let*? request_info = send_request ~single_row_mode request param in
 
       (* Fetch and process the result. *)
-      let row_type = Request.row_type request in
-      if single_row_mode then
-        f Response.{row_type; query; source = Single_row}
-      else begin
-        let row_mult = Request.row_mult request in
-        let*? result = fetch_final_result ~query () in
-        (match Pg_io.check_query_result
-                ~uri ~query ~row_mult ~single_row_mode result with
-         | Ok () -> f Response.{row_type; query; source = Complete result}
-         | Error _ as r -> Fiber.return r)
-      end
+      (match request_info.queries_info with
+       | Empty ->
+          f Response.{row_type; query = "/* empty */"; source = Empty}
+       | Prepared {main = (_, query); _}
+       | Direct {length = 1; combined = query; _} ->
+          if single_row_mode then
+            f Response.{row_type; query; source = Single_row}
+          else
+          let*? result = fetch_and_check_final_result ~query ~row_mult () in
+          f Response.{row_type; query; source = Complete result}
+       | Direct {length; combined = query} ->
+          let rec loop length =
+            if length = 0 then Fiber.return (Ok ()) else
+            let*? result = fetch_one_result ~query () in
+            (match Pg_io.check_command_result ~uri ~query result with
+             | Ok () -> loop (length - 1)
+             | Error _ as r -> Fiber.return r)
+          in
+          let*? () = loop (length - 1) in
+          let*? result =
+            fetch_and_check_final_result ~query ~row_mult:Row_mult.zero ()
+          in
+          f Response.{row_type; query; source = Complete result})
 
     let rec fetch_type_oids : type a. a Row_type.t -> _ = function
      | Field (Enum name as field_type)
@@ -877,14 +961,8 @@ struct
               free_prepared request_info >|= Result.map commit_remove))
 
     let deallocate_some () =
-      let rec loop = function
-       | [] -> Fiber.return (Ok ())
-       | request_info :: orphans ->
-          let*? () = free_prepared request_info in
-          loop orphans
-      in
       let orphans, commit = Pcache.trim pcache in
-      loop orphans >|=? commit
+      iter_rs_list free_prepared orphans >|=? commit
 
     let call ~f req param = using_db @@ fun () ->
       deallocate_some () >>=? fun () ->

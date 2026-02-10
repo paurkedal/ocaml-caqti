@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,5 +35,6 @@ val only_zero_or_one : [< `Zero | `One] t -> unit
 
 val expose : 'm t -> [`Zero | `One | `Zero_or_one | `Zero_or_more]
 
+val is_zero : 'm t -> bool
 val can_be_zero : 'm t -> bool
 val can_be_many : 'm t -> bool

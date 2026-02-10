@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -83,6 +83,21 @@ val create :
     a small LRU cache, reflecting that fact that it is typically only called on
     a few arguments during the lifetime of the program. *)
 
+val create_multi :
+  prepare_policy -> (Dialect.t -> Query.t list) ->
+  (unit, unit, [`Zero]) t
+(** [create_multi prepare_policy f] creates a request template which can contain
+    multiple queries and no query.  Neither parameters nor result rows are
+    supported.
+
+    For schema initialization, using {!Direct} prepare policy is recommended.
+    In particular, if one statement depends on tables or other objects created
+    by a previous statement, then only the {!Direct} policy works across all
+    database systems.  Prepared queries are typically restricted to single
+    statements, in which case Caqti will prepare them separatly.  For SQLite3,
+    at least, a statement depending on a object cannot be prepared before the
+    statement creating the object is executed. *)
+
 val prepare_policy : (_, _, _) t -> prepare_policy
 (** [prepare_policy req] is the prepare policy of [req]. *)
 
@@ -96,9 +111,11 @@ val row_mult : (_, _, 'm) t -> 'm Row_mult.t
 (** [row_mult req] indicates how many rows [req] may return.  This is asserted
     when constructing the query. *)
 
-val query : ('a, 'b, 'm) t -> Dialect.t -> Query.t
-(** [query req] is the function which generates the query of this request
-    possibly tailored for the given driver. *)
+val queries : ('a, 'b, 'm) t -> Dialect.t -> Query.t list
+(** [queries req] returns a function which, given a driver, generates the list
+    of queries to execute in order.  All queries receive the same parameters and
+    the last query provides the result set.  If the list of queries is empty, no
+    operation is performed and the request type must allow an empty response. *)
 
 
 (** {2 Formatting} *)

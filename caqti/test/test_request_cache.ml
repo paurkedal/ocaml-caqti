@@ -33,7 +33,7 @@ let dynamic_select i =
   let open Caqti_template.Create in
   let query = Q.("SELECT " ^++ int i) in
   let request_type = T.(unit -->! int) in
-  Request.create Dynamic request_type (fun _ -> query)
+  dynamic_gen request_type (Fun.const query)
 
 let is_promoted i = Hashtbl.hash (i : int) land 1 = 0
 let is_retained i = Hashtbl.hash (i : int) land 2 = 0

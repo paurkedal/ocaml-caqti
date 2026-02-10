@@ -31,6 +31,17 @@ let driver_info = Caqti_driver_info.of_dialect dialect
 
 type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
 
+let rec iter_r_list f = function
+ | [] -> Ok ()
+ | x :: xs -> Result.bind (f x) (fun () -> iter_r_list f xs)
+
+let map_r_list f =
+  let rec loop acc = function
+   | [] -> Ok (List.rev acc)
+   | x :: xs -> Result.bind (f x) (fun y -> loop (y :: acc) xs)
+  in
+  loop []
+
 let get_uri_bool uri name =
   (match Uri.get_query_param uri name with
    | Some ("true" | "yes") -> Some true
@@ -304,26 +315,40 @@ struct
 
     module Response = struct
 
+      type queries_state =
+        | Empty
+        | Direct of string
+        | Prepared of {
+            prologue: (Sqlite3.stmt * string) list;
+            main: Sqlite3.stmt * string;
+          }
+
+      let show_query = function
+       | Empty -> "/* empty */"
+       | Direct query -> query
+       | Prepared {prologue; main} ->
+          String.concat "; " (List.rev (snd main :: List.rev_map snd prologue))
+
       type ('b, 'm) t = {
-        stmt: Sqlite3.stmt;
+        queries_state: queries_state;
         row_type: 'b Row_type.t;
-        query: string;
         mutable affected_count: int;
         mutable has_been_executed: bool;
       }
 
       let returned_count _ = Fiber.return (Error `Unsupported)
 
-      let affected_count {affected_count; has_been_executed; query; _} =
+      let affected_count {affected_count; has_been_executed; queries_state; _} =
         if has_been_executed then Fiber.return (Ok affected_count) else
         let msg =
           Caqti_error.Msg
             "Statement not executed yet, affected_count unavailable."
         in
+        let query = show_query queries_state in
         Fiber.return (Error (Caqti_error.response_rejected ~uri ~query msg))
 
-      let run_step response =
-        let ret = Sqlite3.step response.stmt in
+      let run_step response stmt =
+        let ret = Sqlite3.step stmt in
         if not response.has_been_executed then
           begin
             response.has_been_executed <- true;
@@ -331,29 +356,45 @@ struct
           end;
         ret
 
-      let fetch_row ({stmt; row_type; query; _} as response) =
-        let decode = decode_row ~uri ~query row_type in
-        fun () ->
-          (match run_step response with
-           | Sqlite3.Rc.DONE -> None
-           | Sqlite3.Rc.ROW -> decode stmt
-           | rc ->
-              let msg = wrap_rc ~db rc in
-              let error = Caqti_error.request_failed ~uri ~query msg in
-              raise (Caqti_error.Exn error))
+      let fetch_row = function
+       | {queries_state = Empty; _} ->
+          fun () -> None
+       | {queries_state = Direct _; _} ->
+          assert false
+       | {queries_state = Prepared {prologue; main = stmt, query}; row_type; _} as response ->
+          assert (prologue = []);
+          let decode = decode_row ~uri ~query row_type in
+          fun () ->
+            (match run_step response stmt with
+             | Sqlite3.Rc.DONE -> None
+             | Sqlite3.Rc.ROW -> decode stmt
+             | rc ->
+                let msg = wrap_rc ~db rc in
+                let error = Caqti_error.request_failed ~uri ~query msg in
+                raise (Caqti_error.Exn error))
 
-      let exec ({row_type; query; _} as response) =
-        assert (Row_type.unify row_type Row_type.unit <> None);
-        let retrieve () =
-          (match run_step response with
-           | Sqlite3.Rc.DONE -> Ok ()
-           | Sqlite3.Rc.ROW ->
-              let msg = Caqti_error.Msg "Received unexpected row for exec." in
-              Error (Caqti_error.response_rejected ~uri ~query msg)
-           | rc ->
-              Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc)))
+      let exec =
+        let handle_rc ~query = function
+         | Sqlite3.Rc.DONE | Sqlite3.Rc.OK -> Ok ()
+         | Sqlite3.Rc.ROW ->
+            let msg = Caqti_error.Msg "Received unexpected row for exec." in
+            Error (Caqti_error.response_rejected ~uri ~query msg)
+         | rc ->
+            Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
         in
-        Preemptive.detach retrieve ()
+        (function
+         | {queries_state = Empty; _} ->
+            Fiber.return (Ok ())
+         | {queries_state = Direct query; _} ->
+            Preemptive.detach
+              (fun () -> handle_rc ~query (Sqlite3.exec db query)) ()
+         | {queries_state = Prepared query_states; row_type; _} as response ->
+            assert (Row_type.unify row_type Row_type.unit <> None);
+            let retrieve (stmt, query) =
+              handle_rc ~query (run_step response stmt)
+            in
+            Preemptive.detach (iter_r_list retrieve)
+              (query_states.prologue @ [query_states.main]))
 
       let find resp =
         let retrieve () =
@@ -361,14 +402,15 @@ struct
             (match fetch_row resp () with
              | None ->
                 let msg = Caqti_error.Msg "Received no rows for find." in
-                Error (Caqti_error.response_rejected ~uri ~query:resp.query msg)
+                let query = show_query resp.queries_state in
+                Error (Caqti_error.response_rejected ~uri ~query msg)
              | Some y ->
                 (match fetch_row resp () with
                  | None -> Ok y
                  | Some _ ->
                     let msg = "Received multiple rows for find." in
                     let msg = Caqti_error.Msg msg in
-                    let query = resp.query in
+                    let query = show_query resp.queries_state in
                     Error (Caqti_error.response_rejected ~uri ~query msg)))
            with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
@@ -385,7 +427,7 @@ struct
                  | Some _ ->
                     let msg = "Received multiple rows for find_opt." in
                     let msg = Caqti_error.Msg msg in
-                    let query = resp.query in
+                    let query = show_query resp.queries_state in
                     Error (Caqti_error.response_rejected ~uri ~query msg)))
           with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
         in
@@ -449,29 +491,22 @@ struct
     end
 
     module Pcache = Request_cache.Make (struct
-      type t = Sqlite3.stmt * Sqlite3.Data.t list * string
+      type t = (Sqlite3.stmt * Sqlite3.Data.t list * string) list
       let weight _ = 1
     end)
 
     let pcache = Pcache.create ~dynamic_capacity dialect
 
-    let prepare req =
-      let prepare_helper query =
+    let prepare =
+      let prepare_single templ =
+        let quotes, query = query_string ~annotate templ in
         try
-          let stmt = Sqlite3.prepare db query in
-          (match Sqlite3.prepare_tail stmt with
-           | None -> Ok stmt
-           | Some stmt -> Ok stmt)
+          Ok (Sqlite3.prepare db query, quotes, query)
         with Sqlite3.Error msg ->
           let msg = Caqti_error.Msg msg in
           Error (Caqti_error.request_failed ~uri ~query msg)
       in
-
-      let templ = Request.query req dialect in
-      let templ = Query.expand subst templ in
-      let quotes, query = query_string ~annotate templ in
-      Preemptive.detach prepare_helper query >|=? fun stmt ->
-      (stmt, quotes, query)
+      Preemptive.detach (map_r_list prepare_single)
 
     let pp_request_with_param ppf =
       Request.make_pp_with_param ~subst ~dialect () ppf
@@ -493,14 +528,15 @@ struct
           (match Pcache.deallocate pcache req with
            | None -> Fiber.return (Ok ())
            | Some (entry, commit) ->
-              Preemptive.detach free_prepared entry >|=? commit)
-       | Direct -> failwith "deallocate called on oneshot request")
+              Preemptive.detach (iter_r_list free_prepared) entry >|=? commit)
+       | Direct ->
+          failwith "deallocate called on oneshot request")
 
     let deallocate_some () =
       let rec loop = function
        | [] -> Ok ()
        | pcache_entry :: orphans ->
-          (match free_prepared pcache_entry with
+          (match iter_r_list free_prepared pcache_entry with
            | Ok () -> loop orphans
            | r -> r)
       in
@@ -515,68 +551,108 @@ struct
 
       let param_type = Request.param_type req in
       let row_type = Request.row_type req in
+      let queries = Request.queries req dialect in
+      let queries = List.map (Query.expand subst) queries in
 
-      (match Request.prepare_policy req with
-       | Direct -> prepare req
-       | Dynamic | Static ->
-          (match Pcache.find_and_promote pcache req with
-           | Some pcache_entry -> Fiber.return (Ok pcache_entry)
-           | None ->
-              prepare req >|=? fun pcache_entry ->
-              Pcache.add pcache req pcache_entry;
-              pcache_entry))
-      >>=? fun (stmt, quotes, query) ->
+      if queries = [] then
+        f Response.{
+          queries_state = Empty;
+          row_type;
+          has_been_executed = true;
+          affected_count = -1;
+        }
+      else
 
-      (* CHECKME: Does binding involve IO? *)
-      Fiber.return (bind_quotes ~uri ~db stmt quotes) >>=? fun () ->
-      let nQ = List.length quotes in
-      (match encode_param ~uri ~db stmt param_type param nQ with
-       | Ok nQP ->
-          let nP = Row_type.length param_type in
-          if nQP > nQ + nP then
-            failwith "Too many arguments passed to query; \
-                      check that the parameter type is correct."
-          else
-          if nQP < nQ + nP then
-            failwith "Too few arguments passed to query; \
-                      check that the parameter type is correct."
-          else
-          let resp = Response.{
-            stmt; query; row_type; has_been_executed=false; affected_count = -1;
-          } in
-          Fiber.return (Ok resp)
-       | Error _ as r -> Fiber.return r)
-      >>=? fun resp ->
-
-      (* CHECKME: Does finalize or reset involve IO? *)
-      let cleanup () =
+      let bind_single (stmt, quotes, query) =
+        Result.bind (bind_quotes ~uri ~db stmt quotes) @@ fun () ->
+        let nQ = List.length quotes in
+        Result.bind (encode_param ~uri ~db stmt param_type param nQ)
+          @@ fun nQP ->
+        let nP = Row_type.length param_type in
+        assert (nQP = nQ + nP);
+        Ok (stmt, query)
+      in
+      let cleanup_single (stmt, query) =
+        (match Sqlite3.finalize stmt with
+         | Sqlite3.Rc.OK ->
+            Fiber.return ()
+         | rc ->
+            Log.warn (fun p ->
+              p "Ignoring error %s when finalizing statement %s."
+                (Sqlite3.Rc.to_string rc) query))
+      in
+      let reset_single (stmt, _) =
+        (match Sqlite3.reset stmt with
+         | Sqlite3.Rc.OK ->
+            Fiber.return ()
+         | rc ->
+            Log.warn (fun p ->
+              p "Dropping cached statement due to error %s."
+                (Sqlite3.Rc.to_string rc)) >|= fun () ->
+            Pcache.remove_and_discard pcache req)
+      in
+      let cleanup query_states =
         (match Request.prepare_policy req with
          | Direct ->
-            (match Sqlite3.finalize stmt with
-             | Sqlite3.Rc.OK -> Fiber.return ()
-             | rc ->
-                Log.warn (fun p ->
-                  p "Ignoring error %s when finalizing statement."
-                    (Sqlite3.Rc.to_string rc)))
+            iter_s_list cleanup_single query_states
          | Dynamic | Static ->
-            (match Sqlite3.reset stmt with
-             | Sqlite3.Rc.OK -> Fiber.return ()
-             | _ ->
-                Log.warn (fun p ->
-                  p "Dropping cache statement due to error.") >|= fun () ->
-                Pcache.remove_and_discard pcache req))
+            iter_s_list reset_single query_states)
       in
-      Fiber.finally (fun () -> f resp) cleanup
+      let run_prepared query_states =
+        (match map_r_list bind_single query_states with
+         | Ok query_states ->
+            let prologue, main =
+              (match List.rev query_states with
+               | [] -> assert false
+               | main :: prologue -> List.rev prologue, main)
+            in
+            let resp = Response.{
+              queries_state = Prepared {prologue; main}; row_type;
+              has_been_executed = false; affected_count = -1;
+            } in
+            Fiber.finally (fun () -> f resp) (fun () -> cleanup query_states)
+         | Error _ as r ->
+            Fiber.return r)
+      in
+      (match Request.prepare_policy req with
+       | Direct ->
+          if Row_type.length param_type = 0
+              && Row_mult.is_zero (Request.row_mult req) then
+            let quotes, query =
+              query_string ~annotate (Query.concat ~sep:"; " queries)
+            in
+            if quotes = [] then
+              f Response.{
+                queries_state = Direct query;
+                row_type;
+                has_been_executed = false;
+                affected_count = -1;
+              }
+            else
+              let*? query_states = prepare queries in
+              run_prepared query_states
+          else
+            let*? query_states = prepare queries in
+            run_prepared query_states
+       | Dynamic | Static ->
+          (match Pcache.find_and_promote pcache req with
+           | Some query_states ->
+              run_prepared query_states
+           | None ->
+              let*? query_states = prepare queries in
+              Pcache.add pcache req query_states;
+              run_prepared query_states))
 
     let disconnect () = using_db @@ fun () ->
       let finalize_error_count = ref 0 in
       let not_busy = ref false in
       Preemptive.detach begin fun () ->
-        let uncache (stmt, _, _) =
+        let uncache_single (stmt, _, _) =
           (match Sqlite3.finalize stmt with
            | Sqlite3.Rc.OK -> ()
-           | _ -> finalize_error_count := !finalize_error_count + 1) in
-        Pcache.iter uncache pcache;
+           | _ -> finalize_error_count := !finalize_error_count + 1)
+        in
+        Pcache.iter (List.iter uncache_single) pcache;
         not_busy := Sqlite3.db_close db
         (* If this reports busy, it means we missed an Sqlite3.finalize or other
          * cleanup action, so this should not happen. *)

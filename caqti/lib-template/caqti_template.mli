@@ -1,4 +1,4 @@
-(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -194,6 +194,16 @@ module type CREATE = sig
       query template is dialect-dependent and explicitly constructed by the
       caller. *)
 
+  val static_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
+  (** A variant of {!static_gen} which executes multiple queries which must
+      receive no parameters and return no result rows.
+
+      Depending on the chosen driver, statements may be prepared individually,
+      with the limitations this implies, cf. {!Request.create_multi}.
+      Esp. {!direct_gen_multi} is recommended for schema initialization and
+      updates. *)
+
   val dynamic :
     ('a, 'b, 'm) Request_type.t -> string ->
     ('a, 'b, 'm) Request.t
@@ -206,6 +216,16 @@ module type CREATE = sig
   (** Creates a template of static lifetime for prepared requests where the
       query template is dialect-dependent and explicitly constructed by the
       caller. *)
+
+  val dynamic_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
+  (** A variant of {!dynamic_gen} which executes multiple queries which must
+      receive no parameters and return no result rows.
+
+      Depending on the chosen driver, statements may be prepared individually,
+      with the limitations this implies, cf. {!Request.create_multi}.
+      Esp. {!direct_gen_multi} is recommended for schema initialization and
+      updates. *)
 
   val direct :
     ('a, 'b, 'm) Request_type.t -> string ->
@@ -222,6 +242,14 @@ module type CREATE = sig
       dialect-dependent and explicitly constructed by the caller.
       If non-prepared requests are not unsupported by the driver, a temporarily
       prepared request is used instead. *)
+
+  val direct_gen_multi :
+    (Dialect.t -> Query.t list) -> (unit, unit, Row_mult.zero) Request.t
+  (** A variant of {!direct_gen} which executes multiple queries which must
+      receive no parameters and return no result rows.
+      To ensure that direct queries are used when available, the queries must
+      have no quoted string or values, since these may produce implied
+      parameters. *)
 end
 
 module Create : CREATE

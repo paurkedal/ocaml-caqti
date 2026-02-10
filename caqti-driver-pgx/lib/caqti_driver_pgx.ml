@@ -397,13 +397,25 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
 
     let db_txn = ref None
 
+    type query_info = {
+      query_string: string; (* used for error reporting *)
+      stmt: Pgx_with_io.Prepared.s;
+      rev_quotes: Pgx.Value.t list;
+    }
+
+    type queries_info =
+      | Empty
+      | Prepared of {
+          prologue: query_info list;
+          main: query_info;
+        }
+
     module Response = struct
 
       type ('b, 'm) t = {
-        query: string;
+        queries_info: queries_info;
         row_type: 'b Row_type.t;
-        prepared: Pgx_with_io.Prepared.s;
-        params: Pgx.Value.t list;
+        regular_params: Pgx.Value.t list;
       }
 
       let returned_count _ = Fiber.return (Error `Unsupported)
@@ -412,81 +424,132 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let reject ~query msg =
         Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
 
-      let exec {query; prepared; params; _} =
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute prepared ~params) >|=
-        (function
-         | Ok [] -> Ok ()
-         | Ok _ ->
-            reject ~query "Received multiple rows where none were expected."
-         | Error _ as r -> r)
+      let execute_query ~regular_params {query_string; stmt; rev_quotes} =
+        let params = List.rev_append rev_quotes regular_params in
+        intercept_request_failed ~uri ~query:query_string
+          (fun () -> Pgx_with_io.Prepared.execute stmt ~params)
 
-      let find {query; row_type; prepared; params} =
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute prepared ~params) >|=
-        (function
-         | Ok [row] -> decode_row ~uri row_type row
-         | Ok [] ->
-            reject ~query "Received no rows where one was expected."
-         | Ok _ ->
-            reject ~query "Received more than one row where one was expected."
-         | Error _ as r -> r)
+      let execute_fold_query ~regular_params qi ~init ~f =
+        let params = List.rev_append qi.rev_quotes regular_params in
+        intercept_request_failed ~uri ~query:qi.query_string
+          (fun () ->
+            Pgx_with_io.Prepared.execute_fold qi.stmt ~params ~init ~f)
 
-      let find_opt {query; row_type; prepared; params} =
-        intercept_request_failed ~uri ~query (fun () ->
-          Pgx_with_io.Prepared.execute prepared ~params) >|=
-        (function
-         | Ok [] -> Ok None
-         | Ok [row] ->
-            decode_row ~uri row_type row |> Result.map (fun x -> Some x)
-         | Ok _ ->
-            reject ~query
-              "Received two or more rows where at most one was expected."
-         | Error _ as r -> r)
-
-      let fold f {query; row_type; prepared; params} =
-        let decode = decode_row ~uri row_type in
-        let f acc row =
-          Fiber.return @@ match acc with
-           | Ok acc ->
-              (match decode row with
-               | Ok row -> Ok (f row acc)
-               | Error _ as r -> r)
-           | Error _ as r -> r
+      let execute_prologue ~regular_params prologue =
+        let execute_unit query_info =
+          let*? rows = execute_query ~regular_params query_info in
+          if rows = [] then Fiber.return (Ok ()) else
+          let msg = "Received rows from multiquery request." in
+          Fiber.return (reject ~query:query_info.query_string msg)
         in
-        fun acc ->
-          intercept_request_failed ~uri ~query begin fun () ->
-            Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc)
-          end >|= Stdlib.Result.join
+        iter_rs_list execute_unit prologue
 
-      let fold_s f {query; row_type; prepared; params} =
-        let decode = decode_row ~uri row_type in
-        let f acc row =
-          (match acc with
-           | Ok acc ->
-              (match decode row with
-               | Ok row -> f row acc
+      let execute_full ~regular_params prologue query_info =
+        execute_prologue ~regular_params prologue >>=? fun () ->
+        execute_query ~regular_params query_info
+
+      let exec {queries_info; regular_params; _} =
+        (match queries_info with
+         | Empty -> Fiber.return (Ok ())
+         | Prepared {prologue; main} ->
+            let query = main.query_string in
+            (execute_full ~regular_params prologue main >|= function
+             | Ok [] -> Ok ()
+             | Ok _ ->
+                reject ~query "Received multiple rows where none were expected."
+             | Error _ as r -> r))
+
+      let find {queries_info; row_type; regular_params} =
+        (match queries_info with
+         | Empty ->
+            Fiber.return @@
+              reject ~query:"/* empty */" "Cannot call find on noop request."
+         | Prepared {prologue; main} ->
+            let query = main.query_string in
+            (execute_full ~regular_params prologue main >|= function
+             | Ok [row] -> decode_row ~uri row_type row
+             | Ok [] ->
+                reject ~query "Received no rows where one was expected."
+             | Ok _ ->
+                reject ~query "Received more than one row where one was expected."
+             | Error _ as r -> r))
+
+      let find_opt {queries_info; row_type; regular_params} =
+        (match queries_info with
+         | Empty ->
+            Fiber.return @@
+              reject ~query:"/* empty */" "Cannot call find_opt on noop request."
+         | Prepared {prologue; main} ->
+            let query = main.query_string in
+            (execute_full ~regular_params prologue main >|= function
+             | Ok [] -> Ok None
+             | Ok [row] ->
+                decode_row ~uri row_type row |> Result.map (fun x -> Some x)
+             | Ok _ ->
+                reject ~query
+                  "Received two or more rows where at most one was expected."
+             | Error _ as r -> r))
+
+      let fold f {queries_info; row_type; regular_params} =
+        (match queries_info with
+         | Empty ->
+            fun _acc ->
+              Fiber.return @@
+                reject ~query:"/* empty */" "Cannot call fold on noop request."
+         | Prepared {prologue; main} ->
+            let decode = decode_row ~uri row_type in
+            let f acc row =
+              Fiber.return @@ match acc with
+               | Ok acc ->
+                  (match decode row with
+                   | Ok row -> Ok (f row acc)
+                   | Error _ as r -> r)
+               | Error _ as r -> r
+            in
+            fun acc ->
+              execute_prologue ~regular_params prologue >>=? fun () ->
+              execute_fold_query ~regular_params main ~f ~init:(Ok acc)
+              >|= Stdlib.Result.join)
+
+      let fold_s f {queries_info; row_type; regular_params} =
+        (match queries_info with
+         | Empty ->
+            fun _acc ->
+              Fiber.return @@
+                reject ~query:"/* empty */" "Cannot call fold_s on noop request."
+         | Prepared {prologue; main} ->
+            let decode = decode_row ~uri row_type in
+            let f acc row =
+              (match acc with
+               | Ok acc ->
+                  (match decode row with
+                   | Ok row -> f row acc
+                   | Error _ as r -> Fiber.return r)
                | Error _ as r -> Fiber.return r)
-           | Error _ as r -> Fiber.return r)
-        in
-        fun acc ->
-          intercept_request_failed ~uri ~query begin fun () ->
-            Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok acc)
-          end >|= Stdlib.Result.join
+            in
+            fun acc ->
+              execute_prologue ~regular_params prologue >>=? fun () ->
+              execute_fold_query ~regular_params main ~f ~init:(Ok acc)
+              >|= Stdlib.Result.join)
 
-      let iter_s f {query; row_type; prepared; params} =
-        let decode = decode_row ~uri row_type in
-        let f acc row =
-          (match acc with
-           | Ok () ->
-              (match decode row with
-               | Ok row -> f row
+      let iter_s f {queries_info; row_type; regular_params} =
+        (match queries_info with
+         | Empty ->
+            Fiber.return @@
+              reject ~query:"/* empty */" "Cannot call iter_s on noop request."
+         | Prepared {prologue; main} ->
+            let decode = decode_row ~uri row_type in
+            let f acc row =
+              (match acc with
+               | Ok () ->
+                  (match decode row with
+                   | Ok row -> f row
+                   | Error _ as r -> Fiber.return r)
                | Error _ as r -> Fiber.return r)
-           | Error _ as r -> Fiber.return r)
-        in
-        intercept_request_failed ~uri ~query begin fun () ->
-          Pgx_with_io.Prepared.execute_fold ~f prepared ~params ~init:(Ok ())
-        end >|= Stdlib.Result.join
+            in
+            execute_prologue ~regular_params prologue >>=? fun () ->
+            execute_fold_query ~regular_params main ~f ~init:(Ok ())
+            >|= Stdlib.Result.join)
 
       let to_stream resp () =
         fold List.cons resp [] >|= Result.map List.rev >|= function
@@ -495,14 +558,12 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
          | Error err -> (Stream.Error err)
     end
 
-    type prepared = {
-      query: string;
-      pgx_prepared: Pgx_with_io.Prepared.s;
-      rev_quotes: Pgx.Value.t list;
+    type request_info = {
+      queries_info: queries_info;
     }
 
-    module Pcache =
-      Request_cache.Make (struct type t = prepared let weight _ = 1 end)
+    module Pcache = Request_cache.Make
+      (struct type t = request_info let weight _ = 1 end)
 
     let in_use = ref false
     let pcache : Pcache.t = Pcache.create ~dynamic_capacity dialect
@@ -575,9 +636,23 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let pp_request_with_param ppf =
       Request.make_pp_with_param ~subst ~dialect () ppf
 
-    let free_prepared prepared =
+    let free_query_info qi =
       intercept_request_failed ~uri ~query:"DEALLOCATE"
-        (fun () -> Pgx_with_io.Prepared.close prepared.pgx_prepared)
+        (fun () -> Pgx_with_io.Prepared.close qi.stmt)
+
+    let free_request_info request_info =
+      (match request_info.queries_info with
+       | Empty -> Fiber.return (Ok ())
+       | Prepared {prologue; main} ->
+          iter_rs_list free_query_info prologue >>=? fun () ->
+          free_query_info main)
+
+    let free_request_info_or_warn request_info =
+      (free_request_info request_info >>= function
+       | Ok () -> Fiber.return ()
+       | Error err ->
+          Log.warn (fun f ->
+            f "Failed to free prepared query: %a" Caqti_error.pp err))
 
     let deallocate req =
       (match Request.prepare_policy req with
@@ -585,20 +660,14 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           (match Pcache.deallocate pcache req with
            | None ->
               Fiber.return (Ok ())
-           | Some (prepared, commit) ->
-              free_prepared prepared >|=? commit)
+           | Some (request_info, commit) ->
+              free_request_info request_info >|=? commit)
        | Direct ->
           failwith "deallocate called on oneshot request")
 
     let deallocate_some () =
-      let rec loop = function
-       | [] -> Fiber.return (Ok ())
-       | prepared :: orphans ->
-          let*? () = free_prepared prepared in
-          loop orphans
-      in
       let orphans, commit = Pcache.trim pcache in
-      loop orphans >|=? commit
+      iter_rs_list free_request_info orphans >|=? commit
 
     let fresh_name = Request_utils.fresh_name_generator "caq"
 
@@ -607,8 +676,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       deallocate_some () >>=? fun () ->
       Log.debug ~src:Logging.request_log_src (fun f ->
         f "Sending %a" pp_request_with_param (req, param)) >>= fun () ->
-      let pre_prepare () =
-        let templ = Request.query req dialect in
+      let pre_prepare templ =
         let query, rev_quotes = query_string ~annotate ~subst templ in
         let*? param_types = type_oids (Request.param_type req) in
         let+? string_oid = field_type_oid Field_type.String in
@@ -616,38 +684,51 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
         let types = List.rev_append quote_types param_types in
         (query, types, rev_quotes)
       in
-      let post_prepare pq =
+      let post_prepare {queries_info} =
         (match encode_param ~uri (Request.param_type req) param with
          | Error _ as r -> Fiber.return r
          | Ok regular_params ->
-            let params = List.rev_append pq.rev_quotes regular_params in
             f {
+              queries_info;
               Response.row_type = Request.row_type req;
-              query = pq.query;
-              prepared = pq.pgx_prepared;
-              params;
+              regular_params;
             })
+      in
+      let prepare_single query =
+        let*? query, types, rev_quotes = pre_prepare query in
+        let name = fresh_name () in
+        let+? stmt =
+          intercept_request_failed ~uri ~query (fun () ->
+            Pgx_with_io.Prepared.prepare ~name ~query ~types db)
+        in
+        {query_string = query; stmt; rev_quotes}
+      in
+      let prepare () =
+        let+? query_infos =
+          map_rs_list prepare_single (Request.queries req dialect)
+        in
+        let queries_info =
+          (match List.rev query_infos with
+           | [] -> Empty
+           | main :: qis -> Prepared {prologue = List.rev qis; main})
+        in
+        {queries_info}
       in
       (match Request.prepare_policy req with
        | Dynamic | Static ->
           (match Pcache.find_and_promote pcache req with
-           | Some pq -> Fiber.return (Ok pq)
+           | Some pqs ->
+              Fiber.return (Ok pqs)
            | None ->
-              let*? query, types, rev_quotes = pre_prepare () in
-              let name = fresh_name () in
-              let+? pgx_prepared =
-                intercept_request_failed ~uri ~query (fun () ->
-                  Pgx_with_io.Prepared.prepare ~name ~query ~types db)
-              in
-              let pq = {query; pgx_prepared; rev_quotes} in
-              Pcache.add pcache req pq;
-              pq)
+              let+? request_info = prepare () in
+              Pcache.add pcache req request_info;
+              request_info)
           >>=? post_prepare
        | Direct ->
-          let*? query, types, rev_quotes = pre_prepare () in
-          Pgx_with_io.Prepared.with_prepare db ~types ~query
-            ~f:(fun pgx_prepared ->
-                  post_prepare {query; pgx_prepared; rev_quotes}))
+          let*? request_info = prepare () in
+          Fiber.finally
+            (fun () -> post_prepare request_info)
+            (fun () -> free_request_info_or_warn request_info))
 
     let disconnect () =
       using_db @@ fun _ ->

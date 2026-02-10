@@ -42,4 +42,12 @@ module Make (Fiber : System_sig.FIBER) : sig
   val assert_single_use :
     what: string -> bool ref -> (unit -> 'a Fiber.t) -> 'a Fiber.t
 
+  val iter_s_list : ('a -> unit Fiber.t) -> 'a list -> unit Fiber.t
+
+  val iter_rs_list :
+    ('a -> (unit, 'e) result Fiber.t) -> 'a list -> (unit, 'e) result Fiber.t
+
+  val map_rs_list :
+    ('a -> ('b, 'e) result Fiber.t) -> 'a list -> ('b list, 'e) result Fiber.t
+
 end

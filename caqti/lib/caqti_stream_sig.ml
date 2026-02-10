@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,6 +29,12 @@ module type S = sig
     | Error of 'err             (** A node of a permanently failed stream. *)
     | Cons of 'a * ('a, 'err) t
         (** A node holding the next element and continuation of a stream. *)
+
+  val empty : ('a, 'err) t
+  (** [empty] is the empty stream, i.e. it immediately returns {!Nil}. *)
+
+  val error : 'err -> ('a, 'err) t
+  (** [error err] is a stream which fails immediately with [err]. *)
 
   val fold :
     f: ('a -> 'state -> 'state) ->

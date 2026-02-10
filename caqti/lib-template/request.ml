@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,7 @@ type prepare_policy =
 type ('a, 'b, +'m) t = {
   id: int option;
   prepare_policy: prepare_policy;
-  query: Dialect.t -> Query.t;
+  queries: Dialect.t -> Query.t list;
   param_type: 'a Row_type.t;
   row_type: 'b Row_type.t;
   row_mult: 'm Row_mult.t;
@@ -35,14 +35,22 @@ type ('a, 'b, +'m) t = {
 
 let last_id = Shims.Atomic.make (-1)
 
-let create prepare_policy (param_type, row_type, row_mult) query =
-  let query = Shims.memo_if_safe ~cap:8 (fun _ -> query) in
+let unit_to_unit_type = Request_type.Infix.(-->.) Row_type.unit Row_type.unit
+
+let create_prim prepare_policy (param_type, row_type, row_mult) queries =
+  let queries = Shims.memo_if_safe ~cap:8 (fun _ -> queries) in
   let id =
     (match prepare_policy with
      | Direct -> None
      | Static | Dynamic -> Some (Shims.Atomic.fetch_and_add last_id 1))
   in
-  {id; prepare_policy; query; param_type; row_type; row_mult}
+  {id; prepare_policy; queries; param_type; row_type; row_mult}
+
+let create prepare_policy request_type query =
+  create_prim prepare_policy request_type (fun d -> [query d])
+
+let create_multi prepare_policy queries =
+  create_prim prepare_policy unit_to_unit_type queries
 
 let prepare_policy request = request.prepare_policy
 let param_type request = request.param_type
@@ -50,14 +58,25 @@ let row_type request = request.row_type
 let row_mult request = request.row_mult
 
 let query_id request = request.id
-let query request = request.query
+let queries request = request.queries
 
 let empty_subst _ = raise Not_found
 
 let default_dialect = Dialect.create_unknown ~purpose:`Printing ()
 
+let rec pp_queries ppf = function
+ | [] -> ()
+ | [q] -> Query.pp ppf q
+ | q :: qs ->
+    Format.pp_open_hvbox ppf 0;
+    Query.pp ppf q;
+    Format.pp_print_char ppf ';';
+    Format.pp_print_space ppf ();
+    pp_queries ppf qs;
+    Format.pp_close_box ppf ()
+
 let make_pp ?(dialect = default_dialect) ?(subst = empty_subst) () ppf req =
-  let query = Query.expand subst (req.query dialect) in
+  let queries = List.map (Query.expand subst) (req.queries dialect) in
   Format.fprintf ppf "(%a -->%s %a) {|%a|}"
     Row_type.pp req.param_type
     (match Row_mult.expose req.row_mult with
@@ -66,7 +85,7 @@ let make_pp ?(dialect = default_dialect) ?(subst = empty_subst) () ppf req =
      | `Zero_or_one -> "?"
      | `Zero_or_more -> "*")
     Row_type.pp req.row_type
-    Query.pp query
+    pp_queries queries
 
 let pp ppf = make_pp () ppf
 

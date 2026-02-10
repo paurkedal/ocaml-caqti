@@ -1,4 +1,4 @@
-(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,7 +26,8 @@ let create ?(oneshot = false) pt rt rm make_query =
     (fun dialect -> make_query (Caqti_driver_info.of_dialect dialect))
 
 let query req driver_info =
-  query req (Caqti_driver_info.dummy_dialect driver_info)
+  let qs = queries req (Caqti_driver_info.dummy_dialect driver_info) in
+  Query.concat ~sep:"; " qs
 
 let query_id = query_id
 

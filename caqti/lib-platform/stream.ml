@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -46,6 +46,14 @@ module Make(Fiber : FIBER) : S with type 'a fiber := 'a Fiber.t = struct
     | Nil
     | Error of 'err
     | Cons of 'a * ('a, 'err) t
+
+  let empty =
+    let node = Fiber.return Nil in
+    fun () -> node
+
+  let error err =
+    let node = Fiber.return (Error err) in
+    fun () -> node
 
   let rec fold ~f t state =
     t () >>= function

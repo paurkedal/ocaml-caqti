@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,22 +15,31 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Monad_syntax (Monad : System_sig.FIBER) : sig
-  open Monad
+module Make (Fiber : System_sig.FIBER) : sig
 
-  val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
+  val ( let* ) : 'a Fiber.t -> ('a -> 'b Fiber.t) -> 'b Fiber.t
 
-  val ( let+ ) : 'a t -> ('a -> 'b) -> 'b t
+  val ( let+ ) : 'a Fiber.t -> ('a -> 'b) -> 'b Fiber.t
+
+  val ( >>= ) : 'a Fiber.t -> ('a -> 'b Fiber.t) -> 'b Fiber.t
+
+  val ( >|= ) : 'a Fiber.t -> ('a -> 'b) -> 'b Fiber.t
 
   val ( >>=? ) :
-    ('a, 'e) result t -> ('a -> ('b, 'e) result t) -> ('b, 'e) result t
+    ('a, 'e) result Fiber.t -> ('a -> ('b, 'e) result Fiber.t) ->
+    ('b, 'e) result Fiber.t
 
   val ( >|=? ) :
-    ('a, 'e) result t -> ('a -> 'b) -> ('b, 'e) result t
+    ('a, 'e) result Fiber.t -> ('a -> 'b) -> ('b, 'e) result Fiber.t
 
   val ( let*? ) :
-    ('a, 'e) result t -> ('a -> ('b, 'e) result t) -> ('b, 'e) result t
+    ('a, 'e) result Fiber.t -> ('a -> ('b, 'e) result Fiber.t) ->
+    ('b, 'e) result Fiber.t
 
   val ( let+? ) :
-    ('a, 'e) result t -> ('a -> 'b) -> ('b, 'e) result t
+    ('a, 'e) result Fiber.t -> ('a -> 'b) -> ('b, 'e) result Fiber.t
+
+  val assert_single_use :
+    what: string -> bool ref -> (unit -> 'a Fiber.t) -> 'a Fiber.t
+
 end

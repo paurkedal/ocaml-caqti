@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,17 +15,25 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Monad_syntax (Monad : System_sig.FIBER) = struct
-  open Monad.Infix
+module Make (Fiber : System_sig.FIBER) = struct
+  include Fiber.Infix
 
   let ( let* ) = (>>=)
   let ( let+ ) = (>|=)
 
   let ( >>=? ) m f =
-    m >>= function Ok x -> f x | Error _ as r -> Monad.return r
+    m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
   let ( >|=? ) m f =
     m >|= function Ok x -> Ok (f x) | Error _ as r -> r
 
   let ( let*? ) = ( >>=? )
   let ( let+? ) = ( >|=? )
+
+  let assert_single_use ~what in_use f =
+    if !in_use then
+      failwith ("Invalid concurrent usage of " ^ what ^ " detected.");
+    in_use := true;
+    Fiber.cleanup
+      (fun () -> f () >|= fun res -> in_use := false; res)
+      (fun () -> in_use := false; Fiber.return ())
 end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -252,12 +252,7 @@ let dialect = Dialect.create_pgsql
 
 module Connect_functor (System : Caqti_platform.System_sig.S) = struct
   open System
-  open System.Fiber.Infix
-
-  let ( let*? ) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
-  let ( let+? ) m f = m >|= function Ok x -> Ok (f x) | Error _ as r -> r
-  let ( >>=? ) = ( let*? )
-  let ( >|=? ) = ( let+? )
+  open Fiber_utils.Make (System.Fiber)
 
   let intercept h f =
     Fiber.catch

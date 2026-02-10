@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -70,9 +70,7 @@ module Connect_functor
      and type stdenv := System.stdenv) =
 struct
   open System
-  open System.Fiber.Infix
-  open System_utils.Monad_syntax (System.Fiber)
-  module H = Connection_utils.Make_helpers (System)
+  open Fiber_utils.Make (System.Fiber)
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
 
@@ -298,7 +296,7 @@ struct
 
       let using_db_ref = ref false
       let using_db f =
-        H.assert_single_use ~what:"MariaDB connection" using_db_ref f
+        assert_single_use ~what:"MariaDB connection" using_db_ref f
 
       let request_failed ~query (errno, error) =
         Error (Caqti_error.request_failed ~uri ~query (Error_msg {errno; error}))

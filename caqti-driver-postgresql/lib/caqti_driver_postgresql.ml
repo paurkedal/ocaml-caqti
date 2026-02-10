@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -345,10 +345,8 @@ module Connect_functor
      and type stdenv := System.stdenv) =
 struct
   open System
-  open System.Fiber.Infix
-  open System_utils.Monad_syntax (System.Fiber)
+  open Fiber_utils.Make (System.Fiber)
   open System_unix
-  module H = Connection_utils.Make_helpers (System)
 
   let ( let/? ) m f = match m with Ok x -> f x | Error _ as r -> Fiber.return r
   let ( >|>=? ) m f = m >|= function Ok x -> f x | Error _ as r -> r

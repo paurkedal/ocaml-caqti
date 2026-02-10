@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,13 +16,6 @@
  *)
 
 (** Internal connection-related utilities. *)
-
-module Make_helpers : functor (Sys : System_sig.S) -> sig
-  open Sys
-
-  val assert_single_use :
-    what: string -> bool ref -> (unit -> 'a Fiber.t) -> 'a Fiber.t
-end
 
 module Make_convenience :
   functor (Sys : System_sig.S) ->

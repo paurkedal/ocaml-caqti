@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -280,9 +280,7 @@ module Connect_functor
 struct
   open System
   open System_unix
-  open System.Fiber.Infix
-  open System_utils.Monad_syntax (System.Fiber)
-  module H = Connection_utils.Make_helpers (System)
+  open Fiber_utils.Make (System.Fiber)
 
   let driver_info = driver_info
 
@@ -302,8 +300,7 @@ struct
     open Connection_arg
 
     let using_db_ref = ref false
-    let using_db f =
-      H.assert_single_use ~what:"SQLite connection" using_db_ref f
+    let using_db f = assert_single_use ~what:"SQLite connection" using_db_ref f
 
     module Response = struct
 

@@ -528,11 +528,11 @@ struct
        | false ->
           Fiber.return false)
 
-    let rec retry_on_connection_error ?(n = 1) f =
+    let rec retry_on_connection_error
+        ?(n = 1) (f : unit -> (_, [> Caqti_error.call]) result Fiber.t) =
       if !in_transaction then f () else
-      (f () : (_, [> Caqti_error.call]) result Fiber.t) >>=
+      (db#consume_input; f ()) >>=
       (function
-       | Ok _ as r -> Fiber.return r
        | Error (`Request_failed
             {Caqti_error.msg = Connection_error_msg
               {error = Postgresql.Connection_failure _; _}; _})
@@ -542,9 +542,9 @@ struct
             retry_on_connection_error ~n:(n - 1) f
           else
             Fiber.return r
-       | Error _ as r -> Fiber.return r)
+       | r -> Fiber.return r)
 
-    let send_simple_query query =
+    let send_simple_query_or_retry query =
       retry_on_connection_error begin fun () ->
         Fiber.return @@ wrap_pg ~query begin fun () ->
           db#send_query query;
@@ -554,23 +554,19 @@ struct
 
     let send_direct_query ~single_row_mode request_info params =
       let {query; param_types; binary_params; _} = request_info in
-      retry_on_connection_error begin fun () ->
-        Fiber.return @@ wrap_pg ~query begin fun () ->
-          db#send_query ~params ~param_types ~binary_params query;
-          if single_row_mode then db#set_single_row_mode;
-          db#consume_input
-        end
+      Fiber.return @@ wrap_pg ~query begin fun () ->
+        db#send_query ~params ~param_types ~binary_params query;
+        if single_row_mode then db#set_single_row_mode;
+        db#consume_input
       end
 
     let send_prepared_query ~single_row_mode request_info params =
       let {query_name; query; binary_params; _} = request_info in
       assert (query_name <> "");
-      retry_on_connection_error begin fun () ->
-        Fiber.return @@ wrap_pg ~query begin fun () ->
-          db#send_query_prepared ~params ~binary_params query_name;
-          if single_row_mode then db#set_single_row_mode;
-          db#consume_input
-        end
+      Fiber.return @@ wrap_pg ~query begin fun () ->
+        db#send_query_prepared ~params ~binary_params query_name;
+        if single_row_mode then db#set_single_row_mode;
+        db#consume_input
       end
 
     let fetch_one_result ~query () =
@@ -602,19 +598,17 @@ struct
 
     let prepare {query_name; query; param_types; _} =
       assert (query_name <> "");
-      retry_on_connection_error begin fun () ->
-        let*? () =
-          Fiber.return @@ wrap_pg ~query @@ fun () ->
-            db#send_prepare ~param_types query_name query;
-            db#consume_input
-        in
-        let+*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
-        Pg_io.check_command_result ~uri ~query result
-      end
+      let*? () =
+        Fiber.return @@ wrap_pg ~query @@ fun () ->
+          db#send_prepare ~param_types query_name query;
+          db#consume_input
+      in
+      let+*? result = Pg_io.get_final_result ~stdenv ~uri ~query db in
+      Pg_io.check_command_result ~uri ~query result
 
     let free_prepared request_info =
       let query = sprintf "DEALLOCATE %s" request_info.query_name in
-      let*? () = send_simple_query query in
+      let*? () = send_simple_query_or_retry query in
       let+*? result = fetch_final_result ~query () in
       Pg_io.check_query_result
         ~uri ~query ~row_mult:Row_mult.zero ~single_row_mode:false
@@ -789,6 +783,7 @@ struct
         |> Result.map (fun () -> params)
 
     let send_request ~single_row_mode request param =
+      retry_on_connection_error @@ fun () ->
       (match Request.prepare_policy request with
        | Direct ->
           let/? request_info = build_request_info request in
@@ -965,7 +960,7 @@ struct
          * we can repeatedly get the latest result and it will always be
          * Copy_in, so checking for a single result would trigger an error.
          *)
-        send_simple_query query >>=? fun () ->
+        send_simple_query_or_retry query >>=? fun () ->
         fetch_one_result ~query ()
         >>=? fun result ->
           (* We expect the Copy_in response only - turn other success responses

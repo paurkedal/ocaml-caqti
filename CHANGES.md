@@ -1,3 +1,32 @@
+## v2.3.0 - unreleased
+
+The new features of this release are mostly relevant for the still unstable
+`caqti.template` library.
+
+  - Provide server version for MariaDB in `caqti.template`.
+
+  - Added `Query.parens`, `Query.litf`, `Query.vars`, `Row_type.fields`.
+
+  - Revise the interface for creating row types to allow instantiating
+    parametric types applicatively.  Before this change, each application of
+    the function representing a parametric type would generate a new type ID
+    even when applied to the same type parameter argument.  The key part of
+    this interface is the `Caqti_template.Constructor_type` module.
+
+  - The query functions provided to request templates are now memoized, so
+    that they are only called once per dialect.  This is meant as an
+    optimization; it's still good practise to avoid side-effects here.
+
+  - The new function `Query.with_pos_of` allows query generators to add
+    source locations to the syntax tree, which will be emitted as SQL
+    comments in the query string if the `enable_query_annotations` is set.
+    This should simplify debugging when the query is assembled from
+    different parts of the application code.
+
+  - Fixed the error classification for the SQLite3 driver (#132).
+
+  - Fixed reconnect after connection loss for PostgreSQL.
+
 ## v2.2.4 - 2025-03-28
 
   - Remove Stdlib qualification from caqti.blocking to restore compatibility

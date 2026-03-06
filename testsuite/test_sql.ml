@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -623,9 +623,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_stream_binary (module Db : CONNECTION) =
     (* Insert and retrieve all pairs of bytes as strings *)
-    let all_bytes =
-      Testlib.init_list 256 (fun c -> String.make 1 (Char.chr c))
-    in
+    let all_bytes = List.init 256 (fun c -> String.make 1 (Char.chr c)) in
     let all_pairs = all_bytes
       |> List.map (fun a -> List.map (fun b -> a ^ b) all_bytes)
       |> List.flatten

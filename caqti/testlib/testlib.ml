@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -147,10 +147,6 @@ let test_name_of_uri uri =
   (match Uri.scheme uri with
    | Some scheme -> scheme
    | None -> Uri.to_string uri)
-
-let init_list n f = (* List.init is available from OCaml 4.6.0 *)
- let rec loop acc i = if i < 0 then acc else loop (f i :: acc) (i - 1) in
- loop [] (n - 1)
 
 module Make_alcotest_cli
   (Platform : Alcotest_engine.Platform.MAKER)

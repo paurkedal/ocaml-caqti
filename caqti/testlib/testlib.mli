@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,8 +27,6 @@ val register_common_arg : (common_args -> common_args) Cmdliner.Term.t -> unit
 val common_args : unit -> common_args Cmdliner.Term.t
 
 val test_name_of_uri : Uri.t -> string
-
-val init_list : int -> (int -> 'a) -> 'a list
 
 module Make_alcotest_cli :
   functor (_ : Alcotest_engine.Platform.MAKER) ->

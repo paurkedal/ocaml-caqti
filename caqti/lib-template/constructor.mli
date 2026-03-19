@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,8 +20,8 @@
     Usage of this module is somewhat technical and only needed when defining
     type descriptors for custom {e parametric} types, or if, for some other
     reason, the type descriptor cannot be defined once statically.
-    For statically defined types, {!Row_type.product} can generate a descriptor
-    from the bare function.
+    For statically defined types, {!Row_type.val-product} can generate a
+    descriptor from the bare function.
 
     This module bundles a bare constructor function with a fresh tag from an
     open GADT, used to identify it along with its type.

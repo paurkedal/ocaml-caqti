@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,7 @@ module type S = sig
   type elt
   type t
 
-  val create : ?dynamic_capacity: int -> Caqti_template.Dialect.t -> t
+  val create : ?dynamic_capacity: int -> Caqti.Template.Dialect.t -> t
   (** [create dialect] creates a cache of prepared queries for requests
       specialized for [dialect].
 
@@ -30,22 +30,22 @@ module type S = sig
         which {!trim} will not attempt to release anything. *)
 
   val find_and_promote :
-    t -> ('a, 'b, 'm) Caqti_template.Request.t -> elt option
+    t -> ('a, 'b, 'm) Caqti.Template.Request.t -> elt option
   (** [find_and_promote cache request] promotes and returns the data associated
       with [request] in [cache], if any. *)
 
-  val add : t -> ('a, 'b, 'm) Caqti_template.Request.t -> elt -> unit
+  val add : t -> ('a, 'b, 'm) Caqti.Template.Request.t -> elt -> unit
   (** Given the hard precondition that [request] is not bound in [cache], as
       verified by {!find_and_promote}, [add cache request data] binds it to
       [data]. *)
 
-  val remove_and_discard : t -> ('a, 'b, 'm) Caqti_template.Request.t -> unit
+  val remove_and_discard : t -> ('a, 'b, 'm) Caqti.Template.Request.t -> unit
   (** [remove_and_discard cache request] removes the binding for [request] from
       [cache]. The caller is assumed to have just extracted the element with
       {!find_and_promote} and is resposible for releasing related resources. *)
 
   val deallocate :
-    t -> ('a, 'b, 'm) Caqti_template.Request.t -> (elt * (unit -> unit)) option
+    t -> ('a, 'b, 'm) Caqti.Template.Request.t -> (elt * (unit -> unit)) option
   (** [deallocate request] returns the entry for [request], if any, along with a
       function to remove it from the cache. *)
 

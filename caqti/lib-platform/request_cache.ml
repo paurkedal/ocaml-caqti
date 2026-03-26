@@ -16,7 +16,7 @@
  *)
 
 [@@@alert "-caqti_private"]
-open Caqti_template
+open Caqti.Template
 
 module type S = sig
   type elt
@@ -111,7 +111,7 @@ module Make (Elt : Lru.Weighted) = struct
   module Dynamic_cache = Lru.M.Make (Key) (Dynamic_node)
 
   type t = {
-    dialect: Caqti_template.Dialect.t;
+    dialect: Caqti.Template.Dialect.t;
     static_cache: Elt.t Static_cache.t;
     dynamic_cache: Dynamic_cache.t;
     mutable dynamic_orphans: Elt.t list;

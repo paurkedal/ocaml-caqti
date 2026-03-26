@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,8 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Query = Caqti_template.Query
-module Query_fmt = Caqti_template.Query_fmt
+module Query = Caqti.Template.Query
+module Query_fmt = Caqti.Template.Query_fmt
 
 module A = struct
   include Alcotest.V1

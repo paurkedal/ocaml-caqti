@@ -31,7 +31,7 @@ let abc_of_string = function
   | _ -> Error "abc_of_string"
 
 module Q = struct
-  open Caqti_template.Create
+  open Caqti.Templater
   let (%) f g x = f (g x)
 
   let select_null_etc =
@@ -62,7 +62,7 @@ module Q = struct
       "SELECT -1, $1 + 1, $2 + 1, $1 + 1, -2"
 
   let abc =
-    Caqti_template.Row_type.enum
+    Caqti.Template.Row_type.enum
       ~encode:string_of_abc ~decode:abc_of_string "abc"
 
   let create_type_abc = static T.(unit -->. unit)
@@ -196,7 +196,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     loop 0
 
   let env _ =
-    let open Caqti_template.Create in
+    let open Caqti.Templater in
     (function
      | "x1" -> Q.lit "734"
      | "x2" -> Q.quote "I'm quoted."
@@ -219,13 +219,13 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     (* Non-prepared and prepared with non-linear parameters and quotes. *)
     repeat 254 (fun i ->
       let i = i mod 127 + 1 in
-      let prepare_policy : Caqti_template.Request.prepare_policy =
+      let prepare_policy : Caqti.Template.Request.prepare_policy =
         (match Random.int 3 with 0 -> Direct | 1 -> Dynamic | _ -> Static)
       in
       let s1 = String.make 1 (Char.chr i) in
       let s2 = String.make i '\'' in
       let req =
-        let open Caqti_template.Create in
+        let open Caqti.Templater in
         let make_query dialect =
           let cast_if_mariadb tn f =
             (match dialect with
@@ -259,7 +259,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
             Q.param 0; Q.lit " + 10";          (* first paramater last *)
           ]
         in
-        Caqti_template.Request.create prepare_policy
+        Caqti.Template.Request.create prepare_policy
           T.(t2 int int -->! t8 int int int64 int string string string int)
           make_query
       in
@@ -393,7 +393,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_enum (module Db : CONNECTION) =
     let with_type_abc f =
-      let module D = Caqti_template.Dialect in
+      let module D = Caqti.Template.Dialect in
       (match Db.dialect with
        | D.Sqlite _ | D.Mysql _ -> f ()
        | _ ->
@@ -511,7 +511,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_tuples =
     let module Q = struct
-      open Caqti_template.Create
+      open Caqti.Templater
       let sel2 =
         static T.(t2 int int -->! t2 int int)
           "SELECT -$2, -$1"
@@ -662,7 +662,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let prepared_statement_count =
     let req =
-      let open Caqti_template.Create in
+      let open Caqti.Templater in
       direct_gen T.(unit -->! int) @@ function
        | D.Mysql _ ->
           Q.lit "SELECT VARIABLE_VALUE FROM information_schema.SESSION_STATUS \
@@ -679,7 +679,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       if n = 0 then Fiber.return () else
       let i = Random.int n in
       let req =
-        let open Caqti_template.Create in
+        let open Caqti.Templater in
         dynamic_gen T.(unit -->! int) @@ fun _ ->
         "SELECT " ^++ Q.int i
       in
@@ -702,7 +702,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Alcotest.failf "Too many prepared statements left, %d - %d" c_post c_pre
 
   let test_nilrequest =
-    let open Caqti_template.Create in
+    let open Caqti.Templater in
     let q = Fun.const [] in
     let req_static, req_direct = static_gen_multi q, direct_gen_multi q in
     fun (module Db : CONNECTION) ->
@@ -713,7 +713,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let test_multirequest =
     let init_req =
-      let open Caqti_template.Create in
+      let open Caqti.Templater in
       direct_gen_multi @@ fun _ ->
       [
         Q.lit "CREATE TEMPORARY TABLE test_multi \
@@ -722,7 +722,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       ]
     in
     let insert_req_static, insert_req_dynamic, insert_req_direct =
-      let open Caqti_template.Create in
+      let open Caqti.Templater in
       let q = Fun.const [
         Q.parse "DELETE FROM test_multi";
         Q.parse "INSERT INTO test_multi (x, y) VALUES (0, 25)";
@@ -732,7 +732,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       (static_gen_multi q, dynamic_gen_multi q, direct_gen_multi q)
     in
     let select_sum_req =
-      let open Caqti_template.Create in
+      let open Caqti.Templater in
       static T.(unit -->! t2 int int) "SELECT sum(x), sum(y) FROM test_multi"
     in
     fun (module Db : CONNECTION) ->

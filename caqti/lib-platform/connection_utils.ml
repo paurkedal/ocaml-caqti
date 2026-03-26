@@ -70,7 +70,7 @@ struct
 
   let populate ~table ~columns row_type =
     let request =
-      let open Caqti_template.Create in
+      let open Caqti.Templater in
       dynamic_gen T.(row_type -->. unit) @@ Fun.const @@
       Q.concat [
         Q.lit "INSERT INTO "; Q.lit table; Q.lit "(";

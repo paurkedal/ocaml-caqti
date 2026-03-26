@@ -16,7 +16,7 @@
  *)
 
 [@@@alert "-caqti_private"]
-open Caqti_template
+open Caqti.Template
 open Caqti_platform
 open Printf
 module Pg = Postgresql
@@ -28,7 +28,7 @@ let pct_encoder =
   Uri.pct_encoder ~query_value:(`Custom (`Query_value, "", "=")) ()
 
 module Q = struct
-  open Caqti_template.Create
+  open Caqti.Templater
 
   let start = static T.(unit -->. unit) "BEGIN"
   let commit = static T.(unit -->. unit) "COMMIT"

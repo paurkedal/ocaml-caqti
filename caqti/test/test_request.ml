@@ -1,4 +1,4 @@
-(* Copyright (C) 2020--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2020--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,23 +16,29 @@
  *)
 
 open Printf
+open Caqti.Template
 
-module Q = Caqti_template.Query
+let dialect =
+  Dialect.create_unknown ~purpose:`Dummy () [@alert "-caqti_private"]
 
 let expect_parse ~subst qs q' =
   let rq =
-    let open Caqti_template.Create in
+    let open Caqti.Templater in
     let q = qs |> Q.parse |> Q.expand subst in
     static_gen T.(unit -->. unit) @@ fun _ -> q
   in
-  let q = Caqti_query.normal (Caqti_request.query rq Caqti_driver_info.dummy) in
-  if not (Q.equal q q') then begin
-    eprintf "Parsed:   %s\nExpected: %s\n"
-      (Q.show q) (Q.show q');
+  let q =
+    (match Request.queries rq dialect with
+     | [q] -> Query.normal q
+     | _ -> assert false)
+  in
+  if not (Query.equal q q') then begin
+    eprintf "Parsed:   %s\nExpected: %s\n" (Query.show q) (Query.show q');
     assert false
   end
 
 let test_request_parse () =
+  let open Caqti.Templater in
   let subst = function
    | "alpha" -> Q.lit "α"
    | "beta" -> Q.lit "β"

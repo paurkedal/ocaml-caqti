@@ -2,7 +2,7 @@
  (name testlib)
  (libraries
     alcotest
-    caqti
+    caqti caqti.classic
     dynlink
     logs
     uri))

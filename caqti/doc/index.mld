@@ -2,11 +2,17 @@
 
 {1 Library caqti}
 
-This is classic API for Caqti, which mirrors the above libray and provides
-signatures, configurations, and a few other things for other Caqti packages.
-The plan in to uses wrapped module everywhere and to make some adjustments
-to the organization of modules.  You may continue to use this for now, as
-deprecation is posponed until the complete replacement is available.
+This is the Caqti core library providing platform- and driver-independent
+functionality, including SQL request construction, configuration, error
+descriptors, and signatures.
+
+The entry point of this library is the module:
+{!module-Caqti}
+
+{1 Library caqti.classic}
+
+This library provides the classic API for backwards compatibility.
+You are encouraged to use the new API for new programs.
 
 This library exposes the following toplevel modules:
 {!modules:
@@ -26,21 +32,6 @@ This library exposes the following toplevel modules:
     Caqti_type
     Caqti_type_sig
 }
-
-{1 Preview library caqti.template}
-
-For now, {b this library is provides as a preview only.  The interface will
-change in incompatible ways} before it's declared ready for usage in
-production code.
-
-This library provides the interface to create templates for requests to send
-to the database.  A request template essentially combines a parametrised
-query string with a parameter encoder and a row decoder, and can often be
-defined statically.  Execution of queries are handled by other packages,
-depending on your preferred concurrency and OS libraries.
-
-The entry point of this library is the module:
-{!module-Caqti_template}
 
 {1 Library caqti.blocking}
 

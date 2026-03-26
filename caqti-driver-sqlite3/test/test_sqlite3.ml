@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@
 open Testlib
 open Testlib_blocking
 
-module Req = Caqti_template.Create
+module Req = Caqti.Templater
 
 let drop_req =
   Req.(static T.(unit -->. unit)) "DROP TABLE IF EXISTS test_sqlite3"

@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_template
+open Caqti.Template
 
 let random_field_type () =
   let open Field_type in

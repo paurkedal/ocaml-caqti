@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_template
+open Caqti.Template
 open Caqti_platform
 
 module A = Alcotest.V1
@@ -26,11 +26,11 @@ let dialect =
   Dialect.create_unknown ~purpose:`Dummy () [@alert "-caqti_private"]
 
 let static_select =
-  let open Caqti_template.Create in
+  let open Caqti.Templater in
   static T.(unit -->! int) "SELECT -1"
 
 let dynamic_select i =
-  let open Caqti_template.Create in
+  let open Caqti.Templater in
   let query = Q.("SELECT " ^++ int i) in
   let request_type = T.(unit -->! int) in
   dynamic_gen request_type (Fun.const query)

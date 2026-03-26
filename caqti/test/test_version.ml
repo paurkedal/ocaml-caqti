@@ -1,4 +1,4 @@
-(* Copyright (C) 2024--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
-open Caqti_template
+open Caqti.Template
 
 module A = struct
   include Alcotest.V1

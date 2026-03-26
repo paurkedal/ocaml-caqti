@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,7 +40,7 @@ module type DRIVER = sig
   val connect :
     sw: switch ->
     stdenv: stdenv ->
-    subst: (Caqti_template.Dialect.t -> Caqti_template.Query.subst) ->
+    subst: (Caqti.Template.Dialect.t -> Caqti.Template.Query.subst) ->
     config: Caqti_connect_config.t ->
     Uri.t ->
     ((module CONNECTION), [> Caqti_error.connect]) result fiber

@@ -17,7 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
-open Caqti_template
+open Caqti.Template
 open Caqti_platform
 open Postgresql_conv
 open Printf

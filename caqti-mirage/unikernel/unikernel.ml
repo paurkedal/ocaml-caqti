@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ let ( let+? ) = Lwt_result.Syntax.( let+ )
 let ( % ) f g x = f (g x)
 
 let minus_req =
-  Caqti_template.Create.(t2 int int ->! int) "SELECT ? - ?"
+  Caqti.Templater.(t2 int int ->! int) "SELECT ? - ?"
 
 module Make
   (RANDOM : Mirage_random.S)

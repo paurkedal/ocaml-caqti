@@ -17,7 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
-open Caqti_template
+open Caqti.Template
 open Caqti_platform
 open Printf
 
@@ -276,7 +276,7 @@ let decode_row ~uri ~query row_type =
     Request_utils.raise_response_rejected ~uri ~query msg
 
 module Q = struct
-  open Caqti_template.Create
+  open Caqti.Templater
 
   let start = static T.(unit -->. unit) "BEGIN"
   let commit = static T.(unit -->. unit) "COMMIT"

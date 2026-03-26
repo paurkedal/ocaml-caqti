@@ -17,7 +17,7 @@
 
 [@@@alert "-caqti_private"]
 
-open Caqti_template
+open Caqti.Template
 open Caqti_platform
 open Printf
 
@@ -56,7 +56,7 @@ let () =
   Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 module Q = struct
-  open Caqti_template.Create
+  open Caqti.Templater
   let set_utc =
     direct T.(unit -->. unit) "SET time_zone = '+00:00'"
   let set_statement_timeout =

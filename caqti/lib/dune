@@ -1,7 +1,13 @@
+(include_subdirs qualified)
+
 (library
  (name caqti)
  (public_name caqti)
- (wrapped false)
  (flags (:standard -alert -caqti_unstable))
  (library_flags (:standard -linkall))
- (libraries angstrom bigstringaf caqti.template logs mtime ptime uri))
+ (libraries angstrom bigstringaf logs lru ptime uri))
+
+(mdx
+ (package caqti)
+ (files :standard *.mli)
+ (libraries caqti uri))

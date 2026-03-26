@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,12 +40,12 @@ end
  * connection. *)
 
 module Q = struct
-  open Caqti_template.Create
+  open Caqti.Templater
 
   let bike =
     let open Bike in
     let intro frameno owner stolen = Ok {frameno; owner; stolen} in
-    let open Caqti_template.Row_type in
+    let open Caqti.Template.Row_type in
     product intro
       @@ proj string (fun bike -> bike.frameno)
       @@ proj string (fun bike -> bike.owner)

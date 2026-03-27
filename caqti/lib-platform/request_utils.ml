@@ -88,25 +88,25 @@ let linear_query_string ~annotate ?(subst = empty_subst) templ =
   Buffer.contents buf
 
 let raise_encode_missing ~uri ~field_type () =
-  raise (Caqti_error.Exn (Caqti_error.encode_missing ~uri ~field_type ()))
+  raise (Caqti.Error.Exn (Caqti.Error.encode_missing ~uri ~field_type ()))
 let raise_encode_rejected ~uri ~typ msg =
-  raise (Caqti_error.Exn (Caqti_error.encode_rejected ~uri ~typ msg))
+  raise (Caqti.Error.Exn (Caqti.Error.encode_rejected ~uri ~typ msg))
 let raise_encode_failed ~uri ~typ msg =
-  raise (Caqti_error.Exn (Caqti_error.encode_failed ~uri ~typ msg))
+  raise (Caqti.Error.Exn (Caqti.Error.encode_failed ~uri ~typ msg))
 let raise_decode_missing ~uri ~field_type () =
-  raise (Caqti_error.Exn (Caqti_error.decode_missing ~uri ~field_type ()))
+  raise (Caqti.Error.Exn (Caqti.Error.decode_missing ~uri ~field_type ()))
 let raise_decode_rejected ~uri ~typ msg =
-  raise (Caqti_error.Exn (Caqti_error.decode_rejected ~uri ~typ msg))
+  raise (Caqti.Error.Exn (Caqti.Error.decode_rejected ~uri ~typ msg))
 let raise_response_failed ~uri ~query msg =
-  raise (Caqti_error.Exn (Caqti_error.response_failed ~uri ~query msg))
+  raise (Caqti.Error.Exn (Caqti.Error.response_failed ~uri ~query msg))
 let raise_response_rejected ~uri ~query msg =
-  raise (Caqti_error.Exn (Caqti_error.response_rejected ~uri ~query msg))
+  raise (Caqti.Error.Exn (Caqti.Error.response_rejected ~uri ~query msg))
 
 type 'a field_encoder = {
   write_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'b -> 'a -> 'a;
   write_null: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'a;
 }
-constraint 'e = [> `Encode_rejected of Caqti_error.coding_error]
+constraint 'e = [> `Encode_rejected of Caqti.Error.coding_error]
 
 let rec encode_null_param : type a. uri: _ -> _ -> a Row_type.t -> _ =
   fun ~uri f ->
@@ -125,7 +125,7 @@ and encode_null_param_of_product
       encode_null_param_of_product ~uri f ts)
 
 let reject_encode ~uri ~typ msg =
-  let msg = Caqti_error.Msg msg in
+  let msg = Caqti.Error.Msg msg in
   raise_encode_rejected ~uri ~typ msg
 
 let rec encode_param
@@ -157,10 +157,10 @@ type 'a field_decoder = {
   read_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'b * 'a;
   skip_null: int -> 'a -> 'a option;
 }
-constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
+constraint 'e = [> `Decode_rejected of Caqti.Error.coding_error]
 
 let reject_decode ~uri ~typ msg =
-  let msg = Caqti_error.Msg msg in
+  let msg = Caqti.Error.Msg msg in
   raise_decode_rejected ~uri ~typ msg
 
 let rec decode_row : type a. uri: _ -> _ -> a Row_type.t -> 'b -> a * 'b =

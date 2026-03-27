@@ -27,9 +27,9 @@ let dialect =
   in
   Dialect.create_sqlite ~server_version ()
 
-let driver_info = Caqti_driver_info.of_dialect dialect
+let driver_info = Caqti.Driver_info.of_dialect dialect
 
-type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
+type Caqti.Connection.driver_connection += Driver_connection of Sqlite3.db
 
 let rec iter_r_list f = function
  | [] -> Ok ()
@@ -58,7 +58,7 @@ let get_uri_int uri name =
           ksprintf invalid_arg "Integer expected for URI parameter %s." name)
    | None -> None)
 
-type Caqti_error.msg += Error_msg of {
+type Caqti.Error.msg += Error_msg of {
   errcode: Sqlite3.Rc.t;
   extended_errcode: int option;
   errmsg: string option;
@@ -91,7 +91,7 @@ let () =
       cause_of_rc (errcode, extended_errcode)
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
+  Caqti.Error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 let wrap_rc =
   (match Sqlite3_shim.extended_errcode_int with
@@ -135,7 +135,7 @@ let value_of_data
     (match Ptime.Span.of_float_s x with
      | Some t -> t
      | None ->
-        let msg = Caqti_error.Msg "Interval out of range for Ptime.span." in
+        let msg = Caqti.Error.Msg "Interval out of range for Ptime.span." in
         let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
@@ -145,7 +145,7 @@ let value_of_data
         (Sqlite3.Data.to_string_debug data) ft
     in
     let typ = Row_type.field field_type in
-    Request_utils.raise_decode_rejected ~uri ~typ (Caqti_error.Msg msg)
+    Request_utils.raise_decode_rejected ~uri ~typ (Caqti.Error.Msg msg)
   in
   (match field_type, data with
    | Bool, Sqlite3.Data.INT y -> y <> 0L
@@ -171,7 +171,7 @@ let value_of_data
       (match Conv.pdate_of_iso8601 y with
        | Ok y -> y
        | Error msg ->
-          let msg = Caqti_error.Msg msg in
+          let msg = Caqti.Error.Msg msg in
           let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Pdate, _ -> cannot_convert_to "date"
@@ -180,7 +180,7 @@ let value_of_data
       (match Conv.ptime_of_rfc3339_utc y with
        | Ok y -> y
        | Error msg ->
-          let msg = Caqti_error.Msg msg in
+          let msg = Caqti.Error.Msg msg in
           let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg)
    | Ptime, _ -> cannot_convert_to "time"
@@ -226,7 +226,7 @@ let bind_quotes ~uri ~db stmt oq =
      | Sqlite3.Rc.OK -> Ok ()
      | rc ->
         let typ = Row_type.string in
-        Error (Caqti_error.encode_failed ~uri ~typ (wrap_rc ~db rc)))
+        Error (Caqti.Error.encode_failed ~uri ~typ (wrap_rc ~db rc)))
   in
   List_ext.iteri_r aux oq
 
@@ -251,7 +251,7 @@ let encode_param ~uri ~db stmt t =
   let encode = Request_utils.encode_param ~uri {write_value; write_null} t in
   fun x iP ->
     try Ok (encode x iP) with
-     | Caqti_error.Exn (#Caqti_error.call as err) -> Error err
+     | Caqti.Error.Exn (#Caqti.Error.call as err) -> Error err
 
 let decode_row ~uri ~query row_type =
   let read_value ~uri ft (stmt, j) =
@@ -272,7 +272,7 @@ let decode_row ~uri ~query row_type =
     let n' = Sqlite3.data_count stmt in
     if n = n' then Some y else
     let msg = sprintf "Decoded only %d of %d fields." n n' in
-    let msg = Caqti_error.Msg msg in
+    let msg = Caqti.Error.Msg msg in
     Request_utils.raise_response_rejected ~uri ~query msg
 
 module Q = struct
@@ -295,7 +295,7 @@ struct
 
   let driver_info = driver_info
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
@@ -341,11 +341,11 @@ struct
       let affected_count {affected_count; has_been_executed; queries_state; _} =
         if has_been_executed then Fiber.return (Ok affected_count) else
         let msg =
-          Caqti_error.Msg
+          Caqti.Error.Msg
             "Statement not executed yet, affected_count unavailable."
         in
         let query = show_query queries_state in
-        Fiber.return (Error (Caqti_error.response_rejected ~uri ~query msg))
+        Fiber.return (Error (Caqti.Error.response_rejected ~uri ~query msg))
 
       let run_step response stmt =
         let ret = Sqlite3.step stmt in
@@ -370,17 +370,17 @@ struct
              | Sqlite3.Rc.ROW -> decode stmt
              | rc ->
                 let msg = wrap_rc ~db rc in
-                let error = Caqti_error.request_failed ~uri ~query msg in
-                raise (Caqti_error.Exn error))
+                let error = Caqti.Error.request_failed ~uri ~query msg in
+                raise (Caqti.Error.Exn error))
 
       let exec =
         let handle_rc ~query = function
          | Sqlite3.Rc.DONE | Sqlite3.Rc.OK -> Ok ()
          | Sqlite3.Rc.ROW ->
-            let msg = Caqti_error.Msg "Received unexpected row for exec." in
-            Error (Caqti_error.response_rejected ~uri ~query msg)
+            let msg = Caqti.Error.Msg "Received unexpected row for exec." in
+            Error (Caqti.Error.response_rejected ~uri ~query msg)
          | rc ->
-            Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
+            Error (Caqti.Error.request_failed ~uri ~query (wrap_rc ~db rc))
         in
         (function
          | {queries_state = Empty; _} ->
@@ -401,18 +401,18 @@ struct
           try
             (match fetch_row resp () with
              | None ->
-                let msg = Caqti_error.Msg "Received no rows for find." in
+                let msg = Caqti.Error.Msg "Received no rows for find." in
                 let query = show_query resp.queries_state in
-                Error (Caqti_error.response_rejected ~uri ~query msg)
+                Error (Caqti.Error.response_rejected ~uri ~query msg)
              | Some y ->
                 (match fetch_row resp () with
                  | None -> Ok y
                  | Some _ ->
                     let msg = "Received multiple rows for find." in
-                    let msg = Caqti_error.Msg msg in
+                    let msg = Caqti.Error.Msg msg in
                     let query = show_query resp.queries_state in
-                    Error (Caqti_error.response_rejected ~uri ~query msg)))
-           with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+                    Error (Caqti.Error.response_rejected ~uri ~query msg)))
+           with Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
@@ -426,10 +426,10 @@ struct
                  | None -> Ok (Some y)
                  | Some _ ->
                     let msg = "Received multiple rows for find_opt." in
-                    let msg = Caqti_error.Msg msg in
+                    let msg = Caqti.Error.Msg msg in
                     let query = show_query resp.queries_state in
-                    Error (Caqti_error.response_rejected ~uri ~query msg)))
-          with Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+                    Error (Caqti.Error.response_rejected ~uri ~query msg)))
+          with Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
@@ -442,7 +442,7 @@ struct
              | Some y -> loop (f y acc))
           in
           try loop acc with
-           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+           | Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve acc
 
@@ -458,7 +458,7 @@ struct
                  | Error _ as r -> r))
           in
           try loop acc with
-           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+           | Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve acc
 
@@ -474,7 +474,7 @@ struct
                  | Error _ as r -> r))
           in
           try loop () with
-           | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+           | Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
         in
         Preemptive.detach retrieve ()
 
@@ -484,7 +484,7 @@ struct
           (match fetch () with
            | None -> Stream.Nil
            | Some y -> Stream.Cons (y, Preemptive.detach seq)
-           | exception Caqti_error.Exn (#Caqti_error.retrieve as err) ->
+           | exception Caqti.Error.Exn (#Caqti.Error.retrieve as err) ->
               Stream.Error err)
         in
         Preemptive.detach seq
@@ -503,8 +503,8 @@ struct
         try
           Ok (Sqlite3.prepare db query, quotes, query)
         with Sqlite3.Error msg ->
-          let msg = Caqti_error.Msg msg in
-          Error (Caqti_error.request_failed ~uri ~query msg)
+          let msg = Caqti.Error.Msg msg in
+          Error (Caqti.Error.request_failed ~uri ~query msg)
       in
       Preemptive.detach (map_r_list prepare_single)
 
@@ -516,11 +516,11 @@ struct
        | Sqlite3.Rc.OK -> Ok ()
        | rc ->
           let query = sprintf "DEALLOCATE (%s)" query in
-          Error (Caqti_error.request_failed ~uri ~query (wrap_rc ~db rc))
+          Error (Caqti.Error.request_failed ~uri ~query (wrap_rc ~db rc))
        | exception Sqlite3.Error msg ->
           let query = sprintf "DEALLOCATE (%s)" query in
-          let msg = Caqti_error.Msg msg in
-          Error (Caqti_error.request_failed ~uri ~query msg))
+          let msg = Caqti.Error.Msg msg in
+          Error (Caqti.Error.request_failed ~uri ~query msg))
 
     let deallocate req = using_db @@ fun () ->
       (match Request.prepare_policy req with
@@ -675,7 +675,7 @@ struct
   end
 
   let setup ~config db =
-    let tweaks_version = Caqti_connect_config.(get tweaks_version) config in
+    let tweaks_version = Caqti.Connect.Config.(get tweaks_version) config in
     if tweaks_version < (1, 8) then Fiber.return () else
     Preemptive.detach (Sqlite3.exec db) "PRAGMA foreign_keys = ON"
       >>= fun rc ->
@@ -712,9 +712,9 @@ struct
         let uri = uri
         let db = db
         let dynamic_capacity =
-          Caqti_connect_config.(get dynamic_prepare_capacity) config
+          Caqti.Connect.Config.(get dynamic_prepare_capacity) config
         let annotate =
-          Caqti_connect_config.(get enable_query_annotations) config
+          Caqti.Connect.Config.(get enable_query_annotations) config
       end in
       let module Connection_base = Make_connection_base (Arg) in
       let module Connection = struct
@@ -729,10 +729,10 @@ struct
     with
      | Invalid_argument msg ->
         Fiber.return
-          (Error (Caqti_error.connect_rejected ~uri (Caqti_error.Msg msg)))
+          (Error (Caqti.Error.connect_rejected ~uri (Caqti.Error.Msg msg)))
      | Sqlite3.Error msg ->
         Fiber.return
-          (Error (Caqti_error.connect_failed ~uri (Caqti_error.Msg msg)))
+          (Error (Caqti.Error.connect_failed ~uri (Caqti.Error.Msg msg)))
 end
 
 let () =

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,7 +34,7 @@ type stdenv = <
   mono_clock : Eio.Time.Mono.ty Eio.Std.r;
 >
 
-module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
+module Stream : Caqti.Stream.S with type 'a fiber := 'a
 
 (**/**) (* for private use by caqti-eio.unix *)
 module System : Caqti_platform.System_sig.S
@@ -49,11 +49,11 @@ module System : Caqti_platform.System_sig.S
 (**/**)
 
 module Pool : sig
-  include Caqti_pool_sig.S with type 'a fiber := 'a
+  include Caqti.Pool.S with type 'a fiber := 'a
 
   (**/**)
   val create :
-    ?config: Caqti_pool_config.t ->
+    ?config: Caqti.Pool.Config.t ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool) ->
     ?log_src: Logs.Src.t ->
@@ -63,11 +63,11 @@ module Pool : sig
     ('a, 'e) t
 end
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
-include Caqti_connect_sig.S
+include Caqti.Connect.S
   with type 'a fiber := 'a
    and type 'a with_switch := sw: Eio.Switch.t -> 'a
    and type 'a with_stdenv := stdenv: stdenv -> 'a
@@ -75,5 +75,5 @@ include Caqti_connect_sig.S
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and type connection = (module CONNECTION)
 
-val or_fail : ('a, [< Caqti_error.t]) result -> 'a
-(** Eliminates the error-case by raising {!Caqti_error.Exn}. *)
+val or_fail : ('a, [< Caqti.Error.t]) result -> 'a
+(** Eliminates the error-case by raising {!Caqti.Error.Exn}. *)

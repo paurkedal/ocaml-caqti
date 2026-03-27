@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,9 +26,9 @@
 module System = System
 (**/**)
 
-module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Lwt.t
+module Pool : Caqti.Pool.S with type 'a fiber := 'a Lwt.t
 
-include Caqti_connect_sig.S
+include Caqti.Connect.S
   with type 'a fiber := 'a Lwt.t
    and type ('a, 'e) stream := ('a, 'e) Caqti_lwt.Stream.t
    and type ('a, 'e) pool := ('a, 'e) Pool.t

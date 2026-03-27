@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,14 +25,14 @@
     You can use a connection pool to cache a single DB connection, additional
     connections will not be allocated, since usage is serial. *)
 
-module Stream : Caqti_stream_sig.S with type 'a fiber := 'a
-module Pool : Caqti_pool_sig.S with type 'a fiber := 'a
+module Stream : Caqti.Stream.S with type 'a fiber := 'a
+module Pool : Caqti.Pool.S with type 'a fiber := 'a
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
-include Caqti_connect_sig.S
+include Caqti.Connect.S
   with type 'a fiber := 'a
    and type 'a with_switch := 'a
    and type 'a with_stdenv := 'a
@@ -40,5 +40,5 @@ include Caqti_connect_sig.S
    and type ('a, 'e) pool := ('a, 'e) Pool.t
    and type connection = (module CONNECTION)
 
-val or_fail : ('a, [< Caqti_error.t]) result -> 'a
-(** Takes [Ok x] to [x] and raises {!Caqti_error.Exn}[ err] on [Error err]. *)
+val or_fail : ('a, [< Caqti.Error.t]) result -> 'a
+(** Takes [Ok x] to [x] and raises {!Caqti.Error.Exn}[ err] on [Error err]. *)

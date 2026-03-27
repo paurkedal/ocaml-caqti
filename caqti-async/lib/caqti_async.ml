@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,7 @@ open Async_unix
 open Caqti_platform
 open Core
 
-type Caqti_error.msg += Msg_unix of Core_unix.Error.t * string * string
+type Caqti.Error.msg += Msg_unix of Core_unix.Error.t * string * string
 
 let () =
   let pp ppf = function
@@ -30,7 +30,7 @@ let () =
       Format.fprintf ppf "%s in %s(%S)" (Core_unix.Error.message err) func arg
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+  Caqti.Error.define_msg ~pp [%extension_constructor Msg_unix]
 
 module Fiber = struct
   type 'a t = 'a Deferred.t
@@ -223,7 +223,7 @@ module System = struct
     let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
 
     let tls_providers config =
-      if Caqti_connect_config.mem_name "tls" config then
+      if Caqti.Connect.Config.mem_name "tls" config then
         (match Caqti_platform.Connector.load_library "caqti-tls-async" with
          | Ok () -> ()
          | Error msg ->
@@ -286,7 +286,7 @@ include Connector.Make (System) (Pool) (Loader)
 
 open System
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a Deferred.t
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 

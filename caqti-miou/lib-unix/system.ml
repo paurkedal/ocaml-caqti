@@ -28,7 +28,7 @@ type 'a impl =
 
 type socket = Socket : 'a impl -> socket [@@unboxed]
 
-type Caqti_error.msg +=
+type Caqti.Error.msg +=
   | Msg_unix of Unix.error * string * string
 
 let () =
@@ -37,7 +37,7 @@ let () =
         Format.fprintf ppf "%s(%s): %s" f v (Unix.error_message err)
     | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+  Caqti.Error.define_msg ~pp [%extension_constructor Msg_unix]
 
 external reraise : exn -> 'a = "%reraise"
 
@@ -189,7 +189,7 @@ module Net = struct
   let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
 
   let tls_providers config =
-    if Caqti_connect_config.mem_name "tls" config then begin
+    if Caqti.Connect.Config.mem_name "tls" config then begin
       match Caqti_platform.Connector.load_library "caqti-tls-miou" with
       | Ok () -> ()
       | Error msg -> Log.warn (fun m -> m "TLS configured, but missing caqti-tls-miou: %s" msg)

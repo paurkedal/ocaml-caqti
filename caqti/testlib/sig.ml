@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -52,13 +52,13 @@ module type Ground = sig
 
   end
 
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a Fiber.t
+  val or_fail : ('a, [< Caqti.Error.t]) result -> 'a Fiber.t
 
-  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
+  module Stream : Caqti.Stream.S with type 'a fiber := 'a Fiber.t
 
-  module Pool : Caqti_pool_sig.S with type 'a fiber := 'a Fiber.t
+  module Pool : Caqti.Pool.S with type 'a fiber := 'a Fiber.t
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 

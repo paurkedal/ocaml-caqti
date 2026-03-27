@@ -1,4 +1,4 @@
-(* Copyright (C) 2019--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2019--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -55,7 +55,7 @@ let test_stream_blocking =
     let (_ : float) =
       (Stream_blocking.fold ~f:(+.) stream 0.0 |> function
        | Ok x -> x
-       | Error (`Congested (c : Caqti_error.counit)) -> (match c with _ -> .))
+       | Error (`Congested (c : Caqti.Error.counit)) -> (match c with _ -> .))
       [@ocaml.warning "-56"] (* coded for backwards compatibility *)
     in
     ()
@@ -66,7 +66,7 @@ let test_stream_lwt =
     let* (_ : float) =
       (Stream_lwt.fold ~f:(+.) stream 0.0 >|= function
        | Ok x -> x
-       | Error (`Congested (c : Caqti_error.counit)) -> (match c with _ -> .))
+       | Error (`Congested (c : Caqti.Error.counit)) -> (match c with _ -> .))
       [@ocaml.warning "-56"] (* coded for backwards compatibility *)
     in
     Lwt.return_unit

@@ -28,7 +28,7 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
         {msg = Caqti_driver_postgresql.Result_error_msg {sqlstate; _}; _}) ->
       assert (sqlstate = "42703")
    | Error err ->
-      Alcotest.failf "unexpected error from bad_select: %a" Caqti_error.pp err)
+      Alcotest.failf "unexpected error from bad_select: %a" Caqti.Error.pp err)
 
 let test_cases_on_connection = [
   "test_error", `Quick, test_error;
@@ -39,7 +39,7 @@ let mk_test (name, pool) =
     let f' () =
       Caqti_blocking.Pool.use (fun c -> Ok (f c)) pool |> function
        | Ok () -> ()
-       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+       | Error err -> Alcotest.failf "%a" Caqti.Error.pp err
     in
     (name, speed, f')
   in
@@ -48,10 +48,10 @@ let mk_test (name, pool) =
 
 let mk_tests {uris; connect_config = config} =
   let connect_pool uri =
-    let pool_config = Caqti_pool_config.create ~max_size:1 () in
+    let pool_config = Caqti.Pool.Config.create ~max_size:1 () in
     (match Caqti_blocking.connect_pool uri ~pool_config ~config with
      | Ok pool -> (test_name_of_uri uri, pool)
-     | Error err -> raise (Caqti_error.Exn err))
+     | Error err -> raise (Caqti.Error.Exn err))
   in
   let is_postgresql uri = Uri.scheme uri = Some "postgresql" in
   let pools = List.map connect_pool (List.filter is_postgresql uris) in

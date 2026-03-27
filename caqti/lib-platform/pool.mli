@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,10 +45,10 @@ module type S = sig
   type switch
   type stdenv
 
-  include Caqti_pool_sig.S
+  include Caqti.Pool.S
 
   val create :
-    ?config: Caqti_pool_config.t ->
+    ?config: Caqti.Pool.Config.t ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->

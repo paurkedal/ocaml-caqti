@@ -415,13 +415,10 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     (* Create, insert, select *)
     Db.exec Q.create_tmp () >>= or_fail >>= fun () ->
     begin
-      if Caqti_driver_info.can_transact Db.driver_info then
-        Db.start () >>= or_fail >>= fun () ->
-        Db.exec Q.insert_into_tmp (1, "one", "one")
-        >>= or_fail >>= fun () ->
-        Db.rollback () >>= or_fail
-      else
-        Fiber.return ()
+      Db.start () >>= or_fail >>= fun () ->
+      Db.exec Q.insert_into_tmp (1, "one", "one")
+      >>= or_fail >>= fun () ->
+      Db.rollback () >>= or_fail
     end >>= fun () ->
     Db.start () >>= or_fail >>= fun () ->
     Db.exec Q.insert_into_tmp (2, "two", "two\x00")
@@ -458,7 +455,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     let check_affected n = function
      | Ok nrows -> assert (nrows = n); Fiber.return ()
      | Error `Unsupported -> Fiber.return ()
-     | Error #Caqti_error.t as err -> or_fail err
+     | Error #Caqti.Error.t as err -> or_fail err
     in
 
     (* prepare db *)
@@ -587,9 +584,9 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Db.populate
         ~table:"test_sql"
         ~columns:["i"; "s"; "o"]
-        Caqti_type.(t3 int (option string) (option octets))
+        Caqti.Template.Row_type.(t3 int (option string) (option octets))
         input_stream
-      >|= Caqti_error.uncongested >>= or_fail >>= fun () ->
+      >|= Caqti.Error.uncongested >>= or_fail >>= fun () ->
       Db.collect_list Q.select_from_tmp_nullable ()
       >>= or_fail >>= fun actual ->
       if actual <> expected then
@@ -635,9 +632,9 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     Db.populate
       ~table:"test_sql"
       ~columns:["data"]
-      Caqti_type.octets
+      Caqti.Template.Row_type.octets
       input_stream
-    >|= Caqti_error.uncongested >>= or_fail >>= fun () ->
+    >|= Caqti.Error.uncongested >>= or_fail >>= fun () ->
     Db.collect_list Q.select_from_tmp_binary ()
     >>= or_fail >>= fun actual ->
     if actual <> all_pairs then

@@ -1,4 +1,4 @@
-(* Copyright (C) 2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,4 +36,4 @@
 
 (** {1 Error Details} *)
 
-type Caqti_error.msg += Pgx_msg of string * Pgx.Error_response.t
+type Caqti.Error.msg += Pgx_msg of string * Pgx.Error_response.t

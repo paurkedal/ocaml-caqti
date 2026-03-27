@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 
 open Lwt.Infix
 
-type Caqti_error.msg += Msg_unix of Unix.error * string * string
+type Caqti.Error.msg += Msg_unix of Unix.error * string * string
 
 let () =
   let pp ppf = function
@@ -25,7 +25,7 @@ let () =
       Format.fprintf ppf "%s in %s(%S)" (Unix.error_message err) func arg
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+  Caqti.Error.define_msg ~pp [%extension_constructor Msg_unix]
 
 module System_core = struct
   include Caqti_lwt.System_core
@@ -135,7 +135,7 @@ module Net = struct
   let tls_providers_r : (module TLS_PROVIDER) list ref = ref []
 
   let tls_providers config =
-    if Caqti_connect_config.mem_name "tls" config then
+    if Caqti.Connect.Config.mem_name "tls" config then
       (match Caqti_platform.Connector.load_library "caqti-tls-lwt.unix" with
        | Ok () -> ()
        | Error msg ->

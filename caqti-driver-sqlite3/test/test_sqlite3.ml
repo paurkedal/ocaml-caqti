@@ -32,9 +32,9 @@ let bad_insert_req =
 
 let test_error (module C : Caqti_blocking.CONNECTION) =
   C.exec drop_req ()
-    |> Result.iter_error (Alcotest.failf "%a" Caqti_error.pp);
+    |> Result.iter_error (Alcotest.failf "%a" Caqti.Error.pp);
   C.exec create_req ()
-    |> Result.iter_error (Alcotest.failf "%a" Caqti_error.pp);
+    |> Result.iter_error (Alcotest.failf "%a" Caqti.Error.pp);
   (match C.find bad_insert_req () with
    | Ok () -> Alcotest.fail "unexpected ok from bad_insert"
    | Error (`Request_failed
@@ -42,7 +42,7 @@ let test_error (module C : Caqti_blocking.CONNECTION) =
       Alcotest.(check string) "result code"
         "CONSTRAINT" (Sqlite3.Rc.to_string errcode)
    | Error err ->
-      Alcotest.failf "unexpected error from bad_insert: %a" Caqti_error.pp err)
+      Alcotest.failf "unexpected error from bad_insert: %a" Caqti.Error.pp err)
 
 let trim_req =
   Req.(static T.(string -->! string) "SELECT trim(?)")
@@ -68,7 +68,7 @@ let mk_test (name, pool) =
     let f' () =
       Caqti_blocking.Pool.use (fun c -> Ok (f c)) pool |> function
        | Ok () -> ()
-       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+       | Error err -> Alcotest.failf "%a" Caqti.Error.pp err
     in
     (name, speed, f')
   in
@@ -77,10 +77,10 @@ let mk_test (name, pool) =
 
 let mk_tests {uris; connect_config = config} =
   let connect_pool uri =
-    let pool_config = Caqti_pool_config.create ~max_size:1 () in
+    let pool_config = Caqti.Pool.Config.create ~max_size:1 () in
     (match Caqti_blocking.connect_pool uri ~pool_config ~config with
      | Ok pool -> (test_name_of_uri uri, pool)
-     | Error err -> raise (Caqti_error.Exn err))
+     | Error err -> raise (Caqti.Error.Exn err))
   in
   let is_sqlite3 uri = Uri.scheme uri = Some "sqlite3" in
   let pools = List.map connect_pool (List.filter is_sqlite3 uris) in

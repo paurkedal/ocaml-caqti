@@ -15,32 +15,4 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Resource pool signature. *)
-
-module type S = sig
-
-  type +'a fiber
-
-  type ('a, +'e) t
-
-  val size : ('a, 'e) t -> int
-  (** [size pool] is the current number of open resources in [pool]. *)
-
-  val use :
-    ?priority: float ->
-    ('a -> ('b, 'e) result fiber) -> ('a, 'e) t -> ('b, 'e) result fiber
-  (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
-      resource to the pool when [f] exits.
-      The result returned by [f] is not used by Caqti, but allows flattening
-      errors into a single polymorphic variant type.
-
-      @param priority
-        Requests for the resource are handled in decreasing order of priority.
-        The default priority is [0.0]. *)
-
-  val drain : ('a, 'e) t -> unit fiber
-  (** [drain pool] closes all resources in [pool] once they become {e idle}.
-      The pool is still usable, as new resources will be created on demand.
-      Resources are not closed while they are in use. *)
-
-end
+module type S = Caqti.Pool.S

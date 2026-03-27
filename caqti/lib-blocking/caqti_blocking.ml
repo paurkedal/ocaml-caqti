@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 
 open Caqti_platform
 
-type Caqti_error.msg += Msg_unix of Unix.error * string * string
+type Caqti.Error.msg += Msg_unix of Unix.error * string * string
 
 let () =
   let pp ppf = function
@@ -25,7 +25,7 @@ let () =
       Format.fprintf ppf "%s in %s(%S)" (Unix.error_message err) func arg
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Msg_unix]
+  Caqti.Error.define_msg ~pp [%extension_constructor Msg_unix]
 
 module Fiber = struct
   type 'a t = 'a
@@ -171,7 +171,7 @@ include Connector.Make (System) (Pool) (Loader)
 
 open System
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
@@ -192,4 +192,4 @@ let connect_pool
 
 let or_fail = function
  | Ok x -> x
- | Error (#Caqti_error.t as err) -> raise (Caqti_error.Exn err)
+ | Error (#Caqti.Error.t as err) -> raise (Caqti.Error.Exn err)

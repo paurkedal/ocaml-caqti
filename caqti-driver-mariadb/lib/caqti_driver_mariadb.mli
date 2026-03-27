@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,7 +40,7 @@
     The following provides access to diagnostics collected from the MariaDB
     connection and statement objects. *)
 
-type Caqti_error.msg += Error_msg of {
+type Caqti.Error.msg += Error_msg of {
   errno: int;
     (** The error number returned by [mysql_errno] or [mysql_stmt_errno]. *)
   error: string;

@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,5 +17,5 @@
 
 (** Caqti date and time field type based on the calendar package. *)
 
-val cdate : CalendarLib.Date.t Caqti_type.t
-val ctime : CalendarLib.Calendar.t Caqti_type.t
+val cdate : CalendarLib.Date.t Caqti.Template.Row_type.t
+val ctime : CalendarLib.Calendar.t Caqti.Template.Row_type.t

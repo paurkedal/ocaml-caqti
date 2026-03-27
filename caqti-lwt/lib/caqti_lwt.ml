@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -67,7 +67,7 @@ module System_core = struct
   end
 end
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a Lwt.t
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
@@ -75,4 +75,4 @@ type connection = (module CONNECTION)
 
 let or_fail = function
  | Ok x -> Lwt.return x
- | Error (#Caqti_error.t as err) -> Lwt.fail (Caqti_error.Exn err)
+ | Error (#Caqti.Error.t as err) -> Lwt.fail (Caqti.Error.Exn err)

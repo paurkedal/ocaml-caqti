@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,7 +32,7 @@ let mk_test (name, connect, pool) =
     let f' () =
       Caqti_lwt_unix.Pool.use (fun c -> Lwt_result.ok (f c)) pool >|= function
        | Ok () -> ()
-       | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+       | Error err -> Alcotest.failf "%a" Caqti.Error.pp err
     in
     (name, speed, f')
   in
@@ -58,13 +58,13 @@ let env =
   Test_sql.env & Test_error_cause.env
 
 let mk_tests {uris; connect_config} =
-  let pool_config = Caqti_pool_config.create ~max_size:16 () in
+  let pool_config = Caqti.Pool.Config.create ~max_size:16 () in
   let create_target uri =
     let connect () = Caqti_lwt_unix.connect ~config:connect_config ~env uri in
     (match Caqti_lwt_unix.connect_pool uri
             ~pool_config ~post_connect ~config:connect_config ~env with
      | Ok pool -> (test_name_of_uri uri, connect, pool)
-     | Error err -> raise (Caqti_error.Exn err))
+     | Error err -> raise (Caqti.Error.Exn err))
   in
   let targets = List.map create_target uris in
   List.map mk_test targets

@@ -47,11 +47,11 @@ struct
         let authenticator = authenticator pclock_now_opt in
         let tls_cfg = Tls.Config.client ~authenticator () in
         let cfg =
-          Caqti_connect_config.set Caqti_tls.Config.client (Some tls_cfg) cfg
+          Caqti.Connect.Config.set Caqti_tls.Config.client (Some tls_cfg) cfg
         in
         Ok cfg
       in
-      Caqti_connect_config.default
+      Caqti.Connect.Config.default
         |> Option.fold ~none:Result.ok ~some:set_authenticator
             (Key_gen.x509_authenticator ())
         |> Lwt.return
@@ -76,6 +76,6 @@ struct
     end >>= function
      | Ok () -> Log.info (fun f -> f "Done.")
      | Error (`Msg msg) -> Log.err (fun f -> f "%s" msg)
-     | Error (#Caqti_error.t as err) ->
-        Log.err (fun f -> f "%a" Caqti_error.pp err)
+     | Error (#Caqti.Error.t as err) ->
+        Log.err (fun f -> f "%a" Caqti.Error.pp err)
 end

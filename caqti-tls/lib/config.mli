@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,4 +17,4 @@
 
 (** Configuration parameter for the [tls] library. *)
 
-val client : Tls.Config.client option Caqti_connect_config.key
+val client : Tls.Config.client option Caqti.Connect.Config.key

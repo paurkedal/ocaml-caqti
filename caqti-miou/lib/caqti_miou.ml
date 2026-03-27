@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -180,7 +180,7 @@ module System_core = struct
   let async ~sw fn = Switch.enqueue sw fn
 end
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a
     and type ('a, 'e) stream := ('a, 'e) Stream.t
 
@@ -188,4 +188,4 @@ type connection = (module CONNECTION)
 
 let or_fail = function
   | Ok x -> x
-  | Error (#Caqti_error.t as err) -> raise (Caqti_error.Exn err)
+  | Error (#Caqti.Error.t as err) -> raise (Caqti.Error.Exn err)

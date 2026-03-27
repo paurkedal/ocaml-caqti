@@ -47,7 +47,7 @@ module Q = struct
     Q.lit "SET statement_timeout TO " @++ Q.int t
 end
 
-type Caqti_error.msg +=
+type Caqti.Error.msg +=
   | Connect_error_msg of {
       error: Pg.error;
     }
@@ -89,9 +89,9 @@ let () =
    | _ ->
       assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Connect_error_msg];
-  Caqti_error.define_msg ~pp [%extension_constructor Connection_error_msg];
-  Caqti_error.define_msg ~pp ~cause [%extension_constructor Result_error_msg]
+  Caqti.Error.define_msg ~pp [%extension_constructor Connect_error_msg];
+  Caqti.Error.define_msg ~pp [%extension_constructor Connection_error_msg];
+  Caqti.Error.define_msg ~pp ~cause [%extension_constructor Result_error_msg]
 
 let driver_info =
   let dummy_dialect =
@@ -100,7 +100,7 @@ let driver_info =
       ~client_library:`postgresql
       ()
   in
-  Caqti_driver_info.of_dialect dummy_dialect
+  Caqti.Driver_info.of_dialect dummy_dialect
 
 module Pg_ext = struct
   include Postgresql_conv
@@ -166,8 +166,8 @@ module Pg_ext = struct
         (match present value_str with
          | value -> Ok (value, Uri.remove_query_param uri param)
          | exception Failure msg ->
-            let msg = Caqti_error.Msg msg in
-            Error (Caqti_error.connect_rejected ~uri msg)))
+            let msg = Caqti.Error.Msg msg in
+            Error (Caqti.Error.connect_rejected ~uri msg)))
 
   let parse_notice_processing = function
    | "quiet" -> `Quiet
@@ -272,7 +272,7 @@ module Make_encoder (String_encoder : STRING_ENCODER) = struct
       let n = Request_utils.encode_param ~uri {write_value; write_null} t x 0 in
       assert (n = Array.length params);
       Ok ()
-    with Caqti_error.Exn (#Caqti_error.call as err) -> Error err
+    with Caqti.Error.Exn (#Caqti.Error.call as err) -> Error err
 end
 
 module Param_encoder = Make_encoder (struct
@@ -285,7 +285,7 @@ let decode_field : type a. uri: Uri.t -> a Field_type.t -> string -> a =
   let wrap_conv_exn f s =
     (try (f s) with
      | _ ->
-        let msg = Caqti_error.Msg (sprintf "Invalid value %S." s) in
+        let msg = Caqti.Error.Msg (sprintf "Invalid value %S." s) in
         let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
@@ -293,7 +293,7 @@ let decode_field : type a. uri: Uri.t -> a Field_type.t -> string -> a =
     (match f s with
      | Ok y -> y
      | Error msg ->
-        let msg = Caqti_error.Msg msg in
+        let msg = Caqti.Error.Msg msg in
         let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
@@ -325,7 +325,7 @@ let decode_row ~uri row_type =
   fun (resp, i) ->
     (match decode (resp, i, 0) with
      | (y, (_, _, j)) -> assert (j = Row_type.length row_type); Ok y
-     | exception Caqti_error.Exn (`Decode_rejected _ as err) -> Error err)
+     | exception Caqti.Error.Exn (`Decode_rejected _ as err) -> Error err)
 
 type queries_info =
   | Empty
@@ -401,13 +401,13 @@ struct
       try Unix.wrap_fd retry (Obj.magic db#socket)
       with Pg.Error err ->
         let msg = extract_communication_error db err in
-        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti.Error.request_failed ~uri ~query msg))
 
     let get_one_result ~stdenv ~uri ~query db =
       get_next_result ~stdenv ~uri ~query db >>=? function
        | None ->
-          let msg = Caqti_error.Msg "No response received after send." in
-          Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
+          let msg = Caqti.Error.Msg "No response received after send." in
+          Fiber.return (Error (Caqti.Error.request_failed ~uri ~query msg))
        | Some result ->
           Fiber.return (Ok result)
 
@@ -417,17 +417,17 @@ struct
        | None ->
           Fiber.return (Ok result)
        | Some _ ->
-          let msg = Caqti_error.Msg "More than one response received." in
-          Fiber.return (Error (Caqti_error.response_rejected ~uri ~query msg))
+          let msg = Caqti.Error.Msg "More than one response received." in
+          Fiber.return (Error (Caqti.Error.response_rejected ~uri ~query msg))
 
     let check_query_result ~uri ~query ~row_mult ~single_row_mode result =
       let reject msg =
-        let msg = Caqti_error.Msg msg in
-        Error (Caqti_error.response_rejected ~uri ~query msg)
+        let msg = Caqti.Error.Msg msg in
+        Error (Caqti.Error.response_rejected ~uri ~query msg)
       in
       let fail msg =
-        let msg = Caqti_error.Msg msg in
-        Error (Caqti_error.request_failed ~uri ~query msg)
+        let msg = Caqti.Error.Msg msg in
+        Error (Caqti.Error.request_failed ~uri ~query msg)
       in
       (match result#status with
        | Pg.Command_ok ->
@@ -456,10 +456,10 @@ struct
        | Pg.Empty_query -> fail "The query was empty."
        | Pg.Bad_response ->
           let msg = extract_result_error result in
-          Error (Caqti_error.response_rejected ~uri ~query msg)
+          Error (Caqti.Error.response_rejected ~uri ~query msg)
        | Pg.Fatal_error ->
           let msg = extract_result_error result in
-          Error (Caqti_error.request_failed ~uri ~query msg)
+          Error (Caqti.Error.request_failed ~uri ~query msg)
        | Pg.Nonfatal_error -> Ok () (* TODO: Log *)
        | Pg.Copy_out | Pg.Copy_in | Pg.Copy_both ->
           reject "Received unexpected copy response."
@@ -477,7 +477,7 @@ struct
 
   (* Driver Interface *)
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
@@ -522,11 +522,11 @@ struct
       try Ok (f ()) with
        | Postgresql.Error err ->
           let msg = extract_communication_error db err in
-          Error (Caqti_error.request_failed ~uri ~query msg)
+          Error (Caqti.Error.request_failed ~uri ~query msg)
 
     let reset () =
       Log.warn (fun p ->
-        p "Lost connection to <%a>, reconnecting." Caqti_error.pp_uri uri)
+        p "Lost connection to <%a>, reconnecting." Caqti.Error.pp_uri uri)
         >>= fun () ->
       in_transaction := false;
       (match db#reset_start with
@@ -541,12 +541,12 @@ struct
           Fiber.return false)
 
     let rec retry_on_connection_error
-        ?(n = 1) (f : unit -> (_, [> Caqti_error.call]) result Fiber.t) =
+        ?(n = 1) (f : unit -> (_, [> Caqti.Error.call]) result Fiber.t) =
       if !in_transaction then f () else
       (db#consume_input; f ()) >>=
       (function
        | Error (`Request_failed
-            {Caqti_error.msg = Connection_error_msg
+            {Caqti.Error.msg = Connection_error_msg
               {error = Postgresql.Connection_failure _; _}; _})
             as r when n > 0 ->
           let* reset_ok = reset () in
@@ -618,8 +618,8 @@ struct
            | None -> Ok None
            | Some _ ->
               let msg =
-                Caqti_error.Msg "Extra result after final single-row result." in
-              Error (Caqti_error.response_rejected ~uri ~query msg))
+                Caqti.Error.Msg "Extra result after final single-row result." in
+              Error (Caqti.Error.response_rejected ~uri ~query msg))
        | _ ->
           Fiber.return @@ Result.map (fun () -> None) @@
           Pg_io.check_query_result
@@ -924,14 +924,14 @@ struct
          | Ok None ->
             Log.warn (fun p ->
               p "Failed to query OID for enum %s." name) >|= fun () ->
-            Error (Caqti_error.encode_missing ~uri ~field_type ())
+            Error (Caqti.Error.encode_missing ~uri ~field_type ())
          | Error (`Encode_rejected _ | `Decode_rejected _ |
                   `Response_failed _ as err) ->
             Log.err (fun p ->
               p "Failed to fetch obtain OID for enum %s due to: %a"
-                name Caqti_error.pp err) >|= fun () ->
-            Error (Caqti_error.encode_missing ~uri ~field_type ())
-         | Error #Caqti_error.call as r ->
+                name Caqti.Error.pp err) >|= fun () ->
+            Error (Caqti.Error.encode_missing ~uri ~field_type ())
+         | Error #Caqti.Error.call as r ->
             Fiber.return r)
      | Field _ -> Fiber.return (Ok ())
      | Option t -> fetch_type_oids t
@@ -973,7 +973,7 @@ struct
       try db#finish; Fiber.return () with Pg.Error err ->
         Log.warn (fun p ->
           p "While disconnecting from <%a>: %s"
-            Caqti_error.pp_uri uri (Pg.string_of_error err))
+            Caqti.Error.pp_uri uri (Pg.string_of_error err))
 
     let validate () = using_db @@ fun () ->
       if (try db#consume_input; db#status = Pg.Ok with Pg.Error _ -> false) then
@@ -1003,11 +1003,11 @@ struct
       let param_length = Row_type.length row_type in
       let fail msg =
         Fiber.return
-          (Error (Caqti_error.request_failed ~uri ~query (Caqti_error.Msg msg)))
+          (Error (Caqti.Error.request_failed ~uri ~query (Caqti.Error.Msg msg)))
       in
       let pg_error err =
         let msg = extract_communication_error db err in
-        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti.Error.request_failed ~uri ~query msg))
       in
       let put_copy_data data =
         let rec loop fd =
@@ -1078,21 +1078,21 @@ struct
     (match new Pg.connection ~conninfo () with
      | exception Pg.Error err ->
         let msg = extract_connect_error err in
-        Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
+        Fiber.return (Error (Caqti.Error.connect_failed ~uri msg))
      | db ->
         Pg_io.communicate ~stdenv db (fun () -> db#connect_poll) >>=
         (function
          | Error err ->
             let msg = extract_communication_error db err in
-            Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
+            Fiber.return (Error (Caqti.Error.connect_failed ~uri msg))
          | Ok () ->
             (match db#status <> Pg.Ok with
              | exception Pg.Error err ->
                 let msg = extract_communication_error db err in
-                Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
+                Fiber.return (Error (Caqti.Error.connect_failed ~uri msg))
              | true ->
-                let msg = Caqti_error.Msg db#error_message in
-                Fiber.return (Error (Caqti_error.connect_failed ~uri msg))
+                let msg = Caqti.Error.Msg db#error_message in
+                Fiber.return (Error (Caqti.Error.connect_failed ~uri msg))
              | false ->
                 db#set_notice_processing notice_processing;
                 let server_version =
@@ -1114,9 +1114,9 @@ struct
                     let db = db
                     let use_single_row_mode = use_single_row_mode
                     let dynamic_capacity =
-                      Caqti_connect_config.(get dynamic_prepare_capacity) config
+                      Caqti.Connect.Config.(get dynamic_prepare_capacity) config
                     let annotate =
-                      Caqti_connect_config.(get enable_query_annotations) config
+                      Caqti.Connect.Config.(get enable_query_annotations) config
                   end)
                 in
                 let module Connection = struct

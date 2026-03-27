@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -49,7 +49,7 @@
     The following gives access to diagnostics collected from the PostgreSQL
     connection and result objects. *)
 
-type Caqti_error.msg +=
+type Caqti.Error.msg +=
   | Connect_error_msg of {
       error: Postgresql.error;
         (** The exception raised by postgresql-ocaml. *)

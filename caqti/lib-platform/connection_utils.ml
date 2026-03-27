@@ -17,7 +17,7 @@
 
 module Make_convenience
   (System : System_sig.S)
-  (C : Caqti_connection_sig.Base
+  (C : Caqti.Connection.Base
         with type 'a fiber := 'a System.Fiber.t
          and type ('a, 'err) stream := ('a, 'err) System.Stream.t) =
 struct
@@ -60,7 +60,7 @@ end
 
 module Make_populate
   (System : System_sig.S)
-  (C : Caqti_connection_sig.Base
+  (C : Caqti.Connection.Base
         with type 'a fiber := 'a System.Fiber.t
          and type ('a, 'e) stream := ('a, 'e) System.Stream.t) =
 struct

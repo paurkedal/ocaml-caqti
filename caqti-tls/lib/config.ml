@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,5 +15,5 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let client : Tls.Config.client option Caqti_connect_config.key =
-  Caqti_connect_config.create_key "tls" None
+let client : Tls.Config.client option Caqti.Connect.Config.key =
+  Caqti.Connect.Config.create_key "tls" None

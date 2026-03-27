@@ -92,7 +92,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       test_parallel' pool 1000
     end >|= function
      | Ok _ -> ()
-     | Error err -> Alcotest.failf "%a" Caqti_error.pp err
+     | Error err -> Alcotest.failf "%a" Caqti.Error.pp err
 
   let test_cases = [
     "parallel", `Slow, test_parallel;

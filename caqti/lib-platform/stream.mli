@@ -1,4 +1,4 @@
-(* Copyright (C) 2018--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,5 @@ module type FIBER = sig
   val return : 'a -> 'a t
 end
 
-module Make (Fiber : FIBER) :
-  Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
+module Make (Fiber : FIBER) : Caqti.Stream.S with type 'a fiber := 'a Fiber.t
 (** Constructs a stream for the provided concurrency monad. *)

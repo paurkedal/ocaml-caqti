@@ -39,7 +39,7 @@ module Q = struct
       |> Caqti.Template.Query.parse
       |> Caqti.Template.Query.expand env
     in
-    static_gen T.(Caqti_type.unit -->! Caqti_type.int) (fun _ -> q)
+    static_gen T.(unit -->! int) (fun _ -> q)
 end
 
 module Make (Ground : Testlib.Sig.Ground) = struct

@@ -41,7 +41,7 @@ let cause_of_errno = function
  | 4025 -> `Check_violation
  | _ -> `Unspecified__don't_match
 
-type Caqti_error.msg += Error_msg of {errno: int; error: string}
+type Caqti.Error.msg += Error_msg of {errno: int; error: string}
 let () =
   let pp ppf = function
    | Error_msg {errno; error} ->
@@ -53,7 +53,7 @@ let () =
    | Error_msg {errno; _} -> cause_of_errno errno
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp ~cause [%extension_constructor Error_msg]
+  Caqti.Error.define_msg ~pp ~cause [%extension_constructor Error_msg]
 
 module Q = struct
   open Caqti.Templater
@@ -74,14 +74,14 @@ struct
 
   let (>>=?) m f = m >>= function Ok x -> f x | Error _ as r -> Fiber.return r
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let dialect =
     Dialect.create_mysql ~server_version:(Version.of_string_unsafe "") ()
   let driver_info =
-    Caqti_driver_info.of_dialect dialect
+    Caqti.Driver_info.of_dialect dialect
 
   (* We need to pass stdenv into the below wait, in order to implement
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb
@@ -234,7 +234,7 @@ struct
       with
        | Failure _ ->
           let typename = Mdb_ext.Field.typename field in
-          let msg = Caqti_error.Msg ("Received " ^ typename ^ ".") in
+          let msg = Caqti.Error.Msg ("Received " ^ typename ^ ".") in
           let typ = Row_type.field field_type in
           Request_utils.raise_decode_rejected ~uri ~typ msg
 
@@ -248,7 +248,7 @@ struct
       let write_null ~uri:_ _ os = List.tl os in
       try
         Ok (Request_utils.encode_param ~uri {write_value; write_null} t v acc)
-      with Caqti_error.Exn (#Caqti_error.call as err) ->
+      with Caqti.Error.Exn (#Caqti.Error.call as err) ->
         Error err
 
     let decode_row ~uri row_type =
@@ -271,7 +271,7 @@ struct
           let (y, (_, j)) = decode (row, 0) in
           assert (j = Row_type.length row_type);
           Ok (Some y)
-        with Caqti_error.Exn (#Caqti_error.retrieve as err) ->
+        with Caqti.Error.Exn (#Caqti.Error.retrieve as err) ->
           Error err
 
     module Make_connection_base
@@ -294,13 +294,13 @@ struct
         assert_single_use ~what:"MariaDB connection" using_db_ref f
 
       let request_failed ~query (errno, error) =
-        Error (Caqti_error.request_failed ~uri ~query (Error_msg {errno; error}))
+        Error (Caqti.Error.request_failed ~uri ~query (Error_msg {errno; error}))
 
       let response_failed ~query (errno, error) =
-        Error (Caqti_error.response_failed ~uri ~query (Error_msg {errno; error}))
+        Error (Caqti.Error.response_failed ~uri ~query (Error_msg {errno; error}))
 
       let response_rejected ~query msg =
-        Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
+        Error (Caqti.Error.response_rejected ~uri ~query (Caqti.Error.Msg msg))
 
       module Response = struct
         type ('b, +'m) t = {
@@ -404,7 +404,7 @@ struct
          | {query; res = None; _} ->
             let msg = "Cannot call to_stream on noop request." in
             Stream.error
-              (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
+              (Caqti.Error.response_rejected ~uri ~query (Caqti.Error.Msg msg))
          | {query; res = Some res; row_type} ->
             let decode = decode_next_row ~query row_type in
             let rec loop () =
@@ -571,7 +571,7 @@ struct
 
       let transaction_failed query (errno, error) =
         let msg = Error_msg {errno; error} in
-        Fiber.return (Error (Caqti_error.request_failed ~uri ~query msg))
+        Fiber.return (Error (Caqti.Error.request_failed ~uri ~query msg))
 
       let start () = using_db @@ fun () ->
         Mdb.autocommit db false >>=
@@ -620,8 +620,8 @@ struct
        | "" | "/" -> Ok None
        | path ->
           if Filename.dirname path <> "/" then
-            let msg = Caqti_error.Msg "Bad URI path." in
-            Error (Caqti_error.connect_rejected ~uri msg)
+            let msg = Caqti.Error.Msg "Bad URI path." in
+            Error (Caqti.Error.connect_rejected ~uri msg)
           else
             Ok (Some (Filename.basename path))) |>? fun db ->
       Ok {host; user; pass; port; db; flags = None; config_group}
@@ -646,9 +646,9 @@ struct
             let uri = uri
             let db = db
             let dynamic_capacity =
-              Caqti_connect_config.(get dynamic_prepare_capacity) config
+              Caqti.Connect.Config.(get dynamic_prepare_capacity) config
             let annotate =
-              Caqti_connect_config.(get enable_query_annotations) config
+              Caqti.Connect.Config.(get enable_query_annotations) config
           end)
         in
         let module C = struct
@@ -675,7 +675,7 @@ struct
            | Error err -> Error (`Post_connect err))
      | Error (errno, error) ->
         Fiber.return @@
-          Error (Caqti_error.connect_failed ~uri (Error_msg {errno; error})))
+          Error (Caqti.Error.connect_failed ~uri (Error_msg {errno; error})))
 end
 
 let () =

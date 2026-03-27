@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,7 @@ let () =
         in
         let connect_config =
           common_args.connect_config
-            |> Caqti_connect_config.set Caqti_tls.Config.client
+            |> Caqti.Connect.Config.set Caqti_tls.Config.client
                 (Some tls_client_config)
         in
         {common_args with connect_config})

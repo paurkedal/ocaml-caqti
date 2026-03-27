@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,7 +26,7 @@ module Pool = Caqti_platform.Pool.Make (System) (System.Alarm)
 
 module Loader = Caqti_platform.Driver_loader.Make (System)
 
-module type CONNECTION = Caqti_connection_sig.S
+module type CONNECTION = Caqti.Connection.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Stream.t
 
@@ -36,4 +36,4 @@ include Connector.Make (System) (Pool) (Loader)
 
 let or_fail = function
  | Ok x -> x
- | Error (#Caqti_error.t as err) -> raise (Caqti_error.Exn err)
+ | Error (#Caqti.Error.t as err) -> raise (Caqti.Error.Exn err)

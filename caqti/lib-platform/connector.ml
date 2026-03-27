@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,7 +34,7 @@ let library_name_of_scheme = function
 
 let set_tweaks_version = function
  | None -> Fun.id
- | Some x -> Caqti_connect_config.(set tweaks_version) x
+ | Some x -> Caqti.Connect.Config.(set tweaks_version) x
 
 let compose_subst_with_env subst env dialect =
   let compose_subst subst1 subst2 var =
@@ -44,9 +44,9 @@ let compose_subst_with_env subst env dialect =
    | None, None -> fun _ -> raise Not_found
    | Some subst, None -> subst dialect
    | None, Some env ->
-      env (Caqti_driver_info.of_dialect dialect)
+      env (Caqti.Driver_info.of_dialect dialect)
    | Some subst, Some env ->
-      let driver_info = Caqti_driver_info.of_dialect dialect in
+      let driver_info = Caqti.Driver_info.of_dialect dialect in
       compose_subst (subst dialect) (env driver_info))
 
 module Make
@@ -64,7 +64,7 @@ struct
   open System
   open System.Fiber.Infix
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
@@ -103,7 +103,7 @@ struct
         (match !dynload_library with
          | None ->
             let msg = message_static scheme in
-            Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg))
+            Error (Caqti.Error.load_failed ~uri (Caqti.Error.Msg msg))
          | Some load ->
             let driver_lib = library_name_of_scheme scheme in
             (match load driver_lib with
@@ -112,15 +112,15 @@ struct
                  | Some driver -> Ok driver
                  | None ->
                     let msg = message_dynamic scheme driver_lib in
-                    Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))
+                    Error (Caqti.Error.load_failed ~uri (Caqti.Error.Msg msg)))
              | Error msg ->
-                Error (Caqti_error.load_failed ~uri (Caqti_error.Msg msg)))))
+                Error (Caqti.Error.load_failed ~uri (Caqti.Error.Msg msg)))))
 
   let load_driver uri =
     (match Uri.scheme uri with
      | None ->
         let msg = "Missing URI scheme." in
-        Error (Caqti_error.load_rejected ~uri (Caqti_error.Msg msg))
+        Error (Caqti.Error.load_rejected ~uri (Caqti.Error.Msg msg))
      | Some scheme ->
         (try Ok (Hashtbl.find drivers scheme) with
          | Not_found ->
@@ -131,7 +131,7 @@ struct
              | Error _ as r -> r)))
 
   let connect
-        ?subst ?env ?(config = Caqti_connect_config.default)
+        ?subst ?env ?(config = Caqti.Connect.Config.default)
         ?tweaks_version ~sw ~stdenv uri
       : ((module CONNECTION), _) result Fiber.t =
     let subst = compose_subst_with_env subst env in
@@ -160,12 +160,12 @@ struct
 
   let connect_pool
         ?pool_config ?post_connect ?subst ?env
-        ?(config = Caqti_connect_config.default)
+        ?(config = Caqti.Connect.Config.default)
         ?tweaks_version ~sw ~stdenv uri =
     let subst = compose_subst_with_env subst env in
     let pool_config =
       (match pool_config with
-       | None -> Caqti_pool_config.default_from_env ()
+       | None -> Caqti.Pool.Config.default_from_env ()
        | Some pool_config -> pool_config)
     in
     let config = set_tweaks_version tweaks_version config in
@@ -173,8 +173,8 @@ struct
     let check_arg cond =
       if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
     in
-    (match Caqti_pool_config.(get max_size) pool_config,
-           Caqti_pool_config.(get max_idle_size) pool_config with
+    (match Caqti.Pool.Config.(get max_size) pool_config,
+           Caqti.Pool.Config.(get max_idle_size) pool_config with
      | None, None -> ()
      | Some max_size, None -> check_arg (max_size >= 0)
      | None, Some _ -> check_arg false
@@ -202,25 +202,25 @@ struct
         let check (module Db : CONNECTION) = Db.check in
         let di = Driver.driver_info in
         let pool_config =
-          (match Caqti_driver_info.can_concur di,
-                 Caqti_driver_info.can_pool di,
-                 Caqti_pool_config.(get max_idle_size) pool_config with
+          (match Caqti.Driver_info.can_concur di,
+                 Caqti.Driver_info.can_pool di,
+                 Caqti.Pool.Config.(get max_idle_size) pool_config with
            | true, true, _ ->
               pool_config
            | true, false, _ ->
-              pool_config |> Caqti_pool_config.(set max_idle_size) 0
+              pool_config |> Caqti.Pool.Config.(set max_idle_size) 0
            | false, true, Some 0 ->
               pool_config
-                |> Caqti_pool_config.(set max_size) 1
-                |> Caqti_pool_config.(set max_idle_size) 0
+                |> Caqti.Pool.Config.(set max_size) 1
+                |> Caqti.Pool.Config.(set max_idle_size) 0
            | false, true, _ ->
               pool_config
-                |> Caqti_pool_config.(set max_size) 1
-                |> Caqti_pool_config.(set max_idle_size) 1
+                |> Caqti.Pool.Config.(set max_size) 1
+                |> Caqti.Pool.Config.(set max_idle_size) 1
            | false, false, _ ->
               pool_config
-                |> Caqti_pool_config.(set max_size) 1
-                |> Caqti_pool_config.(set max_idle_size) 0)
+                |> Caqti.Pool.Config.(set max_size) 1
+                |> Caqti.Pool.Config.(set max_idle_size) 0)
         in
         let pool =
           Pool.create

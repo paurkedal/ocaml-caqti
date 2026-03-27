@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,14 +17,14 @@
 
 open Caqti_platform
 
-type Caqti_error.msg += Msg_io of Eio.Exn.err * Eio.Exn.context
+type Caqti.Error.msg += Msg_io of Eio.Exn.err * Eio.Exn.context
 
 let () =
   let pp ppf = function
    | Msg_io (err, ctx) -> Eio.Exn.pp ppf (Eio.Exn.Io (err, ctx))
    | _ -> assert false
   in
-  Caqti_error.define_msg ~pp [%extension_constructor Msg_io]
+  Caqti.Error.define_msg ~pp [%extension_constructor Msg_io]
 
 module Fiber = struct
   type 'a t = 'a
@@ -217,7 +217,7 @@ module Net = struct
   let register_tls_provider p = tls_providers_r := p :: !tls_providers_r
 
   let tls_providers config =
-    if Caqti_connect_config.mem_name "tls" config then
+    if Caqti.Connect.Config.mem_name "tls" config then
       (match Caqti_platform.Connector.load_library "caqti-tls-eio" with
        | Ok () -> ()
        | Error msg ->

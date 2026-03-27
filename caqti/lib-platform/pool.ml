@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Config = Caqti_pool_config
+open Caqti.Pool
 
 let default_max_size =
   try int_of_string (Sys.getenv "CAQTI_POOL_MAX_SIZE") with Not_found -> 8
@@ -40,10 +40,10 @@ module type S = sig
   type switch
   type stdenv
 
-  include Caqti_pool_sig.S
+  include S
 
   val create :
-    ?config: Caqti_pool_config.t ->
+    ?config: Config.t ->
     ?check: ('a -> (bool -> unit) -> unit) ->
     ?validate: ('a -> bool fiber) ->
     ?log_src: Logs.Src.t ->
@@ -114,7 +114,7 @@ struct
 *)
 
   let create
-        ?(config = Caqti_pool_config.default)
+        ?(config = Config.default)
         ?(check = fun _ f -> f true)
         ?(validate = fun _ -> Fiber.return true)
         ?(log_src = default_log_src)

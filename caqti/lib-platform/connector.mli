@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@ module Make :
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t) ->
-  Caqti_connect_sig.S
+  Caqti.Connect.S
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
      and type ('a, 'e) pool := ('a, 'e) Pool.t

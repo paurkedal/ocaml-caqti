@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,17 +27,17 @@ module type PLATFORM = sig
   val name : string
   val run_fiber : (unit -> 'a Fiber.t) -> 'a
   val run_main : (context -> 'a) -> 'a
-  val or_fail : ('a, [< Caqti_error.t]) result -> 'a Fiber.t
+  val or_fail : ('a, [< Caqti.Error.t]) result -> 'a Fiber.t
 
-  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
+  module Stream : Caqti.Stream.S with type 'a fiber := 'a Fiber.t
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Stream.t
 
   type connection = (module CONNECTION)
 
   val connect :
-    ?config: Caqti_connect_config.t -> context -> Uri.t ->
-    (connection, [> Caqti_error.load_or_connect]) result Fiber.t
+    ?config: Caqti.Connect.Config.t -> context -> Uri.t ->
+    (connection, [> Caqti.Error.load_or_connect]) result Fiber.t
 end

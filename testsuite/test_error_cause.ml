@@ -21,9 +21,9 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let env driver_info = function
    | "engine_innodb" ->
-      (match Caqti_driver_info.dialect_tag driver_info with
-       | `Mysql -> Caqti_query.L" ENGINE = InnoDB"
-       | _ -> Caqti_query.S[])
+      (match Caqti.Driver_info.dialect_tag driver_info with
+       | `Mysql -> Caqti.Template.Query.lit " ENGINE = InnoDB"
+       | _ -> Caqti.Template.Query.empty)
    | _ -> raise Not_found
 
   let create_reqs =
@@ -80,7 +80,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Db.exec req () >|= function
        | Ok () -> Alcotest.fail "Error not reported."
        | Error (`Request_failed _ as err) ->
-          let actual_cause = Caqti_error.cause err in
+          let actual_cause = Caqti.Error.cause err in
 
           (* Skip for sqlite3 < 5.2.0 due to missing extended error code. *)
           let open Caqti.Template.Version.Infix in
@@ -90,12 +90,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
            | _ -> ());
 
           Alcotest.(check string) "cause"
-            (Caqti_error.show_cause expected_cause)
-            (Caqti_error.show_cause actual_cause)
+            (Caqti.Error.show_cause expected_cause)
+            (Caqti.Error.show_cause actual_cause)
        | Error err ->
-          Alcotest.failf "Unexpected error: %a" Caqti_error.pp err
+          Alcotest.failf "Unexpected error: %a" Caqti.Error.pp err
     in
-    (Caqti_error.show_cause expected_cause, `Quick, test)
+    (Caqti.Error.show_cause expected_cause, `Quick, test)
 
   let test_cases =
     ("harness", `Quick, harness) ::

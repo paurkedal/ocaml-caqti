@@ -1,4 +1,4 @@
-(* Copyright (C) 2021--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2021--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,8 +40,8 @@ end
 
 let or_fail = function
  | Ok x -> return x
- | Error (#Caqti_error.t as err) ->
-    Error.raise (Error.of_exn (Caqti_error.Exn err))
+ | Error (#Caqti.Error.t as err) ->
+    Error.raise (Error.of_exn (Caqti.Error.Exn err))
 
 include Caqti_async
 

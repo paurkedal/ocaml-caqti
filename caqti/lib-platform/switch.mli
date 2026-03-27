@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,6 +25,6 @@ module type FIBER = sig
   val finally : (unit -> 'a t) -> (unit -> unit t) -> 'a t
 end
 
-module type S = Caqti_switch_sig.S
+module type S = Caqti.Switch.S
 
 module Make (Fiber : FIBER) : S with type 'a fiber := 'a Fiber.t

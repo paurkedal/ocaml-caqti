@@ -15,7 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open Caqti_stream_sig
+open Caqti.Stream
 
 module type FIBER = sig
   type +'a t

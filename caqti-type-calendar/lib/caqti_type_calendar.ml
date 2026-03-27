@@ -1,4 +1,4 @@
-(* Copyright (C) 2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
  *)
 
 open CalendarLib
+open Caqti.Template
 
 let msg_cdate_encode = "Failed to convert CalendarLib.Date.t to Ptime.t"
 let msg_cdate_decode = "Failed to convert Ptime.t to CalendarLib.Date.t"
@@ -26,22 +27,22 @@ let cdate =
   let encode date =
     (match Ptime.of_float_s (Date.to_unixfloat date) with
      | Some t -> t
-     | None -> raise (Caqti_type.Reject msg_cdate_encode))
+     | None -> raise (Row_type.Reject msg_cdate_encode))
   in
   let decode pdate =
-    (try Date.from_unixfloat (Ptime.to_float_s pdate) with
-     | Unix.Unix_error _ -> raise (Caqti_type.Reject msg_cdate_decode))
+    (try Ok (Date.from_unixfloat (Ptime.to_float_s pdate)) with
+     | Unix.Unix_error _ -> Error msg_cdate_decode)
   in
-  Caqti_type.(product decode @@ proj pdate encode @@ proj_end)
+  Row_type.(product decode @@ proj pdate encode @@ proj_end)
 
 let ctime =
   let encode time =
     (match Ptime.of_float_s (Calendar.to_unixfloat time) with
      | Some t -> t
-     | None -> raise (Caqti_type.Reject msg_ctime_encode))
+     | None -> raise (Row_type.Reject msg_ctime_encode))
   in
   let decode ptime =
-    (try Calendar.from_unixfloat (Ptime.to_float_s ptime) with
-     | Unix.Unix_error _ -> raise (Caqti_type.Reject msg_ctime_decode))
+    (try Ok (Calendar.from_unixfloat (Ptime.to_float_s ptime)) with
+     | Unix.Unix_error _ -> Error msg_ctime_decode)
   in
-  Caqti_type.(product decode @@ proj ptime encode @@ proj_end)
+  Row_type.(product decode @@ proj ptime encode @@ proj_end)

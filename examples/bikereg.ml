@@ -147,7 +147,7 @@ let test db =
 let report_error = function
  | Ok () -> Lwt.return_unit
  | Error err ->
-    Lwt_io.eprintl (Caqti_error.show err) >|= fun () -> exit 69
+    Lwt_io.eprintl (Caqti.Error.show err) >|= fun () -> exit 69
 
 let main {Testlib.uris; connect_config} = Lwt_main.run begin
   uris |> Lwt_list.iter_s begin fun uri ->

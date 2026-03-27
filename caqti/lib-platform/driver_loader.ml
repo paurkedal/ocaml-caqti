@@ -21,19 +21,19 @@ module type DRIVER = sig
   type switch
   type stdenv
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a fiber
      and type ('a, 'err) stream := ('a, 'err) stream
 
-  val driver_info : Caqti_driver_info.t
+  val driver_info : Caqti.Driver_info.t [@alert "-deprecated"]
 
   val connect :
     sw: switch ->
     stdenv: stdenv ->
     subst: (Caqti.Template.Dialect.t -> Caqti.Template.Query.subst) ->
-    config: Caqti_connect_config.t ->
+    config: Caqti.Connect.Config.t ->
     Uri.t ->
-    ((module CONNECTION), [> Caqti_error.connect]) result fiber
+    ((module CONNECTION), [> Caqti.Error.connect]) result fiber
 end
 
 module type DRIVER_FUNCTOR =
@@ -53,7 +53,7 @@ module type S = sig
   type switch
   type stdenv
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a fiber
      and type ('a, 'e) stream := ('a, 'e) stream
 
@@ -75,7 +75,7 @@ module Make (System : System_sig.S) = struct
      and type switch := System.Switch.t
      and type stdenv := System.stdenv
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a System.Fiber.t
      and type ('a, 'e) stream := ('a, 'e) System.Stream.t
 

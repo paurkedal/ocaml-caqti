@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -71,7 +71,7 @@ let test_n n =
   in
   let pool =
     let config =
-      Caqti_pool_config.create ~max_idle_size ~max_size ~max_use_count ()
+      Caqti.Pool.Config.create ~max_idle_size ~max_size ~max_use_count ()
     in
     Pool.create ~config ~sw ~stdenv:()
       Resource.create_or_fail Resource.free
@@ -195,7 +195,7 @@ let test_age _ =
   let max_idle_age = Some Mtime.Span.(100 * ms) in
   let pool =
     let config =
-      Caqti_pool_config.create ~max_size ~max_idle_size ~max_idle_age ()
+      Caqti.Pool.Config.create ~max_size ~max_idle_size ~max_idle_age ()
     in
     Pool.create ~config ~sw ~stdenv:() Resource.create Resource.free
   in

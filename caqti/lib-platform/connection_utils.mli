@@ -19,16 +19,16 @@
 
 module Make_convenience :
   functor (Sys : System_sig.S) ->
-  functor (_ : Caqti_connection_sig.Base
+  functor (_ : Caqti.Connection.Base
                 with type 'a fiber := 'a Sys.Fiber.t
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->
-  Caqti_connection_sig.Convenience with type 'a fiber := 'a Sys.Fiber.t
+  Caqti.Connection.Convenience with type 'a fiber := 'a Sys.Fiber.t
 
 module Make_populate :
   functor (Sys : System_sig.S) ->
-  functor (_ : Caqti_connection_sig.Base
+  functor (_ : Caqti.Connection.Base
                 with type 'a fiber := 'a Sys.Fiber.t
                  and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t) ->
-  Caqti_connection_sig.Populate
+  Caqti.Connection.Populate
     with type 'a fiber := 'a Sys.Fiber.t
      and type ('a, 'err) stream := ('a, 'err) Sys.Stream.t

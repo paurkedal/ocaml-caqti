@@ -19,7 +19,7 @@ module Sig = Sig
 
 type common_args = {
   uris: Uri.t list;
-  connect_config: Caqti_connect_config.t;
+  connect_config: Caqti.Connect.Config.t;
 }
 
 val register_common_arg : (common_args -> common_args) Cmdliner.Term.t -> unit

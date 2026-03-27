@@ -26,7 +26,7 @@ let rec find_map_list f = function
  | [] -> None
  | x :: xs -> (match f x with | None -> find_map_list f xs | Some _ as y -> y)
 
-type Caqti_error.msg += Pgx_msg of string * Pgx.Error_response.t
+type Caqti.Error.msg += Pgx_msg of string * Pgx.Error_response.t
 let () =
   let pp ppf = function
    | Pgx_msg (msg, _) -> Format.pp_print_string ppf msg
@@ -38,9 +38,9 @@ let () =
    | _ ->
       assert false
   in
-  Caqti_error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
+  Caqti.Error.define_msg ~pp ~cause [%extension_constructor Pgx_msg]
 
-exception Failed_with_msg of Caqti_error.msg
+exception Failed_with_msg of Caqti.Error.msg
 
 let host_of_string str =
   (match Domain_name.of_string str with
@@ -118,7 +118,7 @@ let encode_param ~uri t param =
   try
     Request_utils.encode_param ~uri {write_value; write_null} t param []
       |> List.rev |> Result.ok
-  with Caqti_error.Exn (#Caqti_error.call as err) ->
+  with Caqti.Error.Exn (#Caqti.Error.call as err) ->
     Error err
 
 let decode_field : type a. uri: Uri.t -> a Field_type.t -> Pgx.Value.t -> a =
@@ -127,7 +127,7 @@ let decode_field : type a. uri: Uri.t -> a Field_type.t -> Pgx.Value.t -> a =
     (match f s with
      | y -> y
      | exception Pgx.Value.Conversion_failure msg_str ->
-        let msg = Caqti_error.Msg msg_str in
+        let msg = Caqti.Error.Msg msg_str in
         let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
@@ -135,7 +135,7 @@ let decode_field : type a. uri: Uri.t -> a Field_type.t -> Pgx.Value.t -> a =
     (match f s with
      | Ok y -> y
      | Error msg_str ->
-        let msg = Caqti_error.Msg msg_str in
+        let msg = Caqti.Error.Msg msg_str in
         let typ = Row_type.field field_type in
         Request_utils.raise_decode_rejected ~uri ~typ msg)
   in
@@ -180,7 +180,7 @@ let decode_row ~uri row_type =
       assert (fields = []);
       Ok y
     with
-     | Caqti_error.Exn (#Caqti_error.retrieve as err) -> Error err
+     | Caqti.Error.Exn (#Caqti.Error.retrieve as err) -> Error err
 
 module Q = struct
   let select_type_oid = "SELECT oid FROM pg_catalog.pg_type WHERE typname = $1"
@@ -199,8 +199,8 @@ let (let/?) m f = match m with Ok x -> f x | Error _ as r -> r
 
 let parse_uri uri =
   let reject msg =
-    let msg = Caqti_error.Msg msg in
-    Error (Caqti_error.connect_rejected ~uri msg)
+    let msg = Caqti.Error.Msg msg in
+    Error (Caqti.Error.connect_rejected ~uri msg)
   in
   let/? host_or_unix_domain_socket_dir =
     (match Uri.host uri, Uri.get_query_param uri "host" with
@@ -263,18 +263,18 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Pgx.PostgreSQL_Error (msg, err) ->
           Fiber.return (Error (h (Pgx_msg (msg, err))))
        | End_of_file ->
-          Fiber.return (Error (h (Caqti_error.Msg "Unexpected EOF from server.")))
+          Fiber.return (Error (h (Caqti.Error.Msg "Unexpected EOF from server.")))
        | Failure msg -> (* Raised by our Pgx.Io implementation. *)
-          Fiber.return (Error (h (Caqti_error.Msg msg)))
+          Fiber.return (Error (h (Caqti.Error.Msg msg)))
        | exn ->
           (match Net.convert_io_exception exn with
            | Some msg -> Fiber.return (Error (h msg))
            | None -> raise exn))
 
   let intercept_request_failed ~uri ~query =
-    intercept (Caqti_error.request_failed ~uri ~query)
+    intercept (Caqti.Error.request_failed ~uri ~query)
   let intercept_connect_failed ~uri =
-    intercept (Caqti_error.connect_failed ~uri)
+    intercept (Caqti.Error.connect_failed ~uri)
 
   type ssl_config =
     Ssl_config : {
@@ -422,7 +422,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let affected_count _ = Fiber.return (Error `Unsupported)
 
       let reject ~query msg =
-        Error (Caqti_error.response_rejected ~uri ~query (Caqti_error.Msg msg))
+        Error (Caqti.Error.response_rejected ~uri ~query (Caqti.Error.Msg msg))
 
       let execute_query ~regular_params {query_string; stmt; rev_quotes} =
         let params = List.rev_append rev_quotes regular_params in
@@ -592,9 +592,9 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
               Pgx_with_io.Prepared.execute select_type_oid ~params)
           in
           let fail s =
-            let msg = Caqti_error.Msg s in
+            let msg = Caqti.Error.Msg s in
             Fiber.return (Error
-              (Caqti_error.request_failed ~uri ~query:Q.select_type_oid msg))
+              (Caqti.Error.request_failed ~uri ~query:Q.select_type_oid msg))
           in
           let failf fmt = Format.kasprintf fail fmt in
           (match row with
@@ -652,7 +652,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
        | Ok () -> Fiber.return ()
        | Error err ->
           Log.warn (fun f ->
-            f "Failed to free prepared query: %a" Caqti_error.pp err))
+            f "Failed to free prepared query: %a" Caqti.Error.pp err))
 
     let deallocate req =
       (match Request.prepare_policy req with
@@ -793,15 +793,15 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           Pgx_with_io.execute_unit db query
   end
 
-  let driver_info = Caqti_driver_info.of_dialect dialect
+  let driver_info = Caqti.Driver_info.of_dialect dialect
 
-  module type CONNECTION = Caqti_connection_sig.S
+  module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t
      and type ('a, 'err) stream := ('a, 'err) System.Stream.t
 
   let find_tls_provider ~config ?host () =
     let with_config (module Tls_provider : Net.TLS_PROVIDER) =
-      (match Caqti_connect_config.get Tls_provider.tls_config_key config with
+      (match Caqti.Connect.Config.get Tls_provider.tls_config_key config with
        | None -> None
        | Some config ->
           Some (Ssl_config {impl = (module Tls_provider); config; host}))
@@ -840,8 +840,8 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
     let*? () =
       let query = "SET TimeZone TO 'UTC'" in
       let reject msg =
-        let msg = Caqti_error.Msg msg in
-        let err = Caqti_error.response_rejected ~uri ~query msg in
+        let msg = Caqti.Error.Msg msg in
+        let err = Caqti.Error.response_rejected ~uri ~query msg in
         Error (`Post_connect err)
       in
       execute_post_connect query >|= function
@@ -858,9 +858,9 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
       let db_arg = db
       let select_type_oid = select_type_oid
       let dynamic_capacity =
-        Caqti_connect_config.(get dynamic_prepare_capacity) config
+        Caqti.Connect.Config.(get dynamic_prepare_capacity) config
       let annotate =
-        Caqti_connect_config.(get enable_query_annotations) config
+        Caqti.Connect.Config.(get enable_query_annotations) config
     end) in
     let module Connection = struct
       let driver_info = driver_info

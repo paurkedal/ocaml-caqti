@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,7 +24,7 @@
     active development including its API, and the Caqti interface to it may
     benefit from further revision before the first major Eio release lands. *)
 
-include Caqti_connect_sig.S
+include Caqti.Connect.S
   with type 'a fiber := 'a
    and type ('a, 'e) stream := ('a, 'e) Caqti_eio.Stream.t
    and type ('a, 'e) pool := ('a, 'e) Caqti_eio.Pool.t

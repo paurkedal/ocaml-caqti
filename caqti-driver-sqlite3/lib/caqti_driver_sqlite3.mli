@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@
     The following provides access to diagnostics collected from the Sqlite3
     connection. *)
 
-type Caqti_error.msg += Error_msg of {
+type Caqti.Error.msg += Error_msg of {
   errcode: Sqlite3.Rc.t;
     (** The OCaml encoding of the error code reported by [sqlite3_errcode]. *)
   extended_errcode: int option;
@@ -46,4 +46,4 @@ type Caqti_error.msg += Error_msg of {
 
 (** {1 Access to Raw Connection Handle} *)
 
-type Caqti_connection_sig.driver_connection += Driver_connection of Sqlite3.db
+type Caqti.Connection.driver_connection += Driver_connection of Sqlite3.db

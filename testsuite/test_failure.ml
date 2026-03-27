@@ -27,6 +27,10 @@ module Q = struct
      | _ -> Q.parse "SELECT sleep(2)"
 end
 
+let is_sqlite = function
+ | Caqti.Template.Dialect.Sqlite _ -> true
+ | _ -> false
+
 module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
   open Ground.Fiber.Infix
@@ -37,7 +41,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
         (fun () ->
           Db.call ~f:(fun _ -> fail' Not_found) Q.select_two () >>= function
            | Ok _ -> Alcotest.fail "Exception from call-back lost."
-           | Error err -> Alcotest.failf "%a" Caqti_error.pp err)
+           | Error err -> Alcotest.failf "%a" Caqti.Error.pp err)
         (function
          | Not_found -> Fiber.return ()
          | exn -> failwith ("unexpected exception: " ^ Printexc.to_string exn))
@@ -50,12 +54,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     test 15
 
   let test_statement_timeout (module Db : CONNECTION) =
-    if Caqti_driver_info.dialect_tag Db.driver_info = `Sqlite then
+    if is_sqlite Db.dialect then
       Fiber.return () (* Does not support statement timeout. *)
     else
     let check_timed_out = function
       | Error (`Request_failed _) -> ()
-      | Error err -> failwith ("unexpected error: " ^ Caqti_error.show err)
+      | Error err -> failwith ("unexpected error: " ^ Caqti.Error.show err)
       | Ok _ -> assert false
     in
     let test i =

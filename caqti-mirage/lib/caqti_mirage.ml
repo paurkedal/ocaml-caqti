@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -107,7 +107,7 @@ struct
             Lwt.return (Error (`Msg "No IP address assigned to host.")))
 
       let convert_io_exception = function
-       | Failure msg -> Some (Caqti_error.Msg msg) (* Channel.S.error *)
+       | Failure msg -> Some (Caqti.Error.Msg msg) (* Channel.S.error *)
        | _ -> None
 
       module Make_stream_ops (Channel : Mirage_channel.S) = struct
@@ -185,7 +185,7 @@ struct
         (match sockaddr with
          | `Unix _ ->
             Lwt.return_error
-              (Caqti_error.Msg "Unix sockets are not available under MirageOS.")
+              (Caqti.Error.Msg "Unix sockets are not available under MirageOS.")
          | `Tcp (ipaddr, port) ->
             TCP.create_connection (STACK.tcp stack) (ipaddr, port) >|=
             (function
@@ -198,7 +198,7 @@ struct
                 })
              | Error err ->
                 let msg = Format.asprintf "%a" TCP.pp_error err in
-                Error (Caqti_error.Msg msg)))
+                Error (Caqti.Error.Msg msg)))
 
       let tcp_flow_of_socket (Socket.V {tcp_flow; _}) = tcp_flow
 
@@ -225,7 +225,7 @@ struct
               })
            | Error err ->
               let msg = Format.asprintf "%a" TLS.pp_write_error err in
-              Error (Caqti_error.Msg msg))
+              Error (Caqti.Error.Msg msg))
       end
 
       let tls_providers_r : (module TLS_PROVIDER) list ref =

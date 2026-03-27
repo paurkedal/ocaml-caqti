@@ -15,8 +15,7 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Query = Caqti.Template.Query
-module Query_fmt = Caqti.Template.Query_fmt
+open Caqti.Template
 
 module A = struct
   include Alcotest.V1
@@ -72,18 +71,19 @@ let random_query_string () =
 
 let test_parse_special_cases () =
   let check_reject ~pos s =
-    (match Caqti_query.of_string s with
+    (match Query.parse_result s with
      | Ok _ ->
         A.failf "Invalid expression %S accepted by parser." s
-     | Error (`Invalid (pos', msg)) ->
+     | Error err ->
+        let pos' = Query.Parse_error.position err in
         if pos' <> pos then
           A.failf "Position %d should be %d for error %S while parsing %s"
-                  pos' pos msg s)
+                  pos' pos (Query.Parse_error.message err) s)
   in
   let check_normal' s =
-    (match Caqti_query.of_string_exn s with
+    (match Query.parse s with
      | q ->
-        A.(check string) "same" s (Caqti_query.show q)
+        A.(check string) "same" s (Query.show q)
      | exception Failure msg ->
         A.failf "Failed to parse %S: %s" s msg)
   in
@@ -93,7 +93,7 @@ let test_parse_special_cases () =
     check_normal' (s ^ " ")
   in
   let check_expect q s =
-    A.(check query "same" q (Caqti_query.of_string_exn s))
+    A.(check query "same" q (Query.parse s))
   in
   check_reject ~pos:0 {|$0|}; check_reject ~pos:1 {|x$01|};
   check_reject ~pos:1 {|?0|}; check_reject ~pos:2 {|x?1x|};
@@ -123,21 +123,27 @@ let test_parse_special_cases () =
 
 let test_parse_random_strings () =
   let check_normal_or_exn s =
-    (match Caqti_query.of_string s with
+    (match Query.parse_result s with
      | Ok q ->
-        A.(check approx_query_string) "same" s (Caqti_query.show q)
-     | Error (`Invalid (_, "Inconsistent parameter style.")) -> ()
-     | Error (`Invalid (ok_len, _)) ->
+        A.(check approx_query_string) "same" s (Query.show q)
+     | Error err
+        when Query.Parse_error.message err = "Inconsistent parameter style." ->
+        ()
+     | Error err ->
+        let ok_len = Query.Parse_error.position err in
         if ok_len > 0 && ok_len < String.length s then begin
           let s' = String.sub s 0 ok_len in
-          (match Caqti_query.of_string s' with
+          (match Query.parse_result s' with
            | Ok q ->
-              A.(check approx_query_string) "same" s' (Caqti_query.show q)
-           | Error (`Invalid (_, "Inconsistent parameter style.")) ->
+              A.(check approx_query_string) "same" s' (Query.show q)
+           | Error err
+              when Query.Parse_error.message err = "Inconsistent parameter style." ->
               () (* only checked after successful parse *)
-           | Error (`Invalid (pos, msg)) ->
+           | Error err ->
               A.failf "Supposed valid substring [0, %d) of %S fails at %d: %s"
-                ok_len s pos msg)
+                ok_len s
+                (Query.Parse_error.position err)
+                (Query.Parse_error.message err))
         end)
   in
   for _ = 1 to 50_000 do
@@ -164,9 +170,9 @@ let test_expand () =
   let q1 = Query.parse " $. $(.) $alt. $(alt.) $cat. $(cat) " in
   let q1' = Query.parse " default. default. other. other. $cat. $(cat) " in
   let q1'3 = Query.parse " dot dot $alt. $(alt.) dog mouse " in
-  A.(check query) "same" q1' (Caqti_query.expand env1 q1);
-  A.(check query) "same" q1' (Caqti_query.expand env2 q1);
-  A.(check query) "same" q1'3 (Caqti_query.expand env3 q1)
+  A.(check query) "same" q1' (Query.expand env1 q1);
+  A.(check query) "same" q1' (Query.expand env2 q1);
+  A.(check query) "same" q1'3 (Query.expand env3 q1)
 
 let test_qprintf () =
   let check_expect q1 q2 =

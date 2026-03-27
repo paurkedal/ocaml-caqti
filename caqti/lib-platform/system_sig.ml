@@ -1,4 +1,4 @@
-(* Copyright (C) 2022--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2022--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -102,7 +102,7 @@ module type CORE = sig
     val debug : ?src: Logs.src -> 'a log
   end
 
-  module Stream : Caqti_stream_sig.S with type 'a fiber := 'a Fiber.t
+  module Stream : Caqti.Stream.S with type 'a fiber := 'a Fiber.t
 
   module Sequencer : SEQUENCER with type 'a fiber := 'a Fiber.t
 
@@ -129,12 +129,12 @@ module type TLS_PROVIDER = sig
   type tls_flow
 
   type tls_config
-  val tls_config_key : tls_config option Caqti_connect_config.key
+  val tls_config_key : tls_config option Caqti.Connect.Config.key
 
   val start_tls :
     config: tls_config ->
     ?host: [`host] Domain_name.t ->
-    tcp_flow -> (tls_flow, Caqti_error.msg) result fiber
+    tcp_flow -> (tls_flow, Caqti.Error.msg) result fiber
 end
 
 module type NET = sig
@@ -166,7 +166,7 @@ module type NET = sig
       error return indicates that an appropriate DNS server could not be
       queried. *)
 
-  val convert_io_exception : exn -> Caqti_error.msg option
+  val convert_io_exception : exn -> Caqti.Error.msg option
   (** If the read and write operations in Socket raise exceptions other than
       {!End_of_file} and {!Failure}, this function is used to intercept them. *)
 
@@ -180,7 +180,7 @@ module type NET = sig
 
   val connect_tcp :
     sw: switch -> stdenv: stdenv -> Sockaddr.t ->
-    (Socket.t, Caqti_error.msg) result fiber
+    (Socket.t, Caqti.Error.msg) result fiber
 
   val tcp_flow_of_socket : Socket.t -> tcp_flow option
   val socket_of_tls_flow : sw: switch -> tls_flow -> Socket.t
@@ -192,7 +192,7 @@ module type NET = sig
 
   val register_tls_provider : (module TLS_PROVIDER) -> unit
 
-  val tls_providers : Caqti_connect_config.t -> (module TLS_PROVIDER) list
+  val tls_providers : Caqti.Connect.Config.t -> (module TLS_PROVIDER) list
 
 end
 

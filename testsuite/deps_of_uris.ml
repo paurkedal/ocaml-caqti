@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ let main common_args profile tls_library =
   let is_release = profile = "release" in
   let tls_deps =
     let tls_configured =
-      Caqti_connect_config.mem_name "tls" common_args.connect_config
+      Caqti.Connect.Config.mem_name "tls" common_args.connect_config
     in
     (match tls_configured, tls_library with
      | false, _ | _, None -> []

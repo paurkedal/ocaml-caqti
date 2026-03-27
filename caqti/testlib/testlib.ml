@@ -35,7 +35,7 @@ let load_uris uris_file =
 
 type common_args = {
   uris: Uri.t list;
-  connect_config: Caqti_connect_config.t;
+  connect_config: Caqti.Connect.Config.t;
 }
 
 let other_common_args : (common_args -> common_args) Cmdliner.Term.t list ref =
@@ -120,13 +120,13 @@ let common_args () =
        | [] -> load_uris uris_file
        | uris -> List.map Uri.of_string uris)
     in
-    let connect_config = Caqti_connect_config.default
+    let connect_config = Caqti.Connect.Config.default
       |> Option.fold ~none:Fun.id
-          ~some:Caqti_connect_config.(set tweaks_version) tweaks_version
+          ~some:Caqti.Connect.Config.(set tweaks_version) tweaks_version
       |> Option.fold ~none:Fun.id
-          ~some:Caqti_connect_config.(set dynamic_prepare_capacity)
+          ~some:Caqti.Connect.Config.(set dynamic_prepare_capacity)
           dynamic_prepare_capacity
-      |> Caqti_connect_config.(set enable_query_annotations)
+      |> Caqti.Connect.Config.(set enable_query_annotations)
           enable_query_annotations
     in
     {uris; connect_config}

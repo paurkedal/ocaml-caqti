@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert deprecated "This module is subsumed by Caqti.Template.Dialect."]
+
 (** Information about a database, its driver, and its query language.
 
     This module provides descriptions supplied by the driver to aid the
@@ -50,7 +52,7 @@ val create :
   can_pool: bool ->
   can_concur: bool ->
   can_transact: bool ->
-  dummy_dialect: Caqti.Template.Dialect.t ->
+  dummy_dialect: Template.Dialect.t ->
   unit -> t
 (** The function used by drivers to construct a description of themselves.  For
     an explanation of the parameters, see the corresponding projections. *)
@@ -88,5 +90,5 @@ val can_transact : t -> bool
 
 (**/**)
 (* Needed to support the old interface. *)
-val dummy_dialect : t -> Caqti.Template.Dialect.t
-val of_dialect : Caqti.Template.Dialect.t -> t
+val dummy_dialect : t -> Template.Dialect.t
+val of_dialect : Template.Dialect.t -> t

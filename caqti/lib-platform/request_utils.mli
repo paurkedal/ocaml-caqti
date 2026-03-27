@@ -53,23 +53,23 @@ val linear_query_string :
 val raise_encode_missing :
   uri: Uri.t -> field_type: 'a Field_type.t -> unit -> 'counit
 val raise_encode_rejected :
-  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti.Error.msg -> 'counit
 val raise_encode_failed :
-  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti.Error.msg -> 'counit
 val raise_decode_missing :
   uri: Uri.t -> field_type: 'a Field_type.t -> unit -> 'counit
 val raise_decode_rejected :
-  uri: Uri.t -> typ: 'a Row_type.t -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> typ: 'a Row_type.t -> Caqti.Error.msg -> 'counit
 val raise_response_failed :
-  uri: Uri.t -> query: string -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> query: string -> Caqti.Error.msg -> 'counit
 val raise_response_rejected :
-  uri: Uri.t -> query: string -> Caqti_error.msg -> 'counit
+  uri: Uri.t -> query: string -> Caqti.Error.msg -> 'counit
 
 type 'a field_encoder = {
   write_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'b -> 'a -> 'a;
   write_null: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'a;
 }
-constraint 'e = [> `Encode_rejected of Caqti_error.coding_error]
+constraint 'e = [> `Encode_rejected of Caqti.Error.coding_error]
 
 val encode_param :
   uri: Uri.t -> 'a field_encoder -> 'b Row_type.t -> 'b -> 'a -> 'a
@@ -78,7 +78,7 @@ type 'a field_decoder = {
   read_value: 'b. uri: Uri.t -> 'b Field_type.t -> 'a -> 'b * 'a;
   skip_null: int -> 'a -> 'a option;
 }
-constraint 'e = [> `Decode_rejected of Caqti_error.coding_error]
+constraint 'e = [> `Decode_rejected of Caqti.Error.coding_error]
 
 val decode_row :
   uri: Uri.t -> 'a field_decoder -> 'b Row_type.t -> 'a -> 'b * 'a

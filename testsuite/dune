@@ -162,6 +162,7 @@
 (rule
   (alias runtest)
   (package caqti-async)
+  (enabled_if (>= %{ocaml_version} "5.1")) ; async >= v0.17.0
   (deps
     (:test main_async.exe)
     (:U %{env:CAQTI_TEST_URIS_FILE=uris.conf})

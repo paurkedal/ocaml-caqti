@@ -1,4 +1,4 @@
-(* Copyright (C) 2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,6 +35,13 @@ module type S = sig
   val dynamic_weight : t -> int
 end
 
+(* OCaml 4.12 *)
+let rec equal_list eq xs ys =
+  (match xs, ys with
+   | [], [] -> true
+   | x :: xs, y :: ys -> eq x y && equal_list eq xs ys
+   | [], _ :: _ | _ :: _, [] -> false)
+
 module Key = struct
 
   type t =
@@ -54,7 +61,7 @@ module Key = struct
     }
 
   let equal (T k1) (T k2) =
-    List.equal Query.equal k1.queries k2.queries
+    equal_list Query.equal k1.queries k2.queries
       && Row_type.unify k1.param_type k2.param_type <> None
       && Row_type.unify k1.row_type k2.row_type <> None
 

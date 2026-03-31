@@ -6,3 +6,9 @@
   (progn
    (run mkdir -p _doc/_html/.circleci)
    (run cp -f ../../.circleci/config.yml "_doc/_html/.circleci/config.yml"))))
+
+(library
+ (name caqti_classic)
+ (wrapped false)
+ (public_name caqti.classic)
+ (libraries (re_export caqti)))

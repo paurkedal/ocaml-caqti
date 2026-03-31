@@ -1,15 +1,26 @@
 ## v2.3.0 - unreleased
 
-The new features of this release are mostly relevant for the still unstable
-`caqti.template` library.
+Note that some of the new features of this release are only accessible
+through the still unstable `caqti.template` library, which will soon be
+stabilized as part of an upcoming Caqti 3 API.  Due to adjustments to module
+names, switching to `caqti.template` will not ensure future compatibility.
+Instead, users are encouraged to add the new `caqti.classic` to their
+dependencies to ease migration to Caqti 3.
 
-  - Provide server version for MariaDB in `caqti.template`.
+  - Added an alias `caqti.classic` for the `caqti` library.  This will be
+    turned into a library providing compatibility with the current Caqti 2
+    API when Caqti 3 is released.  The two APIs can be used side-by-side to
+    allow incremental migration.
 
-  - Added `Query.parens`, `Query.litf`, `Query.vars`, `Row_type.fields`.
+  - The dialect descriptor for MariaDB in `caqti.template` now provides the
+    server version.
 
-  - Revise the interface for creating row types to allow instantiating
+  - Added `Query.parens`, `Query.litf`, `Query.vars`, `Row_type.fields` to
+    the `caqti.template` library.
+
+  - Revised the interface for creating row types to allow instantiating
     parametric types applicatively.  Before this change, each application of
-    the function representing a parametric type would generate a new type ID
+    a function representing a parametric type would generate a new type ID
     even when applied to the same type parameter argument.  The key part of
     this interface is the `Caqti_template.Constructor_type` module.
 
@@ -22,6 +33,12 @@ The new features of this release are mostly relevant for the still unstable
     comments in the query string if the `enable_query_annotations` is set.
     This should simplify debugging when the query is assembled from
     different parts of the application code.
+
+  - The still unstable `caqti.template` library now supports multiple
+    statements in a single request template, sent opportunistically as a
+    single query where allowed.  This is still experimental.
+
+  - Fixed package scoping of shim rules for sqlite3 (#133 by mefyl).
 
   - Fixed the error classification for the SQLite3 driver (#132).
 

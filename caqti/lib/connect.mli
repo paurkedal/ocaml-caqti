@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Signatures providing functions for establishing database connections. *)
+(** Configuration and signature for establishing database connections.
+    The signature is implemented by system-dependent libraries. *)
 
 module Config : sig
   type _ key
@@ -58,7 +59,7 @@ end
 module type S = sig
 
   type +'a fiber
-  (** The type of a deferred value of type ['a]. *)
+  (** The type of an effectful computation of a value of type ['a]. *)
 
   type +'a with_switch
   (** Adds a switch argument to the type if relevant for the platform. *)
@@ -84,10 +85,10 @@ module type S = sig
     with_stdenv with_switch
   (** [connect uri] locates and loads a driver which can handle [uri], passes
       [uri] to the driver, which establish a connection and returns a
-      first-class module implementing {!Caqti_connection_sig.S}.
+      first-class module implementing {!Caqti.Connection.S}.
 
       [connect uri] connects to the database at [uri] and returns a first class
-      module implementing {!Caqti_connection_sig.S} for the given database
+      module implementing {!Caqti.Connection.S} for the given database
       system.  In case of preemptive threading, the connection must only be used
       from the thread where it was created.
 
@@ -109,7 +110,7 @@ module type S = sig
 
       @param tweaks_version
         @deprecated This should now be passed via the [config] parameter using
-        the {!Config.tweaks_version} key. *)
+        the {!Caqti.Connect.Config.tweaks_version} key. *)
 
   val with_connection :
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
@@ -131,7 +132,7 @@ module type S = sig
       @param config Passed to {!connect}.
       @param tweaks_version
         @deprecated This should now be passed via the [config] parameter using
-        the {!Config.tweaks_version} key. *)
+        the {!Caqti.Connect.Config.tweaks_version} key. *)
 
   val connect_pool :
     ?pool_config: Pool.Config.t ->
@@ -157,7 +158,7 @@ module type S = sig
 
       @param pool_config
         Provides tuning parameters for the pool.  The default is the result of a
-        fresh call of {!Caqti_pool_config.default_from_env}.
+        fresh call of {!Caqti.Pool.Config.default_from_env}.
 
       @param post_connect
         A task to run after establishing a new connection and before the
@@ -175,5 +176,5 @@ module type S = sig
 
       @param tweaks_version
         @deprecated This should now be passed via the [config] parameter using
-        the {!Config.tweaks_version} key. *)
+        the {!Caqti.Connect.Config.tweaks_version} key. *)
 end

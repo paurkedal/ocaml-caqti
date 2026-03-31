@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Type descriptors for requests. *)
+(** Type descriptors for request templates describing parameter encoders, row
+    decoders, and row multiplicity. *)
 
 type ('a, 'b, +'m) t = 'a Row_type.t * 'b Row_type.t * 'm Row_mult.t
 

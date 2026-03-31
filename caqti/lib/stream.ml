@@ -22,7 +22,7 @@ module type S = sig
 
   type ('a, 'err) t = unit -> ('a, 'err) node fiber
   (** A stream, represented as a lazy chain of {!Cons}-nodes terminating in a
-      {!Nil} or an {!Error}. *)
+      {!Nil} or an {!constructor-Error}. *)
 
   and ('a, 'err) node =
     | Nil                       (** The node of an empty stream *)

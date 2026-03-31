@@ -171,7 +171,7 @@ struct
     let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     let check_arg cond =
-      if not cond then invalid_arg "Caqti_connect.Make.connect_pool"
+      if not cond then invalid_arg "Caqti_platform.Connector.Make.connect_pool"
     in
     (match Caqti.Pool.Config.(get max_size) pool_config,
            Caqti.Pool.Config.(get max_idle_size) pool_config with

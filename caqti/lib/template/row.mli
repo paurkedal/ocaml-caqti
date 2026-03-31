@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+(** Generic functions based on {{!Row_type} row type descriptors}. *)
+
 val equal : 'a Row_type.t -> 'a -> 'a -> bool
 (** [equal_value t] is the equality predicate for values of row type [t]. *)
 

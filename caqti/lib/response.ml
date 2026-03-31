@@ -15,7 +15,9 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Signature of a response from a database. *)
+(** Signature of database responses with access to query results.
+    This signature is implemented by database- and system-dependent
+    libraries. *)
 
 module type S = sig
   type +'b fiber

@@ -70,12 +70,13 @@ module Infix : sig
 end
 (** Asymmetric infix oparator for testing version ranges.  The first argument is
     a version number, typically obtained from the [server_version] fields of
-    {!Dialect.t}, and the second argument is a string representation of the
-    version to compare against.
+    {!Template.Dialect.t}, and the second argument is a string representation of
+    the version to compare against.
 
-    An unknown version compares before other versions.  Use {!Version.is_known}
-    to implement a different logic.  See {!Version.compare} for details about
-    the comparison algorithm. *)
+    An unknown version compares before other versions.
+    Use {!Template.Version.is_known} to implement a different logic.
+    See {!Template.Version.compare} for details about the comparison algorithm.
+    *)
 
 val pp : Format.formatter -> t -> unit
 

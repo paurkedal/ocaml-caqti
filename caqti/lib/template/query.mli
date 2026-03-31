@@ -20,15 +20,14 @@
     functionality such as variable substitution and safe embedding of values.
     The representation is also suited for dynamic construction.
 
-    There are three ways to construct a template:
+    There are three ways to construct a query template:
 
-      - Using the parser ({!parse}, {!parse_result}, etc.) if the query template
-        is known at compile time.
-
-      - Using the {{!query_construction} constructors} of the current module.
-
-      - Using the {!Query_fmt} module, which provides an alternative to the
-        previous option. *)
+      - Using the {{!query_parsing} parser functions} below (esp. {!parse} or
+        {!parse_result}) is a convenient option if the query template is known
+        at compile time or if it is loaded from a file.
+      - Using the {{!query_construction} constructor functions} below is
+        recommended for dynamically constructed queries.
+      - Using the {!Query_fmt} module. *)
 
 (**/**)
 module Private : sig
@@ -135,7 +134,7 @@ module Infix : sig
 *)
 
   val (@++) : t -> t -> t [@@alert caqti_unstable]
-  (** An alias for {!Query.cat}. *)
+  (** An alias for {!Template.Query.cat}. *)
 
   val (^++) : string -> t -> t [@@alert caqti_unstable]
   (** [pfx ^++ q] is [q] prefixed with the literal fragment [pfx], i.e.
@@ -219,7 +218,7 @@ val vars : t -> string list
 (** [vars e] are the names of variables which occur in [e]. *)
 
 
-(** {2 Parsing, Expansion, and Printing} *)
+(** {2 Expansion and Printing} *)
 
 val make_pp : annotate: bool -> unit -> Format.formatter -> t -> unit
 
@@ -268,6 +267,8 @@ val expand : ?final: bool -> subst -> t -> t
     @raise exception-Expand_error
       if the substitution function is invalid or if it is incomplete for a final
       expansion. *)
+
+(** {2:query_parsing Parsing} *)
 
 val angstrom_parser : t Angstrom.t
 (** Matches a single expression terminated by the end of input or a semicolon

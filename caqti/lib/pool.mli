@@ -15,7 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Configuration and signature for resource pools. *)
+(** Configuration and signature for resource pools.
+    The signature is implemented by system-dependent libraries. *)
 
 module Config : sig
 

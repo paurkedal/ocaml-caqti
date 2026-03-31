@@ -241,7 +241,7 @@ module type STD = sig
 
       As a common case of composite types, constructors for tuples up to 12
       components are predefined here.  Higher tuples can be created with
-      {!Row_type.val-product}. *)
+      {!Template.Row_type.val-product}. *)
 
   val unit : unit t
   (** A type holding no fields. This is used to pass no parameters and as the

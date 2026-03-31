@@ -17,8 +17,9 @@
 
 (** This is a convenience API which collects everything needed to create
     {{!Template.Request} request templates}.
-    A request template describes a database query and how to encode parameters
-    and decode the result.
+    A request template describes an SQL query, how to encode parameters, and how
+    to decode result rows.
+    This is the recommended entry point for typical usage.
 
     {1 Basic Usage}
 
@@ -57,10 +58,12 @@
           Q.parse
             "SELECT min(y), max(y) FROM samples WHERE series_id = ? AND x < ?"
     ]}
-    The callback receives a {!Template.Dialect.t} and returns a {!Template.Query.t}.
+    The callback receives a {!Template.Dialect.t} and returns a
+    {!Template.Query.t}.
     We can now see that the still same query string is explicitly parsed.
-    {!Template.Query} and {!Query_fmt} provides alternative ways of constructing query
-    template which is more suitable for dynamically generated queries.
+    {!Template.Query} and {!Template.Query_fmt} provides alternative ways of
+    constructing query template which is more suitable for dynamically generated
+    queries.
 
     The following example makes use of the dialect argument to handle
     dialectical differences regarding string concatenation:

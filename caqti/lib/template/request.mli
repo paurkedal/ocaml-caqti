@@ -15,18 +15,19 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Request template.
+(** Request templates.
+    A request template combines a {{!Template.Query} query template} from which
+    SQL code is generated, with a {{!Template.Request_type} request type}
+    describing how to encode parameters and decode result rows.
 
-    A request template combines a function to generate an SQL query template
-    with type descriptors use to encode parameters and decode result rows.
-    The function will receive information about the SQL dialect when called by
-    the chosen database driver library.
+    The query template is parametrized over a {!Template.Dialect.t} provided by
+    the database driver, esp. to identify the SQL dialect and other relevant
+    information about the RDMBS.
 
-    Requests are passed to {!Caqti_connection_sig.S.call} or one of its shortcut
-    methods provided by a database connection handle, and will be turned into a
-    prepared query, cached by the connection handle, if prepared queries are
-    supported by the driver and unless explicitly disabled, see {!create} for
-    details on the latter. *)
+    To execute a query, a request template is passed to {!Connection.S.call} or
+    one of its shortcut methods provided by a database connection handle, and
+    may be turned into a prepared query and cached on the database handle,
+    depending on the {!type-prepare_policy} and driver support. *)
 
 (** {2 Primitive Constructor and Accessors} *)
 

@@ -18,7 +18,7 @@
 (** Signature of connection handles.
 
     The main signature {!S} of this module represents a database connection
-    handle.  This is obtained by {{!Caqti_connect_sig} connection functions}
+    handle.  This is obtained by {{!Caqti.Connect.S} connection functions}
     implemented in the subpackages [caqti-async], [caqti-eio], [caqti-lwt], and
     [caqti-mirage].
 
@@ -36,9 +36,10 @@
 
     The result type of {!Template.Request.t} only describes how to decode {e
     individual rows}, leaving the decision of how to process multiple rows to
-    the execution interface.  Therefore, for each request constructor from
-    {!Template.Request.Infix}, there are one or more matching retrieval functions
-    in the present signature. *)
+    the execution interface.
+    Therefore, for each request constructor from
+    {!Template.Request_type.Infix}, there are one or more matching retrieval
+    functions in the present signature. *)
 
 type driver_connection = ..
 (** This type is only to be extended by drivers. *)
@@ -62,10 +63,10 @@ module type Base = sig
       invoking [f] to process the result; except the driver may postpone the
       request until [f] attempts to retrieve the result.
 
-      One of the {{!Response.result_retrieval} result retrieval}
-      functions must be called exactly once before [f] returns a non-error
-      result.  If a result retrieval function is not called, it is unspecified
-      whether the database query has been issued.
+      One of the {{!Response.result_retrieval} result retrieval} functions must
+      be called exactly once before [f] returns a non-error result.
+      If a result retrieval function is not called, it is unspecified whether
+      the database query has been issued.
 
       The argument of [f] is only valid during the call to [f], and must not be
       returned or operated on by other threads. *)
@@ -121,14 +122,14 @@ module type Convenience = sig
   (** {2 Retrieval Convenience}
 
       Each of these shortcuts combine [call] with the correspondingly named
-      retrieval function from {!Response.S}. *)
+      retrieval function from {!Caqti.Response.S}. *)
 
   val exec :
     ('a, unit, [< `Zero]) Template.Request.t -> 'a ->
     (unit, [> Error.call_or_retrieve]) result fiber
   (** [exec req x] performs [req] with parameters [x] and checks that no rows
       are returned.
-      See also {!Response.S.exec}. *)
+      See also {!Caqti.Response.S.exec}. *)
 
   val exec_with_affected_count :
     ('a, unit, [< `Zero]) Template.Request.t -> 'a ->
@@ -136,7 +137,8 @@ module type Convenience = sig
   (** [exec_with_affected_count req x] performs [req] with parameters [x],
       checks that no rows are returned, and returns the number of affected rows.
 
-      See also {!Response.S.exec} and {!Response.S.affected_count}. *)
+      See also {!Caqti.Response.S.exec} and
+      {!Caqti.Response.S.affected_count}. *)
 
   val find :
     ('a, 'b, [< `One]) Template.Request.t -> 'a ->
@@ -144,7 +146,7 @@ module type Convenience = sig
   (** [find req x] performs [req] with parameters [x], checks that a single row
       is retured, and returns it.
 
-      See also {!Response.S.find}. *)
+      See also {!Caqti.Response.S.find}. *)
 
   val find_opt :
     ('a, 'b, [< `Zero | `One]) Template.Request.t -> 'a ->
@@ -153,7 +155,7 @@ module type Convenience = sig
       [None] if no rows are returned or [Some y] if a single now [y] is returned
       and fails otherwise.
 
-      See also {!Response.S.find_opt}. *)
+      See also {!Caqti.Response.S.find_opt}. *)
 
   val fold :
     ('a, 'b, [< `Zero | `One | `Many]) Template.Request.t ->
@@ -163,7 +165,7 @@ module type Convenience = sig
       through the composition of [f y] across the result rows [y] in the order
       of retrieval.
 
-      See also {!Response.S.fold}. *)
+      See also {!Caqti.Response.S.fold}. *)
 
   val fold_s :
     ('a, 'b, [< `Zero | `One | `Many]) Template.Request.t ->
@@ -179,7 +181,7 @@ module type Convenience = sig
       has just run out of connections.  An alternative is to collect the rows
       first e.g. with {!fold} and do the nested queries after exiting.
 
-      See also {!Response.S.fold_s}. *)
+      See also {!Caqti.Response.S.fold_s}. *)
 
   val iter_s :
     ('a, 'b, [< `Zero | `One | `Many]) Template.Request.t ->
@@ -190,7 +192,7 @@ module type Convenience = sig
 
       Please see the warning in {!fold_s} about resource usage in the callback.
 
-      See also {!Response.S.iter_s}. *)
+      See also {!Caqti.Response.S.iter_s}. *)
 
   val collect_list :
     ('a, 'b, [< `Zero | `One | `Many]) Template.Request.t -> 'a ->

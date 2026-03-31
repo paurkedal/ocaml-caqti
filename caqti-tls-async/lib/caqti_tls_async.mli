@@ -1,4 +1,4 @@
-(* Copyright (C) 2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,4 +19,4 @@
 
     This library has no public entry points, but registers TLS support for
     [caqti-async], which can be enabled by setting {!Caqti_tls.Config.client} in
-    the {{!Caqti_connect_config} configuration}. *)
+    the {{!Caqti.Connect.Config} configuration}. *)

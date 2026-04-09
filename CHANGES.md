@@ -1,4 +1,4 @@
-## v2.3.0 - unreleased
+## v2.3.0 - 2026-04-09
 
 Note that some of the new features of this release are only accessible
 through the still unstable `caqti.template` library, which will soon be

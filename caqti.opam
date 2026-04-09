@@ -29,7 +29,6 @@ depends: [
   "odoc" {with-doc}
   "ptime"
   "re" {with-test}
-  "tls"
   "uri" {>= "2.2.0"}
   "x509"
 ]

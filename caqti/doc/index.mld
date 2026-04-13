@@ -11,27 +11,9 @@ The entry point of this library is the module:
 
 {1 Library caqti.classic}
 
-This library provides the classic API for backwards compatibility.
+This library provides the Caqti 2 API for backwards compatibility.
 You are encouraged to use the new API for new programs.
-
-This library exposes the following toplevel modules:
-{!modules:
-    Caqti_connect_sig
-    Caqti_connection_sig
-    Caqti_driver_info
-    Caqti_error
-    Caqti_mult
-    Caqti_pool_config
-    Caqti_pool_sig
-    Caqti_query
-    Caqti_query_fmt
-    Caqti_request
-    Caqti_response_sig
-    Caqti_stream_sig
-    Caqti_switch_sig
-    Caqti_type
-    Caqti_type_sig
-}
+See {{!page-classic} separate page with list of modules}.
 
 {1 Library caqti.blocking}
 

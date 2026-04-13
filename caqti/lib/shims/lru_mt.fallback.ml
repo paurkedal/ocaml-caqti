@@ -15,30 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Compatibility shims.
-
-    This is the fallback implementation providing replacements for recent
-    additions to the standard library. *)
-
-module Type : sig
-  type (_, _) eq = Equal : ('a, 'a) eq
-  (** Type equality witness.  This will eventually be replaced by the equavalent
-      definition available in [Stdlib.Type] since OCaml 5.1, but for now, we
-      must keep backwards compatibility with older compilers. *)
-end
-
-(**/**)
-
-(* This is a non-atomic fallback. *)
-module Atomic : sig
-  type 'a t
-  val make : 'a -> 'a t
-  val fetch_and_add : int t -> int -> int
-end
-
-(* This is a non-memoizing fallback. *)
-val memo_if_safe :
-  ?hashed: (('a -> int) * ('a -> 'a -> bool)) ->
-  ?weight: ('b -> int) ->
-  cap: int ->
-  (('a -> 'b) -> 'a -> 'b) -> 'a -> 'b
+(* To avoid linking in the pre-multicore threads library. *)
+let memo_if_safe ?hashed:_ ?weight:_ ~cap:_ f =
+  let rec f' x = f f' x in f'

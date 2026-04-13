@@ -1,4 +1,4 @@
-(* Copyright (C) 2025--2026  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,17 +15,4 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Type = struct
-  type ('a, 'b) eq = ('a, 'b) Stdlib.Type.eq = Equal : ('a, 'a) eq
-end
-
-module Atomic = struct
-  type 'a t = 'a Stdlib.Atomic.t
-  let make = Stdlib.Atomic.make
-  let fetch_and_add = Stdlib.Atomic.fetch_and_add
-end
-
-let memo_if_safe ?hashed ?weight ~cap f =
-  let mutex = Stdlib.Mutex.create () in
-  let f' = Lru.memo ?hashed ?weight ~cap f in
-  fun x -> Stdlib.Mutex.protect mutex (fun () -> f' x)
+type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)

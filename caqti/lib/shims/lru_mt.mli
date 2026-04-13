@@ -15,16 +15,12 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-module Type = struct
-  type (_, _) eq = Equal : ('a, 'a) eq (* OCaml 5.1 *)
-end
+(** Thread-safe extension to [Lru]. *)
 
-module Atomic = struct
-  type 'a t = 'a ref
-  let make x = ref x
-  let fetch_and_add a x = let x' = !a in a := !a + x; x'
-end
-
-(* To avoid linking in the pre-multicore threads library. *)
-let memo_if_safe ?hashed:_ ?weight:_ ~cap:_ f =
-  let rec f' x = f f' x in f'
+val memo_if_safe :
+  ?hashed: (('a -> int) * ('a -> 'a -> bool)) ->
+  ?weight: ('b -> int) ->
+  cap: int ->
+  (('a -> 'b) -> 'a -> 'b) -> 'a -> 'b
+(** This is either a thread-safe version of {!Lru.memo} or, if thread-primitives
+    are missing, a non-memoizing fallback. *)

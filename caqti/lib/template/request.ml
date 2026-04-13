@@ -38,7 +38,7 @@ let last_id = Shims.Atomic.make (-1)
 let unit_to_unit_type = Request_type.Infix.(-->.) Row_type.unit Row_type.unit
 
 let create_prim prepare_policy (param_type, row_type, row_mult) queries =
-  let queries = Shims.memo_if_safe ~cap:8 (fun _ -> queries) in
+  let queries = Shims.Lru_mt.memo_if_safe ~cap:8 (fun _ -> queries) in
   let id =
     (match prepare_policy with
      | Direct -> None

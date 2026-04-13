@@ -1,47 +1,64 @@
-; [5.1, ..)
+; type.mli
 (rule
- (target shims.mli)
- (deps shims.5.1.mli)
+ (target type.mli)
+ (deps type.fallback.mli)
+ (enabled_if (< %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target type.mli)
+ (deps type.5.1.mli)
  (enabled_if (>= %{ocaml_version} 5.1))
  (action (copy# %{deps} %{target})))
+
+; type.ml
 (rule
- (target shims.ml)
- (deps shims.5.1.ml)
+ (target type.ml)
+ (deps type.fallback.ml)
+ (enabled_if (< %{ocaml_version} 5.1))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target type.ml)
+ (deps type.5.1.ml)
  (enabled_if (>= %{ocaml_version} 5.1))
  (action (copy# %{deps} %{target})))
 
-; [5.0, 5.1)
+; atomic.mli
 (rule
- (target shims.mli)
- (deps shims.5.0.mli)
- (enabled_if (and (>= %{ocaml_version} 5.0) (< %{ocaml_version} 5.1)))
- (action (copy# %{deps} %{target})))
-(rule
- (target shims.ml)
- (deps shims.5.0.ml)
- (enabled_if (and (>= %{ocaml_version} 5.0) (< %{ocaml_version} 5.1)))
- (action (copy# %{deps} %{target})))
-
-; [4.14, 5.0)
-(rule
- (target shims.mli)
- (deps shims.4.12.mli)
- (enabled_if (and (>= %{ocaml_version} 4.12) (< %{ocaml_version} 5.0)))
- (action (copy# %{deps} %{target})))
-(rule
- (target shims.ml)
- (deps shims.4.12.ml)
- (enabled_if (and (>= %{ocaml_version} 4.12) (< %{ocaml_version} 5.0)))
- (action (copy# %{deps} %{target})))
-
-; [.., 4.12)
-(rule
- (target shims.mli)
- (deps shims.fallback.mli)
+ (target atomic.mli)
+ (deps atomic.fallback.mli)
  (enabled_if (< %{ocaml_version} 4.12))
  (action (copy# %{deps} %{target})))
 (rule
- (target shims.ml)
- (deps shims.fallback.ml)
+ (target atomic.mli)
+ (deps atomic.4.12.mli)
+ (enabled_if (>= %{ocaml_version} 4.12))
+ (action (copy# %{deps} %{target})))
+
+; atomic.ml
+(rule
+ (target atomic.ml)
+ (deps atomic.fallback.ml)
  (enabled_if (< %{ocaml_version} 4.12))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target atomic.ml)
+ (deps atomic.4.12.ml)
+ (enabled_if (>= %{ocaml_version} 4.12))
+ (action (copy# %{deps} %{target})))
+
+; lru_mt.ml
+(rule
+ (target lru_mt.ml)
+ (deps lru_mt.fallback.ml)
+ (enabled_if (< %{ocaml_version} 4.12))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target lru_mt.ml)
+ (deps lru_mt.4.12.ml)
+ (enabled_if (and (>= %{ocaml_version} 4.12) (< %{ocaml_version} 5.0)))
+ (action (copy# %{deps} %{target})))
+(rule
+ (target lru_mt.ml)
+ (deps lru_mt.5.0.ml)
+ (enabled_if (>= %{ocaml_version} 5.0))
  (action (copy# %{deps} %{target})))

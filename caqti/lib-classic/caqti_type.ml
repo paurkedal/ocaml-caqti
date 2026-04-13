@@ -18,7 +18,7 @@
 [@@@alert "-caqti_private"]
 
 open Caqti.Template
-type ('a, 'b) eq = ('a, 'b) Caqti.Template.Shims.Type.eq = Equal : ('a, 'a) eq
+type ('a, 'b) eq = ('a, 'b) Caqti.Shims.Type.eq = Equal : ('a, 'a) eq
 module Field = Caqti.Template.Field_type
 include Caqti.Template.Row_type
 let equal_value = Caqti.Template.Row.equal

@@ -22,7 +22,7 @@ open Caqti.Template
 
 exception Reject of string
 
-type ('a, 'b) eq = ('a, 'b) Caqti.Template.Shims.Type.eq = Equal : ('a, 'a) eq
+type ('a, 'b) eq = ('a, 'b) Caqti.Shims.Type.eq = Equal : ('a, 'a) eq
 
 (** {2 Primitive Field Types}
 

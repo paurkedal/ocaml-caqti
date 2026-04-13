@@ -40,7 +40,6 @@
     each parametric instance of this type constructor would be:
     {[
       open Caqti.Template
-      open Caqti.Template.Shims
 
       let acquired_value_rowtype value_rowtype =
         let open Row_type in

@@ -1,4 +1,4 @@
-(* Copyright (C) 2023--2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2023--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,8 @@ let error_msgf fmt = Format.kasprintf (fun msg -> Error (`Msg msg)) fmt
 
 module type FLOW = Caqti_platform.System_sig.SOCKET_OPS with type 'a fiber = 'a
 
-type ocaml = | and system = |
+type ocaml = private [`Ocaml]
+type system = private [`System]
 
 type 'a impl =
   | OCaml : (module FLOW with type t = 'a) * 'a -> ocaml impl

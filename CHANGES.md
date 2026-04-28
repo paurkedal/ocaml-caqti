@@ -1,3 +1,11 @@
+## v2.3.1 - 2026-04-28
+
+  - Fixed phantom type definitions which could not be guaranteed to be
+    distinct, as discovered by the OCaml 5.5 beta compiler (#136 reported by
+    kit-ty-kate).
+
+Only the `caqti-miou` package is affected.
+
 ## v2.3.0 - 2026-04-09
 
 Note that some of the new features of this release are only accessible

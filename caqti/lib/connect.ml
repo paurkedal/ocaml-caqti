@@ -61,7 +61,7 @@ module Config = struct
 
   (* Configuration Keys *)
 
-  let tweaks_version : (int * int) key = create_key "tweaks_version" (1, 7)
+  let tweaks_version : (int * int) key = create_key "tweaks_version" (3, 0)
 
   let dynamic_prepare_capacity = create_key "dynamic_prepare_capacity" 32
 

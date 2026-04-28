@@ -32,10 +32,6 @@ let library_name_of_scheme = function
  | "postgres" | "postgresql" -> "caqti-driver-postgresql"
  | s -> "caqti-driver-" ^ s
 
-let set_tweaks_version = function
- | None -> Fun.id
- | Some x -> Caqti.Connect.Config.(set tweaks_version) x
-
 let compose_subst_with_env subst env dialect =
   let compose_subst subst1 subst2 var =
     (try subst1 var with Not_found -> subst2 var)
@@ -132,10 +128,9 @@ struct
 
   let connect
         ?subst ?env ?(config = Caqti.Connect.Config.default)
-        ?tweaks_version ~sw ~stdenv uri
+        ~sw ~stdenv uri
       : ((module CONNECTION), _) result Fiber.t =
     let subst = compose_subst_with_env subst env in
-    let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     (match load_driver uri with
      | Ok driver ->
@@ -153,22 +148,21 @@ struct
         Fiber.return (Error err))
 
   let with_connection
-        ?subst ?env ?config ?tweaks_version ~stdenv uri f =
+        ?subst ?env ?config ~stdenv uri f =
     Switch.run begin fun sw ->
-      connect ~sw ~stdenv ?subst ?env ?config ?tweaks_version uri >>=? f
+      connect ~sw ~stdenv ?subst ?env ?config uri >>=? f
     end
 
   let connect_pool
         ?pool_config ?post_connect ?subst ?env
         ?(config = Caqti.Connect.Config.default)
-        ?tweaks_version ~sw ~stdenv uri =
+        ~sw ~stdenv uri =
     let subst = compose_subst_with_env subst env in
     let pool_config =
       (match pool_config with
        | None -> Caqti.Pool.Config.default_from_env ()
        | Some pool_config -> pool_config)
     in
-    let config = set_tweaks_version tweaks_version config in
     Switch.check sw;
     let check_arg cond =
       if not cond then invalid_arg "Caqti_platform.Connector.Make.connect_pool"

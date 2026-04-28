@@ -86,7 +86,6 @@ module type S = sig
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t -> (connection, [> Error.load_or_connect]) result fiber)
     with_stdenv with_switch
 
@@ -94,7 +93,6 @@ module type S = sig
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t ->
      (connection ->
       ('a, [> Error.load_or_connect] as 'e) result fiber) ->
@@ -107,7 +105,6 @@ module type S = sig
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t ->
      ((connection, [> Error.connect] as 'connect_error) pool,
       [> Error.load]) result)

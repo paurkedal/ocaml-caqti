@@ -42,8 +42,8 @@ module Config : sig
   (** {2 Configuration Keys} *)
 
   val tweaks_version : (int * int) key
-  (** Declares compatibility with {{!tweaks} database tweaks} introduced up to the
-      given version of Caqti.  Defaults to a conservative value. *)
+  (** Declares compatibility with {{!tweaks} database tweaks} introduced up to
+      the given version of Caqti.  Defaults to a conservative value. *)
 
   val dynamic_prepare_capacity : int key
   (** The maximum number of dynamic queries to keep in the prepare-cache. *)
@@ -80,7 +80,6 @@ module type S = sig
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t -> (connection, [> Error.load_or_connect]) result fiber)
     with_stdenv with_switch
   (** [connect uri] locates and loads a driver which can handle [uri], passes
@@ -106,17 +105,13 @@ module type S = sig
         on the connection.
 
       @param config
-        Configuration parameters related to the interaction with the database.
-
-      @param tweaks_version
-        @deprecated This should now be passed via the [config] parameter using
-        the {!Caqti.Connect.Config.tweaks_version} key. *)
+        Configuration parameters related to the interaction with the
+        database. *)
 
   val with_connection :
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t ->
      (connection ->
       ('a, [> Error.load_or_connect] as 'e) result fiber) ->
@@ -129,10 +124,7 @@ module type S = sig
 
       @param subst Passed to {!connect}.
       @param env Passed to {!connect}.
-      @param config Passed to {!connect}.
-      @param tweaks_version
-        @deprecated This should now be passed via the [config] parameter using
-        the {!Caqti.Connect.Config.tweaks_version} key. *)
+      @param config Passed to {!connect}. *)
 
   val connect_pool :
     ?pool_config: Pool.Config.t ->
@@ -140,7 +132,6 @@ module type S = sig
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
     ?env: (Driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
-    ?tweaks_version: int * int ->
     (Uri.t ->
      ((connection, [> Error.connect] as 'connect_error) pool,
       [> Error.load]) result)
@@ -172,9 +163,5 @@ module type S = sig
         Passed to {!connect} when creating new connections.
 
       @param env
-        Passed to {!connect} when creating new connections.
-
-      @param tweaks_version
-        @deprecated This should now be passed via the [config] parameter using
-        the {!Caqti.Connect.Config.tweaks_version} key. *)
+        Passed to {!connect} when creating new connections. *)
 end

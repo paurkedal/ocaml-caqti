@@ -243,18 +243,18 @@ struct
   include Connector.Make (System) (Pool) (Loader)
 
   let connect
-        ?subst ?env ?config ?tweaks_version ?(sw = Caqti_lwt.Switch.eternal)
+        ?subst ?env ?config ?(sw = Caqti_lwt.Switch.eternal)
         stack dns uri =
-    connect ?subst ?env ?config ?tweaks_version ~sw ~stdenv:{stack; dns} uri
+    connect ?subst ?env ?config ~sw ~stdenv:{stack; dns} uri
 
-  let with_connection ?subst ?env ?config ?tweaks_version stack dns uri f =
-    with_connection ?subst ?env ?config ?tweaks_version ~stdenv:{stack; dns} uri f
+  let with_connection ?subst ?env ?config stack dns uri f =
+    with_connection ?subst ?env ?config ~stdenv:{stack; dns} uri f
 
   let connect_pool
-        ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
+        ?pool_config ?post_connect ?subst ?env ?config
         ?(sw = Caqti_lwt.Switch.eternal) stack dns uri =
     connect_pool
-      ?pool_config ?post_connect ?subst ?env ?config ?tweaks_version
+      ?pool_config ?post_connect ?subst ?env ?config
       ~sw ~stdenv:{stack; dns} uri
 
 end

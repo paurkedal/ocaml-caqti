@@ -22,30 +22,6 @@
  (enabled_if (>= %{ocaml_version} 5.1))
  (action (copy# %{deps} %{target})))
 
-; atomic.mli
-(rule
- (target atomic.mli)
- (deps atomic.fallback.mli)
- (enabled_if (< %{ocaml_version} 4.12))
- (action (copy# %{deps} %{target})))
-(rule
- (target atomic.mli)
- (deps atomic.4.12.mli)
- (enabled_if (>= %{ocaml_version} 4.12))
- (action (copy# %{deps} %{target})))
-
-; atomic.ml
-(rule
- (target atomic.ml)
- (deps atomic.fallback.ml)
- (enabled_if (< %{ocaml_version} 4.12))
- (action (copy# %{deps} %{target})))
-(rule
- (target atomic.ml)
- (deps atomic.4.12.ml)
- (enabled_if (>= %{ocaml_version} 4.12))
- (action (copy# %{deps} %{target})))
-
 ; lru_mt.ml
 (rule
  (target lru_mt.ml)

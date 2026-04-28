@@ -27,7 +27,7 @@ let dialect =
   in
   Dialect.create_sqlite ~server_version ()
 
-let driver_info = Caqti.Driver_info.of_dialect dialect
+let driver_info = Caqti.Private__driver_info.of_dialect dialect
 
 type Caqti.Connection.driver_connection += Driver_connection of Sqlite3.db
 

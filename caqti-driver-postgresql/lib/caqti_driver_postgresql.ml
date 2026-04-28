@@ -100,7 +100,7 @@ let driver_info =
       ~client_library:`postgresql
       ()
   in
-  Caqti.Driver_info.of_dialect dummy_dialect
+  Caqti.Private__driver_info.of_dialect dummy_dialect
 
 module Pg_ext = struct
   include Postgresql_conv

@@ -15,4 +15,4 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-include Caqti.Driver_info [@alert "-deprecated"]
+include Caqti.Private__driver_info [@alert "-caqti_private"]

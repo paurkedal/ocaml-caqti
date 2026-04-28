@@ -35,7 +35,7 @@ module type DRIVER = sig
     with type 'a fiber := 'a fiber
      and type ('a, 'err) stream := ('a, 'err) stream
 
-  val driver_info : Caqti.Driver_info.t [@alert "-deprecated"]
+  val driver_info : Caqti.Private__driver_info.t
 
   val connect :
     sw: switch ->

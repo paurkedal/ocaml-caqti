@@ -81,7 +81,7 @@ struct
   let dialect =
     Dialect.create_mysql ~server_version:(Version.of_string_unsafe "") ()
   let driver_info =
-    Caqti.Driver_info.of_dialect dialect
+    Caqti.Private__driver_info.of_dialect dialect
 
   (* We need to pass stdenv into the below wait, in order to implement
    * timout for EIO, since it uses stdenv#clock.  This means that our Mdb

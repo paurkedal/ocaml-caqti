@@ -793,7 +793,7 @@ module Connect_functor (System : Caqti_platform.System_sig.S) = struct
           Pgx_with_io.execute_unit db query
   end
 
-  let driver_info = Caqti.Driver_info.of_dialect dialect
+  let driver_info = Caqti.Private__driver_info.of_dialect dialect
 
   module type CONNECTION = Caqti.Connection.S
     with type 'a fiber := 'a Fiber.t

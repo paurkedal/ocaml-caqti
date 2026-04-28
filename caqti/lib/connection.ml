@@ -238,7 +238,7 @@ end
 (** Full connection signature available to users. *)
 module type S = sig
 
-  val driver_info : Driver_info.t [@@deprecated]
+  val driver_info : Private__driver_info.t [@@deprecated]
   (** Information about the driver providing this connection module. *)
 
   val dialect : Template.Dialect.t

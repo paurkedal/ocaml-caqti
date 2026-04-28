@@ -21,7 +21,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
 
   let env driver_info = function
    | "engine_innodb" ->
-      (match Caqti.Driver_info.dialect_tag driver_info with
+      (match Caqti.Private__driver_info.dialect_tag driver_info with
        | `Mysql -> Caqti.Template.Query.lit " ENGINE = InnoDB"
        | _ -> Caqti.Template.Query.empty)
    | _ -> raise Not_found

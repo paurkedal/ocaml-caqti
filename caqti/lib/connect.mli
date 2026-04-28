@@ -78,7 +78,7 @@ module type S = sig
 
   val connect :
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
-    ?env: (Driver_info.t -> string -> Template.Query.t) ->
+    ?env: (Private__driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
     (Uri.t -> (connection, [> Error.load_or_connect]) result fiber)
     with_stdenv with_switch
@@ -110,7 +110,7 @@ module type S = sig
 
   val with_connection :
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
-    ?env: (Driver_info.t -> string -> Template.Query.t) ->
+    ?env: (Private__driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
     (Uri.t ->
      (connection ->
@@ -130,7 +130,7 @@ module type S = sig
     ?pool_config: Pool.Config.t ->
     ?post_connect: (connection -> (unit, 'connect_error) result fiber) ->
     ?subst: (Template.Dialect.t -> Template.Query.subst) ->
-    ?env: (Driver_info.t -> string -> Template.Query.t) ->
+    ?env: (Private__driver_info.t -> string -> Template.Query.t) ->
     ?config: Config.t ->
     (Uri.t ->
      ((connection, [> Error.connect] as 'connect_error) pool,

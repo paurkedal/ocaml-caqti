@@ -40,9 +40,9 @@ let compose_subst_with_env subst env dialect =
    | None, None -> fun _ -> raise Not_found
    | Some subst, None -> subst dialect
    | None, Some env ->
-      env (Caqti.Driver_info.of_dialect dialect)
+      env (Caqti.Private__driver_info.of_dialect dialect)
    | Some subst, Some env ->
-      let driver_info = Caqti.Driver_info.of_dialect dialect in
+      let driver_info = Caqti.Private__driver_info.of_dialect dialect in
       compose_subst (subst dialect) (env driver_info))
 
 module Make
@@ -196,8 +196,8 @@ struct
         let check (module Db : CONNECTION) = Db.check in
         let di = Driver.driver_info in
         let pool_config =
-          (match Caqti.Driver_info.can_concur di,
-                 Caqti.Driver_info.can_pool di,
+          (match Caqti.Private__driver_info.can_concur di,
+                 Caqti.Private__driver_info.can_pool di,
                  Caqti.Pool.Config.(get max_idle_size) pool_config with
            | true, true, _ ->
               pool_config

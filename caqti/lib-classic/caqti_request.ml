@@ -23,10 +23,10 @@ include Request
 
 let create ?(oneshot = false) pt rt rm make_query =
   create (if oneshot then Direct else Static) (pt, rt, rm)
-    (fun dialect -> make_query (Caqti_driver_info.of_dialect dialect))
+    (fun dialect -> make_query (Caqti.Private__driver_info.of_dialect dialect))
 
 let query req driver_info =
-  let qs = queries req (Caqti_driver_info.dummy_dialect driver_info) in
+  let qs = queries req (Caqti.Private__driver_info.dummy_dialect driver_info) in
   Query.concat ~sep:"; " qs
 
 module Infix = struct
@@ -51,10 +51,10 @@ end
 let no_env _ _ = raise Not_found
 
 let make_pp ?(env = no_env) ?(driver_info = Caqti_driver_info.dummy) () =
-  let dialect = Caqti_driver_info.dummy_dialect driver_info in
+  let dialect = Caqti.Private__driver_info.dummy_dialect driver_info in
   make_pp ~subst:(env driver_info) ~dialect ()
 
 let make_pp_with_param
       ?(env = no_env) ?(driver_info = Caqti_driver_info.dummy) () =
-  let dialect = Caqti_driver_info.dummy_dialect driver_info in
+  let dialect = Caqti.Private__driver_info.dummy_dialect driver_info in
   make_pp_with_param ~subst:(env driver_info) ~dialect ()

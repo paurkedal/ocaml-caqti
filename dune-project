@@ -10,7 +10,6 @@
 (package (name caqti-driver-pgx) (allow_empty))
 (package (name caqti-driver-postgresql) (allow_empty))
 (package (name caqti-driver-sqlite3) (allow_empty))
-(package (name caqti-dynload) (allow_empty))
 (package (name caqti-eio) (allow_empty))
 (package (name caqti-lwt) (allow_empty))
 (package (name caqti-mirage) (allow_empty))

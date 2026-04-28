@@ -82,9 +82,8 @@ against the `caqti.plugin` library in order to load the appropriate driver
 at runtime.
 
 (A few package not mentioned include unreleased TLS packages and the
-(semi-)deprecated packages
-[caqti-type-calendar](https://ocaml.org/p/caqti-type-calendar/latest) and
-[caqti-dynload](https://ocaml.org/p/caqti-dynload/latest).)
+(semi-)deprecated package
+[caqti-type-calendar](https://ocaml.org/p/caqti-type-calendar/latest).)
 
 ### API Documentation for Development Snapshots
 

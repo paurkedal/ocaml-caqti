@@ -90,17 +90,22 @@ module Make (Elt : Lru.Weighted) = struct
    * short- and long-lived request, since it gives longer lived requests a
    * better chance of holding on to the liveness slot. *)
   module Dynamic_node = struct
+    type request_alive =
+      | Request_alive : (_, _, _) Request.t Weak.t -> request_alive
+
     type t = {
       elt: Elt.t;
-      liveness_witness: Request.liveness_witness Weak.t;
+      request_alive: request_alive;
     }
 
     let create request elt =
-      let liveness_witness = Weak.create 1 in
-      Weak.set liveness_witness 0 (Some (Request.liveness_witness request));
-      {elt; liveness_witness}
+      let w = Weak.create 1 in
+      Weak.set w 0 (Some request);
+      {elt; request_alive = Request_alive w}
 
-    let is_alive node = Weak.check node.liveness_witness 0
+    let is_alive node =
+      let Request_alive w = node.request_alive in
+      Weak.check w 0
 
     let elt node = node.elt
 

@@ -25,7 +25,6 @@ type prepare_policy =
   | Static
 
 type ('a, 'b, +'m) t = {
-  id: int option;
   prepare_policy: prepare_policy;
   queries: Dialect.t -> Query.t list;
   param_type: 'a Row_type.t;
@@ -33,18 +32,11 @@ type ('a, 'b, +'m) t = {
   row_mult: 'm Row_mult.t;
 } constraint 'm = [< `Zero | `One | `Many]
 
-let last_id = Shims.Atomic.make (-1)
-
 let unit_to_unit_type = Request_type.Infix.(-->.) Row_type.unit Row_type.unit
 
 let create_prim prepare_policy (param_type, row_type, row_mult) queries =
   let queries = Shims.Lru_mt.memo_if_safe ~cap:8 (fun _ -> queries) in
-  let id =
-    (match prepare_policy with
-     | Direct -> None
-     | Static | Dynamic -> Some (Shims.Atomic.fetch_and_add last_id 1))
-  in
-  {id; prepare_policy; queries; param_type; row_type; row_mult}
+  {prepare_policy; queries; param_type; row_type; row_mult}
 
 let create prepare_policy request_type query =
   create_prim prepare_policy request_type (fun d -> [query d])
@@ -57,7 +49,6 @@ let param_type request = request.param_type
 let row_type request = request.row_type
 let row_mult request = request.row_mult
 
-let query_id request = request.id
 let queries request = request.queries
 
 let empty_subst _ = raise Not_found
@@ -104,9 +95,3 @@ let make_pp_with_param ?dialect ?subst () ppf (req, param) =
   pp ppf req;
   if pp_with_param_enabled then
     Format.fprintf ppf " %a" (Row.pp req.param_type) param
-
-type liveness_witness = int option
-
-let liveness_witness request =
-  assert (request.id <> None);
-  request.id

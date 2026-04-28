@@ -155,15 +155,3 @@ val make_pp_with_param :
     [true].  If you enable it for applications which do not consistenly annotate
     sensitive parameters with {!Row_type.redacted}, make sure your debug logs
     are well-secured. *)
-
-(**/**)
-[@@@alert "-caqti_private"]
-
-val query_id : ('a, 'b, 'm) t -> int option
-[@@alert caqti_private]
-
-type liveness_witness
-[@@alert caqti_private]
-
-val liveness_witness : (_, _, _) t -> liveness_witness
-[@@alert caqti_private]

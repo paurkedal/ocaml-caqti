@@ -191,17 +191,3 @@ val of_string_exn : string -> t
 (** Like {!of_string}, but raises an exception on error.
 
     @raise Failure if parsing failed. *)
-
-(**/**)
-val qprintf : ('a, Format.formatter, unit, t) format4 -> 'a
-[@@alert deprecated "Moved to Caqti_query_fmt."]
-val kqprintf : (t -> 'a) -> ('b, Format.formatter, unit, 'a) format4 -> 'b
-[@@alert deprecated "Moved to Caqti_query_fmt."]
-val param : Format.formatter -> int -> unit
-[@@alert deprecated "Moved to Caqti_query_fmt."]
-val env : Format.formatter -> string -> unit
-[@@alert deprecated "Moved to Caqti_query_fmt."]
-val quote : Format.formatter -> string -> unit
-[@@alert deprecated "Moved to Caqti_query_fmt."]
-val query : Format.formatter -> t -> unit
-[@@alert deprecated "Moved to Caqti_query_fmt."]

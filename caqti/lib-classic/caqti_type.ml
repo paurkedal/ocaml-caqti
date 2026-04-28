@@ -59,10 +59,5 @@ module Std = struct
   let proj_end = Proj_end
 
   let custom = custom
-
-  (* deprecated *)
-  let tup2 = t2
-  let tup3 = t3
-  let tup4 = t4
 end
 include Std

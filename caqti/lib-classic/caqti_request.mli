@@ -75,12 +75,6 @@ val row_mult : (_, _, 'm) t -> 'm Caqti_mult.t
 (** [row_mult req] indicates how many rows [req] may return.  This is asserted
     when constructing the query. *)
 
-(**/**)
-val query_id : ('a, 'b, 'm) t -> int option
-[@@alert deprecated
-  "This function is no longer used internally by Caqti and will be removed."]
-(**/**)
-
 val query : ('a, 'b, 'm) t -> Caqti_driver_info.t -> Caqti_query.t
 (** [query req] is the function which generates the query of this request
     possibly tailored for the given driver. *)

@@ -29,8 +29,6 @@ let query req driver_info =
   let qs = queries req (Caqti_driver_info.dummy_dialect driver_info) in
   Query.concat ~sep:"; " qs
 
-let query_id = query_id
-
 module Infix = struct
   let (-->.) t u ?oneshot f = create ?oneshot t u Row_mult.zero f
   let (-->!) t u ?oneshot f = create ?oneshot t u Row_mult.one f

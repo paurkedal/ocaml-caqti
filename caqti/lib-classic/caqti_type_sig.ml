@@ -240,13 +240,4 @@ module type Std = sig
     'a9 t -> 'a10 t -> 'a11 t -> 'a12 t ->
     ('a1 * 'a2 * 'a3 * 'a4 * 'a5 * 'a6 * 'a7 * 'a8 * 'a9 * 'a10 * 'a11 * 'a12) t
   (** Creates a 12-tuple type. *)
-
-
-  (**/**)
-  val tup2 : 'a1 t -> 'a2 t -> ('a1 * 'a2) t
-  [@@deprecated "Renamed to t2."]
-  val tup3 : 'a1 t -> 'a2 t -> 'a3 t -> ('a1 * 'a2 * 'a3) t
-  [@@deprecated "Renamed to t3."]
-  val tup4 : 'a1 t -> 'a2 t -> 'a3 t -> 'a4 t -> ('a1 * 'a2 * 'a3 * 'a4) t
-  [@@deprecated "Renamed to t4."]
 end

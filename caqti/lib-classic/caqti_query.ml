@@ -32,9 +32,3 @@ let of_string_exn repr =
    | Query.Parse_error err -> Format.kasprintf failwith "%a" Parse_error.pp err)
 
 let concat sep = concat ~sep
-let qprintf = Query_fmt.qprintf
-let kqprintf = Query_fmt.kqprintf
-let param = Query_fmt.param
-let env = Query_fmt.env
-let quote = Query_fmt.quote
-let query = Query_fmt.query

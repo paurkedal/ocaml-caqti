@@ -37,7 +37,8 @@ module type S = sig
         The default priority is [0.0]. *)
 
   val drain : ('a, 'e) t -> unit fiber
-  (** [drain pool] closes all resources in [pool]. The pool is still usable, as
-      new resources will be created on demand. *)
+  (** [drain pool] closes all resources in [pool] once they become {e idle}.
+      The pool is still usable, as new resources will be created on demand.
+      Resources are not closed while they are in use. *)
 
 end

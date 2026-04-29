@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,6 +31,8 @@ module type S = sig
     ('a -> ('b, 'e) result fiber) -> ('a, 'e) t -> ('b, 'e) result fiber
   (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
       resource to the pool when [f] exits.
+      The result returned by [f] is not used by Caqti, but allows flattening
+      errors into a single polymorphic variant type.
 
       @param priority
         Requests for the resource are handled in decreasing order of priority.

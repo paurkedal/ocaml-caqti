@@ -25,7 +25,8 @@ let query ppf q =
   Format.pp_close_stag ppf ()
 
 let quote ppf q = query ppf (Query.quote q)
-let env ppf e = query ppf (Query.var e)
+let var ppf e = query ppf (Query.var e)
+let env = var
 let param ppf p = query ppf (Query.param p)
 
 type mode = Mode_literal | Mode_ignore | Mode_raw of (string -> Query.t)

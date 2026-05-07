@@ -24,7 +24,7 @@ type 'a t = Format.formatter -> 'a -> unit
 val qprintf : ('a, Format.formatter, unit, Query.t) format4 -> 'a
 (** {!qprintf} allows building Caqti queries using a printf-style interface.
 
-    When using {!qprintf}, you can use the {!query}, {!quote}, {!env} and
+    When using {!qprintf}, you can use the {!query}, {!quote}, {!var} and
     {!param} printers from this module to generate the corresponding query
     fragments.
 
@@ -74,13 +74,17 @@ val param : int t
     processed by Caqti.
 *)
 
-val env : string t
-(** {!env} is a formatter that includes the corresponding environment variable
+val var : string t
+(** {!var} is a formatter that includes the corresponding environment variable
     in a query built by {!qprintf}.
 
-    Note that to include an environment variable in a query, {!env} *must* be
+    Note that to include an environment variable in a query, {!var} *must* be
     used: using literal ["$(...)"] will be sent as-is to the SQL driver and
     will not be processed by Caqti. *)
+
+(**/**)
+val env : string t [@@deprecated "Renamed to var."]
+(**/**)
 
 val quote : string t
 (** {!quote} is a formatter that includes a TEXT literal in a query built by
@@ -89,7 +93,7 @@ val quote : string t
 val query : Query.t t
 (** {!query} can be used with {!qprintf} to embed a query that was already
     parsed in the format string. Direct use of {!query} should be rare, and
-    {!param}, {!env}, or {!quote} should be used instead when possible.
+    {!param}, {!var}, or {!quote} should be used instead when possible.
 
     Using {!query} with any other formatter will ignore the query and instead
     print a dummy value (currently ["... SQL FRAGMENT ..."]) instead. *)

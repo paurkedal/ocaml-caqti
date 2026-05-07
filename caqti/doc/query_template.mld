@@ -42,13 +42,13 @@ transformation of string literals within query strings.
 
 {2 Environment References}
 
-Functions processing queries take an [?env] argument which provides
+Functions processing queries take an [?subst] argument which provides
 substitutions for the references which can have one of the following
 syntaxes:
 
-  - ["$(<var>)"] is substituted by [env driver_info "<var>"].
+  - ["$(<var>)"] is substituted by [subst dialect "<var>"].
   - ["$(<var>.)"], if not found by the first rule, is substituted by
-    [env driver_info "<var>"] followed by a dot iff that result is nonempty.
+    [subst dialect "<var>"] followed by a dot iff that result is nonempty.
   - ["$<var>."] is a shortcut for ["$(<var>.)"].
 
 These aid in substituting configurable fragments into the queries, like
@@ -62,7 +62,7 @@ see {!quotes} for details.
 {2:quotes Quotes}
 
 In order to avoid accidental conversion of parameter references or undesired
-expansion of environment lookups, the parser recognizes several kinds of
+expansion of variable lookups, the parser recognizes several kinds of
 quotations used by database systems.  The following common kinds of
 quotations are recognized:
 
@@ -76,8 +76,8 @@ In addition the parser recognizes PostgreSQL style tagged quotations:
   - [$$<text>$$] as above but with an emtpy tag
 
 The former is treated like the other quotations, i.e. the text inside is
-passed on as-is.  In the latter form, environment references are expanded,
-while parameter references are not recognized.
+passed on as-is.  In the latter form, varibles are expanded, while parameter
+references are not recognized.
 
 The motivation for this exception is that dollar quotes are often used in
 PostgreSQL schemas to define saved procedures, where it is useful to
@@ -85,8 +85,8 @@ substitute schema names and possibly other code fragments.  On the other
 hand, the dollar quotes are useful for other purposes, and when a tag is
 provided, whether it is around a saved procedure or elsewhere, it is
 typically to avoid a clashes with dollar signs in the text.  Therefore, the
-exception to expand environment references is only made for the tagless
-variant of the dollar quotes.
+exception to expand variables is only made for the tagless variant of the
+dollar quotes.
 
 Note that nested quotes are not recognized inside [$$<text>$$], so
 substitutions apply unconditionally.  That is, the [$(x)] substring will

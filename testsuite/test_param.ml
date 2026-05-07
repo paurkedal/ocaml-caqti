@@ -29,15 +29,15 @@ module Q = struct
     static T.(t3 int int int -->! int)
       "SELECT 2 * $3 + $3 - 3 * $1 + 5 * $2"
 
-  let env1 =
-    let env = let open Caqti.Templater in function
+  let subst1 =
+    let subst = let open Caqti.Templater in function
      | "." -> Q.lit "100"
      | "fourty" -> Q.lit "40"
      | _ -> raise Not_found
     in
     let q = "SELECT $. - $(fourty)"
       |> Caqti.Template.Query.parse
-      |> Caqti.Template.Query.expand env
+      |> Caqti.Template.Query.expand subst
     in
     static_gen T.(unit -->! int) (fun _ -> q)
 end
@@ -60,12 +60,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     in
     loop 1000
 
-  let test_env (module Db : CONNECTION) =
-    Db.find Q.env1 () >>= or_fail >|= fun y -> assert (y = 60)
+  let test_subst (module Db : CONNECTION) =
+    Db.find Q.subst1 () >>= or_fail >|= fun y -> assert (y = 60)
 
   let test_cases = [
     "nonlinear", `Quick, test_nonlin;
-    "environment", `Quick, test_env;
+    "subst", `Quick, test_subst;
   ]
 
 end

@@ -195,7 +195,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       f i >>= fun () -> loop (i + 1) in
     loop 0
 
-  let env _ =
+  let subst _ =
     let open Caqti.Templater in
     (function
      | "x1" -> Q.lit "734"

@@ -19,11 +19,12 @@ module Make (Ground : Testlib.Sig.Ground) = struct
   open Ground
   open Ground.Fiber.Infix
 
-  let env driver_info = function
+  let subst dialect = function
    | "engine_innodb" ->
-      (match Caqti.Private__driver_info.dialect_tag driver_info with
-       | `Mysql -> Caqti.Template.Query.lit " ENGINE = InnoDB"
-       | _ -> Caqti.Template.Query.empty)
+      let open Caqti.Templater in
+      (match dialect with
+       | D.Mysql _ -> Q.lit " ENGINE = InnoDB"
+       | _ -> Q.empty)
    | _ -> raise Not_found
 
   let create_reqs =

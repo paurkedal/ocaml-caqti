@@ -151,17 +151,17 @@ let test_parse_random_strings () =
   done
 
 let test_expand () =
-  let env1 = function
+  let subst1 = function
    | "" -> Query.lit "default"
    | "alt" -> Query.lit "other"
    | _ -> raise Not_found
   in
-  let env2 = function
+  let subst2 = function
    | "." -> Query.lit "default."
    | "alt." -> Query.lit "other."
    | _ -> raise Not_found
   in
-  let env3 = function
+  let subst3 = function
    | "." -> Query.lit "dot"
    | "cat" -> Query.lit "mouse"
    | "cat." -> Query.lit "dog"
@@ -170,9 +170,9 @@ let test_expand () =
   let q1 = Query.parse " $. $(.) $alt. $(alt.) $cat. $(cat) " in
   let q1' = Query.parse " default. default. other. other. $cat. $(cat) " in
   let q1'3 = Query.parse " dot dot $alt. $(alt.) dog mouse " in
-  A.(check query) "same" q1' (Query.expand env1 q1);
-  A.(check query) "same" q1' (Query.expand env2 q1);
-  A.(check query) "same" q1'3 (Query.expand env3 q1)
+  A.(check query) "same" q1' (Query.expand subst1 q1);
+  A.(check query) "same" q1' (Query.expand subst2 q1);
+  A.(check query) "same" q1'3 (Query.expand subst3 q1)
 
 let test_qprintf () =
   let check_expect q1 q2 =
@@ -184,7 +184,7 @@ let test_qprintf () =
     ])
     Query_fmt.(
       qprintf {|%a %a WHERE %a = %a|}
-        query (Query.lit "SELECT") param 0 quote "quote" env "env");
+        query (Query.lit "SELECT") param 0 quote "quote" var "env");
   check_expect
     Query.(concat [lit "WHERE "; var "tbl4"; lit ".name = "; quote "John Wayne"])
     Query_fmt.(qprintf {|WHERE @{<E>tbl%d@}.name = @{<Q>%s Wayne@}|} 4 "John")

@@ -53,16 +53,16 @@ let post_connect conn =
     Test_sql.post_connect;
   ]
 
-let env =
+let subst =
   let (&) f g di var = try f di var with Not_found -> g di var in
-  Test_sql.env & Test_error_cause.env
+  Test_sql.subst & Test_error_cause.subst
 
 let mk_tests {uris; connect_config} =
   let pool_config = Caqti.Pool.Config.create ~max_size:16 () in
   let create_target uri =
-    let connect () = Caqti_lwt_unix.connect ~config:connect_config ~env uri in
+    let connect () = Caqti_lwt_unix.connect ~config:connect_config ~subst uri in
     (match Caqti_lwt_unix.connect_pool uri
-            ~pool_config ~post_connect ~config:connect_config ~env with
+            ~pool_config ~post_connect ~config:connect_config ~subst with
      | Ok pool -> (test_name_of_uri uri, connect, pool)
      | Error err -> raise (Caqti.Error.Exn err))
   in

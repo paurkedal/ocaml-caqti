@@ -72,19 +72,16 @@ let compare vL vR =
         if kL - iL < kR - iR then -1 else
         if kL - iL > kR - iR then +1 else
         let c = digits iL iR (kL - iL) in
-        if c < 0 then -1 else
-        if c > 0 then +1 else
+        if c <> 0 then c else
         start kL kR
      | chL, chR ->
         let c = compare_char chL chR in
-        if c < 0 then -1 else
-        if c > 0 then +1 else
+        if c <> 0 then c else
         start (iL + 1) (iR + 1))
   and digits iL iR n =
     if n = 0 then start iL iR else
     let c = Char.compare vL.[iL] vR.[iR] in
-    if c < 0 then -1 else
-    if c > 0 then +1 else
+    if c <> 0 then c else
     digits (iL + 1) (iR + 1) (n - 1)
   in
   start 0 0

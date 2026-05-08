@@ -15,6 +15,8 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
+[@@@alert caqti_private "This shim is for internal use by Caqti"]
+
 (** Thread-safe extension to [Lru]. *)
 
 val memo_if_safe :

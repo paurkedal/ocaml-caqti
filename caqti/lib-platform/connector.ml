@@ -118,8 +118,9 @@ struct
         let msg = "Missing URI scheme." in
         Error (Caqti.Error.load_rejected ~uri (Caqti.Error.Msg msg))
      | Some scheme ->
-        (try Ok (Hashtbl.find drivers scheme) with
-         | Not_found ->
+        (match Hashtbl.find_opt drivers scheme with
+         | Some driver -> Ok driver
+         | None ->
             (match load_driver' ~uri scheme with
              | Ok driver ->
                 Hashtbl.add drivers scheme driver;

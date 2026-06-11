@@ -1,3 +1,11 @@
+## v2.3.2 - 2026-06-11
+
+  - Fixed implementation of `max_idle_age`.  Two bugs were found, one
+    affecting the lwt implementation and another affecting all variants.
+    The first issue was identified by seprov in #139.
+
+This release only changes the `caqti` and `caqti-lwt` packages.
+
 ## v2.3.1 - 2026-04-28
 
   - Fixed phantom type definitions which could not be guaranteed to be

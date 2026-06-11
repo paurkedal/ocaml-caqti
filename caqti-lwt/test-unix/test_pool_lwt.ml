@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -128,11 +128,11 @@ let create_gathering n =
     if !count > 0 then wait else
     (Lwt.wakeup_later disband (); Lwt.return_unit)
 
-let test_age _ () =
+let test_age max_idle_age_ns _ () =
   Caqti_lwt.Switch.run @@ fun sw ->
   let max_size = 8 in
   let max_idle_size = 4 in
-  let max_idle_age = Some Mtime.Span.(100 * ms) in
+  let max_idle_age = Some Mtime.Span.(max_idle_age_ns * ns) in
   let pool =
     let config =
       Caqti_pool_config.create ~max_size ~max_idle_size ~max_idle_age ()
@@ -147,11 +147,13 @@ let test_age _ () =
       |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
       |> Lwt.join
   in
-  Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
+  if max_idle_age_ns >= 1_000 then
+    Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
   let+ () =
     let rec wait_while_draining timeout =
-      if Pool.size pool = 0 then Lwt.return_unit else
-      Lwt_unix.sleep 0.1 >>= fun () -> wait_while_draining (timeout -. 0.1)
+      if Pool.size pool = 0 || timeout <= 0.0 then Lwt.return_unit else
+      let* () = Lwt_unix.sleep 0.1 in
+      wait_while_draining (timeout -. 0.1)
     in
     wait_while_draining 5.0
   in
@@ -159,5 +161,8 @@ let test_age _ () =
 
 let test_cases = [
   Alcotest_lwt.V1.test_case "basic usage" `Quick test;
-  Alcotest_lwt.V1.test_case "timed cleanup" `Quick test_age;
+  Alcotest_lwt.V1.test_case "timed cleanup, 100 μs" `Quick (test_age 100_000);
+  Alcotest_lwt.V1.test_case "timed cleanup, 1 μs" `Quick (test_age 1_000);
+  Alcotest_lwt.V1.test_case "timed cleanup, 10 ns" `Quick (test_age 10);
+  Alcotest_lwt.V1.test_case "timed cleanup, 1 ns" `Quick (test_age 1);
 ]

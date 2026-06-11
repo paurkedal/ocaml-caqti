@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -217,7 +217,12 @@ struct
        * means that some other operations may have been processed right before
        * each recursive call. *)
       (match Queue.peek_opt pool.queue, pool.max_idle_age with
-       | None, _ | _, None -> Fiber.return ()
+       | None, _ ->
+          assert (pool.reaper_state = Working);
+          pool.reaper_state <- Idle;
+          Fiber.return ()
+       | _, None ->
+          Fiber.return ()
        | Some entry, Some max_idle_age ->
           let now = Mtime_clock.now () in
           (match Mtime.add_span entry.used_latest max_idle_age with

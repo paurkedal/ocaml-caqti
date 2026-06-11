@@ -1,0 +1,11 @@
+(executable
+ (name main)
+ (public_name caqti)
+ (package caqti-cli)
+ (libraries
+    caqti
+    caqti.plugin
+    caqti-lwt.unix
+    cmdliner
+    digestif
+    threads))

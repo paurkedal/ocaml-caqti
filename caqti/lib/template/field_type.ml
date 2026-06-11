@@ -75,6 +75,20 @@ let equal_value : type a. a t -> a -> a -> bool = function
  | Ptime_span -> Ptime.Span.equal
  | Enum _ -> String.equal
 
+let of_string_exn = function
+ | "bool" -> Any Bool
+ | "int" -> Any Int
+ | "int16" -> Any Int16
+ | "int32" -> Any Int32
+ | "int64" -> Any Int64
+ | "float" -> Any Float
+ | "string" -> Any String
+ | "octets" -> Any Octets
+ | "pdate" -> Any Pdate
+ | "ptime" -> Any Ptime
+ | "ptime_span" -> Any Ptime_span
+ | _ -> failwith "Caqti.Template.Field_type.of_string_exn"
+
 let to_string : type a. a t -> string = function
  | Bool -> "bool"
  | Int -> "int"

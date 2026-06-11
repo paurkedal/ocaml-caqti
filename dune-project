@@ -6,6 +6,7 @@
 
 (package (name caqti) (sites (lib plugins)))
 (package (name caqti-async) (allow_empty))
+(package (name caqti-cli) (allow_empty))
 (package (name caqti-driver-mariadb) (allow_empty))
 (package (name caqti-driver-pgx) (allow_empty))
 (package (name caqti-driver-postgresql) (allow_empty))

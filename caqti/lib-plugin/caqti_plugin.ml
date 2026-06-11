@@ -1,4 +1,4 @@
-(* Copyright (C) 2024  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,3 +31,7 @@ let () =
       Error ("Package " ^ pkg ^ " is not avaliable.")
   in
   Caqti_platform.Connector.define_loader load
+
+let available () = Sites.Plugins.Plugins.list ()
+
+let load pkg = Sites.Plugins.Plugins.load pkg

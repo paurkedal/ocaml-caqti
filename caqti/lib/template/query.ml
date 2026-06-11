@@ -423,6 +423,8 @@ module Parse_error = struct
 
   let pp ppf err =
     Format.fprintf ppf "Parse error at byte %d: %s" err.position err.message
+
+  let show err = Format.asprintf "%a" pp err
 end
 
 exception Parse_error of Parse_error.t

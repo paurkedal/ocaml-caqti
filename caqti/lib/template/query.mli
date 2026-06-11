@@ -298,6 +298,9 @@ module Parse_error : sig
 
   val pp : Format.formatter -> t -> unit
   (** Formats a human-readable error message. *)
+
+  val show : t -> string
+  (** [show err] is the message which would have been printed by [pp]. *)
 end
 (** Describes errors from the high-level parsing functions. *)
 

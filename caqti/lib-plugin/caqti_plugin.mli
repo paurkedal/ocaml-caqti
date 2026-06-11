@@ -1,4 +1,4 @@
-(* Copyright (C) 2024--2026  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,34 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Database field types. *)
+val available : unit -> string list
 
-open Shims
-
-type 'a t =
-  | Bool : bool t
-  | Int : int t
-  | Int16 : int t
-  | Int32 : int32 t
-  | Int64 : int64 t
-  | Float : float t
-  | String : string t
-  | Octets : string t
-  | Pdate : Ptime.t t
-  | Ptime : Ptime.t t
-  | Ptime_span : Ptime.span t
-  | Enum : string -> string t
-
-type any = Any : 'a t -> any
-
-val unify : 'a t -> 'b t -> ('a, 'b) Type.eq option
-
-val equal_value : 'a t -> 'a -> 'a -> bool
-
-val of_string_exn : string -> any
-
-val to_string : 'a t -> string
-
-val pp : Format.formatter -> 'a t -> unit
-
-val pp_value : Format.formatter -> 'a t * 'a -> unit
+val load : string -> unit

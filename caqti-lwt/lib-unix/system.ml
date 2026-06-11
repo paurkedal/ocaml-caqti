@@ -41,9 +41,9 @@ module Alarm = struct
     let t_now = Mtime_clock.now () in
     let delay =
       if Mtime.is_later t ~than:t_now then
-        Lwt.pause ()
-      else
         Lwt_unix.sleep (Mtime.Span.to_float_ns (Mtime.span t t_now) *. 1e-9)
+      else
+        Lwt.pause ()
     in
     let task = delay >|= f in
     {cancel = (fun () -> Lwt.cancel task)}

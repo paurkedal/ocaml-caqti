@@ -97,4 +97,4 @@ and pp_product
           pp_t_state ppf (p x);
           pp_pt_state ppf x)
 
-let pp (t : _ Row_type.t) = pp_poly t {field_num = 1}
+let pp (t : _ Row_type.t) = pp_poly t {field_num = 0}

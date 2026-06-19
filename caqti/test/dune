@@ -3,3 +3,7 @@
  (package caqti)
  (flags (:standard -alert -caqti_unstable))
  (libraries alcotest caqti caqti.platform re.pcre))
+
+(mdx
+ (package caqti)
+ (libraries caqti ptime))

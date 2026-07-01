@@ -1,3 +1,20 @@
+## v3.0.0 - 2026-07-01
+
+  - The `caqti` library now holds the Caqti 3 API and `caqti.classic`
+    contains a Caqti 2 compatibility wrapper.  Users of the Caqti 2 API must
+    now add `caqti.classic` to their link lines.  Early adopters of the
+    Caqti 3 API must replace `caqti.template` with `caqti` and adjust some
+    module paths.  Switching to the new API is recommended, but may be done
+    incrementally for existing applications.
+
+  - Fixed initial comma when formatting rows, affecting
+    `Caqti_type.pp_value` (Caqti 2) and `Caqti.Template.Row.pp` (Caqti 3).
+
+  - Put on hold deprecation of the `caqti-dynload` package due to
+    [issue #140](https://github.com/paurkedal/ocaml-caqti/issues/140).
+
+  - Foreign key constraints are now enabled for SQLite by default.
+
 ## v2.3.2 - 2026-06-11
 
   - Fixed implementation of `max_idle_age`.  Two bugs were found, one

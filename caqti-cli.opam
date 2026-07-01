@@ -8,8 +8,8 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "caqti" {>= "2.3.0" & < "2.4.0~"}
-  "caqti-lwt" {>= "2.3.0" & < "2.4.0~"}
+  "caqti" {>= "3.0.0" & < "4.0.0~"}
+  "caqti-lwt" {>= "3.0.0" & < "4.0.0~"}
   "dune" {>= "3.9"}
   "lwt"
   "ocaml"

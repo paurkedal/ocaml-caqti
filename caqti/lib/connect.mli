@@ -93,8 +93,9 @@ module type S = sig
 
       The correct driver for the database system is inferred from the schema of
       [uri]; see the respective drivers for the supported schemas and related
-      URI syntax.  A driver can either be linked in to the application or, if
-      supported, dynamically linked using the [caqti.plugin] package.
+      URI syntax.  A driver can either be linked in to the application or, where
+      supported, dynamically linked using the [caqti-dynload] package or the
+      [caqti.plugin] library.
 
       @param subst
         Alternative to [env] when using the new experimental API.

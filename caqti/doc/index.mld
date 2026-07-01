@@ -30,6 +30,11 @@ library, which allows Caqti to automatically load driver libraries inferred
 from the URI when connecting to a new kind of database for the first time.
 It has no entry point; linking aganist it registers the loader.
 
+Please note that {{:https://github.com/paurkedal/ocaml-caqti/issues/140}
+issue #140} needs to be adressed before this library works for installed
+binaries.  The caqti-dynload package provides an alternative, though it will
+be deprecated after the issue is resolved.
+
 
 {1 Platform Libraries for Internal Use}
 

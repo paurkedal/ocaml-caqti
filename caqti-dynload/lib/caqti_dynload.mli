@@ -1,4 +1,4 @@
-(* Copyright (C) 2017--2025  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2017--2026  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,9 +15,4 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-(** Dynamic linker for database drivers (deprecated).
-
-    @deprecated This packgae has been replaced by the caqti.plugin library. *)
-
-[@@@alert deprecated
-  "This package has been replaced by the caqti.plugin library."]
+(** Dynamic linker for database drivers *)

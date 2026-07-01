@@ -70,6 +70,9 @@ A full Caqti release contains the following packages:
     Driver for local SQlite3 databases using C bindings from [sqlite3][].
   - [caqti-driver-pgx](https://ocaml.org/p/caqti-driver-pgx):
     Experimental driver for PostgreSQL using the [pgx][] library.
+  - [caqti-dynload](https://ocaml.org/p/caqti-dynload/latest):
+    Dynamically loads a driver based on the URL.  This package will be
+    deprecated when issue #140 is resolved.
   - [caqti-tls](https://ocaml.org/p/caqti-tls):
     TLS configuration currently only used by caqti-mirage, and only relevant
     for pgx, since drivers based on C bindings have external TLS support.
@@ -82,9 +85,8 @@ against the `caqti.plugin` library in order to load the appropriate driver
 at runtime.
 
 (A few package not mentioned include unreleased TLS packages and the
-(semi-)deprecated packages
-[caqti-type-calendar](https://ocaml.org/p/caqti-type-calendar/latest) and
-[caqti-dynload](https://ocaml.org/p/caqti-dynload/latest).)
+semi-deprecated package
+[caqti-type-calendar](https://ocaml.org/p/caqti-type-calendar/latest).)
 
 ### API Documentation for Development Snapshots
 

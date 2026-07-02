@@ -66,6 +66,8 @@
     To create the custom descriptor, first define a {!type-tag} with correct
     signature and a corresponding type-unifying equality predicate:
     {[
+      open Caqti.Shims (* provides Type.eq for compilers before OCaml 5.1 *)
+
       type (_, _) Constructor.tag +=
         Acquired_value : (
           string -> 'a -> float -> 'a acquired_value Constructor.return,

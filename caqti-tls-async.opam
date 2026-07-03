@@ -11,7 +11,7 @@ depends: [
   "async_unix" {>= "v0.11.0"}
   "caqti" {>= "3.0.0" & < "3.1.0~"}
   "caqti-async" {>= "3.0.0" & < "3.1.0~"}
-  "dune" {>= "3.9"}
+  "dune" {>= "3.23.1"}
   "ocaml"
   "tls"
   "tls-async"

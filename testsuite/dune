@@ -133,7 +133,7 @@
   caqti.plugin
   alcotest
   threads
-  mirage-crypto-rng-miou-unix
+  mirage-crypto-rng.unix
   testlib
   testlib_miou_unix
   testsuite))

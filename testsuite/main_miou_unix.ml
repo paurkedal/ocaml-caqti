@@ -53,10 +53,9 @@ let mk_tests sw {uris; connect_config} =
   let targets = List.map create_target uris in
   List.map mk_test targets
 
-let () = Miou_unix.run @@ fun () ->
-  let rng = Mirage_crypto_rng_miou_unix.(initialize (module Pfortuna)) in
-  let finally () = Mirage_crypto_rng_miou_unix.kill rng in
-  Fun.protect ~finally @@ fun () ->
+let () =
+  Mirage_crypto_rng_unix.use_default ();
+  Miou_unix.run @@ fun () ->
   Caqti_miou.Switch.run @@ fun sw ->
   Alcotest_cli.run_with_args_dependency "test_sql_miou_unix"
     (Testlib.common_args ()) (mk_tests sw)

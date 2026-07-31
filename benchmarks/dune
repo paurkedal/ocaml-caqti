@@ -63,7 +63,7 @@
     caqti-tls-miou
     miou
     miou.unix
-    mirage-crypto-rng-miou-unix
+    mirage-crypto-rng.unix
     threads))
 
 ; TODO: Can we run async under a benchamel test?

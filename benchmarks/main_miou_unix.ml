@@ -30,12 +30,10 @@ include Benchmark_all.Make (struct
 
   let run_fiber f = f ()
 
-  let run_main f =
+  let run_main fn =
+    Mirage_crypto_rng_unix.use_default ();
     Miou_unix.run @@ fun () ->
-    Caqti_miou.Switch.run @@ fun sw ->
-    let rng = Mirage_crypto_rng_miou_unix.(initialize (module Pfortuna)) in
-    let finally () = Mirage_crypto_rng_miou_unix.kill rng in
-    Fun.protect ~finally (fun () -> f sw)
+    Caqti_miou.Switch.run fn
 
   include Caqti_miou
   include Caqti_miou_unix

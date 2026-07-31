@@ -16,7 +16,7 @@ depends: [
   "alcotest" {with-test & >= "1.5.0"}
   "caqti-driver-sqlite3" {with-test}
   "cmdliner" {with-test & >= "1.1.0"}
-  "mirage-crypto-rng-miou-unix" {with-test}
+  "mirage-crypto-rng" {>= "1.2.0" & with-test}
   "odoc" {with-doc}
 ]
 build: [

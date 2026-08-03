@@ -543,7 +543,7 @@ struct
     let rec retry_on_connection_error
         ?(n = 1) (f : unit -> (_, [> Caqti.Error.call]) result Fiber.t) =
       if !in_transaction then f () else
-      (db#consume_input; f ()) >>=
+      Fiber.return (wrap_pg ~query:"" (fun () -> db#consume_input)) >>=? f >>=
       (function
        | Error (`Request_failed
             {Caqti.Error.msg = Connection_error_msg

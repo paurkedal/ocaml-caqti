@@ -1,3 +1,12 @@
+## v3.0.1 - 2026-08-13
+
+  - Fixed an unhandled exception from `#consume_input` in the PostgreSQL
+    driver, which prevented graceful pool recovery or correct error
+    reporting after connection loss.
+
+  - Added support to `mariadb.2.0.0` and later by adding conversions for new
+    64 bit integer field types.
+
 ## v3.0.0 - 2026-07-01
 
   - The `caqti` library now holds the Caqti 3 API and `caqti.classic`

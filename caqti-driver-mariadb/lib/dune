@@ -4,7 +4,7 @@
  (optional)
  (flags (:standard -alert -caqti_unstable))
  (library_flags (:standard -linkall))
- (libraries caqti caqti.platform caqti.platform.unix mariadb))
+ (libraries caqti caqti.platform caqti.platform.unix integers mariadb))
 
 (plugin
  (package caqti-driver-mariadb)

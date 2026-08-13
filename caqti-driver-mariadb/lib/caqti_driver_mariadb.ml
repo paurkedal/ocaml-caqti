@@ -119,6 +119,8 @@ struct
           (match Mdb.Field.value field with
            | `Null -> "null"
            | `Int _ -> "int"
+           | `Int64 _ -> "int64"
+           | `UInt64 _ -> "Unsigned.UInt64"
            | `Float _ -> "float"
            | `String _ -> "string"
            | `Bytes _ -> "bytes"
@@ -136,30 +138,30 @@ struct
          *   as decimal from MariaDB. *)
         let int field =
           (match Mdb.Field.value field with
-           | `Int i -> i
            | `Float x when fst (modf x) = 0.0 -> int_of_float x
            | `String s -> int_of_string s
-           | _ -> failwith "Mdb_ext.Field.int")
+           | _ -> Mdb.Field.int field)
 
         let int32 field =
           (match Mdb.Field.value field with
            | `Int i -> Int32.of_int i
+           | `Int64 i -> Int64.to_int32 i
+           | `UInt64 i -> Int64.to_int32 (Unsigned.UInt64.to_int64 i)
            | `Float x -> Int32.of_float x   (* cf. int *)
            | `String s -> Int32.of_string s (* cf. int *)
            | _ -> failwith "Mdb_ext.Field.int32")
 
         let int64 field =
           (match Mdb.Field.value field with
-           | `Int i -> Int64.of_int i
            | `Float x -> Int64.of_float x   (* cf. int *)
            | `String s -> Int64.of_string s (* cf. int *)
-           | _ -> failwith "Mdb_ext.Field.int64")
+           | _ -> Mdb.Field.int64 field)
 
         let float field =
           (match Mdb.Field.value field with
-           | `Int i -> float_of_int i
            | `Float x -> x
-           | _ -> failwith "Mdb_ext.Field.float")
+           | `String s -> float_of_string s
+           | _ -> Int64.to_float (Mdb.Field.int64 field))
 
         let string field =
           (match Mdb.Field.value field with

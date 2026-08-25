@@ -1,4 +1,12 @@
 (test
  (name main)
  (package caqti-lwt)
- (libraries alcotest alcotest-lwt caqti caqti-lwt caqti-lwt.unix testlib))
+ (libraries
+    alcotest
+    alcotest-lwt
+    caqti
+    caqti-lwt
+    caqti-lwt.unix
+    mtime
+    mtime.clock
+    testlib))

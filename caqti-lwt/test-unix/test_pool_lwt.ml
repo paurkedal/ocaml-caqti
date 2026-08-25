@@ -132,13 +132,15 @@ let test_age max_idle_age_ns _ () =
   Caqti_lwt.Switch.run @@ fun sw ->
   let max_size = 8 in
   let max_idle_size = 4 in
-  let max_idle_age = Some Mtime.Span.(max_idle_age_ns * ns) in
+  let max_idle_age = Mtime.Span.(max_idle_age_ns * ns) in
   let pool =
     let config =
-      Caqti.Pool.Config.create ~max_size ~max_idle_size ~max_idle_age ()
+      Caqti.Pool.Config.create
+        ~max_size ~max_idle_size ~max_idle_age:(Some max_idle_age) ()
     in
     Pool.create ~config ~sw ~stdenv:() Resource.create Resource.free
   in
+  let pool_age = Mtime_clock.counter () in
   let user_count = 8 in
   let join_gathering = create_gathering user_count in
   let* () =
@@ -147,8 +149,9 @@ let test_age max_idle_age_ns _ () =
       |> List.map (fun f -> Pool.use f pool >|= Result.get_ok)
       |> Lwt.join
   in
-  if max_idle_age_ns >= 1_000 then
-    Alcotest.(check int) "pool size before sleep" 4 (Pool.size pool);
+  let pool_size_before_sleep = Pool.size pool in
+  if Mtime.Span.is_shorter (Mtime_clock.count pool_age) ~than:max_idle_age then
+    Alcotest.(check int) "pool size before sleep" 4 pool_size_before_sleep;
   let+ () =
     let rec wait_while_draining timeout =
       if Pool.size pool = 0 || timeout <= 0.0 then Lwt.return_unit else

@@ -10,7 +10,7 @@ homepage: "https://github.com/paurkedal/ocaml-caqti/"
 doc: "https://paurkedal.github.io/ocaml-caqti/index.html"
 bug-reports: "https://github.com/paurkedal/ocaml-caqti/issues"
 depends: [
-  "ocaml" {>= "4.08"}
+  "ocaml"
   "caqti" {>= "3.0.0" & < "3.1.0~"}
   "domain-name"
   "dune" {>= "3.23.1"}

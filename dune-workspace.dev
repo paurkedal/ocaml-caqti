@@ -9,4 +9,3 @@
 (context (opam (switch 4.14.3-caqti)))
 (context (opam (switch 4.12.1-caqti)))
 (context (opam (switch 4.11.2-caqti)))
-(context (opam (switch 4.08.1-caqti)))

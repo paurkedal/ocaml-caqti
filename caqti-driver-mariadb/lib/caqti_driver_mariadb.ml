@@ -129,6 +129,9 @@ struct
         let bool field =
           (match Mdb.Field.value field with
            | `Int i -> i <> 0
+           | `Int64 i -> i <> 0L
+           | `UInt64 i ->
+              Unsigned.UInt64.compare i Unsigned.UInt64.zero <> 0
            | _ -> failwith "Mdb_ext.Field.float")
 
         (* Lax conversion from float and string since:
@@ -155,6 +158,10 @@ struct
           (match Mdb.Field.value field with
            | `Float x -> Int64.of_float x   (* cf. int *)
            | `String s -> Int64.of_string s (* cf. int *)
+           | `UInt64 i ->
+              let i = Unsigned.UInt64.to_int64 i in
+              if i < 0L then failwith "Mdb_ext.Field.int64: unsigned overflow"
+              else i
            | _ -> Mdb.Field.int64 field)
 
         let float field =
@@ -178,7 +185,7 @@ struct
        | Int -> `Int x
        | Int16 -> `Int x
        | Int32 -> `Int (Int32.to_int x)
-       | Int64 -> `Int (Int64.to_int x)
+       | Int64 -> `Int64 x
        | Float -> `Float x
        | String -> `String x
        | Enum _ -> `String x

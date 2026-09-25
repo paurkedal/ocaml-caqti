@@ -44,6 +44,14 @@ module Q = struct
     "SELECT ? + ?"
   let select_plus_int64 = static T.(t2 int64 int64 -->! int64)
     "SELECT ? + ?"
+  let select_int64_identity = static T.(int64 -->! int64) "SELECT ?"
+  let select_mysql_integer_bools = static T.(unit -->! t4 bool bool bool bool)
+    "SELECT CAST(0 AS SIGNED), CAST(-1 AS SIGNED), \
+     CAST(0 AS UNSIGNED), CAST(18446744073709551615 AS UNSIGNED)"
+  let select_mysql_transaction_state = static T.(unit -->! t2 bool int)
+    "SELECT @@in_transaction, @@in_transaction"
+  let select_mysql_unsigned_int64 = static T.(string -->! int64)
+    "SELECT CAST(? AS UNSIGNED)"
   let select_plus_float = static T.(t2 float float -->! float)
     "SELECT ? + ?"
   let select_cat = static_gen T.(t2 string string -->! string) @@ function
@@ -276,6 +284,39 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       Alcotest.(check string) "third quote" s2 s2';
       Alcotest.(check string) "only $1 occurrence" (string_of_int i) si'
     )
+
+  let test_mysql_integer_variants (module Db : CONNECTION) =
+    match Db.dialect with
+    | Caqti.Template.Dialect.Mysql _ ->
+       Db.find Q.select_mysql_integer_bools () >>= or_fail
+         >>= fun (s0, s1, u0, u1) ->
+       Alcotest.(check (list bool)) "signed and unsigned boolean fields"
+         [false; true; false; true] [s0; s1; u0; u1];
+       Db.find Q.select_mysql_transaction_state () >>= or_fail
+         >>= fun (active, raw) ->
+       Alcotest.(check bool) "transaction flag" (raw <> 0) active;
+       let rec roundtrip = function
+        | [] -> Fiber.return ()
+        | value :: rest ->
+           Db.find Q.select_int64_identity value >>= or_fail >>= fun actual ->
+           Alcotest.(check int64) "full-width parameter" value actual;
+           roundtrip rest
+       in
+       roundtrip [Int64.min_int; Int64.max_int; -1L; 0L; 1L;
+                  4611686018427387904L] >>= fun () ->
+       let rec unsigned = function
+        | [] -> Fiber.return ()
+        | value :: rest ->
+           Db.find Q.select_mysql_unsigned_int64 (Int64.to_string value)
+             >>= or_fail >>= fun actual ->
+           Alcotest.(check int64) "unsigned result fitting int64" value actual;
+           unsigned rest
+       in
+       unsigned [0L; 1L; 4611686018427387904L; Int64.max_int] >>= fun () ->
+       Db.find Q.select_mysql_unsigned_int64 "18446744073709551615" >>= (function
+        | Error _ -> Fiber.return ()
+        | Ok _ -> Alcotest.fail "unsigned int64 overflow must not wrap")
+    | _ -> Fiber.return ()
 
   let test_expr_and_decode (module Db : CONNECTION) =
     let maybe_deallocate q =
@@ -751,6 +792,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "expand", `Quick, test_expand;
     "params_and_quotes", `Quick, test_params_and_quotes;
     "expr_and_decode", `Quick, test_expr_and_decode;
+    "mysql_integer_variants", `Quick, test_mysql_integer_variants;
     "enum", `Quick, test_enum;
     "table", `Quick, test_table;
     "tuples", `Quick, test_tuples;

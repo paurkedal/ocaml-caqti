@@ -19,7 +19,10 @@ jobs:
       - checkout
       - run:
           name: Update opam repository
-          command: opam update
+          command: |
+            # The image's default repository points to a stale local snapshot.
+            opam repository set-url default https://opam.ocaml.org -y
+            opam update
       - run:
           name: Pin packages
           command: |

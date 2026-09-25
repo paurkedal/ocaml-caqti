@@ -18,6 +18,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Update opam repository
+          command: opam update
+      - run:
           name: Pin packages
           command: |
             version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`

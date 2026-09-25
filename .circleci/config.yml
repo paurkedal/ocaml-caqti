@@ -25,7 +25,8 @@ jobs:
               # FIXME: Restore when packages becomes available.
               if [ "$f" != caqti-driver-mariadb.opam ]; then
                 echo >>.ci-tmp-packages "${f%.opam}"
-                opam pin add -yn "${f%.opam}.${version}.dev" .
+                # CircleCI uses a blobless checkout; a git pin cannot fetch from it.
+                opam pin add -yn --kind=path "${f%.opam}.${version}.dev" .
               fi
             done
       - run:

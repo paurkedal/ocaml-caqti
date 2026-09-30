@@ -191,6 +191,11 @@ module Q = struct
      | D.Pgsql _ | D.Sqlite _ -> "SELECT ?"
      | D.Mysql _ -> "SELECT CAST(? AS double)"
      | _ -> failwith "Unimplemented"
+  let change_setting =
+    direct_gen T.(unit -->. unit) @@ function
+     | D.Mysql _ -> Q.lit "SET SESSION character_set_database = 'utf8'"
+     | D.Pgsql _ -> Q.lit "SET SESSION client_encoding = 'UTF8'"
+     | _ -> failwith "Unimplemented"
 end
 
 module Make (Ground : Testlib.Sig.Ground) = struct
@@ -785,6 +790,11 @@ module Make (Ground : Testlib.Sig.Ground) = struct
       check_with_policy "dynamic" insert_req_dynamic >>= fun () ->
       check_with_policy "direct" insert_req_direct
 
+  let test_change_setting (module Db : CONNECTION) =
+    (match Db.dialect with
+     | Caqti.Template.Dialect.Sqlite _ -> Alcotest.skip ()
+     | _ -> Db.exec Q.change_setting () >>= or_fail)
+
   let test_drain pool = Pool.drain pool
 
   let connection_test_cases = [
@@ -803,6 +813,7 @@ module Make (Ground : Testlib.Sig.Ground) = struct
     "dynamic_release", `Slow, test_dynamic_release;
     "nilrequest", `Quick, test_nilrequest;
     "multirequest", `Quick, test_multirequest;
+    "change_setting", `Quick, test_change_setting;
   ]
   let pool_test_cases = [
     "drain", `Quick, test_drain;

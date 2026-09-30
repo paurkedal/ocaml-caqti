@@ -475,6 +475,19 @@ struct
         let orphans, commit = Pcache.trim pcache in
         loop orphans >|=? commit
 
+      let execute_direct qts =
+        let qts = List.map (Query.expand ~final:true subst) qts in
+        let qs = List.map (Request_utils.linear_query_string ~annotate) qts in
+        let+? () =
+          iter_rs_list
+            (fun query ->
+              (Mdb.exec db query >|= function
+               | Ok _ -> Ok ()
+               | Error err -> request_failed ~query err))
+            qs
+        in
+        String.concat "; " qs
+
       let prepare_single qt =
         let qt = Query.expand ~final:true subst qt in
         let query = Request_utils.linear_query_string ~annotate qt in
@@ -553,6 +566,17 @@ struct
         in
         (match Request.prepare_policy req with
          | Direct ->
+            let param_type = Request.param_type req in
+            let row_mult = Request.row_mult req in
+            (* If there are no parameters or result rows, then we can use
+             * non-prepared execution. *)
+            if Row_type.length param_type = 0 && Row_mult.is_zero row_mult then
+              let row_type = Request.row_type req in
+              let qts = Request.queries req dialect in
+              let*? query = execute_direct qts in
+              f Response.{query; res = None; row_type}
+            else
+            (* Otherwise, use a temporarily prepared statement. *)
             let qts = Request.queries req dialect in
             let*? pqs = map_rs_list prepare_single qts in
             Fiber.finally

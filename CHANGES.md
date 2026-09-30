@@ -1,11 +1,18 @@
 ## unreleased
 
   - Optimized decoding of integer result fields (#145 by Albert Peschar).
+
   - The MariaDB driver now allows conversion from 64 bit integers to boolean
     to allow conversion of flags like `@@in_transaction` (#143 by Albert
     Peschar).
+
   - Fixed timing issue in Lwt pool test which occasionally caused test
     failures in CI containers.
+
+  - The MariaDB driver no longer uses prepared statements for direct request
+    templates which have no parameters or result rows.  This avoids
+    limitations of the protocol for older MariaDB server versions (#42
+    reported by joseferben).
 
 ## v3.0.1 - 2026-08-13
 

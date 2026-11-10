@@ -111,6 +111,8 @@ module type S = sig
     ('a -> ('b, 'e) result fiber) -> ('a, 'e) t -> ('b, 'e) result fiber
   (** [use f pool] calls [f] on a resource drawn from [pool], handing back the
       resource to the pool when [f] exits.
+      The resource passed to [f] must not be closed by [f] but will be reset and
+      resued if possible.
       The result returned by [f] is not used by Caqti, but allows flattening
       errors into a single polymorphic variant type.
 

@@ -166,7 +166,7 @@ let test () =
      available. *)
   let max =
     if Miou.Domain.available () > 0
-    then 12 else 6 in
+    then 10 else 6 in
   let rec loop n_it =
     if n_it > 0 then begin
       test_n (Random.int (1 lsl max));

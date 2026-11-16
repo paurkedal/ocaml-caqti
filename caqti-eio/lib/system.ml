@@ -71,6 +71,7 @@ type stdenv = <
 module Switch = struct
   include Eio.Switch
   let run f = run f (* avoids compatibilty issues due to optional arguments *)
+  let remove_hook h = remove_hook h (* avoids compatibilty issues due to optional arguments *)
 end
 
 (* TODO: Log error. *)
